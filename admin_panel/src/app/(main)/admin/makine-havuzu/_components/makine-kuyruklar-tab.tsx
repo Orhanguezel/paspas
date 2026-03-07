@@ -250,7 +250,7 @@ export default function MakineKuyrukTab({ t }: MakineKuyrukTabProps) {
   const [sirala] = useKuyrukSiralaAdminMutation();
 
   // Local state for optimistic updates per machine
-  const [localKuyruklar, setLocalKuyruklar] = useState<typeof kuyruklar>([]);
+  const [localKuyruklar, setLocalKuyruklar] = useState<NonNullable<typeof kuyruklar>>([]);
 
   // Sync backend data to local state
   useState(() => {
