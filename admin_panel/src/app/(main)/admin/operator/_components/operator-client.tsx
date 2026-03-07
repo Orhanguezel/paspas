@@ -386,7 +386,7 @@ function VardiyaPanel() {
   const [vardiyaSonu, { isLoading: isEnding }] = useVardiyaSonuAdminMutation();
 
   const [makineId, setMakineId] = useState("");
-  const [vardiyaTipi, setVardiyaTipi] = useState("gunduz");
+  const [vardiyaTipi, setVardiyaTipi] = useState<"gunduz" | "gece">("gunduz");
   const [notlar, setNotlar] = useState("");
 
   const makineler = (makineData?.items ?? []).filter((makine) => makine.isActive && makine.durum === "aktif");
