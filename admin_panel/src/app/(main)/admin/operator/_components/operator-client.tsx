@@ -471,7 +471,7 @@ function VardiyaPanel() {
 
           <div className="space-y-1">
             <Label>{t("admin.erp.operator.shiftType")}</Label>
-            <Select value={vardiyaTipi} onValueChange={setVardiyaTipi}>
+            <Select value={vardiyaTipi} onValueChange={(v) => setVardiyaTipi(v as "gunduz" | "gece")}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
