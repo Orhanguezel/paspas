@@ -214,7 +214,7 @@ export default function AdminDashboardClient() {
   const todayMovements = useListHareketlerAdminQuery({ period: 'today', limit: 200 });
   const recentMovements = useListHareketlerAdminQuery({ period: 'week', limit: 6 });
   const criticalStocks = useListStoklarAdminQuery({ kritikOnly: true, sort: 'kritik_stok', order: 'desc' });
-  const allStocks = useListStoklarAdminQuery();
+  const allStocks = useListStoklarAdminQuery({});
   const gorevler = useListGorevlerAdminQuery({ limit: 6, gecikenOnly: false });
   const myTasks = useListGorevlerAdminQuery({ limit: 6, sadeceBenim: true });
   const unassignedOperations = useListAtanmamisAdminQuery();
