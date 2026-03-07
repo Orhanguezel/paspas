@@ -1,0 +1,25 @@
+export type IsYukuDto = {
+  kuyrukId: string;
+  makineId: string;
+  makineKod: string;
+  makineAd: string;
+  uretimEmriId: string;
+  emirNo: string;
+  urunKod: string | null;
+  urunAd: string | null;
+  operasyonAdi: string | null;
+  musteriAd: string | null;
+  sira: number;
+  planlananSureDk: number;
+  hazirlikSuresiDk: number;
+  planlananMiktar: number;
+  uretilenMiktar: number;
+  fireMiktar: number;
+  montaj: boolean;
+  terminTarihi: string | null;
+  planlananBaslangic: string | null;
+  planlananBitis: string | null;
+  durum: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+};

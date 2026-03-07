@@ -1,0 +1,7 @@
+node_modules/
+dist/
+uploads/
+
+# local env overrides (machine-specific)
+.env.local
+.env.*.local

@@ -1,0 +1,48 @@
+#;MODÜL;TARAF;GÖREV DETAYI;DURUM;NOTLAR;ÖNCELİK
+FAZ 0;PLANLAMA VE STANDARTLAR;Her İkisi;SEO ve performans hedef KPI tanımı (LCP, INP, CLS, CWV dashboard);☐;Skill: frontend-prime-nextjs "Design before code" + kalite barı;Yüksek
+FAZ 0;PLANLAMA VE STANDARTLAR;Frontend;Module pattern kararı: feature.schema.ts / feature.service.ts / feature.type.ts;☐;Tüm yeni frontend modüllerinde zorunlu;Yüksek
+FAZ 0;PLANLAMA VE STANDARTLAR;Frontend;TypeScript strict kuralları (no any, exactOptionalPropertyTypes vb.);☐;ESLint/TS kural setine bağlanacak;Yüksek
+FAZ 0;PLANLAMA VE STANDARTLAR;Backend;API sözleşmesi: paginated list, filter, sort, error envelope standardı;☐;Frontend data-layer stabilitesi için;Yüksek
+FAZ 1;ALTYAPI;Backend;Auth + RBAC sertleştirme (admin, sevkiyatçı, operatör, satın almacı);☐;Permission matrix dökümanı ile;Yüksek
+FAZ 1;ALTYAPI;Backend;Audit log genişletme (entity timeline + before/after payload hash);☐;Admin denetlenebilirlik;Yüksek
+FAZ 1;ALTYAPI;Backend;Rate limit + cache headers + ETag/Last-Modified stratejisi;☐;SEO crawl verimliliği ve API performansı;Yüksek
+FAZ 1;ALTYAPI;Backend;OpenAPI/Swagger güncelleme (gerçek request/response şemaları);☐;Frontend otomasyon ve test kolaylığı;Orta
+FAZ 2;ADMIN PANEL;Frontend;Modal standardizasyonu Sheet pattern;⏳;UX consistency + mobile;Yüksek
+FAZ 2;ADMIN PANEL;Frontend;Liste ekranları: server-side pagination/filter/sort standardı;☐;Tüm ERP modülleri için aynı tablo davranışı;Yüksek
+FAZ 2;ADMIN PANEL;Frontend;Zustand store standardı: selectors + persist + computed;☐;Performans için rerender minimizasyonu;Orta
+FAZ 2;ADMIN PANEL;Frontend;Form standardı: RHF + Zod + field-level hata mesajları;☐;Skill 11 uyumu;Yüksek
+FAZ 2;ADMIN PANEL;Her İkisi;Eksik ERP modülleri: raporlama, bildirim, global arama, export;☐;İş önceliğine göre sprintlere bölünecek;Yüksek
+FAZ 3;PUBLIC NEXTJS SİTE;Frontend;Yeni web app kurulumu (Next.js App Router + standalone output);☐;VPS Node+Nginx hedefi;Yüksek
+FAZ 3;PUBLIC NEXTJS SİTE;Frontend;Tasarım sistemi: intentional UI, tipografi, renk tokenları, spacing scale;☐;AI-slop blacklist kuralları uygulanacak;Yüksek
+FAZ 3;PUBLIC NEXTJS SİTE;Frontend;Core sayfalar: anasayfa, ürün liste, ürün detay, kurumsal, iletişim;☐;Promats mevcut IA + iyileştirme;Yüksek
+FAZ 3;PUBLIC B2B MODÜLLER;Frontend;E-katalog merkezi (PDF + dijital katalog viewer + kategori filtre);☐;UTM takipli indirme;Yüksek
+FAZ 3;PUBLIC B2B MODÜLLER;Her İkisi;Teklif/RFQ modülü (çoklu ürün satırı, dosya ekleme, gönderim takibi);☐;Lead kalitesi için zorunlu alanlar;Yüksek
+FAZ 3;PUBLIC B2B MODÜLLER;Frontend;Testimonial + müşteri başarı hikayeleri (case study);☐;B2B güven artırıcı;Orta
+FAZ 3;PUBLIC B2B MODÜLLER;Frontend;Referanslar sayfası (marka/logo/segment/ülke filtreli);☐;Kurumsal satış desteği;Yüksek
+FAZ 3;PUBLIC B2B MODÜLLER;Her İkisi;Bayi/Distribütör ağı haritası + bayi başvuru formu;☐;Saha genişleme için kritik;Yüksek
+FAZ 3;PUBLIC B2B MODÜLLER;Her İkisi;Numune talep modülü (sample request workflow);☐;Satış öncesi süreç;Orta
+FAZ 3;PUBLIC B2B MODÜLLER;Frontend;Teknik doküman merkezi (TDS/MSDS/montaj kılavuzu/sertifikalar);☐;PDF versiyonlama gerekir;Yüksek
+FAZ 3;PUBLIC B2B MODÜLLER;Frontend;Kurumsal indirme merkezi (logo, katalog, brand guideline);☐;Pazarlama iş birliği için;Orta
+FAZ 3;PUBLIC B2B MODÜLLER;Frontend;Kalite ve üretim kapasitesi sayfaları (ISO, test, üretim hatları);☐;İhale/kurumsal güven;Yüksek
+FAZ 3;PUBLIC B2B MODÜLLER;Frontend;Sektörel çözümler landingleri (OEM, filo, bayi, e-ticaret);☐;Programatik SEO sayfaları;Yüksek
+FAZ 3;PUBLIC B2B MODÜLLER;Her İkisi;Fiyat-listesi talep akışı (yetkili kullanıcıya gated içerik);☐;B2B lead capture;Orta
+FAZ 3;PUBLIC B2B MODÜLLER;Her İkisi;CRM entegrasyonu (form -> webhook -> satış pipeline);☐;Lead kaybını önler;Yüksek
+FAZ 3;PUBLIC B2B MODÜLLER;Frontend;Çok dilli içerik yönetimi (TR/EN) + locale bazlı içerik blokları;☐;İhracat odaklı;Yüksek
+FAZ 3;PUBLIC NEXTJS SİTE;Her İkisi;CMS/Panel entegrasyonu: site_settings + ürün + içerik veri akışı;☐;Tek kaynak backend olacak;Yüksek
+FAZ 4;SEO;Frontend;Metadata API tam uygulama (title, desc, canonical, alternates/hreflang);☐;Locale bazlı üretim;Yüksek
+FAZ 4;SEO;Frontend;Sitemap index + robots + dynamic sitemaps (ürün, kategori, referans, vaka);☐;Arama motoru kapsaması;Yüksek
+FAZ 4;SEO;Frontend;JSON-LD: Organization, WebSite, Product, BreadcrumbList, FAQ, Article;☐;Rich result hedefi;Yüksek
+FAZ 4;SEO;Backend;SEO endpointleri için cache ve invalidation mekanizması;☐;Panel değişince hızlı yansıma;Orta
+FAZ 4;SEO;Frontend;B2B conversion SEO: teklif, bayi başvuru, katalog landing optimizasyonu;☐;Intent bazlı sayfa şablonları;Yüksek
+FAZ 5;PERFORMANS;Frontend;Image pipeline: next/image, AVIF/WebP, responsive sizes;☐;LCP optimizasyonu;Yüksek
+FAZ 5;PERFORMANS;Frontend;Route bazlı rendering stratejisi (SSR/ISR/Static kararı);☐;İçerik tipine göre;Yüksek
+FAZ 5;PERFORMANS;Backend;DB index denetimi + sorgu optimizasyonu + N+1 önleme;☐;API p95 hedefi;Yüksek
+FAZ 5;PERFORMANS;Her İkisi;CWV ölçümleme ve bütçe: LCP<2.5s, INP<200ms, CLS<0.1;☐;CI raporu + canlı izleme;Yüksek
+FAZ 5;PERFORMANS;Frontend;Form performansı: progressive validation + async submit states;☐;B2B lead formlarında drop-off azaltma;Orta
+FAZ 6;GÜVENLİK VE KALİTE;Frontend;CSP, XSS/CSRF koruma checklist uygulaması;☐;Skill 14 uyumu;Yüksek
+FAZ 6;GÜVENLİK VE KALİTE;Backend;Input validation + authz negative testleri;☐;Kritik endpoint güvenliği;Yüksek
+FAZ 6;GÜVENLİK VE KALİTE;Her İkisi;Test stratejisi: Vitest unit + RTL integration + Playwright E2E smoke;☐;Skill 9 uyumu;Yüksek
+FAZ 6;GÜVENLİK VE KALİTE;Her İkisi;Lead formları için anti-spam (honeypot + rate-limit + recaptcha opsiyonel);☐;Spam maliyetini düşürür;Orta
+FAZ 7;DEVOPS;Backend;Node + Nginx + PM2 deployment pipeline;☐;Staging/Prod ayrımı;Yüksek
+FAZ 7;DEVOPS;Her İkisi;Log/monitoring: structured logs, error tracking, uptime checks;☐;Incident response için;Orta
+FAZ 7;DEVOPS;Her İkisi;Release checklist ve rollback prosedürü;☐;Cutover güvenliği;Yüksek

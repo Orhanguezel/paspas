@@ -1,0 +1,105 @@
+import { z } from 'zod';
+
+const sortEnum = z.enum(['ad', 'kod', 'created_at', 'stok', 'kritik_stok']);
+const orderEnum = z.enum(['asc', 'desc']);
+
+const isActiveQuerySchema = z.preprocess((value) => {
+  if (value === 'true' || value === '1') return true;
+  if (value === 'false' || value === '0') return false;
+  return value;
+}, z.boolean());
+
+export const listQuerySchema = z.object({
+  q: z.string().trim().min(1).optional(),
+  kategori: z.enum(['urun', 'yarimamul', 'hammadde']).optional(),
+  tedarikTipi: z.enum(['uretim', 'satin_alma', 'fason']).optional(),
+  isActive: isActiveQuerySchema.optional(),
+  limit: z.coerce.number().int().min(1).max(500).default(100),
+  offset: z.coerce.number().int().min(0).default(0),
+  sort: sortEnum.default('created_at'),
+  order: orderEnum.default('desc'),
+});
+
+const operasyonMakineSchema = z.object({
+  makineId: z.string().trim().min(1).max(36),
+  oncelikSira: z.coerce.number().int().min(1).default(1),
+});
+
+const operasyonItemSchema = z.object({
+  operasyonAdi: z.string().trim().min(1).max(255),
+  sira: z.coerce.number().int().min(1).default(1),
+  kalipId: z.string().trim().max(36).optional(),
+  hazirlikSuresiDk: z.coerce.number().int().min(0).default(60),
+  cevrimSuresiSn: z.coerce.number().min(0).default(45),
+  montaj: z.boolean().default(false),
+  makineler: z.array(operasyonMakineSchema).optional(),
+});
+
+const birimDonusumItemSchema = z.object({
+  hedefBirim: z.string().trim().min(1).max(32),
+  carpan: z.coerce.number().min(0.0001),
+});
+
+const optionalUrl = z.preprocess(
+  (v) => (v == null || (typeof v === 'string' && v.trim() === '') ? undefined : v),
+  z.string().trim().max(1024).optional(),
+);
+
+const optionalUuid = z.preprocess(
+  (v) => (v == null || (typeof v === 'string' && v.trim() === '') ? undefined : v),
+  z.string().min(1).optional(),
+);
+
+const optionalTrimmedStr = (max: number) =>
+  z.preprocess(
+    (v) => (v == null || (typeof v === 'string' && v.trim() === '') ? undefined : v),
+    z.string().trim().max(max).optional(),
+  );
+
+export const createSchema = z.object({
+  kategori: z.enum(['urun', 'yarimamul', 'hammadde']).default('urun'),
+  tedarikTipi: z.enum(['uretim', 'satin_alma', 'fason']).default('uretim'),
+  kod: z.string().trim().min(1).max(64),
+  ad: z.string().trim().min(1).max(255),
+  aciklama: z.string().trim().max(500).optional(),
+  birim: z.string().trim().min(1).max(16).default('kg'),
+  renk: z.string().trim().max(64).optional(),
+  imageUrl: optionalUrl,
+  storageAssetId: optionalUuid,
+  imageAlt: optionalTrimmedStr(255),
+  stok: z.coerce.number().min(0).default(0),
+  kritikStok: z.coerce.number().min(0).default(0),
+  birimFiyat: z.coerce.number().min(0).optional(),
+  kdvOrani: z.coerce.number().min(0).max(100).default(20),
+  operasyonTipi: z.enum(['tek_tarafli', 'cift_tarafli']).default('tek_tarafli'),
+  isActive: z.boolean().optional(),
+  operasyonlar: z.array(operasyonItemSchema).optional(),
+  birimDonusumleri: z.array(birimDonusumItemSchema).optional(),
+});
+
+export const patchSchema = createSchema.partial().refine(
+  (value) => Object.keys(value).length > 0,
+  { message: 'en_az_bir_alan_gonderilmeli' },
+);
+
+export const operasyonPatchSchema = z.object({
+  operasyonAdi: z.string().trim().min(1).max(255).optional(),
+  sira: z.coerce.number().int().min(1).optional(),
+  kalipId: z.string().trim().max(36).nullable().optional(),
+  hazirlikSuresiDk: z.coerce.number().int().min(0).optional(),
+  cevrimSuresiSn: z.coerce.number().min(0).optional(),
+  montaj: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+  makineler: z.array(operasyonMakineSchema).optional(),
+}).refine(
+  (value) => Object.keys(value).length > 0,
+  { message: 'en_az_bir_alan_gonderilmeli' },
+);
+
+export type ListQuery = z.infer<typeof listQuerySchema>;
+export type CreateBody = z.infer<typeof createSchema>;
+export type PatchBody = z.infer<typeof patchSchema>;
+export type OperasyonItem = z.infer<typeof operasyonItemSchema>;
+export type BirimDonusumItem = z.infer<typeof birimDonusumItemSchema>;
+export type OperasyonPatchBody = z.infer<typeof operasyonPatchSchema>;
+export type OperasyonMakineItem = z.infer<typeof operasyonMakineSchema>;

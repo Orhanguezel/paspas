@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS `admin_audit_logs` (
+  `id` CHAR(36) NOT NULL,
+  `actor_user_id` CHAR(36) NULL,
+  `actor_email` VARCHAR(191) NULL,
+  `actor_role` VARCHAR(64) NULL,
+  `action` VARCHAR(128) NOT NULL,
+  `resource` VARCHAR(128) NULL,
+  `resource_id` CHAR(36) NULL,
+  `method` VARCHAR(8) NOT NULL,
+  `path` VARCHAR(255) NOT NULL,
+  `route` VARCHAR(255) NULL,
+  `status_code` INT UNSIGNED NOT NULL,
+  `request_id` VARCHAR(64) NULL,
+  `ip` VARCHAR(64) NULL,
+  `user_agent` VARCHAR(255) NULL,
+  `payload` JSON NULL,
+  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  KEY `idx_admin_audit_created_at` (`created_at`),
+  KEY `idx_admin_audit_actor_user_id` (`actor_user_id`),
+  KEY `idx_admin_audit_action` (`action`),
+  KEY `idx_admin_audit_status_code` (`status_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
