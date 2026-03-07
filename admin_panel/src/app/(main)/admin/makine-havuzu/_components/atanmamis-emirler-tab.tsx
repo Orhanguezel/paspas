@@ -20,7 +20,7 @@ interface AtanmamisEmirlerTabProps {
 }
 
 export default function AtanmamisEmirlerTab({ t }: AtanmamisEmirlerTabProps) {
-  const { data: items, isLoading } = useListAtanmamisAdminQuery({});
+  const { data: items, isLoading } = useListAtanmamisAdminQuery();
   const [atamaTarget, setAtamaTarget] = useState<AtanmamisOperasyonDto | null>(null);
 
   if (isLoading) {

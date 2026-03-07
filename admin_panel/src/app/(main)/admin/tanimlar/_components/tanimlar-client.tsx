@@ -115,9 +115,9 @@ export default function TanimlarClient() {
 
   const { data: kaliplar, isLoading: kalipLoading, refetch: refetchKalip } = useListKaliplarAdminQuery({});
   const { data: makineData, isLoading: makineLoading } = useListMakinelerAdminQuery({});
-  const { data: tatiller, isLoading: tatilLoading, refetch: refetchTatil } = useListTatillerAdminQuery({});
-  const { data: vardiyalar, isLoading: vardiyaLoading, refetch: refetchVardiya } = useListVardiyalarAdminQuery({});
-  const { data: durusNedenleri, isLoading: durusLoading, refetch: refetchDurus } = useListDurusNedenleriAdminQuery({});
+  const { data: tatiller, isLoading: tatilLoading, refetch: refetchTatil } = useListTatillerAdminQuery();
+  const { data: vardiyalar, isLoading: vardiyaLoading, refetch: refetchVardiya } = useListVardiyalarAdminQuery();
+  const { data: durusNedenleri, isLoading: durusLoading, refetch: refetchDurus } = useListDurusNedenleriAdminQuery();
   const [doDeleteKalip, deleteKalipState] = useDeleteKalipAdminMutation();
   const [setUyumluMakineler, setUyumluMakinelerState] = useSetUyumluMakinelerAdminMutation();
   const [doDeleteTatil, deleteTatilState] = useDeleteTatilAdminMutation();

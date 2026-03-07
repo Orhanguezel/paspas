@@ -79,7 +79,7 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
   const loading = createState.isLoading || updateState.isLoading;
 
   const { data: urunlerData } = useListUrunlerAdminQuery({ limit: 500 });
-  const { data: adaylar = [] } = useListUretimEmriAdaylariAdminQuery({});
+  const { data: adaylar = [] } = useListUretimEmriAdaylariAdminQuery();
   const { data: nextNoData } = useGetNextEmirNoAdminQuery(undefined, { skip: isEdit });
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<FormValues>({
