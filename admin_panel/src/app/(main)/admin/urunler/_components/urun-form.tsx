@@ -112,7 +112,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   const [update, updateState] = useUpdateUrunAdminMutation();
   const busy = createState.isLoading || updateState.isLoading;
 
-  const { data: kalipData } = useListKaliplarAdminQuery();
+  const { data: kalipData } = useListKaliplarAdminQuery({});
   const { data: categoryData } = useListCategoriesAdminQuery({ limit: 50, sort: "display_order", order: "asc" });
   const kaliplar = kalipData?.items ?? [];
   const categories = (categoryData ?? []) as CategoryDto[];

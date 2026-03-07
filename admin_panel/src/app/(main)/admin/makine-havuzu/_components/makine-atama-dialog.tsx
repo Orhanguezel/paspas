@@ -30,7 +30,7 @@ interface MakineAtamaDialogProps {
 }
 
 export default function MakineAtamaDialog({ operasyon, onClose, t }: MakineAtamaDialogProps) {
-  const { data: makineData } = useListMakinelerAdminQuery();
+  const { data: makineData } = useListMakinelerAdminQuery({});
   const { data: uyumluMakineIds } = useListUyumluMakinelerAdminQuery(operasyon?.kalipId ?? "", {
     skip: !operasyon?.kalipId,
   });

@@ -67,7 +67,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
   const siparisDetail = isEdit ? detailData : null;
 
   const { data: musterilerData } = useListMusterilerAdminQuery({ tur: "musteri" });
-  const { data: urunlerData } = useListUrunlerAdminQuery();
+  const { data: urunlerData } = useListUrunlerAdminQuery({});
   const { data: nextNoData } = useGetNextSiparisNoAdminQuery(undefined, { skip: isEdit });
 
   const musteriler = musterilerData?.items ?? [];

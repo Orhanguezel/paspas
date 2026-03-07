@@ -47,7 +47,7 @@ interface Props {
 export default function MakineForm({ open, onClose, makine }: Props) {
   const { t } = useLocaleContext();
   const isEdit = !!makine;
-  const { data: kalipData } = useListKaliplarAdminQuery();
+  const { data: kalipData } = useListKaliplarAdminQuery({});
   const kaliplar = kalipData?.items ?? [];
   const [create, createState] = useCreateMakineAdminMutation();
   const [update, updateState] = useUpdateMakineAdminMutation();

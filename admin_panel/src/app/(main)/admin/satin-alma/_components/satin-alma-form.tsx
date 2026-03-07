@@ -51,7 +51,7 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
   const loading = createState.isLoading || updateState.isLoading;
 
   const { data: nextNoData } = useGetNextSiparisNoQuery(undefined, { skip: isEdit || !open });
-  const { data: tedarikciData } = useListTedarikciAdminQuery();
+  const { data: tedarikciData } = useListTedarikciAdminQuery({});
   const tedarikciler = tedarikciData?.items ?? [];
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<FormValues>({

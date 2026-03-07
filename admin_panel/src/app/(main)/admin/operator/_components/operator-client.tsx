@@ -87,7 +87,7 @@ export default function OperatorClient() {
 
 function MakineKuyruguTab() {
   const { t } = useLocaleContext();
-  const { data, isLoading, isFetching, refetch } = useListMakineKuyruguAdminQuery();
+  const { data, isLoading, isFetching, refetch } = useListMakineKuyruguAdminQuery({});
   const [baslat] = useUretimBaslatAdminMutation();
   const [bitir] = useUretimBitirAdminMutation();
   const [duraklat] = useDuraklatAdminMutation();

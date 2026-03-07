@@ -31,7 +31,7 @@ export default function OperasyonMakineSecici({
   disabled,
   tForm,
 }: OperasyonMakineSeciciProps) {
-  const { data: allMakineData } = useListMakinelerAdminQuery();
+  const { data: allMakineData } = useListMakinelerAdminQuery({});
   const { data: uyumluIds } = useListUyumluMakinelerAdminQuery(kalipId!, { skip: !kalipId });
 
   const allMakineler = allMakineData?.items ?? [];

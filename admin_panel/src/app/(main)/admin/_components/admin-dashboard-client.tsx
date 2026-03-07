@@ -217,7 +217,7 @@ export default function AdminDashboardClient() {
   const allStocks = useListStoklarAdminQuery({});
   const gorevler = useListGorevlerAdminQuery({ limit: 6, gecikenOnly: false });
   const myTasks = useListGorevlerAdminQuery({ limit: 6, sadeceBenim: true });
-  const unassignedOperations = useListAtanmamisAdminQuery();
+  const unassignedOperations = useListAtanmamisAdminQuery({});
   const gunlukGirisler = useListGunlukGirislerAdminQuery({ limit: 200 });
 
   const isLoading =

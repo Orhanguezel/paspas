@@ -105,7 +105,7 @@ export default function GanttClient() {
   }), [baslangic, bitis, q, durumFilter, makineIdFilter]);
 
   const { data, isLoading, isFetching, refetch } = useListGanttAdminQuery(queryParams);
-  const { data: makinelerData } = useListMakinelerAdminQuery();
+  const { data: makinelerData } = useListMakinelerAdminQuery({});
   const items = data?.items ?? [];
   const makineler = makinelerData?.items ?? [];
 

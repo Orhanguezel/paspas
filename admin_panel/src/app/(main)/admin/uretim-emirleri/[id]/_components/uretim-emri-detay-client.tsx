@@ -42,7 +42,7 @@ export default function UretimEmriDetayClient({ id }: Props) {
   const [durumChanging, setChanging] = useState(false);
 
   const { data: emri, isLoading, refetch } = useGetUretimEmriAdminQuery(id);
-  const { data: isYukleri } = useListIsYukleriAdminQuery();
+  const { data: isYukleri } = useListIsYukleriAdminQuery({});
   const [updateEmri] = useUpdateUretimEmriAdminMutation();
 
   const makineMapped = (isYukleri?.items ?? []).filter((y) => y.uretimEmriId === id);

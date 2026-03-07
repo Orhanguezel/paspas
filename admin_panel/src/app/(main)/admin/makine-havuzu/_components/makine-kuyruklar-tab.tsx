@@ -245,7 +245,7 @@ function KuyrukItem({
 }
 
 export default function MakineKuyrukTab({ t }: MakineKuyrukTabProps) {
-  const { data: kuyruklar, isLoading } = useListKuyrukAdminQuery();
+  const { data: kuyruklar, isLoading } = useListKuyrukAdminQuery({});
   const [cikar, cikarState] = useKuyrukCikarAdminMutation();
   const [sirala] = useKuyrukSiralaAdminMutation();
 

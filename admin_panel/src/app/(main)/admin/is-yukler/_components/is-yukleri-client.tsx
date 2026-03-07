@@ -251,7 +251,7 @@ export default function IsYukleriClient() {
   const params = makineId !== "hepsi" ? { makineId } : undefined;
 
   const { data, isLoading, isFetching, refetch } = useListIsYukleriAdminQuery(params);
-  const { data: makineler } = useListMakinelerAdminQuery();
+  const { data: makineler } = useListMakinelerAdminQuery({});
   const [updateIsYuku, updateState] = useUpdateIsYukuAdminMutation();
   const [deleteIsYuku, deleteState] = useDeleteIsYukuAdminMutation();
 
