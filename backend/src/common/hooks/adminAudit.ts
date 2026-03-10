@@ -25,6 +25,19 @@ type JwtLikeUser = {
   roles?: string[];
 };
 
+function extractClientIp(req: FastifyRequest): string | null {
+  const xff = req.headers['x-forwarded-for'];
+  if (typeof xff === 'string' && xff.trim()) {
+    const forwardedIp = xff.split(',')[0]?.trim();
+    if (forwardedIp) return forwardedIp;
+  }
+  if (Array.isArray(xff) && xff.length > 0) {
+    const forwardedIp = String(xff[0] ?? '').split(',')[0]?.trim();
+    if (forwardedIp) return forwardedIp;
+  }
+  return req.ip ?? null;
+}
+
 function shouldAudit(req: FastifyRequest): boolean {
   if (!AUDIT_METHODS.has(req.method.toUpperCase())) return false;
   return req.url.startsWith('/api/admin');
@@ -103,7 +116,7 @@ export function registerAdminAuditHook(app: FastifyInstance): void {
         route: routePattern,
         status_code: reply.statusCode,
         request_id: req.id ?? null,
-        ip: req.ip ?? null,
+        ip: extractClientIp(req),
         user_agent: typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : null,
         payload: sanitizeValue({
           params: req.params ?? null,

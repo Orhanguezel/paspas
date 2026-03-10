@@ -1,6 +1,6 @@
 # Paspas ERP — V1 Durum Raporu
 
-> **Tarih:** 2026-03-09
+> **Tarih:** 2026-03-10
 > **Referans:** `URETIM_PLANLAMA_V1.md`, `Rev 1.docx` (musteri geri bildirimi)
 > **Amac:** Her modulun V1 planina gore mevcut durumunu, musteri Rev1 taleplerini ve eksik islemleri kayit altina almak.
 > **Not:** V1 kapsami disina tasinan maddeler [V2_DURUM_RAPORU.md](V2_DURUM_RAPORU.md) dosyasina alinmistir.
@@ -14,16 +14,16 @@
 | -- | ------------------ | ------- | -------- | -------- | ----------------------------------------------- |
 | 1  | Urunler (+ Recete) | ✅ Tam  | ✅ Tam   | %100     | ✅ 7/7 Rev1 + metadata refactor tamamlandi      |
 | 2  | Musteriler         | ✅ Tam  | ✅ Tam   | %100     | ✅ Tedarikci ile birlestirildi                  |
-| 3  | Satis Siparisleri  | ✅ Tam  | ✅ Tam   | %100     | ✅ 8/8 Rev1 tamamlandi                          |
+| 3  | Satis Siparisleri  | ✅ Tam  | ✅ Tam   | %100     | ✅ 8/8 Rev1 + ozet kartlar + fiyat fix          |
 | 4  | Uretim Emirleri    | ✅ Tam  | ✅ Tam   | %100     | ✅ 7/7 Rev1 tamamlandi                          |
 | 5  | Makine Havuzu      | ✅ Tam  | ✅ Tam   | %100     | ✅ 5/5 Rev1 + 2 bug tamamlandi                  |
-| 6  | Makine Is Yukleri  | ✅ Tam  | ✅ Tam   | %100     | ✅ 3/3 Rev1 tamamlandi                          |
+| 6  | Makine Is Yukleri  | ✅ Tam  | ✅ Tam   | %100     | ✅ 3/3 Rev1 + Son Bitis kutusu eklendi          |
 | 7  | Gantt              | ✅ Tam  | ✅ Tam   | %100     | ✅ 2/2 Rev1 tamamlandi                          |
 | 8  | Stoklar            | ✅ Tam  | ✅ Tam   | %100     | ✅ Musteri onayladi                             |
 | 9  | Satin Alma         | ✅ Tam  | ✅ Tam   | %100     | 🔧 Eksiklikler tespit edildi                    |
 | 10 | Hareketler         | ✅ Tam  | ✅ Tam   | %100     | ✅ Musteri onayladi                             |
-| 11 | Operator           | ✅ Tam  | ✅ Tam   | %100     | ✅ Vardiya fix yapildi                          |
-| 12 | Tanimlar           | ✅ Tam  | ✅ Tam   | %100     | ✅ 4/4 Rev1 tamamlandi                          |
+| 11 | Operator           | ✅ Tam  | ✅ Tam   | %100     | ✅ Vardiya fix + 500 hata + stok artisi fix     |
+| 12 | Tanimlar           | ✅ Tam  | ✅ Tam   | %100     | ✅ 4/4 Rev1 + hafta sonu plan fix               |
 | 13 | Tedarikci          | ✅ Tam  | ✅ Tam   | %100     | ✅ Musteri ile birlestirildi                    |
 | 14 | Sevkiyat (YENİ)   | ✅ Tam  | ✅ Tam   | %100     | ✅ Tum Rev1 tamamlandi                          |
 | 15 | Dashboard          | ✅ Tam  | ✅ Tam   | %100     | Musteri incelemedi henuz                       |
@@ -39,9 +39,21 @@
 
 ---
 
-## 0. Son Guncelleme Notlari (2026-03-09)
+## 0. Son Guncelleme Notlari (2026-03-10)
 
-Bu rapor, Rev1 kapanisina ek olarak ayni gun icinde yapilan asagidaki teknik duzeltmeleri de yansitir:
+### 2026-03-10 Duzeltme ve Iyilestirmeler
+
+- [X] ✅ **Operator 500 hatalari duzeltildi** — `POST /operator/baslat` ve `/operator/bitir` endpoint'lerinde Error nesneleri bos `{}` olarak loglaniyordu; `extractError` helper ile duzgun `msg+stack` cikartma eklendi. Bilinen hatalar (404 kuyruk_kaydi_bulunamadi, 409 zaten_baslatilmis) icin dogru HTTP kodlari donuyor
+- [X] ✅ **Uretim tamamlaninca stok artisi eklendi** — `repoUretimBitir` icinde tum operasyonlar bittiginde mamul stok otomatik artiyor + `hareketler` tablosuna `giris/uretim` kaydi ekleniyor (transaction icinde)
+- [X] ✅ **Siparis durum hesaplama bug'i duzeltildi** — `refreshSiparisDurum` fonksiyonu uretim tamamlansa bile `uretimde` gosteriyordu; `anyUretimActive` vs `allUretimDone` ayrimi ile duzeltildi
+- [X] ✅ **Sevkiyat bekleyenler filtresi genisletildi** — `planlandi` durumundaki siparisler de artik sevkiyat bekleyen listesinde gorunuyor
+- [X] ✅ **Satis Siparisleri ozet kartlari eklendi** — liste sayfasina 6 ozet kart (Toplam, Uretimde, Uretim Bitti, Sevk Bekleyen, Kismen Sevk, Termin Riski) eklendi; turuncu/kirmizi highlight'lar ile dikkat cekici
+- [X] ✅ **Birim fiyat indirimsiz olarak kaydediliyor** — siparis formunda urun secildiginde artik baz fiyat (iskontosuz) geliyor; iskonto sadece toplam hesaplamasinda ayrica gosteriliyor
+- [X] ✅ **Makine Is Yukleri "Son Bitis" kutusu eklendi** — her makinenin ozet alanina 4. kutu olarak son isin planlanan bitis tarihi (tarih uste, saat alta) eklendi
+- [X] ✅ **Urun formu reset sorunu duzeltildi** — yeni urun kaydettikten sonra form alanlari ve draft state'ler (recete, medya, cover) sifirlanmiyor, ikinci urunde eski bilgiler kaliyordu; artik reset + refetchNextCode calisiyor
+- [X] ✅ **Hafta sonu plani validation hatasi duzeltildi** — frontend `aciklama: null` gonderiyordu ama backend `z.string().optional()` null kabul etmiyordu; frontend `undefined`, backend `.nullable()` ile duzeltildi
+
+### 2026-03-09 Duzeltmeler
 
 - [X] ✅ **ERP firma karti genisletildi** — `company_profile` icine resmi unvan, vergi bilgileri, MERSIS, ticaret sicil, merkez/fabrika adresleri, finans/sevkiyat iletisim alanlari eklendi
 - [X] ✅ **Admin header / sidebar firma bilgisine baglandi** — ust marka alani, alt bilgi alani ve footer artik `site_settings` uzerinden dinamik

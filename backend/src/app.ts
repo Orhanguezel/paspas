@@ -102,6 +102,7 @@ export async function createApp() {
   const app = buildFastify({
     logger: buildLoggerOptions(),
     disableRequestLogging: true,
+    trustProxy: true,
     ...buildRequestLoggerConfig(),
   }) as FastifyInstance;
 
