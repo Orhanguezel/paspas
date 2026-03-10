@@ -299,7 +299,7 @@ export async function repoGetHaftaSonuPlanById(id: string): Promise<(HaftaSonuPl
     })
     .from(haftaSonuPlanlari)
     .leftJoin(makineler, eq(haftaSonuPlanlari.makine_id, makineler.id))
-    .where(sql`date(${haftaSonuPlanlari.hafta_baslangic}) = ${tarih}`)
+    .where(sql`${haftaSonuPlanlari.hafta_baslangic} = ${tarih}`)
     .orderBy(asc(makineler.ad));
 
   const row = rows[0];
@@ -318,7 +318,7 @@ export async function repoCreateHaftaSonuPlan(body: CreateHaftaSonuPlanBody, use
   const isSaturday = new Date(`${body.haftaBaslangic}T12:00:00Z`).getUTCDay() === 6;
 
   await db.transaction(async (tx) => {
-    await tx.execute(sql`delete from hafta_sonu_planlari where date(${haftaSonuPlanlari.hafta_baslangic}) = ${hedefTarihStr}`);
+    await tx.execute(sql`delete from hafta_sonu_planlari where ${haftaSonuPlanlari.hafta_baslangic} = ${hedefTarihStr}`);
     await tx.insert(haftaSonuPlanlari).values(
       body.makineIds.map((makineId) => ({
         id: randomUUID(),
@@ -335,7 +335,7 @@ export async function repoCreateHaftaSonuPlan(body: CreateHaftaSonuPlanBody, use
   const [inserted] = await db
     .select({ id: haftaSonuPlanlari.id })
     .from(haftaSonuPlanlari)
-    .where(sql`date(${haftaSonuPlanlari.hafta_baslangic}) = ${hedefTarihStr}`)
+    .where(sql`${haftaSonuPlanlari.hafta_baslangic} = ${hedefTarihStr}`)
     .limit(1);
   const row = inserted ? await repoGetHaftaSonuPlanById(inserted.id) : null;
   if (!row) throw new Error('insert_failed');
@@ -356,7 +356,7 @@ export async function repoUpdateHaftaSonuPlan(id: string, body: PatchHaftaSonuPl
   const isSaturday = new Date(`${hedefTarihStr}T12:00:00Z`).getUTCDay() === 6;
 
   await db.transaction(async (tx) => {
-    await tx.execute(sql`delete from hafta_sonu_planlari where date(${haftaSonuPlanlari.hafta_baslangic}) = ${eskiTarih}`);
+    await tx.execute(sql`delete from hafta_sonu_planlari where ${haftaSonuPlanlari.hafta_baslangic} = ${eskiTarih}`);
     await tx.insert(haftaSonuPlanlari).values(
       makineIds.map((makineId) => ({
         id: randomUUID(),
@@ -373,7 +373,7 @@ export async function repoUpdateHaftaSonuPlan(id: string, body: PatchHaftaSonuPl
   const [updated] = await db
     .select({ id: haftaSonuPlanlari.id })
     .from(haftaSonuPlanlari)
-    .where(sql`date(${haftaSonuPlanlari.hafta_baslangic}) = ${hedefTarihStr}`)
+    .where(sql`${haftaSonuPlanlari.hafta_baslangic} = ${hedefTarihStr}`)
     .limit(1);
   return updated ? repoGetHaftaSonuPlanById(updated.id) : null;
 }
@@ -381,11 +381,11 @@ export async function repoUpdateHaftaSonuPlan(id: string, body: PatchHaftaSonuPl
 export async function repoDeleteHaftaSonuPlan(id: string): Promise<boolean> {
   const current = await repoGetHaftaSonuPlanById(id);
   if (!current) return false;
-  await db.execute(sql`delete from hafta_sonu_planlari where date(${haftaSonuPlanlari.hafta_baslangic}) = ${toDateOnly(current.hafta_baslangic)}`);
+  await db.execute(sql`delete from hafta_sonu_planlari where ${haftaSonuPlanlari.hafta_baslangic} = ${toDateOnly(current.hafta_baslangic)}`);
   const [remaining] = await db
     .select({ id: haftaSonuPlanlari.id })
     .from(haftaSonuPlanlari)
-    .where(sql`date(${haftaSonuPlanlari.hafta_baslangic}) = ${toDateOnly(current.hafta_baslangic)}`)
+    .where(sql`${haftaSonuPlanlari.hafta_baslangic} = ${toDateOnly(current.hafta_baslangic)}`)
     .limit(1);
   return !remaining;
 }
@@ -404,7 +404,7 @@ export async function repoGetHaftaSonuPlanByDate(
   const rows = await db
     .select({ makine_id: haftaSonuPlanlari.makine_id })
     .from(haftaSonuPlanlari)
-    .where(sql`date(${haftaSonuPlanlari.hafta_baslangic}) = ${tarihStr}`)
+    .where(sql`${haftaSonuPlanlari.hafta_baslangic} = ${tarihStr}`)
     .limit(200);
 
   if (rows.length === 0) return null;
