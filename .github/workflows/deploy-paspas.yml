@@ -1,8 +1,5 @@
 name: Deploy Paspas
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 on:
   push:
     branches:
@@ -22,27 +19,29 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        run: |
+          git clone --depth 1 --branch "$GITHUB_REF_NAME" "https://github.com/$GITHUB_REPOSITORY.git" repo
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.7
+      - name: Install Bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
 
       - name: Build backend
-        working-directory: backend
+        working-directory: repo/backend
         run: |
           bun install --frozen-lockfile
           bun run build
 
       - name: Build admin panel
-        working-directory: admin_panel
+        working-directory: repo/admin_panel
         run: |
           bun install --frozen-lockfile
           bun run build
 
       - name: Package deployment artifact
+        working-directory: repo
         run: |
           tar -czf /tmp/paspas-deploy.tar.gz \
             README.md \
@@ -50,15 +49,19 @@ jobs:
             admin_panel/.next \
             admin_panel/public
 
-      - name: Start SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.GZL_WEB_SSH_KEY }}
+      - name: Configure SSH
+        env:
+          GZL_WEB_SSH_KEY: ${{ secrets.GZL_WEB_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$GZL_WEB_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
 
       - name: Upload artifact to gzl-web
         run: |
-          scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/paspas-deploy.tar.gz orhan@72.61.93.212:/var/www/paspas/.deploy/paspas-deploy.tar.gz
+          scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/paspas-deploy.tar.gz orhan@72.61.93.212:/var/www/paspas/.deploy/paspas-deploy.tar.gz
 
       - name: Deploy artifact on gzl-web
         run: |
-          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null orhan@72.61.93.212 '/home/orhan/bin/deploy-paspas-artifact /var/www/paspas/.deploy/paspas-deploy.tar.gz'
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null orhan@72.61.93.212 '/home/orhan/bin/deploy-paspas-artifact /var/www/paspas/.deploy/paspas-deploy.tar.gz'
