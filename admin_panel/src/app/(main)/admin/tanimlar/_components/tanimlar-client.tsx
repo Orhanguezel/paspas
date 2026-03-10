@@ -218,7 +218,7 @@ export default function TanimlarClient() {
     if (!deleteHaftaSonu) return;
     try {
       await doDeleteHaftaSonu(deleteHaftaSonu.id).unwrap();
-      toast.success(t("admin.erp.common.deleted"));
+      toast.success(t("admin.erp.tanimlar.haftaSonuPlanlari.deleted"));
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err) ?? t("admin.erp.common.deleteFailed"));
     } finally {
@@ -702,7 +702,9 @@ export default function TanimlarClient() {
                         <Badge variant="secondary">
                           {p.gunTipi === "cumartesi"
                             ? t("admin.erp.tanimlar.haftaSonuPlanlari.dayType.cumartesi")
-                            : t("admin.erp.tanimlar.haftaSonuPlanlari.dayType.pazar")}
+                            : p.gunTipi === "pazar"
+                              ? t("admin.erp.tanimlar.haftaSonuPlanlari.dayType.pazar")
+                              : t("admin.erp.tanimlar.haftaSonuPlanlari.dayType.unknown")}
                         </Badge>
                       </TableCell>
                       <TableCell>

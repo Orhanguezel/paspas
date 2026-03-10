@@ -5787,6 +5787,7 @@
           "editItem": "Planı Düzenle",
           "notFound": "Hafta sonu planı bulunamadı",
           "deleteTitle": "Planı sil?",
+          "deleted": "Hafta sonu planı silindi.",
           "allMachines": "Tüm Makineler",
           "works": "Çalışır",
           "off": "Kapalı",
@@ -5800,7 +5801,8 @@
           },
           "dayType": {
             "cumartesi": "Cumartesi",
-            "pazar": "Pazar"
+            "pazar": "Pazar",
+            "unknown": "Geçersiz"
           },
           "noMachine": "Makine seçilmedi",
           "form": {

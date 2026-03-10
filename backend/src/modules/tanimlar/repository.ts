@@ -16,6 +16,11 @@ function toDbDate(value: Date | string): Date {
   return new Date(`${toDateOnly(value)}T12:00:00.000Z`);
 }
 
+function isWeekendDate(value: Date | string): boolean {
+  const gun = new Date(`${toDateOnly(value)}T12:00:00Z`).getUTCDay();
+  return gun === 0 || gun === 6;
+}
+
 export async function repoListMakineler() {
   return db.select().from(makineler).orderBy(desc(makineler.created_at));
 }
@@ -245,6 +250,7 @@ export async function repoListHaftaSonuPlanlari(): Promise<Array<HaftaSonuPlanRo
   const grouped = new Map<string, HaftaSonuPlanDtoRow & { makine_ad?: string }>();
 
   for (const row of rows as (HaftaSonuPlanRow & { makine_ad?: string })[]) {
+    if (!isWeekendDate(row.hafta_baslangic)) continue;
     const tarih = toDateOnly(row.hafta_baslangic);
     const current = grouped.get(tarih);
 
