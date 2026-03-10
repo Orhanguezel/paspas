@@ -372,8 +372,9 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
     }
   }, [nextCodeData, isEdit, form]);
 
-  // Reset form when urun changes
+  // Reset form when sheet opens or urun changes
   useEffect(() => {
+    if (!open) return;
     prevOpTipiRef.current = null;
     prevKategoriRef.current = null;
     setActiveTab("bilgiler");
@@ -434,7 +435,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
         birimDonusumleri: [],
       });
     }
-  }, [urun, categories, form.reset]);
+  }, [open, urun, categories, form.reset]);
 
   async function onSubmit(values: FormValues) {
     const coverUrl = draftCoverUrl || draftMediaUrls[0];
