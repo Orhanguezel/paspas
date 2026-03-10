@@ -135,9 +135,10 @@ export async function repoListBekleyenler(q: BekleyenlerQuery): Promise<{ items:
   ), 0)`;
 
   const conditions: SQL[] = [
-    // Sadece aktif siparişler (iptal/tamamlandi hariç)
+    // Sadece aktif siparişler (iptal/tamamlandi/kapali hariç)
     or(
       eq(satisSiparisleri.durum, 'taslak'),
+      eq(satisSiparisleri.durum, 'planlandi'),
       eq(satisSiparisleri.durum, 'onaylandi'),
       eq(satisSiparisleri.durum, 'uretimde'),
       eq(satisSiparisleri.durum, 'kismen_sevk'),

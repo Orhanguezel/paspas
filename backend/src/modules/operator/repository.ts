@@ -474,6 +474,34 @@ export async function repoUretimBitir(
             bitis_tarihi: now,
           })
           .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id));
+
+        // Üretim tamamlandı — mamul stok artır + hareket kaydı oluştur
+        const netMiktar = body.uretilenMiktar - body.fireMiktar;
+        if (netMiktar > 0) {
+          const [emirRow] = await tx
+            .select({ urun_id: uretimEmirleri.urun_id })
+            .from(uretimEmirleri)
+            .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id))
+            .limit(1);
+
+          if (emirRow?.urun_id) {
+            await tx
+              .update(urunler)
+              .set({ stok: sql`${urunler.stok} + ${netMiktar.toFixed(4)}` })
+              .where(eq(urunler.id, emirRow.urun_id));
+
+            await tx.insert(hareketler).values({
+              id: randomUUID(),
+              urun_id: emirRow.urun_id,
+              hareket_tipi: 'giris',
+              referans_tipi: 'uretim',
+              referans_id: kqRow.uretim_emri_id,
+              miktar: netMiktar.toFixed(4),
+              aciklama: `Üretim tamamlandı (emir: ${kqRow.uretim_emri_id})`,
+              created_by_user_id: operatorUserId ?? null,
+            });
+          }
+        }
       } else {
         // Partially update emir uretilen
         await tx

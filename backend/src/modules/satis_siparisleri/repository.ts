@@ -348,27 +348,35 @@ export async function refreshSiparisDurum(siparisId: string): Promise<void> {
   const o = ozet.get(siparisId);
   if (!o) return;
 
-  // Check if any linked üretim emri is actively in 'uretimde' state
-  const [uretimdeRow] = await db
-    .select({ count: sql<number>`count(*)` })
+  // Count linked üretim emirleri by state
+  const uretimCounts = await db
+    .select({
+      durum: uretimEmirleri.durum,
+      count: sql<number>`count(distinct ${uretimEmirleri.id})`,
+    })
     .from(uretimEmriSiparisKalemleri)
     .innerJoin(siparisKalemleri, eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemleri.id))
     .innerJoin(uretimEmirleri, eq(uretimEmriSiparisKalemleri.uretim_emri_id, uretimEmirleri.id))
-    .where(
-      and(
-        eq(siparisKalemleri.siparis_id, siparisId),
-        inArray(uretimEmirleri.durum, ['uretimde', 'tamamlandi']),
-      ),
-    );
-  const anyUretimStarted = Number(uretimdeRow?.count ?? 0) > 0;
+    .where(eq(siparisKalemleri.siparis_id, siparisId))
+    .groupBy(uretimEmirleri.durum);
 
-  // Priority: sevkiyat > üretim > planlama
+  const countByDurum = new Map(uretimCounts.map((r) => [r.durum, Number(r.count)]));
+  const totalLinked = Array.from(countByDurum.values()).reduce((a, b) => a + b, 0);
+  const tamamlandiCount = countByDurum.get('tamamlandi') ?? 0;
+  const uretimdeCount = countByDurum.get('uretimde') ?? 0;
+  const allUretimDone = totalLinked > 0 && tamamlandiCount === totalLinked;
+  const anyUretimActive = uretimdeCount > 0;
+
+  // Priority: sevk tamamlandi > kismen sevk > üretimde > üretim bitti (sevk bekliyor) > planlandi
   let yeniDurum: string | null = null;
   if (o.toplamMiktar > 0 && o.sevkEdilenMiktar >= o.toplamMiktar) {
     yeniDurum = 'tamamlandi';
   } else if (o.sevkEdilenMiktar > 0) {
     yeniDurum = 'kismen_sevk';
-  } else if (o.uretimTamamlananMiktar > 0 || anyUretimStarted) {
+  } else if (anyUretimActive) {
+    yeniDurum = 'uretimde';
+  } else if (allUretimDone) {
+    // Tüm üretim emirleri tamamlandı, sevk bekliyor
     yeniDurum = 'uretimde';
   } else if (o.uretimeAktarilanKalemSayisi > 0) {
     yeniDurum = 'planlandi';
