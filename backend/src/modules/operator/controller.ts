@@ -35,6 +35,12 @@ function sendError(reply: FastifyReply, code: number, message: string) {
   return reply.code(code).send({ error: { message } });
 }
 
+function extractError(error: unknown): { msg: string; stack?: string } {
+  const msg = error instanceof Error ? error.message : String(error);
+  const stack = error instanceof Error ? error.stack : undefined;
+  return { msg, stack };
+}
+
 // -- Makine Kuyrugu --
 
 export const listMakineKuyrugu: RouteHandler = async (req, reply) => {
@@ -45,7 +51,8 @@ export const listMakineKuyrugu: RouteHandler = async (req, reply) => {
     reply.header('x-total-count', String(total));
     return items;
   } catch (error) {
-    req.log.error({ error }, 'list_makine_kuyrugu_failed');
+    const { msg, stack } = extractError(error);
+    req.log.error({ error: msg, stack }, 'list_makine_kuyrugu_failed');
     return sendError(reply, 500, 'sunucu_hatasi');
   }
 };
@@ -59,8 +66,11 @@ export const uretimBaslat: RouteHandler = async (req, reply) => {
     const result = await repoUretimBaslat(parsed.data, getOperatorUserId(req));
     return result;
   } catch (error) {
-    req.log.error({ error }, 'uretim_baslat_failed');
-    return sendError(reply, 500, 'sunucu_hatasi');
+    const { msg, stack } = extractError(error);
+    req.log.error({ error: msg, stack }, 'uretim_baslat_failed');
+    if (msg === 'kuyruk_kaydi_bulunamadi') return sendError(reply, 404, 'kuyruk_kaydi_bulunamadi');
+    if (msg === 'kuyruk_zaten_baslatilmis') return sendError(reply, 409, 'kuyruk_zaten_baslatilmis');
+    return sendError(reply, 500, msg || 'sunucu_hatasi');
   }
 };
 
@@ -73,11 +83,10 @@ export const uretimBitir: RouteHandler = async (req, reply) => {
     const result = await repoUretimBitir(parsed.data, getOperatorUserId(req));
     return result;
   } catch (error) {
-    const errMsg = error instanceof Error ? error.message : String(error);
-    const errStack = error instanceof Error ? error.stack : undefined;
-    req.log.error({ error: errMsg, stack: errStack }, 'uretim_bitir_failed');
-    if (errMsg === 'kuyruk_kaydi_bulunamadi') return sendError(reply, 404, 'kuyruk_kaydi_bulunamadi');
-    return sendError(reply, 500, errMsg || 'sunucu_hatasi');
+    const { msg, stack } = extractError(error);
+    req.log.error({ error: msg, stack }, 'uretim_bitir_failed');
+    if (msg === 'kuyruk_kaydi_bulunamadi') return sendError(reply, 404, 'kuyruk_kaydi_bulunamadi');
+    return sendError(reply, 500, msg || 'sunucu_hatasi');
   }
 };
 
@@ -90,8 +99,9 @@ export const duraklat: RouteHandler = async (req, reply) => {
     const result = await repoDuraklat(parsed.data, getOperatorUserId(req));
     return result;
   } catch (error) {
-    req.log.error({ error }, 'duraklat_failed');
-    return sendError(reply, 500, 'sunucu_hatasi');
+    const { msg, stack } = extractError(error);
+    req.log.error({ error: msg, stack }, 'duraklat_failed');
+    return sendError(reply, 500, msg || 'sunucu_hatasi');
   }
 };
 
@@ -104,8 +114,9 @@ export const devamEt: RouteHandler = async (req, reply) => {
     const result = await repoDevamEt(parsed.data, getOperatorUserId(req));
     return result;
   } catch (error) {
-    req.log.error({ error }, 'devam_et_failed');
-    return sendError(reply, 500, 'sunucu_hatasi');
+    const { msg, stack } = extractError(error);
+    req.log.error({ error: msg, stack }, 'devam_et_failed');
+    return sendError(reply, 500, msg || 'sunucu_hatasi');
   }
 };
 
@@ -118,16 +129,11 @@ export const vardiyaBasi: RouteHandler = async (req, reply) => {
     const result = await repoVardiyaBasi(parsed.data, getOperatorUserId(req));
     return reply.code(201).send(result);
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message === 'vardiya_saati_gecersiz') {
-        return sendError(reply, 409, 'vardiya_saati_gecersiz');
-      }
-      if (error.message === 'acik_vardiya_zaten_var') {
-        return sendError(reply, 409, 'acik_vardiya_zaten_var');
-      }
-    }
-    req.log.error({ error }, 'vardiya_basi_failed');
-    return sendError(reply, 500, 'sunucu_hatasi');
+    const { msg, stack } = extractError(error);
+    if (msg === 'vardiya_saati_gecersiz') return sendError(reply, 409, 'vardiya_saati_gecersiz');
+    if (msg === 'acik_vardiya_zaten_var') return sendError(reply, 409, 'acik_vardiya_zaten_var');
+    req.log.error({ error: msg, stack }, 'vardiya_basi_failed');
+    return sendError(reply, 500, msg || 'sunucu_hatasi');
   }
 };
 
@@ -141,8 +147,9 @@ export const vardiyaSonu: RouteHandler = async (req, reply) => {
     if (!result) return sendError(reply, 404, 'acik_vardiya_bulunamadi');
     return result;
   } catch (error) {
-    req.log.error({ error }, 'vardiya_sonu_failed');
-    return sendError(reply, 500, 'sunucu_hatasi');
+    const { msg, stack } = extractError(error);
+    req.log.error({ error: msg, stack }, 'vardiya_sonu_failed');
+    return sendError(reply, 500, msg || 'sunucu_hatasi');
   }
 };
 
@@ -155,8 +162,9 @@ export const sevkiyatOlustur: RouteHandler = async (req, reply) => {
     const result = await repoSevkiyatOlustur(parsed.data, getOperatorUserId(req));
     return reply.code(201).send(result);
   } catch (error) {
-    req.log.error({ error }, 'sevkiyat_olustur_failed');
-    return sendError(reply, 500, 'sunucu_hatasi');
+    const { msg, stack } = extractError(error);
+    req.log.error({ error: msg, stack }, 'sevkiyat_olustur_failed');
+    return sendError(reply, 500, msg || 'sunucu_hatasi');
   }
 };
 
@@ -169,8 +177,9 @@ export const malKabul: RouteHandler = async (req, reply) => {
     const result = await repoMalKabul(parsed.data, getOperatorUserId(req));
     return reply.code(201).send(result);
   } catch (error) {
-    req.log.error({ error }, 'mal_kabul_failed');
-    return sendError(reply, 500, 'sunucu_hatasi');
+    const { msg, stack } = extractError(error);
+    req.log.error({ error: msg, stack }, 'mal_kabul_failed');
+    return sendError(reply, 500, msg || 'sunucu_hatasi');
   }
 };
 
@@ -184,7 +193,8 @@ export const listGunlukGirisler: RouteHandler = async (req, reply) => {
     reply.header('x-total-count', String(total));
     return items;
   } catch (error) {
-    req.log.error({ error }, 'list_gunluk_girisler_failed');
+    const { msg, stack } = extractError(error);
+    req.log.error({ error: msg, stack }, 'list_gunluk_girisler_failed');
     return sendError(reply, 500, 'sunucu_hatasi');
   }
 };
@@ -198,7 +208,8 @@ export const listDuruslar: RouteHandler = async (req, reply) => {
     reply.header('x-total-count', String(total));
     return items;
   } catch (error) {
-    req.log.error({ error }, 'list_duruslar_failed');
+    const { msg, stack } = extractError(error);
+    req.log.error({ error: msg, stack }, 'list_duruslar_failed');
     return sendError(reply, 500, 'sunucu_hatasi');
   }
 };
