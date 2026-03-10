@@ -17,11 +17,9 @@ import { useLocaleContext } from '@/i18n/LocaleProvider';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
 import {
   Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet';
@@ -75,7 +73,7 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
   const [update, updateState] = useUpdateUretimEmriAdminMutation();
   const loading = createState.isLoading || updateState.isLoading;
 
-  const { data: urunlerData } = useListUrunlerAdminQuery({ limit: 500 });
+  const { data: urunlerData } = useListUrunlerAdminQuery({ limit: 1000, kategori: 'urun' });
   const { data: adaylar = [] } = useListUretimEmriAdaylariAdminQuery();
   const { data: nextNoData } = useGetNextEmirNoAdminQuery(undefined, { skip: isEdit });
 
@@ -87,6 +85,14 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
   const selectedUrunId = watch('urunId');
 
   const urunler = urunlerData?.items ?? [];
+  const urunOptions = useMemo(
+    () =>
+      urunler.map((urun) => ({
+        value: urun.id,
+        label: `${urun.ad}${urun.kod ? ` (${urun.kod})` : ''}`,
+      })),
+    [urunler],
+  );
   const grouped = useMemo(() => groupByUrun(adaylar), [adaylar]);
 
   // Derive form values from selected kalemleri
@@ -392,21 +398,15 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
             {/* Ürün seçimi */}
             <div className="space-y-1">
               <Label>{t('admin.erp.uretimEmirleri.form.urunId')} *</Label>
-              <Select
+              <Combobox
+                options={urunOptions}
                 value={selectedUrunId || 'none'}
                 onValueChange={(v) => setValue('urunId', v === 'none' ? '' : v, { shouldDirty: true, shouldValidate: true })}
                 disabled={kaynakTipi === 'siparis' && selectedAdaylar.length > 0}
-              >
-                <SelectTrigger><SelectValue placeholder={t('admin.erp.uretimEmirleri.form.urunPlaceholder')} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t('admin.erp.uretimEmirleri.form.urunPlaceholder')}</SelectItem>
-                  {urunler.map((urun) => (
-                    <SelectItem key={urun.id} value={urun.id}>
-                      {urun.ad} {urun.kod ? `(${urun.kod})` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder={t('admin.erp.uretimEmirleri.form.urunPlaceholder')}
+                searchPlaceholder={t('admin.erp.uretimEmirleri.form.urunPlaceholder')}
+                emptyText={t('admin.erp.common.noData')}
+              />
               {errors.urunId && <p className="text-destructive text-xs">{errors.urunId.message}</p>}
             </div>
 

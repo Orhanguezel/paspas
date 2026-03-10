@@ -1045,6 +1045,4 @@ ALTER TABLE `mal_kabul_kayitlari`
 | 10 | Sidebar + i18n + seed data                                  | Mal Kabul            | ⏳    |
 
 
-
-
-:8078/api/admin/uretim-emirleri:1  Failed to load resource: the server responded with a status of 400 (Bad Request)
+ürün de operasyon tap i var. burda eger ürün cift tarafli ise yani isag sol 
