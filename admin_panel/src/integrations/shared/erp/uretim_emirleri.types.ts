@@ -3,7 +3,7 @@
 // Paspas ERP — Üretim Emirleri DTO & normalizers
 // =============================================================
 
-export type UretimEmriDurum = "planlandi" | "hazirlaniyor" | "uretimde" | "tamamlandi" | "iptal";
+export type UretimEmriDurum = "atanmamis" | "planlandi" | "uretimde" | "tamamlandi" | "iptal";
 
 export interface UretimEmriDto {
   id: string;
@@ -69,16 +69,16 @@ export interface UretimEmriAdayDto {
 }
 
 export const EMIR_DURUM_LABELS: Record<UretimEmriDurum, string> = {
+  atanmamis: "Atanmamış",
   planlandi: "Planlandı",
-  hazirlaniyor: "Hazırlanıyor",
   uretimde: "Üretimde",
   tamamlandi: "Tamamlandı",
   iptal: "İptal",
 };
 
 export const EMIR_DURUM_BADGE: Record<UretimEmriDurum, "default" | "secondary" | "destructive" | "outline"> = {
+  atanmamis: "secondary",
   planlandi: "outline",
-  hazirlaniyor: "secondary",
   uretimde: "default",
   tamamlandi: "default",
   iptal: "destructive",
@@ -130,7 +130,7 @@ export function normalizeUretimEmri(raw: unknown): UretimEmriDto {
     makineAtamaSayisi: toNum(r.makineAtamaSayisi, 0),
     silinebilir: toBool(r.silinebilir, true),
     silmeNedeni: r.silmeNedeni != null ? toStr(r.silmeNedeni) : null,
-    durum: toStr(r.durum, "planlandi") as UretimEmriDurum,
+    durum: toStr(r.durum, "atanmamis") as UretimEmriDurum,
     isActive: toBool(r.isActive),
     createdAt: toStr(r.createdAt),
     updatedAt: toStr(r.updatedAt),

@@ -9,11 +9,15 @@ export type AdminNavKey =
   | 'dashboard'
   | 'urunler'
   | 'musteriler'
+  | 'is_ortaklari'
   | 'makineler'
   | 'kaliplar'
   | 'tatil_gunleri'
   | 'vardiyalar'
   | 'durus_nedenleri'
+  | 'hafta_sonu_planlari'
+  | 'calisma_planlari'
+  | 'uretim_tanimlari'
   | 'satis_siparisleri'
   | 'uretim_emirleri'
   | 'makine_havuzu'
@@ -30,6 +34,9 @@ export type AdminNavKey =
   | 'audit_logs'
   | 'site_settings'
   | 'tedarikci'
+  | 'kategoriler'
+  | 'sevkiyat'
+  | 'mal_kabul'
   | 'storage'
   | 'db_admin';
 
@@ -38,7 +45,7 @@ export const ROLE_HOME: Record<PanelRole, string> = {
   admin:        '/admin/dashboard',
   operator:     '/admin/operator',
   satin_almaci: '/admin/satin-alma',
-  nakliyeci:    '/admin/satis-siparisleri',
+  nakliyeci:    '/admin/sevkiyat',
 };
 
 // Modül → izin verilen roller
@@ -46,11 +53,15 @@ const NAV_ROLES: Record<AdminNavKey, PanelRole[]> = {
   dashboard:         ['admin'],
   urunler:           ['admin'],
   musteriler:        ['admin'],
+  is_ortaklari:      ['admin', 'satin_almaci'],
   makineler:         ['admin'],
   kaliplar:          ['admin'],
   tatil_gunleri:     ['admin'],
   vardiyalar:        ['admin'],
   durus_nedenleri:   ['admin'],
+  hafta_sonu_planlari: ['admin'],
+  calisma_planlari: ['admin'],
+  uretim_tanimlari: ['admin'],
   satis_siparisleri: ['admin', 'nakliyeci'],
   uretim_emirleri:   ['admin'],
   makine_havuzu:     ['admin'],
@@ -58,6 +69,7 @@ const NAV_ROLES: Record<AdminNavKey, PanelRole[]> = {
   gantt:             ['admin'],
   stoklar:           ['admin', 'satin_almaci'],
   satin_alma:        ['admin', 'satin_almaci'],
+  sevkiyat:          ['admin', 'nakliyeci'],
   hareketler:        ['admin', 'satin_almaci', 'nakliyeci'],
   gorevler:          ['admin', 'operator', 'satin_almaci', 'nakliyeci'],
   giris_ayarlari:    ['admin'],
@@ -65,8 +77,10 @@ const NAV_ROLES: Record<AdminNavKey, PanelRole[]> = {
   operator:          ['admin', 'operator'],
   tanimlar:          ['admin'],
   tedarikci:         ['admin', 'satin_almaci'],
+  kategoriler:       ['admin'],
   audit_logs:        ['admin'],
   site_settings:     ['admin'],
+  mal_kabul:         ['admin', 'satin_almaci'],
   storage:           ['admin'],
   db_admin:          ['admin'],
 };
@@ -89,8 +103,10 @@ export function canAccessAdminPath(role: PanelRole, pathname: string): boolean {
     { prefix: '/admin/gorevler',           key: 'gorevler' },
     { prefix: '/admin/giris-ayarlari',     key: 'giris_ayarlari' },
     { prefix: '/admin/users',              key: 'kullanicilar' },
-    { prefix: '/admin/tedarikci',          key: 'tedarikci' },
+    { prefix: '/admin/musteriler',         key: 'musteriler' },
     { prefix: '/admin/dashboard',          key: 'dashboard' },
+    { prefix: '/admin/sevkiyat',          key: 'sevkiyat' },
+    { prefix: '/admin/mal-kabul',         key: 'mal_kabul' },
   ];
 
   const clean = pathname.split('?')[0] ?? pathname;

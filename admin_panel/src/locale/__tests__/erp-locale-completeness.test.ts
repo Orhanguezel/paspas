@@ -106,8 +106,8 @@ describe('ERP locale keys completeness (tr.json)', () => {
   describe('uretimEmirleri', () => {
     const m = erp.uretimEmirleri;
     it('has all status labels', () => {
+      expect(m.statuses.atanmamis).toBeTruthy();
       expect(m.statuses.planlandi).toBeTruthy();
-      expect(m.statuses.hazirlaniyor).toBeTruthy();
       expect(m.statuses.uretimde).toBeTruthy();
       expect(m.statuses.tamamlandi).toBeTruthy();
       expect(m.statuses.iptal).toBeTruthy();

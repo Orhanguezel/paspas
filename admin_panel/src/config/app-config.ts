@@ -34,11 +34,11 @@ export const DEFAULT_BRANDING: AdminBrandingConfig = {
   app_copyright: 'Promats Universal Paspaslar',
   html_lang: FALLBACK_LOCALE,
   theme_color: '#2563eb',
-  logo_url: '',
-  login_logo_url: '',
-  favicon_16: '/favicon/favicon.svg',
-  favicon_32: '/favicon/favicon.svg',
-  apple_touch_icon: '/apple/apple-touch-icon.png',
+  logo_url: '/logo/promats-logo.svg',
+  login_logo_url: '/logo/promats-logo.svg',
+  favicon_16: '/favicon/promats-favicon-32.png',
+  favicon_32: '/favicon/promats-favicon-32.png',
+  apple_touch_icon: '/apple/apple-touch-icon.svg',
   meta: {
     title: 'Promats Üretim ERP',
     description:
@@ -47,7 +47,7 @@ export const DEFAULT_BRANDING: AdminBrandingConfig = {
     og_title: 'Promats Üretim ERP',
     og_description:
       'Promats Universal Paspaslar ERP paneli ile üretim ve sipariş yönetimini merkezi olarak yapın.',
-    og_image: '/logo/og-image.png',
+    og_image: '/logo/og-image.svg',
     twitter_card: 'summary_large_image',
   },
 };

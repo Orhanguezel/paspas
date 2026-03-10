@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 
 import { makeAdminPermissionGuard } from '@/common/middleware/permissions';
 
-import { ataOperasyon, createMakine, deleteMakine, getMakine, kuyrukCikar, kuyrukSirala, listAtanmamis, listKuyruklar, listMakineler, updateMakine } from './controller';
+import { ataOperasyon, createMakine, deleteMakine, getCapacity, getMakine, kuyrukCikar, kuyrukSirala, listAtanmamis, listKuyruklar, listMakineler, updateMakine } from './controller';
 
 export async function registerMakineHavuzu(app: FastifyInstance) {
   const BASE = '/makine-havuzu';
@@ -18,6 +18,7 @@ export async function registerMakineHavuzu(app: FastifyInstance) {
   // Makine CRUD
   app.get(`${BASE}`, { preHandler: guard }, listMakineler);
   app.get(`${BASE}/:id`, { preHandler: guard }, getMakine);
+  app.get(`${BASE}/:id/capacity`, { preHandler: guard }, getCapacity);
   app.post(`${BASE}`, { preHandler: guard }, createMakine);
   app.patch(`${BASE}/:id`, { preHandler: guard }, updateMakine);
   app.delete(`${BASE}/:id`, { preHandler: guard }, deleteMakine);

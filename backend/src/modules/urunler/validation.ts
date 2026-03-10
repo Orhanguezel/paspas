@@ -11,8 +11,9 @@ const isActiveQuerySchema = z.preprocess((value) => {
 
 export const listQuerySchema = z.object({
   q: z.string().trim().min(1).optional(),
-  kategori: z.enum(['urun', 'yarimamul', 'hammadde']).optional(),
+  kategori: z.string().min(1).max(32).optional(),
   tedarikTipi: z.enum(['uretim', 'satin_alma', 'fason']).optional(),
+  urunGrubu: z.string().trim().min(1).optional(),
   isActive: isActiveQuerySchema.optional(),
   limit: z.coerce.number().int().min(1).max(500).default(100),
   offset: z.coerce.number().int().min(0).default(0),
@@ -57,8 +58,9 @@ const optionalTrimmedStr = (max: number) =>
   );
 
 export const createSchema = z.object({
-  kategori: z.enum(['urun', 'yarimamul', 'hammadde']).default('urun'),
+  kategori: z.string().min(1).max(32).default('urun'),
   tedarikTipi: z.enum(['uretim', 'satin_alma', 'fason']).default('uretim'),
+  urunGrubu: z.string().trim().max(128).optional(),
   kod: z.string().trim().min(1).max(64),
   ad: z.string().trim().min(1).max(255),
   aciklama: z.string().trim().max(500).optional(),
@@ -71,7 +73,7 @@ export const createSchema = z.object({
   kritikStok: z.coerce.number().min(0).default(0),
   birimFiyat: z.coerce.number().min(0).optional(),
   kdvOrani: z.coerce.number().min(0).max(100).default(20),
-  operasyonTipi: z.enum(['tek_tarafli', 'cift_tarafli']).default('tek_tarafli'),
+  operasyonTipi: z.enum(['tek_tarafli', 'cift_tarafli']).nullable().optional(),
   isActive: z.boolean().optional(),
   operasyonlar: z.array(operasyonItemSchema).optional(),
   birimDonusumleri: z.array(birimDonusumItemSchema).optional(),
@@ -96,6 +98,21 @@ export const operasyonPatchSchema = z.object({
   { message: 'en_az_bir_alan_gonderilmeli' },
 );
 
+// -- Medya --
+const medyaItemSchema = z.object({
+  id: z.string().trim().max(36).optional(),
+  tip: z.enum(['image', 'video', 'url']).default('image'),
+  url: z.string().trim().min(1).max(1024),
+  storageAssetId: optionalUuid,
+  baslik: optionalTrimmedStr(255),
+  sira: z.coerce.number().int().min(0).default(0),
+  isCover: z.boolean().default(false),
+});
+
+export const medyaSaveSchema = z.object({
+  items: z.array(medyaItemSchema).min(0).max(50),
+});
+
 export type ListQuery = z.infer<typeof listQuerySchema>;
 export type CreateBody = z.infer<typeof createSchema>;
 export type PatchBody = z.infer<typeof patchSchema>;
@@ -103,3 +120,5 @@ export type OperasyonItem = z.infer<typeof operasyonItemSchema>;
 export type BirimDonusumItem = z.infer<typeof birimDonusumItemSchema>;
 export type OperasyonPatchBody = z.infer<typeof operasyonPatchSchema>;
 export type OperasyonMakineItem = z.infer<typeof operasyonMakineSchema>;
+export type MedyaItem = z.infer<typeof medyaItemSchema>;
+export type MedyaSaveBody = z.infer<typeof medyaSaveSchema>;

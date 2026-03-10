@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { makineler, makineKuyrugu } from '@/modules/makine_havuzu/schema';
@@ -10,6 +11,7 @@ import { hareketler } from '@/modules/hareketler/schema';
 import { musteriler } from '@/modules/musteriler/schema';
 import { satinAlmaKalemleri, satinAlmaSiparisleri } from '@/modules/satin_alma/schema';
 import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/schema';
+import { refreshSiparisDurum, getSiparisIdsByUretimEmriId } from '@/modules/satis_siparisleri/repository';
 
 import {
   durusKayitlari,
@@ -387,6 +389,17 @@ export async function repoUretimBaslat(
     }
   });
 
+  // Auto-refresh linked sipariş durum (onaylandi/planlandi → uretimde)
+  const [kqRef] = await db
+    .select({ uretim_emri_id: makineKuyrugu.uretim_emri_id })
+    .from(makineKuyrugu)
+    .where(eq(makineKuyrugu.id, body.makineKuyrukId))
+    .limit(1);
+  if (kqRef?.uretim_emri_id) {
+    const sids = await getSiparisIdsByUretimEmriId(kqRef.uretim_emri_id);
+    for (const sid of sids) await refreshSiparisDurum(sid);
+  }
+
   // Return fresh data
   const { items } = await repoListMakineKuyrugu({ limit: 1, offset: 0, makineId: undefined, durum: undefined });
   const found = items.find((i) => i.id === body.makineKuyrukId);
@@ -489,6 +502,17 @@ export async function repoUretimBitir(
     // Shift following jobs on same machine
     await shiftFollowingJobs(tx, kqRow.makine_id, now);
   });
+
+  // Auto-refresh linked sipariş durum after production complete
+  const [kqRef2] = await db
+    .select({ uretim_emri_id: makineKuyrugu.uretim_emri_id })
+    .from(makineKuyrugu)
+    .where(eq(makineKuyrugu.id, body.makineKuyrukId))
+    .limit(1);
+  if (kqRef2?.uretim_emri_id) {
+    const sids = await getSiparisIdsByUretimEmriId(kqRef2.uretim_emri_id);
+    for (const sid of sids) await refreshSiparisDurum(sid);
+  }
 
   // Return fresh data
   const result = await repoListMakineKuyrugu({ limit: 1, offset: 0 });
@@ -910,6 +934,7 @@ export async function repoMalKabul(
   await db.transaction(async (tx) => {
     await tx.insert(malKabulKayitlari).values({
       id,
+      kaynak_tipi: 'satin_alma',
       satin_alma_siparis_id: body.satinAlmaSiparisId,
       satin_alma_kalem_id: body.satinAlmaKalemId,
       urun_id: body.urunId,
@@ -984,14 +1009,24 @@ export async function repoMalKabul(
 export async function repoListGunlukGirisler(
   query: ListGunlukGirislerQuery,
 ): Promise<{ items: OperatorGunlukGirisDto[]; total: number }> {
+  const conditions: SQL[] = [];
+  if (query.dateFrom) {
+    conditions.push(gte(operatorGunlukKayitlari.kayit_tarihi, new Date(`${query.dateFrom}T00:00:00`)));
+  }
+  if (query.dateTo) {
+    conditions.push(lte(operatorGunlukKayitlari.kayit_tarihi, new Date(`${query.dateTo}T23:59:59`)));
+  }
+  const where = conditions.length ? and(...conditions) : undefined;
+
   const [rows, countResult] = await Promise.all([
     db
       .select()
       .from(operatorGunlukKayitlari)
+      .where(where)
       .orderBy(desc(operatorGunlukKayitlari.kayit_tarihi), desc(operatorGunlukKayitlari.created_at))
       .limit(query.limit)
       .offset(query.offset),
-    db.select({ count: sql<number>`count(*)` }).from(operatorGunlukKayitlari),
+    db.select({ count: sql<number>`count(*)` }).from(operatorGunlukKayitlari).where(where),
   ]);
 
   return {

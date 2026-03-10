@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const durumEnum = z.enum(['planlandi', 'hazirlaniyor', 'uretimde', 'tamamlandi', 'iptal']);
+const durumEnum = z.enum(['atanmamis', 'planlandi', 'uretimde', 'tamamlandi', 'iptal']);
 
 export const listQuerySchema = z.object({
   dateFrom: z.string().date().optional(),

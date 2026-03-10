@@ -22,6 +22,9 @@ CREATE TABLE IF NOT EXISTS `categories` (
   `display_order` int NOT NULL DEFAULT 0,
   `whatsapp_number` varchar(50) DEFAULT NULL,
   `phone_number` varchar(50) DEFAULT NULL,
+  `varsayilan_birim` varchar(32) NOT NULL DEFAULT 'adet',
+  `varsayilan_kod_prefixi` varchar(16) NOT NULL DEFAULT 'URN',
+  `recetede_kullanilabilir` tinyint(1) NOT NULL DEFAULT 0,
   `varsayilan_tedarik_tipi` varchar(32) NOT NULL DEFAULT 'uretim',
   `uretim_alanlari_aktif` tinyint(1) NOT NULL DEFAULT 1,
   `operasyon_tipi_gerekli` tinyint(1) NOT NULL DEFAULT 1,
@@ -39,8 +42,57 @@ CREATE TABLE IF NOT EXISTS `categories` (
     ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+SET @has_varsayilan_birim := (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'categories'
+    AND COLUMN_NAME = 'varsayilan_birim'
+);
+SET @sql := IF(
+  @has_varsayilan_birim = 0,
+  'ALTER TABLE `categories` ADD COLUMN `varsayilan_birim` varchar(32) NOT NULL DEFAULT ''adet'' AFTER `phone_number`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @has_varsayilan_kod_prefixi := (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'categories'
+    AND COLUMN_NAME = 'varsayilan_kod_prefixi'
+);
+SET @sql := IF(
+  @has_varsayilan_kod_prefixi = 0,
+  'ALTER TABLE `categories` ADD COLUMN `varsayilan_kod_prefixi` varchar(16) NOT NULL DEFAULT ''URN'' AFTER `varsayilan_birim`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @has_recetede_kullanilabilir := (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'categories'
+    AND COLUMN_NAME = 'recetede_kullanilabilir'
+);
+SET @sql := IF(
+  @has_recetede_kullanilabilir = 0,
+  'ALTER TABLE `categories` ADD COLUMN `recetede_kullanilabilir` tinyint(1) NOT NULL DEFAULT 0 AFTER `varsayilan_kod_prefixi`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 INSERT INTO `categories` (
   `id`, `kod`, `name`, `slug`, `description`, `display_order`,
+  `varsayilan_birim`, `varsayilan_kod_prefixi`, `recetede_kullanilabilir`,
   `varsayilan_tedarik_tipi`, `uretim_alanlari_aktif`,
   `operasyon_tipi_gerekli`, `varsayilan_operasyon_tipi`,
   `is_active`, `is_featured`, `is_unlimited`, `has_cart`
@@ -52,6 +104,7 @@ INSERT INTO `categories` (
     'urun',
     'Nihai mamul urunler. Operasyon tipi ve uretim planlama alanlari kullanilir.',
     10,
+    'takim', 'URN', 0,
     'uretim',
     1,
     1,
@@ -65,6 +118,7 @@ INSERT INTO `categories` (
     'yarimamul',
     'Uretim icinde kullanilan ara urunler. Varsayilan olarak tek operasyon mantigi uygulanir.',
     20,
+    'adet', 'YM', 1,
     'uretim',
     1,
     0,
@@ -78,6 +132,7 @@ INSERT INTO `categories` (
     'hammadde',
     'Satın alma veya fason teminli hammadde girdileri. Uretim operasyon alanlari kullanilmaz.',
     30,
+    'kg', 'HM', 1,
     'satin_alma',
     0,
     0,
@@ -89,6 +144,9 @@ ON DUPLICATE KEY UPDATE
   `slug` = VALUES(`slug`),
   `description` = VALUES(`description`),
   `display_order` = VALUES(`display_order`),
+  `varsayilan_birim` = VALUES(`varsayilan_birim`),
+  `varsayilan_kod_prefixi` = VALUES(`varsayilan_kod_prefixi`),
+  `recetede_kullanilabilir` = VALUES(`recetede_kullanilabilir`),
   `varsayilan_tedarik_tipi` = VALUES(`varsayilan_tedarik_tipi`),
   `uretim_alanlari_aktif` = VALUES(`uretim_alanlari_aktif`),
   `operasyon_tipi_gerekli` = VALUES(`operasyon_tipi_gerekli`),

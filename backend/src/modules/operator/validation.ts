@@ -75,7 +75,9 @@ export const malKabulBodySchema = z.object({
 
 // -- Gunluk giris listesi --
 export const listGunlukGirislerQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(200).default(30),
+  dateFrom: z.string().date().optional(),
+  dateTo: z.string().date().optional(),
+  limit: z.coerce.number().int().min(1).max(500).default(30),
   offset: z.coerce.number().int().min(0).default(0),
 });
 

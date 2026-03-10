@@ -40,6 +40,10 @@ export default function GirisAyarlariClient() {
   const [showQuickLogin, setShowQuickLogin] = useState(true);
   const [allowPasswordLogin, setAllowPasswordLogin] = useState(true);
   const [roleCardsEnabled, setRoleCardsEnabled] = useState(true);
+  const [passwordMinLength, setPasswordMinLength] = useState('8');
+  const [requireUppercase, setRequireUppercase] = useState(true);
+  const [requireNumber, setRequireNumber] = useState(true);
+  const [requireSpecialChar, setRequireSpecialChar] = useState(false);
   const [enabledRoles, setEnabledRoles] = useState<LoginRole[]>(['admin', 'sevkiyatci', 'operator', 'satin_almaci']);
   const [redirects, setRedirects] = useState<Record<LoginRole, string>>({
     admin: '/admin/dashboard',
@@ -54,16 +58,32 @@ export default function GirisAyarlariClient() {
     setShowQuickLogin(data.settings.showQuickLogin);
     setAllowPasswordLogin(data.settings.allowPasswordLogin);
     setRoleCardsEnabled(data.settings.roleCardsEnabled);
+    setPasswordMinLength(String(data.settings.passwordPolicy.minLength));
+    setRequireUppercase(data.settings.passwordPolicy.requireUppercase);
+    setRequireNumber(data.settings.passwordPolicy.requireNumber);
+    setRequireSpecialChar(data.settings.passwordPolicy.requireSpecialChar);
     setEnabledRoles(data.settings.enabledRoles);
     setRedirects(data.settings.redirects);
   }, [query.data]);
 
   async function handleSave() {
+    const parsedMinLength = Number(passwordMinLength);
+    if (!Number.isFinite(parsedMinLength) || parsedMinLength < 6) {
+      toast.error('Minimum şifre uzunluğu en az 6 olmalı.');
+      return;
+    }
+
     try {
       await updateSettings({
         showQuickLogin,
         allowPasswordLogin,
         roleCardsEnabled,
+        passwordPolicy: {
+          minLength: parsedMinLength,
+          requireUppercase,
+          requireNumber,
+          requireSpecialChar,
+        },
         enabledRoles,
         redirects,
       }).unwrap();
@@ -137,6 +157,30 @@ export default function GirisAyarlariClient() {
             <ToggleRow label="Hızlı giriş butonlarını göster" checked={showQuickLogin} onCheckedChange={setShowQuickLogin} />
             <ToggleRow label="Şifre ile girişe izin ver" checked={allowPasswordLogin} onCheckedChange={setAllowPasswordLogin} />
             <ToggleRow label="Rol kartlarını göster" checked={roleCardsEnabled} onCheckedChange={setRoleCardsEnabled} />
+
+            <div className="space-y-3 rounded-md border p-3">
+              <div>
+                <Label>Şifre Politikası</Label>
+                <p className="text-xs text-muted-foreground">ERP paneline giriş yapan tüm kullanıcılar için temel parola kuralları.</p>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Minimum Şifre Uzunluğu</Label>
+                <Input
+                  type="number"
+                  min={6}
+                  max={64}
+                  value={passwordMinLength}
+                  onChange={(event) => setPasswordMinLength(event.target.value)}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <ToggleRow label="En az 1 büyük harf zorunlu" checked={requireUppercase} onCheckedChange={setRequireUppercase} />
+                <ToggleRow label="En az 1 rakam zorunlu" checked={requireNumber} onCheckedChange={setRequireNumber} />
+                <ToggleRow label="Özel karakter zorunlu" checked={requireSpecialChar} onCheckedChange={setRequireSpecialChar} />
+              </div>
+            </div>
 
             <div className="space-y-2">
               <Label>Aktif Rol Kartları</Label>
@@ -230,7 +274,7 @@ export default function GirisAyarlariClient() {
             </div>
           )}
           <div className="rounded-lg border p-4 text-sm text-muted-foreground">
-            Bu modül şu an canlı auth durumunu izler ve ERP login tercihlerini yönetir. Şifre politikası, 2FA, IP kısıtları ve kullanıcı bazlı login exception kuralları henüz yok.
+            Bu modül şu an canlı auth durumunu izler ve ERP login tercihlerini yönetir. Şifre politikası eklendi; 2FA, IP kısıtları ve kullanıcı bazlı login exception kuralları henüz yok.
           </div>
         </CardContent>
       </Card>

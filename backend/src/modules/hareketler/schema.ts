@@ -26,7 +26,9 @@ export type HareketOzetDto = {
   toplamGiris: number;
   toplamCikis: number;
   sevkiyatAdet: number;
+  sevkiyatMiktar: number;
   malKabulAdet: number;
+  malKabulMiktar: number;
   duzeltmeAdet: number;
 };
 

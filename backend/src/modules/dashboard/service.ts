@@ -7,9 +7,11 @@ import { gorevler } from '@/modules/gorevler/schema';
 import { hareketler } from '@/modules/hareketler/schema';
 import { makineKuyrugu, makineler } from '@/modules/makine_havuzu/schema';
 import { musteriler } from '@/modules/musteriler/schema';
+import { sevkiyatKalemleri, sevkiyatlar } from '@/modules/operator/schema';
 import { receteler } from '@/modules/receteler/schema';
 import { satinAlmaSiparisleri } from '@/modules/satin_alma/schema';
-import { satisSiparisleri } from '@/modules/satis_siparisleri/schema';
+import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/schema';
+import { sevkEmirleri } from '@/modules/sevkiyat/schema';
 import { kaliplar, tatiller } from '@/modules/tanimlar/schema';
 import { uretimEmirleri } from '@/modules/uretim_emirleri/schema';
 import { urunler } from '@/modules/urunler/schema';
@@ -27,6 +29,12 @@ export type DashboardKpi = {
   lowStockProductCount: number;
   purchaseOpenCount: number;
   salesOpenCount: number;
+  pendingShipmentLineCount: number;
+  pendingShipmentApprovalCount: number;
+  pendingPhysicalShipmentCount: number;
+  shippedTodayCount: number;
+  shippedTodayAmount: number;
+  openShipmentTaskCount: number;
 };
 
 type TrendPoint = {
@@ -68,7 +76,6 @@ async function getDailyCounts(column: AnyMySqlColumn, table: MySqlTable, days: n
   const startDate = new Date();
   startDate.setHours(0, 0, 0, 0);
   startDate.setDate(startDate.getDate() - (days - 1));
-  const startDateIso = asDateOnly(startDate);
 
   const rows = await db
     .select({
@@ -76,7 +83,7 @@ async function getDailyCounts(column: AnyMySqlColumn, table: MySqlTable, days: n
       count: sql<number>`count(*)`,
     })
     .from(table)
-    .where(gte(column, `${startDateIso} 00:00:00`))
+    .where(gte(column, startDate))
     .groupBy(sql`DATE(${column})`)
     .orderBy(sql`DATE(${column})`);
 
@@ -114,7 +121,7 @@ export async function getDashboardSummary(): Promise<{ items: DashboardItem[] }>
     countAll(urunler, and(eq(urunler.is_active, 1), sql`${urunler.stok} > 0.0000`)),
     countAll(satinAlmaSiparisleri),
     countAll(hareketler),
-    countAll(uretimEmirleri, inArray(uretimEmirleri.durum, ['hazirlaniyor', 'uretimde'])),
+    countAll(uretimEmirleri, inArray(uretimEmirleri.durum, ['planlandi', 'uretimde'])),
     countAll(kaliplar),
     countAll(tatiller),
   ]);
@@ -138,16 +145,53 @@ export async function getDashboardSummary(): Promise<{ items: DashboardItem[] }>
   };
 }
 
-export async function getDashboardKpi(): Promise<DashboardKpi> {
-  const [totalProduction, completedProduction, activeProduction, totalMachines, activeMachines, lowStockProducts, openPurchases, openSales] = await Promise.all([
+export async function getDashboardKpi(userId: string | null, role: string): Promise<DashboardKpi> {
+  const pendingShipmentLineWhere = and(
+    or(
+      eq(satisSiparisleri.durum, 'taslak'),
+      eq(satisSiparisleri.durum, 'onaylandi'),
+      eq(satisSiparisleri.durum, 'uretimde'),
+      eq(satisSiparisleri.durum, 'kismen_sevk'),
+    ) as SQL,
+    eq(urunler.kategori, 'urun'),
+    sql`(${siparisKalemleri.miktar} - COALESCE((
+      SELECT SUM(sk.miktar)
+      FROM sevkiyat_kalemleri sk
+      WHERE sk.siparis_kalem_id = ${siparisKalemleri.id}
+    ), 0)) > 0`,
+  );
+
+  const shipmentTaskConditions: SQL[] = [
+    eq(gorevler.tip, 'sevkiyat'),
+    eq(gorevler.modul, 'sevkiyat'),
+    inArray(gorevler.durum, ['acik', 'devam_ediyor', 'beklemede']),
+  ];
+
+  if (role !== 'admin') {
+    const scopes: SQL[] = [];
+    if (userId) scopes.push(eq(gorevler.atanan_kullanici_id, userId));
+    if (role) scopes.push(eq(gorevler.atanan_rol, role));
+    if (scopes.length > 0) shipmentTaskConditions.push(or(...scopes) as SQL);
+  }
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const [totalProduction, completedProduction, activeProduction, totalMachines, activeMachines, lowStockProducts, openPurchases, openSales, pendingShipmentApprovalCount, pendingPhysicalShipmentCount, openShipmentTaskCount, shippedTodayCountRows, shippedTodayAmountRows, pendingShipmentLineRows] = await Promise.all([
     countAll(uretimEmirleri),
     countAll(uretimEmirleri, eq(uretimEmirleri.durum, 'tamamlandi')),
-    countAll(uretimEmirleri, inArray(uretimEmirleri.durum, ['hazirlaniyor', 'uretimde'])),
+    countAll(uretimEmirleri, inArray(uretimEmirleri.durum, ['planlandi', 'uretimde'])),
     countAll(makineler),
     countAll(makineler, and(eq(makineler.is_active, 1), eq(makineler.durum, 'aktif'))),
     countAll(urunler, and(eq(urunler.is_active, 1), sql`${urunler.stok} < 5.0000`)),
     countAll(satinAlmaSiparisleri, inArray(satinAlmaSiparisleri.durum, ['taslak', 'onaylandi', 'kismi_teslim'])),
     countAll(satisSiparisleri, inArray(satisSiparisleri.durum, ['taslak', 'planlandi', 'onaylandi', 'uretimde', 'kismen_sevk'])),
+    countAll(sevkEmirleri, eq(sevkEmirleri.durum, 'bekliyor')),
+    countAll(sevkEmirleri, eq(sevkEmirleri.durum, 'onaylandi')),
+    countAll(gorevler, and(...shipmentTaskConditions)),
+    db.select({ count: sql<number>`count(distinct ${sevkiyatlar.id})` }).from(sevkiyatlar).where(gte(sevkiyatlar.sevk_tarihi, todayStart)),
+    db.select({ amount: sql<number>`coalesce(sum(${sevkiyatKalemleri.miktar}), 0)` }).from(sevkiyatKalemleri).innerJoin(sevkiyatlar, eq(sevkiyatKalemleri.sevkiyat_id, sevkiyatlar.id)).where(gte(sevkiyatlar.sevk_tarihi, todayStart)),
+    db.select({ count: sql<number>`count(*)` }).from(siparisKalemleri).innerJoin(satisSiparisleri, eq(siparisKalemleri.siparis_id, satisSiparisleri.id)).innerJoin(urunler, eq(siparisKalemleri.urun_id, urunler.id)).where(pendingShipmentLineWhere),
   ]);
 
   const completionRatePercent = totalProduction > 0 ? Number(((completedProduction / totalProduction) * 100).toFixed(2)) : 0;
@@ -160,12 +204,18 @@ export async function getDashboardKpi(): Promise<DashboardKpi> {
     lowStockProductCount: lowStockProducts,
     purchaseOpenCount: openPurchases,
     salesOpenCount: openSales,
+    pendingShipmentLineCount: Number(pendingShipmentLineRows[0]?.count ?? 0),
+    pendingShipmentApprovalCount,
+    pendingPhysicalShipmentCount,
+    shippedTodayCount: Number(shippedTodayCountRows[0]?.count ?? 0),
+    shippedTodayAmount: Number(shippedTodayAmountRows[0]?.amount ?? 0),
+    openShipmentTaskCount,
   };
 }
 
 export type ActionItem = {
   id: string;
-  type: 'overdue_production' | 'overdue_sales' | 'overdue_purchase' | 'overdue_task' | 'critical_stock' | 'pending_purchase';
+  type: 'overdue_production' | 'overdue_sales' | 'overdue_purchase' | 'overdue_task' | 'critical_stock' | 'pending_purchase' | 'shipment_approval' | 'physical_shipment';
   severity: 'critical' | 'warning';
   title: string;
   subtitle: string;
@@ -186,7 +236,7 @@ export async function getDashboardActionCenter(userId: string | null, role: stri
   const overdueProduction = await db
     .select({ id: uretimEmirleri.id, emirNo: uretimEmirleri.emir_no, terminTarihi: uretimEmirleri.termin_tarihi, durum: uretimEmirleri.durum })
     .from(uretimEmirleri)
-    .where(and(inArray(uretimEmirleri.durum, ['planlandi', 'hazirlaniyor', 'uretimde']), sql`${uretimEmirleri.termin_tarihi} < ${todayStr}`))
+    .where(and(inArray(uretimEmirleri.durum, ['atanmamis', 'planlandi', 'uretimde']), sql`${uretimEmirleri.termin_tarihi} < ${todayStr}`))
     .limit(10);
 
   for (const row of overdueProduction) {
@@ -240,6 +290,58 @@ export async function getDashboardActionCenter(userId: string | null, role: stri
       title: `Satın alma ${row.siparisNo} onay bekliyor`, subtitle: 'Taslak durumunda',
       href: `/admin/satin-alma/${row.id}`, date: row.terminTarihi ? asDateOnly(row.terminTarihi) : null,
     });
+  }
+
+  if (role === 'admin') {
+    const pendingShipmentApprovals = await db
+      .select({
+        id: sevkEmirleri.id,
+        sevkEmriNo: sevkEmirleri.sevk_emri_no,
+        tarih: sevkEmirleri.tarih,
+        musteriAd: musteriler.ad,
+      })
+      .from(sevkEmirleri)
+      .leftJoin(musteriler, eq(sevkEmirleri.musteri_id, musteriler.id))
+      .where(eq(sevkEmirleri.durum, 'bekliyor'))
+      .limit(10);
+
+    for (const row of pendingShipmentApprovals) {
+      items.push({
+        id: `shipment-approval-${row.id}`,
+        type: 'shipment_approval',
+        severity: 'warning',
+        title: `Sevk emri ${row.sevkEmriNo} admin onayi bekliyor`,
+        subtitle: row.musteriAd ? `Musteri: ${row.musteriAd}` : 'Musteri bilgisi bekleniyor',
+        href: '/admin/sevkiyat',
+        date: row.tarih ? asDateOnly(row.tarih) : null,
+      });
+    }
+  }
+
+  if (role === 'admin' || role === 'sevkiyatci') {
+    const physicalShipmentQueue = await db
+      .select({
+        id: sevkEmirleri.id,
+        sevkEmriNo: sevkEmirleri.sevk_emri_no,
+        tarih: sevkEmirleri.tarih,
+        musteriAd: musteriler.ad,
+      })
+      .from(sevkEmirleri)
+      .leftJoin(musteriler, eq(sevkEmirleri.musteri_id, musteriler.id))
+      .where(eq(sevkEmirleri.durum, 'onaylandi'))
+      .limit(10);
+
+    for (const row of physicalShipmentQueue) {
+      items.push({
+        id: `physical-shipment-${row.id}`,
+        type: 'physical_shipment',
+        severity: 'critical',
+        title: `Sevk emri ${row.sevkEmriNo} fiziki cikis bekliyor`,
+        subtitle: row.musteriAd ? `Musteri: ${row.musteriAd}` : 'Fiziksel sevk bekliyor',
+        href: '/admin/sevkiyat',
+        date: row.tarih ? asDateOnly(row.tarih) : null,
+      });
+    }
   }
 
   // Critical stock

@@ -1,6 +1,6 @@
 import type { FastifyReply, RouteHandler } from 'fastify';
 
-import { kalipRowToDto, tatilRowToDto, vardiyaRowToDto, durusNedeniRowToDto } from './schema';
+import { kalipRowToDto, tatilRowToDto, vardiyaRowToDto, durusNedeniRowToDto, haftaSonuPlanRowToDto } from './schema';
 import {
   repoCreateKalip,
   repoCreateTatil,
@@ -25,6 +25,11 @@ import {
   repoCreateDurusNedeni,
   repoUpdateDurusNedeni,
   repoDeleteDurusNedeni,
+  repoListHaftaSonuPlanlari,
+  repoGetHaftaSonuPlanById,
+  repoCreateHaftaSonuPlan,
+  repoUpdateHaftaSonuPlan,
+  repoDeleteHaftaSonuPlan,
 } from './repository';
 import {
   createKalipSchema,
@@ -36,6 +41,8 @@ import {
   patchVardiyaSchema,
   createDurusNedeniSchema,
   patchDurusNedeniSchema,
+  createHaftaSonuPlanSchema,
+  patchHaftaSonuPlanSchema,
 } from './validation';
 
 function sendInternalError(reply: FastifyReply) {
@@ -313,6 +320,72 @@ export const deleteDurusNedeni: RouteHandler = async (req, reply) => {
     return reply.code(204).send();
   } catch (error) {
     req.log.error({ error }, 'delete_durus_nedeni_failed');
+    return sendInternalError(reply);
+  }
+};
+
+// ── Hafta Sonu Çalışma Planları ────────────────────────────────────────────
+
+export const listHaftaSonuPlanlari: RouteHandler = async (req, reply) => {
+  try {
+    const rows = await repoListHaftaSonuPlanlari();
+    return reply.send(rows.map((row) => haftaSonuPlanRowToDto(row, row.makine_ad ?? undefined)));
+  } catch (error) {
+    req.log.error({ error }, 'list_hafta_sonu_planlari_failed');
+    return sendInternalError(reply);
+  }
+};
+
+export const getHaftaSonuPlan: RouteHandler = async (req, reply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const row = await repoGetHaftaSonuPlanById(id);
+    if (!row) return reply.code(404).send({ error: { message: 'hafta_sonu_plan_bulunamadi' } });
+    return reply.send(haftaSonuPlanRowToDto(row, row.makine_ad ?? undefined));
+  } catch (error) {
+    req.log.error({ error }, 'get_hafta_sonu_plan_failed');
+    return sendInternalError(reply);
+  }
+};
+
+export const createHaftaSonuPlan: RouteHandler = async (req, reply) => {
+  try {
+    const parsed = createHaftaSonuPlanSchema.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
+    const userId = (req as any).user?.id as string | undefined;
+    const row = await repoCreateHaftaSonuPlan(parsed.data, userId);
+    return reply.code(201).send(haftaSonuPlanRowToDto(row, row.makine_ad ?? undefined));
+  } catch (error: unknown) {
+    const err = error as { code?: string };
+    if (err.code === 'ER_DUP_ENTRY') return reply.code(409).send({ error: { message: 'hafta_sonu_plan_zaten_var' } });
+    req.log.error({ error }, 'create_hafta_sonu_plan_failed');
+    return sendInternalError(reply);
+  }
+};
+
+export const updateHaftaSonuPlan: RouteHandler = async (req, reply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const parsed = patchHaftaSonuPlanSchema.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
+    const row = await repoUpdateHaftaSonuPlan(id, parsed.data);
+    if (!row) return reply.code(404).send({ error: { message: 'hafta_sonu_plan_bulunamadi' } });
+    return reply.send(haftaSonuPlanRowToDto(row, row.makine_ad ?? undefined));
+  } catch (error: unknown) {
+    const err = error as { code?: string };
+    if (err.code === 'ER_DUP_ENTRY') return reply.code(409).send({ error: { message: 'hafta_sonu_plan_zaten_var' } });
+    req.log.error({ error }, 'update_hafta_sonu_plan_failed');
+    return sendInternalError(reply);
+  }
+};
+
+export const deleteHaftaSonuPlan: RouteHandler = async (req, reply) => {
+  try {
+    const { id } = req.params as { id: string };
+    await repoDeleteHaftaSonuPlan(id);
+    return reply.code(204).send();
+  } catch (error) {
+    req.log.error({ error }, 'delete_hafta_sonu_plan_failed');
     return sendInternalError(reply);
   }
 };

@@ -12,7 +12,7 @@ export interface StokDto {
   urunId: string;
   urunKod: string;
   urunAd: string;
-  kategori: "urun" | "yarimamul" | "hammadde";
+  kategori: string;
   tedarikTipi: "uretim" | "satin_alma" | "fason";
   birim: string;
   birimDonusumleri: BirimDonusumItem[];
@@ -96,6 +96,7 @@ export interface YeterlilikKalemDto {
   malzemeId: string;
   malzemeKod: string;
   malzemeAd: string;
+  malzemeGorselUrl: string | null;
   birim: string;
   gerekliMiktar: number;
   fireOrani: number;
@@ -122,6 +123,7 @@ function normalizeYeterlilikKalem(raw: unknown): YeterlilikKalemDto {
     malzemeId: toStr(r.malzemeId),
     malzemeKod: toStr(r.malzemeKod),
     malzemeAd: toStr(r.malzemeAd),
+    malzemeGorselUrl: r.malzemeGorselUrl != null ? toStr(r.malzemeGorselUrl) : null,
     birim: toStr(r.birim, "kg"),
     gerekliMiktar: toNum(r.gerekliMiktar),
     fireOrani: toNum(r.fireOrani),

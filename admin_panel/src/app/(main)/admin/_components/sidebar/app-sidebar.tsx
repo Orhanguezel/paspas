@@ -7,16 +7,14 @@
 // =============================================================
 
 import Link from 'next/link';
-import { LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard, Mail, Phone } from 'lucide-react';
 
+import { resolveMediaUrl } from '@/lib/media-url';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
 } from '@/components/ui/sidebar';
 
 import { buildAdminSidebarItems } from '@/navigation/sidebar/sidebar-items';
@@ -30,7 +28,6 @@ import type { PanelRole } from '@/navigation/permissions';
 
 import { useMemo } from 'react';
 import { NavMain } from './nav-main';
-import { NavUser } from './nav-user';
 import { useAdminSettings } from '../admin-settings-provider';
 import { useStatusQuery, useGetMyProfileQuery } from '@/integrations/hooks';
 
@@ -43,6 +40,77 @@ type SidebarMe = {
   role: string;
   avatar: string;
 };
+
+function SidebarCompanyFooter({
+  title,
+  subtitle,
+  email,
+  phone,
+}: {
+  title: string;
+  subtitle: string;
+  email: string;
+  phone: string;
+}) {
+  const infoLines = [
+    { icon: Mail, value: email },
+    { icon: Phone, value: phone },
+  ].filter((item) => item.value);
+
+  return (
+    <div className="mx-3 mb-3 border-t border-sidebar-border/60 px-1 pt-3 group-data-[collapsible=icon]:hidden">
+      <div className="truncate text-sm font-semibold text-sidebar-foreground">{title}</div>
+      <div className="mt-1 line-clamp-2 text-[11px] leading-4 text-muted-foreground">{subtitle}</div>
+
+      {infoLines.length ? (
+        <div className="mt-3 space-y-1.5">
+          {infoLines.map(({ icon: Icon, value }) => (
+            <div key={value} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              <Icon className="size-3.5 shrink-0" />
+              <span className="truncate">{value}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function SidebarBrandBlock({
+  title,
+  subtitle,
+  logoUrl,
+}: {
+  title: string;
+  subtitle: string;
+  logoUrl: string;
+}) {
+  return (
+    <div className="w-full group-data-[collapsible=icon]:w-auto">
+      {logoUrl ? (
+        <div className="w-full overflow-hidden rounded-2xl bg-white/80 px-4 py-4 shadow-sm ring-1 ring-sidebar-border/60 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:size-16 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={logoUrl}
+            alt={title}
+            width={180}
+            height={72}
+            className="h-16 w-auto max-w-full object-contain group-data-[collapsible=icon]:h-10"
+          />
+        </div>
+      ) : (
+        <div className="flex h-16 w-full items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm group-data-[collapsible=icon]:size-16">
+          <LayoutDashboard className="size-7" />
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-col gap-1 leading-none group-data-[collapsible=icon]:hidden">
+        <span className="text-[1.35rem] font-semibold tracking-tight text-foreground">{title}</span>
+        <span className="max-w-[12rem] text-xs leading-4 text-muted-foreground">{subtitle}</span>
+      </div>
+    </div>
+  );
+}
 
 export function AppSidebar({
   me,
@@ -58,8 +126,14 @@ export function AppSidebar({
   const t = useAdminT();
 
   // Admin settings override for page titles
-  const { pageMeta, branding } = useAdminSettings();
-  const baseName = (copy.app_name || branding?.app_name || appName || '').trim();
+  const { pageMeta, branding, companyInfo } = useAdminSettings();
+  const baseName = (
+    companyInfo.sidebarTitle ||
+    copy.app_name ||
+    branding?.app_name ||
+    appName ||
+    ''
+  ).trim();
 
   // ✅ Get real user data
   const { data: statusData } = useStatusQuery();
@@ -94,20 +168,20 @@ export function AppSidebar({
     ? (currentUser.role as PanelRole)
     : 'admin';
   const groupsForMe: NavGroup[] = buildAdminSidebarItems(copy.nav, wrappedT, resolvedRole);
-  const panelLabel = baseName || 'Promat ERP';
-  const panelSub = 'Üretim Yönetim Sistemi';
+  const panelLabel = baseName || 'ERP';
+  const panelSub = companyInfo.sidebarSubtitle || 'Uretim Yonetim Sistemi';
+
+  const logoUrl = branding?.logo_url ? resolveMediaUrl(branding.logo_url) : '';
 
   return (
     <Sidebar {...props} variant={variant} collapsible={collapsible}>
       <SidebarHeader>
-        <Link prefetch={false} href="/admin/dashboard" className="flex items-center gap-3 px-3 py-4 hover:bg-sidebar-accent/50 transition-colors">
-          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <LayoutDashboard className="size-5" />
-          </div>
-          <div className="flex flex-col gap-0.5 leading-none">
-            <span className="font-bold text-lg tracking-tight">{panelLabel || 'Admin Panel'}</span>
-            <span className="text-[10px] font-medium tracking-widest text-muted-foreground uppercase">{panelSub}</span>
-          </div>
+        <Link
+          prefetch={false}
+          href="/admin/dashboard"
+          className="block px-4 py-5 transition-colors hover:bg-sidebar-accent/40 group-data-[collapsible=icon]:px-2"
+        >
+          <SidebarBrandBlock title={panelLabel || 'Admin Panel'} subtitle={panelSub} logoUrl={logoUrl} />
         </Link>
       </SidebarHeader>
 
@@ -117,7 +191,12 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
-        <NavUser user={{ name: currentUser.name, email: currentUser.email, avatar: currentUser.avatar }} />
+        <SidebarCompanyFooter
+          title={companyInfo.sidebarTitle || panelLabel}
+          subtitle={companyInfo.sidebarSubtitle || panelSub}
+          email={companyInfo.email}
+          phone={companyInfo.phone}
+        />
       </SidebarFooter>
     </Sidebar>
   );

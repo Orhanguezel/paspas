@@ -129,10 +129,6 @@ function saveWidgetConfig(role: UserRoleName, config: Record<WidgetKey, boolean>
 }
 
 // ── Helpers ───────────────────────────────────────────────────
-function isSameDay(dateLike: string, ymd: string): boolean {
-  return dateLike.slice(0, 10) === ymd;
-}
-
 function formatDate(ymd: string) {
   return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${ymd}T00:00:00`));
 }
@@ -168,6 +164,8 @@ const ACTION_TYPE_LABELS: Record<ActionItem['type'], string> = {
   overdue_task: 'Görev',
   critical_stock: 'Stok',
   pending_purchase: 'Onay',
+  shipment_approval: 'Sevkiyat',
+  physical_shipment: 'Fiziksel Sevk',
 };
 
 const ROLE_LABELS: Record<UserRoleName, string> = {
@@ -211,14 +209,14 @@ export default function AdminDashboardClient() {
   const kpi = useGetDashboardKpiAdminQuery();
   const trend = useGetDashboardTrendAdminQuery({ days: 30 });
   const actionCenter = useGetDashboardActionCenterAdminQuery();
-  const todayMovements = useListHareketlerAdminQuery({ period: 'today', limit: 200 });
+  const todayMovements = useListHareketlerAdminQuery({ period: 'today', limit: 50 });
   const recentMovements = useListHareketlerAdminQuery({ period: 'week', limit: 6 });
   const criticalStocks = useListStoklarAdminQuery({ kritikOnly: true, sort: 'kritik_stok', order: 'desc' });
   const allStocks = useListStoklarAdminQuery({});
   const gorevler = useListGorevlerAdminQuery({ limit: 6, gecikenOnly: false });
   const myTasks = useListGorevlerAdminQuery({ limit: 6, sadeceBenim: true });
   const unassignedOperations = useListAtanmamisAdminQuery();
-  const gunlukGirisler = useListGunlukGirislerAdminQuery({ limit: 200 });
+  const gunlukGirisler = useListGunlukGirislerAdminQuery({ limit: 500, dateFrom: todayYmd, dateTo: todayYmd });
 
   const isLoading =
     summary.isLoading || kpi.isLoading || trend.isLoading || todayMovements.isLoading ||
@@ -228,18 +226,12 @@ export default function AdminDashboardClient() {
 
   const todayProduction = React.useMemo(() => {
     const entries = gunlukGirisler.data?.items ?? [];
-    return entries.filter((item) => isSameDay(item.kayitTarihi, todayYmd)).reduce((total, item) => total + item.netMiktar, 0);
-  }, [gunlukGirisler.data, todayYmd]);
+    return entries.reduce((total, item) => total + item.netMiktar, 0);
+  }, [gunlukGirisler.data]);
 
-  const todayShipment = React.useMemo(() => {
-    const entries = todayMovements.data?.items ?? [];
-    return entries.filter((item) => item.kaynakTipi === 'sevkiyat').reduce((total, item) => total + Math.abs(item.miktar), 0);
-  }, [todayMovements.data]);
-
-  const todayReceipt = React.useMemo(() => {
-    const entries = todayMovements.data?.items ?? [];
-    return entries.filter((item) => item.kaynakTipi === 'mal_kabul').reduce((total, item) => total + Math.abs(item.miktar), 0);
-  }, [todayMovements.data]);
+  const todayShipment = todayMovements.data?.summary.sevkiyatMiktar ?? 0;
+  const todayReceipt = todayMovements.data?.summary.malKabulMiktar ?? 0;
+  const isShipmentRole = role === 'sevkiyatci';
 
   const stockStatusChart = React.useMemo(() => {
     const items = allStocks.data?.items ?? [];
@@ -380,9 +372,19 @@ export default function AdminDashboardClient() {
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Bugünkü Aktivite</h2>
           <div className="grid gap-4 md:grid-cols-3">
-            <TodayCard href="/admin/operator" title="Üretim" value={formatCompact(todayProduction)} subtitle="adet üretildi" icon={Factory} tint="bg-sky-50 text-sky-700 border-sky-100" />
-            <TodayCard href="/admin/hareketler" title="Sevkiyat" value={formatCompact(todayShipment)} subtitle="adet sevk edildi" icon={Truck} tint="bg-emerald-50 text-emerald-700 border-emerald-100" />
-            <TodayCard href="/admin/operator" title="Mal Kabul" value={formatCompact(todayReceipt)} subtitle="adet teslim alındı" icon={PackageCheck} tint="bg-indigo-50 text-indigo-700 border-indigo-100" />
+            {isShipmentRole ? (
+              <>
+                <TodayCard href="/admin/sevkiyat" title="Bugün Sevk Edilen" value={formatCompact(kpi.data?.shippedTodayAmount ?? todayShipment)} subtitle={`${formatCompact(kpi.data?.shippedTodayCount ?? 0)} emir tamamlandı`} icon={Truck} tint="bg-emerald-50 text-emerald-700 border-emerald-100" />
+                <TodayCard href="/admin/sevkiyat" title="Onay Bekleyen" value={formatCompact(kpi.data?.pendingShipmentApprovalCount ?? 0)} subtitle="admin onayı bekliyor" icon={AlertTriangle} tint="bg-amber-50 text-amber-700 border-amber-100" />
+                <TodayCard href="/admin/gorevler" title="Açık Sevkiyat Görevi" value={formatCompact(kpi.data?.openShipmentTaskCount ?? 0)} subtitle="rol bazlı görev kuyruğu" icon={CheckSquare2} tint="bg-indigo-50 text-indigo-700 border-indigo-100" />
+              </>
+            ) : (
+              <>
+                <TodayCard href="/admin/operator" title="Üretim" value={formatCompact(todayProduction)} subtitle="adet üretildi" icon={Factory} tint="bg-sky-50 text-sky-700 border-sky-100" />
+                <TodayCard href="/admin/hareketler" title="Sevkiyat" value={formatCompact(todayShipment)} subtitle="adet sevk edildi" icon={Truck} tint="bg-emerald-50 text-emerald-700 border-emerald-100" />
+                <TodayCard href="/admin/operator" title="Mal Kabul" value={formatCompact(todayReceipt)} subtitle="adet teslim alındı" icon={PackageCheck} tint="bg-indigo-50 text-indigo-700 border-indigo-100" />
+              </>
+            )}
           </div>
         </section>
       )}
@@ -392,11 +394,22 @@ export default function AdminDashboardClient() {
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Genel Durum</h2>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <StatusCard href="/admin/satis-siparisleri" title="Açık Satış Siparişi" value={kpi.data?.salesOpenCount ?? 0} subtitle="müşteri siparişi" icon={ShoppingCart} />
-            <StatusCard href="/admin/uretim-emirleri" title="Aktif Üretim Emri" value={kpi.data?.activeProductionOrders ?? 0} subtitle="planlandı / üretiliyor" icon={Factory} />
-            <StatusCard href="/admin/makine-havuzu" title="Makine Havuzu" value={unassignedOperations.data?.length ?? 0} subtitle="makine atama bekliyor" icon={Boxes} />
-            <StatusCard href="/admin/satin-alma" title="Açık Satın Alma" value={kpi.data?.purchaseOpenCount ?? 0} subtitle="bekleyen tedarik" icon={Truck} />
-            <StatusCard href="/admin/gorevler" title="Açık Görev" value={gorevler.data?.summary.acik ?? 0} subtitle={`${gorevler.data?.summary.geciken ?? 0} geciken`} icon={CheckSquare2} />
+            {isShipmentRole ? (
+              <>
+                <StatusCard href="/admin/sevkiyat" title="Bekleyen Sevk Satırı" value={kpi.data?.pendingShipmentLineCount ?? 0} subtitle="kalan sipariş satırı" icon={ShoppingCart} />
+                <StatusCard href="/admin/sevkiyat" title="Onay Bekleyen Emir" value={kpi.data?.pendingShipmentApprovalCount ?? 0} subtitle="admin onayı gerekli" icon={AlertTriangle} />
+                <StatusCard href="/admin/sevkiyat" title="Fiziksel Sevk Bekleyen" value={kpi.data?.pendingPhysicalShipmentCount ?? 0} subtitle="onaylı sevk emri" icon={Truck} />
+                <StatusCard href="/admin/gorevler" title="Açık Sevkiyat Görevi" value={kpi.data?.openShipmentTaskCount ?? 0} subtitle={`${gorevler.data?.summary.geciken ?? 0} geciken`} icon={CheckSquare2} />
+              </>
+            ) : (
+              <>
+                <StatusCard href="/admin/satis-siparisleri" title="Açık Satış Siparişi" value={kpi.data?.salesOpenCount ?? 0} subtitle="müşteri siparişi" icon={ShoppingCart} />
+                <StatusCard href="/admin/uretim-emirleri" title="Aktif Üretim Emri" value={kpi.data?.activeProductionOrders ?? 0} subtitle="planlandı / üretiliyor" icon={Factory} />
+                <StatusCard href="/admin/sevkiyat" title="Onay Bekleyen Sevk" value={kpi.data?.pendingShipmentApprovalCount ?? 0} subtitle={`${kpi.data?.pendingPhysicalShipmentCount ?? 0} fiziksel sevk bekliyor`} icon={Truck} />
+                <StatusCard href="/admin/satin-alma" title="Açık Satın Alma" value={kpi.data?.purchaseOpenCount ?? 0} subtitle="bekleyen tedarik" icon={Truck} />
+                <StatusCard href="/admin/gorevler" title="Açık Görev" value={gorevler.data?.summary.acik ?? 0} subtitle={`${gorevler.data?.summary.geciken ?? 0} geciken`} icon={CheckSquare2} />
+              </>
+            )}
           </div>
         </section>
       )}

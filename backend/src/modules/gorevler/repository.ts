@@ -7,7 +7,7 @@ import { db } from '@/db/client';
 import { users } from '@/modules/auth/schema';
 import { createUserNotification } from '@/modules/notifications/controller';
 
-import { gorevler, rowToDto, type GorevDto, type GorevRow, type GorevSummaryDto } from './schema';
+import { gorevler, rowToDto, type GorevDto, type GorevOncelik, type GorevRow, type GorevSummaryDto, type GorevTip } from './schema';
 import type { CreateGorevBody, ListQuery, UpdateGorevBody } from './validation';
 
 type ListResult = {
@@ -16,7 +16,12 @@ type ListResult = {
   summary: GorevSummaryDto;
 };
 
-function buildWhere(query: ListQuery, currentUserId?: string | null): SQL | undefined {
+function buildWhere(
+  query: ListQuery,
+  currentUserId?: string | null,
+  currentUserRole?: string | null,
+  userIsAdmin?: boolean,
+): SQL | undefined {
   const conditions: SQL[] = [];
 
   if (query.q) {
@@ -32,7 +37,30 @@ function buildWhere(query: ListQuery, currentUserId?: string | null): SQL | unde
   if (query.modul) conditions.push(eq(gorevler.modul, query.modul));
   if (query.atananKullaniciId) conditions.push(eq(gorevler.atanan_kullanici_id, query.atananKullaniciId));
   if (query.atananRol) conditions.push(eq(gorevler.atanan_rol, query.atananRol));
-  if (query.sadeceBenim && currentUserId) conditions.push(eq(gorevler.atanan_kullanici_id, currentUserId));
+
+  // sadeceBenim: explicit filter — only tasks assigned to me
+  if (query.sadeceBenim && currentUserId) {
+    conditions.push(eq(gorevler.atanan_kullanici_id, currentUserId));
+  }
+
+  // Non-admin auto-scoping: show only relevant tasks (assigned to user, their role, or unassigned)
+  if (!userIsAdmin && !query.sadeceBenim && !query.atananKullaniciId && !query.atananRol) {
+    const scopeConditions: SQL[] = [];
+    if (currentUserId) {
+      scopeConditions.push(eq(gorevler.atanan_kullanici_id, currentUserId));
+    }
+    if (currentUserRole) {
+      scopeConditions.push(eq(gorevler.atanan_rol, currentUserRole));
+    }
+    // Also show unassigned tasks (no user, no role)
+    scopeConditions.push(
+      sql`(${gorevler.atanan_kullanici_id} IS NULL AND ${gorevler.atanan_rol} IS NULL)`,
+    );
+    if (scopeConditions.length > 0) {
+      conditions.push(or(...scopeConditions) as SQL);
+    }
+  }
+
   if (query.gecikenOnly) {
     conditions.push(sql`${gorevler.termin_tarihi} IS NOT NULL`);
     conditions.push(sql`${gorevler.termin_tarihi} < CURRENT_TIMESTAMP`);
@@ -90,8 +118,104 @@ async function maybeSendAssignmentNotification(row: GorevRow) {
   });
 }
 
-export async function repoList(query: ListQuery, currentUserId?: string | null): Promise<ListResult> {
-  const where = buildWhere(query, currentUserId);
+type WorkflowTaskInput = {
+  baslik: string;
+  aciklama?: string | null;
+  tip?: GorevTip;
+  modul?: string | null;
+  ilgiliKayitId: string;
+  atananRol?: string | null;
+  atananKullaniciId?: string | null;
+  durum?: GorevRow['durum'];
+  oncelik?: GorevOncelik;
+  terminTarihi?: Date | null;
+  olusturanKullaniciId?: string | null;
+};
+
+export async function repoUpsertWorkflowTask(input: WorkflowTaskInput): Promise<GorevDto> {
+  const existingRows = await db
+    .select()
+    .from(gorevler)
+    .where(and(
+      eq(gorevler.ilgili_kayit_id, input.ilgiliKayitId),
+      eq(gorevler.tip, input.tip ?? 'genel'),
+      eq(gorevler.baslik, input.baslik),
+      input.modul ? eq(gorevler.modul, input.modul) : sql`${gorevler.modul} IS NULL`,
+      input.atananRol ? eq(gorevler.atanan_rol, input.atananRol) : sql`${gorevler.atanan_rol} IS NULL`,
+    ))
+    .limit(1);
+
+  if (existingRows[0]) {
+    const updated = await repoUpdate(existingRows[0].id, {
+      baslik: input.baslik,
+      aciklama: input.aciklama ?? undefined,
+      tip: input.tip ?? 'genel',
+      modul: input.modul ?? undefined,
+      ilgiliKayitId: input.ilgiliKayitId,
+      atananKullaniciId: input.atananKullaniciId ?? undefined,
+      atananRol: (input.atananRol ?? undefined) as "admin" | "operator" | "sevkiyatci" | "satin_almaci" | undefined,
+      durum: (input.durum as any) ?? 'acik',
+      oncelik: input.oncelik ?? 'normal',
+      terminTarihi: input.terminTarihi ?? undefined,
+    });
+    if (!updated) throw new Error('gorev_guncellenemedi');
+    return updated;
+  }
+
+  return repoCreate({
+    baslik: input.baslik,
+    aciklama: input.aciklama ?? undefined,
+    tip: input.tip ?? 'genel',
+    modul: input.modul ?? undefined,
+    ilgiliKayitId: input.ilgiliKayitId,
+    atananKullaniciId: input.atananKullaniciId ?? undefined,
+    atananRol: (input.atananRol ?? undefined) as "admin" | "operator" | "sevkiyatci" | "satin_almaci" | undefined,
+    durum: (input.durum as any) ?? 'acik',
+    oncelik: input.oncelik ?? 'normal',
+    terminTarihi: input.terminTarihi ?? undefined,
+  }, input.olusturanKullaniciId ?? null);
+}
+
+type CloseWorkflowTasksInput = {
+  ilgiliKayitId: string;
+  tip?: GorevTip;
+  modul?: string | null;
+  baslik?: string;
+  atananRol?: string | null;
+};
+
+export async function repoCloseWorkflowTasks(input: CloseWorkflowTasksInput, durum: 'tamamlandi' | 'iptal' = 'tamamlandi'): Promise<number> {
+  const conditions: SQL[] = [eq(gorevler.ilgili_kayit_id, input.ilgiliKayitId)];
+  if (input.tip) conditions.push(eq(gorevler.tip, input.tip));
+  if (input.modul) conditions.push(eq(gorevler.modul, input.modul));
+  if (input.baslik) conditions.push(eq(gorevler.baslik, input.baslik));
+  if (input.atananRol) conditions.push(eq(gorevler.atanan_rol, input.atananRol));
+
+  const rows = await db
+    .select({ id: gorevler.id })
+    .from(gorevler)
+    .where(and(...conditions));
+
+  if (rows.length === 0) return 0;
+
+  await db
+    .update(gorevler)
+    .set({
+      durum,
+      tamamlandi_at: new Date(),
+    })
+    .where(inArray(gorevler.id, rows.map((row) => row.id)));
+
+  return rows.length;
+}
+
+export async function repoList(
+  query: ListQuery,
+  currentUserId?: string | null,
+  currentUserRole?: string | null,
+  userIsAdmin?: boolean,
+): Promise<ListResult> {
+  const where = buildWhere(query, currentUserId, currentUserRole, userIsAdmin);
   const orderBy = getOrderBy(query);
 
   const [items, countRows, summaryRows] = await Promise.all([

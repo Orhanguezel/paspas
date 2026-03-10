@@ -30,6 +30,8 @@ import { useListUrunlerAdminQuery } from "@/integrations/endpoints/admin/erp/uru
 import type { SatisSiparisDto } from "@/integrations/shared/erp/satis_siparisleri.types";
 
 const durumValues = ["taslak", "planlandi", "onaylandi", "uretimde", "kismen_sevk", "tamamlandi", "kapali", "iptal"] as const;
+// Only these statuses can be manually set; the rest are auto-derived
+const durumManualValues = ["kapali", "iptal"] as const;
 
 const kalemSchema = z.object({
   urunId: z.string().min(1, "Ürün seçiniz"),
@@ -253,24 +255,29 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
                 <p className="text-xs text-destructive">{form.formState.errors.siparisNo.message}</p>
               )}
             </div>
-            <div className="space-y-1">
-              <Label>{t("admin.erp.satisSiparisleri.form.durum")}</Label>
-              <Select
-                value={form.watch("durum")}
-                onValueChange={(v) => form.setValue("durum", v as FormValues["durum"])}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {durumValues.map((d) => (
-                    <SelectItem key={d} value={d}>
-                      {t(`admin.erp.satisSiparisleri.statuses.${d}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {isEdit && (
+              <div className="space-y-1">
+                <Label>{t("admin.erp.satisSiparisleri.form.durum")}</Label>
+                <Select
+                  value={form.watch("durum")}
+                  onValueChange={(v) => form.setValue("durum", v as FormValues["durum"])}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {durumManualValues.map((d) => (
+                      <SelectItem key={d} value={d}>
+                        {t(`admin.erp.satisSiparisleri.statuses.${d}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {t("admin.erp.satisSiparisleri.form.durumOtomatikBilgi")}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Müşteri */}
@@ -410,30 +417,32 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
           </div>
 
           <div className="rounded-md border bg-muted/30 p-3">
-            <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-              <div>
-                <div className="text-xs text-muted-foreground">Ara Toplam</div>
-                <div className="font-medium">
+            <div className="space-y-1 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Ara Toplam</span>
+                <span className="font-medium tabular-nums">
                   {totals.araToplam.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
-                </div>
+                </span>
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground">İskonto</div>
-                <div className="font-medium">
-                  -{totals.iskontoTutar.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
+              {totals.iskontoTutar > 0 && (
+                <div className="flex items-center justify-between text-destructive">
+                  <span>İskonto</span>
+                  <span className="font-medium tabular-nums">
+                    -{totals.iskontoTutar.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
+                  </span>
                 </div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">KDV</div>
-                <div className="font-medium">
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">KDV</span>
+                <span className="font-medium tabular-nums">
                   {totals.kdvToplam.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
-                </div>
+                </span>
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Genel Toplam</div>
-                <div className="font-semibold">
+              <div className="flex items-center justify-between border-t pt-1">
+                <span className="font-semibold">Genel Toplam</span>
+                <span className="font-semibold tabular-nums">
                   {totals.genelToplam.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
-                </div>
+                </span>
               </div>
             </div>
           </div>

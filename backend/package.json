@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "bun --hot src/index.ts",
+    "dev": "node scripts/dev.mjs",
     "build": "bun x tsc -p tsconfig.json && bun x tsc-alias -p tsconfig.json && node scripts/fix-esm-extensions.mjs",
     "start": "node --experimental-specifier-resolution=node dist/index.js",
     "start:bun": "bun dist/index.js",

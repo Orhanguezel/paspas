@@ -36,7 +36,10 @@
         "giris_ayarlari": "Giriş Ayarları",
         "storage": "Medyalar",
         "site_settings": "Site Ayarları",
-        "db_admin": "Veritabanı"
+        "db_admin": "Veritabanı",
+        "hafta_sonu_planlari": "Hafta Sonu Planları",
+        "sevkiyat": "Sevkiyat",
+        "mal_kabul": "Mal Kabul"
       }
     },
     "reports": {
@@ -957,7 +960,9 @@
         "announcements": "Duyurular",
         "articles": "Haberler",
         "news_suggestions": "Haber Önerileri",
-        "news_sources": "Haber Kaynakları"
+        "news_sources": "Haber Kaynakları",
+        "hafta_sonu_planlari": "Hafta Sonu Planları",
+        "sevkiyat": "Sevkiyat"
       },
       "stats": {
         "deliveredOrders": "Yayınlanan İlan",
@@ -3103,7 +3108,24 @@
         "companyProfile": {
           "labels": {
             "companyName": "Şirket Adı",
+            "legalName": "Resmi Ünvan",
             "slogan": "Slogan",
+            "taxOffice": "Vergi Dairesi",
+            "taxNumber": "Vergi No",
+            "mersisNumber": "MERSİS No",
+            "tradeRegistryNumber": "Ticaret Sicil No",
+            "phone": "Şirket Telefonu",
+            "email": "Şirket E-posta",
+            "website": "Web Sitesi",
+            "address": "Merkez Adresi",
+            "district": "İlçe",
+            "city": "İl",
+            "postalCode": "Posta Kodu",
+            "productionAddress": "Üretim / Fabrika Adresi",
+            "shipmentContactName": "Sevkiyat Yetkilisi",
+            "shipmentContactPhone": "Sevkiyat Telefonu",
+            "financeContactName": "Finans Yetkilisi",
+            "financeContactEmail": "Finans E-posta",
             "about": "Hakkımızda"
           }
         },
@@ -4780,17 +4802,21 @@
         "productRequired": "Ürün seçiniz",
         "selectCustomer": "Müşteri seçin…",
         "price": "Fiyat (₺)",
-        "product": "Ürün"
+        "product": "Ürün",
+        "refresh": "Yenile"
       },
       "urunler": {
         "title": "Ürünler",
         "singular": "Ürün",
         "newItem": "Yeni Ürün",
+        "categoryManagement": "Kategori Yönetimi",
         "editItem": "Ürünü Düzenle",
         "searchPlaceholder": "Kod veya ada göre ara…",
         "notFound": "Ürün bulunamadı",
+        "resetFilters": "Filtreleri Sıfırla",
         "deleteTitle": "Ürünü sil?",
         "allCategories": "Tüm Kategoriler",
+        "allProductGroups": "Tüm Ürün Grupları",
         "allTedarikTipi": "Tüm Tedarik Tipleri",
         "kategoriLabel": {
           "urun": "Ürün",
@@ -4821,7 +4847,12 @@
         },
         "form": {
           "kategori": "Kategori",
+          "kategoriYok": "Kategori bulunamadı",
           "tedarikTipi": "Tedarik Tipi",
+          "urunGrubu": "Ürün Grubu",
+          "urunGrubuSec": "Ürün grubu seçin…",
+          "urunGrubuYok": "Bu kategori için alt grup yok",
+          "defaultProductName": "Ürün",
           "kod": "Kod",
           "kodPlaceholder": "URN-001",
           "birim": "Birim",
@@ -4846,7 +4877,12 @@
           "kdvOraniPlaceholder": "20",
           "operasyonTipi": "Operasyon Tipi",
           "aktif": "Aktif",
+          "tabBilgiler": "Ürün Bilgileri",
+          "tabOperasyonlar": "Operasyonlar",
+          "tabRecete": "Reçete",
+          "tabMedya": "Medya",
           "operasyonlarTitle": "Operasyonlar",
+          "operasyonYok": "Operasyon bilgisi bulunmuyor.",
           "operasyonAdi": "Operasyon Adı",
           "kalip": "Kalıp",
           "kalipSec": "Kalıp seçin",
@@ -4855,8 +4891,11 @@
           "montaj": "Montaj",
           "sira": "Sıra",
           "birimDonusumleriTitle": "Birim Dönüşümleri",
+          "birimDonusumleriHelper": "Ürünün ana biriminden diğer birimlere dönüşüm oranlarını tanımlayın. Örn: 1 koli = 6 takım",
           "hedefBirim": "Hedef Birim",
           "hedefBirimPlaceholder": "koli / takım / çuval",
+          "digerBirim": "Diğer...",
+          "ozelBirimAdi": "Özel birim adı",
           "carpan": "Çarpan",
           "carpanPlaceholder": "6",
           "donusumEkle": "Dönüşüm Ekle",
@@ -4873,19 +4912,34 @@
           "receteSatirEkle": "+ Satır Ekle",
           "receteKaydet": "Reçeteyi Kaydet",
           "receteKaydedildi": "Reçete kaydedildi",
+          "receteDraftHelper": "Ürün kaydedildiğinde reçete satırları da aynı anda oluşturulur.",
+          "receteEntity": "Reçete",
           "receteYok": "Bu ürün için henüz reçete tanımlanmamış.",
           "receteSil": "Reçeteyi Sil",
           "receteSilOnay": "Bu ürünün reçetesini silmek istediğinize emin misiniz?",
+          "medyaTitle": "Medya (Resim / Video / URL)",
+          "medyaKaydet": "Medyayı Kaydet",
+          "medyaKaydedildi": "Medya kaydedildi",
+          "medyaHelper": "Birden fazla görsel yükleyebilir veya kütüphaneden seçebilirsiniz.",
+          "medyaDraftHelper": "Ürün kaydedildiğinde kapak görseli ve galeri kayıtları birlikte oluşturulur.",
           "makineKuyrugu": "Makine Kuyruğu",
           "makineEkle": "Makine Ekle",
           "oncelikSirasi": "Öncelik",
           "uyumluMakineYok": "Bu kalıba uyumlu makine bulunamadı"
         },
         "validation": {
+          "required": "Zorunlu",
           "kodRequired": "Kod zorunlu",
           "adRequired": "Ad zorunlu",
           "birimRequired": "Birim zorunlu",
           "positive": "Pozitif olmalı"
+        },
+        "errors": {
+          "urun_kodu_zaten_var": "Bu ürün kodu zaten kullanılıyor.",
+          "gecersiz_urun_grubu": "Seçilen kategori için geçerli bir ürün grubu seçin.",
+          "gecersiz_recete_malzeme": "Reçetede yalnızca geçerli malzemeler kullanılabilir.",
+          "urun_kategorisi_operasyon_desteklemiyor": "Bu kategori için operasyon tanımlanamaz.",
+          "urun_kategorisi_recete_desteklemiyor": "Bu kategori için reçete tanımlanamaz."
         }
       },
       "musteriler": {
@@ -4905,6 +4959,7 @@
           "iskonto": "İskonto",
           "durum": "Durum"
         },
+        "filterAll": "Tümü",
         "types": {
           "musteri": "Müşteri",
           "tedarikci": "Tedarikçi"
@@ -4913,6 +4968,7 @@
           "tur": "Tür",
           "kod": "Kod",
           "kodPlaceholder": "MUS-001",
+          "suggestedCode": "Önerilen: {kod}",
           "ad": "Ad / Firma *",
           "adPlaceholder": "Müşteri adı veya firma",
           "ilgiliKisi": "İlgili Kişi",
@@ -4934,7 +4990,17 @@
           "turTedarikci": "Tedarikçi"
         },
         "validation": {
-          "adRequired": "Ad zorunlu"
+          "kodRequired": "Kod zorunlu",
+          "adRequired": "Ad zorunlu",
+          "invalidEmail": "Geçerli e-posta girin"
+        },
+        "salesOrders": "Satış Siparişleri",
+        "summary": {
+          "contact": "İletişim",
+          "sales": "Satış Özeti",
+          "status": "Durum",
+          "toplamSiparis": "Toplam Sipariş",
+          "acikSiparis": "Açık Sipariş"
         }
       },
       "receteler": {
@@ -5004,6 +5070,7 @@
           "musteriPlaceholder": "Müşteri seçin…",
           "musteriIskontoBilgi": "Müşteri iskontosu: %{oran}",
           "kilitliBilgi": "Bu sipariş üretime aktarıldığı için ürün, müşteri ve miktar alanları kilitlidir.",
+          "durumOtomatikBilgi": "Durum üretim ve sevkiyat süreçlerine göre otomatik güncellenir. Sadece kapatma/iptal için manuel değiştirin.",
           "siparisTarihi": "Sipariş Tarihi *",
           "terminTarihi": "Termin Tarihi",
           "aciklama": "Açıklama",
@@ -5038,13 +5105,26 @@
         "notFound": "Üretim emri bulunamadı",
         "deleteTitle": "Üretim emrini sil?",
         "siparissiz": "Siparişsiz",
+        "resetFilters": "Filtreleri Sıfırla",
         "statuses": {
           "hepsi": "Tümü",
+          "atanmamis": "Atanmamış",
           "planlandi": "Planlandı",
-          "hazirlaniyor": "Hazırlanıyor",
           "uretimde": "Üretimde",
           "tamamlandi": "Tamamlandı",
           "iptal": "İptal"
+        },
+        "sortOptions": {
+          "createdAt": "Oluşturma Tarihi",
+          "bitisTarihi": "Planlanan Bitiş",
+          "baslangicTarihi": "Başlangıç Tarihi",
+          "emirNo": "Emir No"
+        },
+        "summary": {
+          "total": "Toplam Emir",
+          "active": "Aktif Üretim",
+          "terminRiskli": "Termin Riski",
+          "completed": "Tamamlanan"
         },
         "columns": {
           "emirNo": "Emir No",
@@ -5052,6 +5132,8 @@
           "musteri": "Müşteri",
           "planlanan": "Planlanan",
           "ilerleme": "İlerleme",
+          "takvim": "Takvim",
+          "malzeme": "Malzeme",
           "termin": "Termin",
           "baslangic": "Başlangıç",
           "bitis": "Planlanan Bitiş",
@@ -5063,7 +5145,11 @@
           "durum": "Durum",
           "kaynak": "Kaynak",
           "kaynakManuel": "Manuel üretim",
+          "kaynakManuelDesc": "Siparişe bağlı olmayan üretim emri açın.",
+          "kaynakManuelBilgi": "Bu akışta ürün, miktar ve tarihleri elle girersiniz.",
           "kaynakSiparis": "Siparişten üret",
+          "kaynakSiparisDesc": "Sipariş satırlarını seçip üretimi otomatik oluşturun.",
+          "kaynakSiparisBilgi": "Sipariş satırı seçildiğinde ürün, miktar, termin ve müşteri özeti otomatik dolar.",
           "siparisAdaylari": "Üretime aktarılmamış sipariş satırları",
           "siparisAdayPlaceholder": "Sipariş / ürün seçin",
           "musteriOzeti": "Müşteri özeti",
@@ -5081,7 +5167,9 @@
           "terminRiskiUyari": "Üretim planlanan bitiş tarihi, termin tarihinden sonra. Teslimat gecikebilir!",
           "adayYok": "Üretime aktarılmamış sipariş kalemi bulunmuyor.",
           "seciliKalem": "Seçili kalem",
-          "toplamMiktar": "Toplam miktar"
+          "toplamMiktar": "Toplam miktar",
+          "enErkenTermin": "En erken termin",
+          "manuelUretimBilgi": "Manuel üretimde sipariş bağlantısı kurulmaz. Ürün, planlanan miktar ve tarih alanlarını doğrudan doldurun."
         }
       },
       "makineHavuzu": {
@@ -5139,7 +5227,12 @@
             "operasyon": "Operasyon",
             "miktar": "Miktar",
             "terminTarihi": "Termin",
-            "onerilenMakineler": "Önerilen Makineler"
+            "onerilenMakineler": "Önerilen Makineler",
+            "ozet": {
+              "toplamEmir": "Atanmamış Emir",
+              "toplamOperasyon": "Bekleyen Operasyon",
+              "terminli": "Terminli Emir"
+            }
           },
           "kuyruklar": {
             "bos": "Henüz makineye atanmış iş yok.",
@@ -5147,6 +5240,13 @@
             "cikarmaHatasi": "Kuyruktan çıkarma sırasında hata oluştu.",
             "siralamaKaydedildi": "Kuyruk sıralaması kaydedildi.",
             "siralamaHatasi": "Sıralama sırasında hata oluştu.",
+            "ozet": {
+              "makine": "Makine",
+              "toplamIs": "Toplam İş",
+              "calisan": "Çalışan İş",
+              "is": "İş Adedi",
+              "toplamSure": "Toplam Süre"
+            },
             "calisiyor": "Çalışıyor",
             "bekliyor": "Bekliyor",
             "toplam": "Toplam",
@@ -5173,6 +5273,8 @@
             "makineSecin": "Makine seçin",
             "montajMakine": "Montaj Makinesi",
             "ayniMakine": "Aynı makine",
+            "uyumlulukBilgi": "Kalıp bağlı operasyonlarda sadece uyumlu makineler listelenir. Uyumlu makine yoksa önce kalıp-makine eşleşmesini kontrol edin.",
+            "uyumluMakineYok": "Bu operasyon için uyumlu aktif makine bulunamadı.",
             "ata": "Ata",
             "iptal": "İptal",
             "basarili": "Operasyon makineye atandı.",
@@ -5186,12 +5288,28 @@
         "searchPlaceholder": "Makine filtrele…",
         "notFound": "İş yükü bulunamadı",
         "allMachines": "Tüm Makineler",
+        "summary": {
+          "machineCount": "Makine",
+          "jobCount": "Toplam İş",
+          "activeCount": "Çalışan İş",
+          "machineJobCount": "İş Adedi",
+          "machineActive": "Aktif İş",
+          "machineDuration": "Toplam Süre"
+        },
         "columns": {
           "sira": "Sıra",
           "makine": "Makine",
           "emirNo": "Emir No",
           "planlanSure": "Planlanan Süre (dk)",
           "durum": "Durum"
+        },
+        "messages": {
+          "removed": "İş yükü kuyruktan çıkarıldı",
+          "removeError": "İş yükü kuyruktan çıkarılamadı",
+          "reordered": "İş sırası güncellendi",
+          "moved": "İş başka makineye taşındı",
+          "moveError": "İş yükü taşınamadı",
+          "emptyMachine": "Bu makinede planlı iş yok"
         }
       },
       "stoklar": {
@@ -5261,6 +5379,18 @@
         "searchPlaceholder": "Sipariş no ara…",
         "notFound": "Satın alma siparişi bulunamadı",
         "deleteTitle": "Satın alma siparişini sil?",
+        "noItems": "Malzeme yok",
+        "moreItems": "+{count} malzeme daha",
+        "resetFilters": "Filtreleri Sıfırla",
+        "summary": {
+          "total": "Toplam Sipariş",
+          "open": "Açık Sipariş",
+          "pendingDelivery": "Teslim Bekleyen",
+          "automatic": "Otomatik Taslak"
+        },
+        "badges": {
+          "automatic": "Otomatik Kritik Stok"
+        },
         "statuses": {
           "taslak": "Taslak",
           "onaylandi": "Onaylandı",
@@ -5272,6 +5402,7 @@
         "columns": {
           "siparisNo": "Sipariş No",
           "tedarikci": "Tedarikçi",
+          "malzeme": "Malzeme",
           "siparisTarihi": "Sipariş Tarihi",
           "termin": "Termin",
           "durum": "Durum"
@@ -5332,6 +5463,63 @@
           "aciklama": "Açıklama"
         }
       },
+      "malKabul": {
+        "title": "Mal Kabul",
+        "singular": "Kayıt",
+        "searchPlaceholder": "Ürün kodu, adı veya parti no ara…",
+        "notFound": "Mal kabul kaydı bulunamadı",
+        "newItem": "Yeni Mal Kabul",
+        "fillRequired": "Ürün ve miktar zorunludur",
+        "deleteConfirm": "Bu mal kabul kaydını silmek istediğinize emin misiniz? Stok ve hareket geri alınacaktır.",
+        "kaynakTipiAll": "Tüm Kaynaklar",
+        "kaliteDurumuAll": "Tüm Kalite",
+        "kaynakTipiLabels": {
+          "satin_alma": "Satın Alma",
+          "fason": "Fason",
+          "hammadde": "Hammadde",
+          "yari_mamul": "Yarı Mamul",
+          "iade": "İade",
+          "diger": "Diğer"
+        },
+        "kaliteDurumuLabels": {
+          "kabul": "Kabul",
+          "red": "Red",
+          "kosullu": "Koşullu"
+        },
+        "summary": {
+          "total": "Toplam Kayıt",
+          "totalMiktar": "Toplam Miktar",
+          "satinAlma": "Satın Alma",
+          "fason": "Fason"
+        },
+        "columns": {
+          "kabulTarihi": "Kabul Tarihi",
+          "urun": "Ürün",
+          "kaynakTipi": "Kaynak Tipi",
+          "tedarikci": "Tedarikçi",
+          "miktar": "Miktar",
+          "partiNo": "Parti No",
+          "kaliteDurumu": "Kalite",
+          "operator": "Operatör",
+          "notlar": "Notlar"
+        },
+        "form": {
+          "kaynakTipi": "Kaynak Tipi",
+          "urun": "Ürün",
+          "urunPlaceholder": "Ürün seçiniz",
+          "tedarikci": "Tedarikçi",
+          "tedarikciPlaceholder": "Tedarikçi seçiniz",
+          "satinAlmaSiparis": "SA Sipariş",
+          "satinAlmaSiparisPlaceholder": "SA sipariş seçiniz",
+          "satinAlmaKalem": "SA Kalemi",
+          "satinAlmaKalemPlaceholder": "SA kalemi seçiniz",
+          "miktar": "Gelen Miktar",
+          "partiNo": "Parti No",
+          "kaliteDurumu": "Kalite Durumu",
+          "kaliteNotu": "Kalite Notu",
+          "notlar": "Notlar"
+        }
+      },
       "operator": {
         "title": "Operatör Ekranı",
         "description": "Makine kuyruğu, sevkiyat ve mal kabul işlemleri",
@@ -5383,6 +5571,12 @@
         "fillRequired": "Tüm zorunlu alanları doldurunuz",
         "shipmentCreated": "Sevkiyat oluşturuldu",
         "shipmentTitle": "Ürün Sevkiyatı",
+        "shipmentQueueTitle": "Sevk Emri Kuyruğu",
+        "shipmentQueueDescription": "Planlamadan oluşturulan sevk emirleri burada görünür. Operatör sevki tamamladığında stok ve sevkiyat ekranı birlikte güncellenir.",
+        "shipmentQueueCount": "sevk emri",
+        "openShipmentOrders": "Açık Sevk Emirleri",
+        "noShipmentQueue": "Bekleyen sevk emri bulunamadı",
+        "shipmentQueueFooter": "Sevk edilen kayıtlar stoktan otomatik düşülür ve sevkiyat ekranına yansır.",
         "shipmentLine": "Sevkiyat Kalemi",
         "addShipmentLine": "Kalem Ekle",
         "customer": "Müşteri",
@@ -5409,7 +5603,8 @@
           "kaliplar": "Kalıplar",
           "tatiller": "Tatil Günleri",
           "vardiyalar": "Vardiyalar",
-          "durusNedenleri": "Duruş Nedenleri"
+          "durusNedenleri": "Duruş Nedenleri",
+          "haftaSonuPlanlari": "Hafta Sonu Planları"
         },
         "kaliplar": {
           "pageDescription": "Üretimde kullanılan kalıpları yönetin",
@@ -5516,11 +5711,97 @@
             "aciklama": "Açıklama"
           },
           "kategoriler": {
+            "title": "Kategoriler & Ürün Grupları",
+            "description": "Ürün kategorileri ve her kategoriye ait alt grupları (ürün grubu) yönetin.",
+            "newCategory": "Yeni Kategori",
+            "editCategory": "Kategori Düzenle",
+            "newSubCategoryWithName": "Yeni Alt Kategori — {name}",
+            "editSubCategory": "Alt Kategori Düzenle",
+            "name": "Ad",
+            "namePlaceholder": "Kategori adı",
+            "nameRequired": "Ad zorunludur",
+            "slug": "Slug",
+            "slugHelp": "Otomatik oluşturulur, gerekirse değiştirebilirsiniz",
+            "slugRequired": "Slug zorunludur",
+            "defaultUnit": "Varsayılan Birim",
+            "defaultCodePrefix": "Varsayılan Kod Prefixi",
+            "defaultCodePrefixPlaceholder": "Örn: URN",
+            "usableInRecipe": "Reçetede malzeme olarak kullanılabilir",
+            "defaultSupplyType": "Varsayılan Tedarik Tipi",
+            "productionFieldsEnabled": "Üretim Alanları Aktif",
+            "operationTypeRequired": "Operasyon Tipi Gerekli",
+            "defaultOperationType": "Varsayılan Operasyon Tipi",
+            "created": "Kategori oluşturuldu",
+            "updated": "Kategori güncellendi",
+            "deleted": "Kategori silindi",
+            "subCreated": "Alt kategori oluşturuldu",
+            "subUpdated": "Alt kategori güncellendi",
+            "subDeleted": "Alt kategori silindi",
+            "duplicateCode": "Bu kod zaten kullanılıyor",
+            "duplicateSlug": "Bu slug zaten kullanılıyor",
+            "deleteFailed": "Silme işlemi başarısız",
+            "empty": "Henüz kategori eklenmemiş.",
+            "inactive": "Pasif",
+            "subGroupCount": "{count} alt grup",
+            "addSubGroup": "Alt Grup Ekle",
+            "tableName": "Ad",
+            "tableSlug": "Slug",
+            "tableStatus": "Durum",
+            "noSubGroups": "Henüz alt grup eklenmemiş.",
+            "deleteCategoryTitle": "Kategori Sil",
+            "deleteCategoryDescription": "\"{name}\" kategorisini ve tüm alt gruplarını silmek istediğinize emin misiniz?",
+            "deleteSubCategoryTitle": "Alt Kategori Sil",
+            "deleteSubCategoryDescription": "\"{name}\" alt kategorisini silmek istediğinize emin misiniz?",
+            "subNamePlaceholder": "Örn: Paspas, Granül…",
+            "categoryLabel": {
+              "urun": "Ürün",
+              "yarimamul": "Yarı Mamül",
+              "hammadde": "Hammadde"
+            },
+            "unitLabel": {
+              "adet": "Adet",
+              "takim": "Takım",
+              "kg": "Kg",
+              "metre": "Metre",
+              "litre": "Litre",
+              "koli": "Koli",
+              "palet": "Palet",
+              "m2": "m2",
+              "ton": "Ton"
+            },
             "makine": "Makine",
             "malzeme": "Malzeme",
             "personel": "Personel",
             "planlama": "Planlama",
             "diger": "Diğer"
+          }
+        },
+        "haftaSonuPlanlari": {
+          "pageDescription": "Cumartesi ve Pazar günleri çalışma planlarını yönetin",
+          "count": "plan",
+          "singular": "Hafta Sonu Planı",
+          "newItem": "Yeni Plan",
+          "editItem": "Planı Düzenle",
+          "notFound": "Hafta sonu planı bulunamadı",
+          "deleteTitle": "Planı sil?",
+          "allMachines": "Tüm Makineler",
+          "works": "Çalışır",
+          "off": "Kapalı",
+          "columns": {
+            "haftaBaslangic": "Hafta Başlangıcı",
+            "makine": "Makine",
+            "cumartesi": "Cumartesi",
+            "pazar": "Pazar"
+          },
+          "form": {
+            "haftaBaslangic": "Hafta Başlangıcı (Pazartesi) *",
+            "haftaBaslangicHelp": "Pazartesi günü seçiniz",
+            "makine": "Makine",
+            "makineAll": "Tüm Makineler",
+            "makineHelp": "Boş bırakılırsa tüm makineler için geçerli olur",
+            "cumartesiCalisir": "Cumartesi çalışır",
+            "pazarCalisir": "Pazar çalışır",
+            "aciklama": "Açıklama"
           }
         }
       },
@@ -5530,13 +5811,20 @@
         "notFound": "Bu tarih aralığında üretim emri bulunamadı",
         "today": "Bugün",
         "montajVar": "Bu emirde montaj operasyonu var",
+        "summary": {
+          "total": "Toplam Emir",
+          "active": "Aktif Plan",
+          "completed": "Tamamlanan",
+          "montajli": "Montajlı İş"
+        },
         "filters": {
           "ara": "Ara",
           "araPlaceholder": "Emir no / ürün...",
           "durum": "Durum",
           "tumDurumlar": "Tüm Durumlar",
           "makine": "Makine",
-          "tumMakineler": "Tüm Makineler"
+          "tumMakineler": "Tüm Makineler",
+          "reset": "Filtreleri Sıfırla"
         },
         "columns": {
           "emirNo": "Emir No",
@@ -5591,6 +5879,88 @@
           "iskonto": "İskonto (%)",
           "iskontoPlaceholder": "0",
           "aktif": "Aktif"
+        }
+      },
+      "sevkiyat": {
+        "title": "Sevkiyat",
+        "description": "Sevk bekleyen sipariş kalemleri ve sevk emirleri",
+        "noData": "Kayıt bulunamadı",
+        "satirBekliyor": "satır bekliyor",
+        "sevkEmri": "sevk emri",
+        "tabs": {
+          "bekleyenler": "Sevk Bekleyenler",
+          "emirler": "Sevk Emirleri"
+        },
+        "filters": {
+          "ara": "Ara",
+          "araPlaceholder": "Sipariş no, ürün, müşteri...",
+          "stok": "Stok Filtresi",
+          "stoklu": "Stokta Olanlar",
+          "tumu": "Tümü",
+          "durum": "Durum",
+          "tumDurumlar": "Tüm Durumlar"
+        },
+        "actions": {
+          "sevkEt": "Sevk Et",
+          "sevkEmriVar": "Sevk Emri Var",
+          "onayla": "Onayla",
+          "fizikselSevkEt": "Fiziksel Sevk Et",
+          "olustur": "Sevk Emri Oluştur",
+          "iptal": "İptal"
+        },
+        "dialog": {
+          "title": "Sevk Emri Oluştur",
+          "miktar": "Miktar",
+          "tarih": "Sevk Tarihi",
+          "notlar": "Notlar",
+          "notlarPlaceholder": "Sevkiyat ile ilgili not...",
+          "stokUyari": "Girilen miktar mevcut stoku aşıyor!"
+        },
+        "gruplama": {
+          "label": "Gruplama",
+          "musteri": "Müşteri Bazında",
+          "urun": "Ürün Bazında",
+          "duz": "Düz Liste"
+        },
+        "siparissiz": {
+          "title": "Siparişsiz Ürünler (Stokta)",
+          "dialogTitle": "Siparişsiz Sevk Emri",
+          "musteriLabel": "Müşteri *",
+          "musteriPlaceholder": "Müşteri seçin…"
+        },
+        "columns": {
+          "siparisNo": "Sipariş No",
+          "sevkEmriNo": "Sevk Emri No",
+          "musteri": "Müşteri",
+          "urunKod": "Ürün Kodu",
+          "urunAd": "Ürün Adı",
+          "siparisMiktar": "Sipariş",
+          "sevkEdilen": "Sevk Edilen",
+          "onayli": "Onaylı",
+          "acikEmir": "Açık Emir",
+          "kalan": "Kalan",
+          "stok": "Stok",
+          "miktar": "Miktar",
+          "tarih": "Tarih",
+          "termin": "Termin",
+          "durum": "Durum",
+          "birim": "Birim",
+          "islem": "İşlem",
+          "toplamKalan": "Toplam Kalan"
+        },
+        "durumlar": {
+          "bekliyor": "Bekliyor",
+          "onaylandi": "Onaylandı",
+          "sevk_edildi": "Sevk Edildi",
+          "iptal": "İptal"
+        },
+        "messages": {
+          "sevkEmriOlusturuldu": "Sevk emri başarıyla oluşturuldu",
+          "hata": "Sevk emri oluşturulurken hata oluştu",
+          "durumGuncellendi": "Sevk emri {durum} olarak güncellendi",
+          "durumHata": "Durum güncellenemedi",
+          "adminOnayiBekleniyor": "Admin onayı bekleniyor",
+          "fizikselSevkBekliyor": "Fiziksel sevk bekleniyor"
         }
       }
     }

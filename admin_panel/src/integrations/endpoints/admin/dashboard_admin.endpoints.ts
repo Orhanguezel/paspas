@@ -13,6 +13,12 @@ export interface DashboardKpi {
   lowStockProductCount: number;
   purchaseOpenCount: number;
   salesOpenCount: number;
+  pendingShipmentLineCount: number;
+  pendingShipmentApprovalCount: number;
+  pendingPhysicalShipmentCount: number;
+  shippedTodayCount: number;
+  shippedTodayAmount: number;
+  openShipmentTaskCount: number;
 }
 
 export interface DashboardTrendPoint {
@@ -30,7 +36,7 @@ export interface DashboardTrend {
 
 export interface ActionItem {
   id: string;
-  type: 'overdue_production' | 'overdue_sales' | 'overdue_purchase' | 'overdue_task' | 'critical_stock' | 'pending_purchase';
+  type: 'overdue_production' | 'overdue_sales' | 'overdue_purchase' | 'overdue_task' | 'critical_stock' | 'pending_purchase' | 'shipment_approval' | 'physical_shipment';
   severity: 'critical' | 'warning';
   title: string;
   subtitle: string;
@@ -61,6 +67,12 @@ function normalizeKpi(res: unknown): DashboardKpi {
     lowStockProductCount:    toNum(r.lowStockProductCount),
     purchaseOpenCount:       toNum(r.purchaseOpenCount),
     salesOpenCount:          toNum(r.salesOpenCount),
+    pendingShipmentLineCount: toNum(r.pendingShipmentLineCount),
+    pendingShipmentApprovalCount: toNum(r.pendingShipmentApprovalCount),
+    pendingPhysicalShipmentCount: toNum(r.pendingPhysicalShipmentCount),
+    shippedTodayCount: toNum(r.shippedTodayCount),
+    shippedTodayAmount: toNum(r.shippedTodayAmount),
+    openShipmentTaskCount: toNum(r.openShipmentTaskCount),
   };
 }
 

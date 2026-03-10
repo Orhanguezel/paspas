@@ -8,6 +8,17 @@ function getUserId(req: unknown): string | null {
   return r.user?.sub ?? r.user?.id ?? null;
 }
 
+function getUserRole(req: unknown): string | null {
+  const r = req as { user?: { role?: string; is_admin?: boolean } };
+  if (r.user?.is_admin === true) return 'admin';
+  return r.user?.role ?? null;
+}
+
+function isAdmin(req: unknown): boolean {
+  const r = req as { user?: { role?: string; is_admin?: boolean } };
+  return r.user?.is_admin === true || r.user?.role === 'admin';
+}
+
 function sendInternalError(reply: FastifyReply) {
   return reply.code(500).send({ error: { message: 'sunucu_hatasi' } });
 }
@@ -18,7 +29,7 @@ export const listGorevler: RouteHandler = async (req, reply) => {
     if (!parsed.success) {
       return reply.code(400).send({ error: { message: 'gecersiz_sorgu_parametreleri', issues: parsed.error.flatten() } });
     }
-    const { items, total, summary } = await repoList(parsed.data, getUserId(req));
+    const { items, total, summary } = await repoList(parsed.data, getUserId(req), getUserRole(req), isAdmin(req));
     reply.header('x-total-count', String(total));
     return reply.send({ items, total, summary });
   } catch (error) {

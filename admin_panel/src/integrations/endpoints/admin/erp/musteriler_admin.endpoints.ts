@@ -64,6 +64,13 @@ export const musterilerAdminApi = baseApi.injectEndpoints({
         { type: 'Musteriler', id: 'LIST' },
       ],
     }),
+
+    getNextMusteriKodAdmin: b.query<{ kod: string }, { tur?: 'musteri' | 'tedarikci' } | void>({
+      query: (params) => ({
+        url: `${BASE}/next-kod`,
+        params: params ? { tur: params.tur ?? 'musteri' } : { tur: 'musteri' },
+      }),
+    }),
   }),
   overrideExisting: true,
 });
@@ -74,4 +81,5 @@ export const {
   useCreateMusteriAdminMutation,
   useUpdateMusteriAdminMutation,
   useDeleteMusteriAdminMutation,
+  useGetNextMusteriKodAdminQuery,
 } = musterilerAdminApi;

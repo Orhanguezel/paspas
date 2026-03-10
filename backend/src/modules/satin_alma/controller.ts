@@ -14,7 +14,11 @@ export const listSatinAlmaSiparisleri: RouteHandler = async (req, reply) => {
     if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_sorgu_parametreleri', issues: parsed.error.flatten() } });
     const { items, total } = await repoList(parsed.data);
     reply.header('x-total-count', String(total));
-    return reply.send(items.map(siparisRowToDto));
+    return reply.send(items.map((item) => {
+      const dto = siparisRowToDto(item);
+      dto.items = (item.items ?? []).map(kalemRowToDto);
+      return dto;
+    }));
   } catch (error) {
     req.log.error({ error }, 'list_satin_alma_siparisleri_failed');
     return sendInternalError(reply);

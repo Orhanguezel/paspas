@@ -4,6 +4,7 @@ import { and, asc, desc, eq, like, or, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
+import { categories } from '@/modules/categories/schema';
 
 import { inArray } from 'drizzle-orm';
 
@@ -12,12 +13,14 @@ import {
   urunOperasyonlari,
   urunOperasyonMakineleri,
   urunBirimDonusumleri,
+  urunMedya,
   operasyonMakineRowToDto,
   type UrunRow,
   type UrunOperasyonRow,
   type UrunOperasyonMakineRow,
   type UrunOperasyonMakineDto,
   type BirimDonusumRow,
+  type UrunMedyaRow,
 } from './schema';
 import type {
   CreateBody,
@@ -27,6 +30,7 @@ import type {
   BirimDonusumItem,
   OperasyonPatchBody,
   OperasyonMakineItem,
+  MedyaItem,
 } from './validation';
 
 type ListResult = {
@@ -55,6 +59,9 @@ function buildWhere(query: ListQuery): SQL | undefined {
   if (query.tedarikTipi) {
     conditions.push(eq(urunler.tedarik_tipi, query.tedarikTipi));
   }
+  if (query.urunGrubu) {
+    conditions.push(eq(urunler.urun_grubu, query.urunGrubu));
+  }
 
   if (conditions.length === 0) return undefined;
   if (conditions.length === 1) return conditions[0];
@@ -66,6 +73,7 @@ function mapCreateInput(data: CreateBody): typeof urunler.$inferInsert {
     id: randomUUID(),
     kategori: data.kategori,
     tedarik_tipi: data.tedarikTipi,
+    urun_grubu: data.urunGrubu ?? null,
     kod: data.kod,
     ad: data.ad,
     aciklama: data.aciklama,
@@ -78,7 +86,7 @@ function mapCreateInput(data: CreateBody): typeof urunler.$inferInsert {
     kritik_stok: data.kritikStok.toFixed(4),
     birim_fiyat: typeof data.birimFiyat === 'number' ? data.birimFiyat.toFixed(2) : undefined,
     kdv_orani: data.kdvOrani.toFixed(2),
-    operasyon_tipi: data.operasyonTipi,
+    operasyon_tipi: data.operasyonTipi ?? null,
     is_active: typeof data.isActive === 'boolean' ? (data.isActive ? 1 : 0) : undefined,
   };
 }
@@ -87,6 +95,7 @@ function mapPatchInput(data: PatchBody): Partial<typeof urunler.$inferInsert> {
   const payload: Partial<typeof urunler.$inferInsert> = {};
   if (data.kategori !== undefined) payload.kategori = data.kategori;
   if (data.tedarikTipi !== undefined) payload.tedarik_tipi = data.tedarikTipi;
+  if (data.urunGrubu !== undefined) payload.urun_grubu = data.urunGrubu ?? null;
   if (data.kod !== undefined) payload.kod = data.kod;
   if (data.ad !== undefined) payload.ad = data.ad;
   if (data.aciklama !== undefined) payload.aciklama = data.aciklama;
@@ -99,7 +108,7 @@ function mapPatchInput(data: PatchBody): Partial<typeof urunler.$inferInsert> {
   if (data.kritikStok !== undefined) payload.kritik_stok = data.kritikStok.toFixed(4);
   if (data.birimFiyat !== undefined) payload.birim_fiyat = data.birimFiyat.toFixed(2);
   if (data.kdvOrani !== undefined) payload.kdv_orani = data.kdvOrani.toFixed(2);
-  if (data.operasyonTipi !== undefined) payload.operasyon_tipi = data.operasyonTipi;
+  if (data.operasyonTipi !== undefined) payload.operasyon_tipi = data.operasyonTipi ?? null;
   if (data.isActive !== undefined) payload.is_active = data.isActive ? 1 : 0;
   return payload;
 }
@@ -111,6 +120,36 @@ function getOrderBy(query: ListQuery) {
   if (query.sort === 'kritik_stok') return query.order === 'asc' ? asc(urunler.kritik_stok) : desc(urunler.kritik_stok);
   return query.order === 'asc' ? asc(urunler.created_at) : desc(urunler.created_at);
 }
+
+
+// -- Kod Onerisi --
+
+export async function repoGetNextCode(kategori: string): Promise<string> {
+  const categoryRows = await db
+    .select({ prefix: categories.varsayilan_kod_prefixi })
+    .from(categories)
+    .where(eq(categories.kod, kategori))
+    .limit(1);
+
+  const prefix = categoryRows[0]?.prefix?.trim() || 'URN';
+  const pattern = `${prefix}-%`;
+
+  const rows = await db
+    .select({ kod: urunler.kod })
+    .from(urunler)
+    .where(like(urunler.kod, pattern))
+    .orderBy(desc(urunler.kod));
+
+  let maxNum = 0;
+  for (const row of rows) {
+    const suffix = row.kod.slice(prefix.length + 1);
+    const num = Number.parseInt(suffix, 10);
+    if (Number.isFinite(num) && num > maxNum) maxNum = num;
+  }
+
+  return `${prefix}-${String(maxNum + 1).padStart(4, '0')}`;
+}
+
 
 // -- Urun CRUD --
 
@@ -185,16 +224,30 @@ export async function repoDelete(id: string): Promise<void> {
 
 async function autoCreateOperasyonlar(
   urunId: string,
-  data: Pick<CreateBody, 'kategori' | 'operasyonTipi' | 'ad' | 'renk'>,
+  data: Pick<CreateBody, 'kategori' | 'tedarikTipi' | 'operasyonTipi' | 'ad' | 'renk'>,
 ): Promise<void> {
+  const categoryRows = await db
+    .select({
+      productionFieldsEnabled: categories.uretim_alanlari_aktif,
+      operationTypeRequired: categories.operasyon_tipi_gerekli,
+    })
+    .from(categories)
+    .where(eq(categories.kod, data.kategori))
+    .limit(1);
+
+  const categoryConfig = categoryRows[0];
+  const showProductionFields = Boolean(categoryConfig?.productionFieldsEnabled) && data.tedarikTipi === 'uretim';
+  if (!showProductionFields) {
+    return;
+  }
+
   // Operasyon adina renk ekle (eger ad zaten renk icermiyorsa)
   const renk = data.renk?.trim();
   const baseAd = renk && !data.ad.toLowerCase().includes(renk.toLowerCase())
     ? `${data.ad} ${renk}`
     : data.ad;
 
-  // hammadde and yarimamul: single operation with product name
-  if (data.kategori !== 'urun') {
+  if (!categoryConfig?.operationTypeRequired) {
     await db.insert(urunOperasyonlari).values({
       id: randomUUID(),
       urun_id: urunId,
@@ -274,6 +327,8 @@ async function insertBirimDonusumleri(urunId: string, items: BirimDonusumItem[])
 
 // -- Operasyon CRUD --
 
+// -- Urun CRUD --
+
 export async function repoListOperasyonlar(urunId: string): Promise<UrunOperasyonRow[]> {
   return db
     .select()
@@ -322,6 +377,8 @@ export async function syncOperasyonMakineleri(
   await db.insert(urunOperasyonMakineleri).values(values);
 }
 
+// -- Urun CRUD --
+
 export async function repoListOperasyonMakineleri(
   operasyonIds: string[],
 ): Promise<Map<string, UrunOperasyonMakineDto[]>> {
@@ -343,9 +400,47 @@ export async function repoListOperasyonMakineleri(
 
 // -- Birim Donusumleri --
 
+// -- Urun CRUD --
+
 export async function repoListBirimDonusumleri(urunId: string): Promise<BirimDonusumRow[]> {
   return db
     .select()
     .from(urunBirimDonusumleri)
     .where(eq(urunBirimDonusumleri.urun_id, urunId));
+}
+
+// -- Medya --
+
+// -- Urun CRUD --
+
+export async function repoListMedya(urunId: string): Promise<UrunMedyaRow[]> {
+  return db
+    .select()
+    .from(urunMedya)
+    .where(eq(urunMedya.urun_id, urunId))
+    .orderBy(asc(urunMedya.sira), asc(urunMedya.created_at));
+}
+
+export async function repoSaveMedya(urunId: string, items: MedyaItem[]): Promise<UrunMedyaRow[]> {
+  await db.delete(urunMedya).where(eq(urunMedya.urun_id, urunId));
+
+  if (items.length > 0) {
+    const values = items.map((item, idx) => ({
+      id: item.id || randomUUID(),
+      urun_id: urunId,
+      tip: item.tip,
+      url: item.url,
+      storage_asset_id: item.storageAssetId ?? null,
+      baslik: item.baslik ?? null,
+      sira: item.sira ?? idx,
+      is_cover: item.isCover ? 1 : 0,
+    }));
+    await db.insert(urunMedya).values(values);
+  }
+
+  return repoListMedya(urunId);
+}
+
+export async function repoDeleteMedyaItem(medyaId: string): Promise<void> {
+  await db.delete(urunMedya).where(eq(urunMedya.id, medyaId));
 }

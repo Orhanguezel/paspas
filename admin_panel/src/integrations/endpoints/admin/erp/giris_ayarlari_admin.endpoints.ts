@@ -15,6 +15,12 @@ export const girisAyarlariAdminApi = baseApi.injectEndpoints({
       showQuickLogin: boolean;
       allowPasswordLogin: boolean;
       roleCardsEnabled: boolean;
+      passwordPolicy: {
+        minLength: number;
+        requireUppercase: boolean;
+        requireNumber: boolean;
+        requireSpecialChar: boolean;
+      };
       redirects: Record<LoginRole, string>;
       enabledRoles: LoginRole[];
     }>({

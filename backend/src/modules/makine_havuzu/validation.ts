@@ -51,8 +51,15 @@ export const kuyrukSiralaSchema = z.object({
   })).min(1),
 });
 
+export const capacityQuerySchema = z.object({
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  days: z.coerce.number().int().min(1).max(365).optional(),
+});
+
 export type ListQuery = z.infer<typeof listQuerySchema>;
 export type CreateBody = z.infer<typeof createSchema>;
 export type PatchBody = z.infer<typeof patchSchema>;
 export type AtaBody = z.infer<typeof ataSchema>;
 export type KuyrukSiralaBody = z.infer<typeof kuyrukSiralaSchema>;
+export type CapacityQuery = z.infer<typeof capacityQuerySchema>;

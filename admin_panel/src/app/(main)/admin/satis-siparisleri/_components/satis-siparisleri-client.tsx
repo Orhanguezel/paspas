@@ -31,6 +31,10 @@ import {
   useDeleteSatisSiparisiAdminMutation,
 } from '@/integrations/endpoints/admin/erp/satis_siparisleri_admin.endpoints';
 import type { SatisSiparisDto, SiparisDurum } from '@/integrations/shared/erp/satis_siparisleri.types';
+import {
+  URETIM_DURUMU_LABELS, URETIM_DURUMU_BADGE,
+  SEVK_DURUMU_LABELS, SEVK_DURUMU_BADGE,
+} from '@/integrations/shared/erp/satis_siparisleri.types';
 import SiparisForm from './siparis-form';
 
 const BADGE_VARIANT: Record<SiparisDurum, 'default' | 'secondary' | 'destructive'> = {
@@ -174,10 +178,14 @@ export default function SatisSiparisleriClient() {
                 <TableCell>{s.siparisTarihi}</TableCell>
                 <TableCell>{s.terminTarihi ?? '—'}</TableCell>
                 <TableCell>
-                  {s.kalemSayisi > 0 ? `${s.uretimeAktarilanKalemSayisi}/${s.kalemSayisi} kalem` : '—'}
+                  <Badge variant={URETIM_DURUMU_BADGE[s.uretimDurumu]}>
+                    {URETIM_DURUMU_LABELS[s.uretimDurumu]}
+                  </Badge>
                 </TableCell>
                 <TableCell>
-                  {s.toplamMiktar > 0 ? `${s.sevkEdilenMiktar.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}/${s.toplamMiktar.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}` : '—'}
+                  <Badge variant={SEVK_DURUMU_BADGE[s.sevkDurumu]}>
+                    {SEVK_DURUMU_LABELS[s.sevkDurumu]}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <Badge variant={BADGE_VARIANT[s.durum]}>

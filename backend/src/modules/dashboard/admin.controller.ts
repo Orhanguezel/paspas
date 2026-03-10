@@ -14,7 +14,10 @@ export async function adminDashboardSummary(req: FastifyRequest, reply: FastifyR
 
 export async function adminDashboardKpi(req: FastifyRequest, reply: FastifyReply) {
   try {
-    return reply.send(await getDashboardKpi());
+    const user = (req as any).user;
+    const userId: string | null = user?.id ?? null;
+    const role: string = user?.role ?? 'admin';
+    return reply.send(await getDashboardKpi(userId, role));
   } catch (error) {
     req.log.error({ error }, 'admin_dashboard_kpi_failed');
     return reply.code(500).send({ error: { message: 'sunucu_hatasi' } });

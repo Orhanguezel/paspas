@@ -26,12 +26,12 @@ export default function SellerLoginPage() {
         <div className="flex h-full flex-col items-center justify-center p-12 text-center">
           <div className="space-y-6">
             {loginLogo ? (
-              <div className="relative mx-auto size-24">
+              <div className="relative mx-auto size-48">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={loginLogo} alt={appName} className="size-full object-contain" />
               </div>
             ) : (
-              <div className="mx-auto flex size-24 items-center justify-center rounded-xl bg-primary-foreground/10">
+              <div className="mx-auto flex size-48 items-center justify-center rounded-xl bg-primary-foreground/10">
                 <span className="text-3xl font-bold text-primary-foreground">{appName.charAt(0)}</span>
               </div>
             )}

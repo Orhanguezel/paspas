@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
-const sortEnum = z.enum(['emir_no', 'baslangic_tarihi', 'created_at']);
+const sortEnum = z.enum(['emir_no', 'baslangic_tarihi', 'bitis_tarihi', 'created_at']);
 const orderEnum = z.enum(['asc', 'desc']);
-const durumEnum = z.enum(['planlandi', 'hazirlaniyor', 'uretimde', 'tamamlandi', 'iptal']);
-const uuidSchema = z.string().min(1);
+const durumEnum = z.enum(['atanmamis', 'planlandi', 'uretimde', 'tamamlandi', 'iptal']);
+const uuidSchema = z.string().uuid();
 
 const isActiveQuerySchema = z.preprocess((value) => {
   if (value === 'true' || value === '1') return true;
@@ -19,8 +19,8 @@ export const listQuerySchema = z.object({
   isActive: isActiveQuerySchema.optional(),
   limit: z.coerce.number().int().min(1).max(500).default(100),
   offset: z.coerce.number().int().min(0).default(0),
-  sort: sortEnum.default('created_at'),
-  order: orderEnum.default('desc'),
+  sort: sortEnum.default('bitis_tarihi'),
+  order: orderEnum.default('asc'),
 });
 
 export const createSchema = z.object({
@@ -35,13 +35,27 @@ export const createSchema = z.object({
   baslangicTarihi: z.string().date().optional(),
   bitisTarihi: z.string().date().optional(),
   terminTarihi: z.string().date().optional(),
-  durum: durumEnum.default('planlandi'),
+  durum: durumEnum.default('atanmamis'),
   isActive: z.boolean().optional(),
 });
 
-export const patchSchema = createSchema.partial().refine((value) => Object.keys(value).length > 0, {
-  message: 'en_az_bir_alan_gonderilmeli',
-});
+export const patchSchema = createSchema
+  .partial()
+  .superRefine((value, ctx) => {
+    if (Object.keys(value).length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'en_az_bir_alan_gonderilmeli',
+      });
+    }
+    if (value.durum !== undefined && value.durum !== 'iptal') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['durum'],
+        message: 'manuel_durum_guncelleme_desteklenmiyor',
+      });
+    }
+  });
 
 export type ListQuery = z.infer<typeof listQuerySchema>;
 export type CreateBody = z.infer<typeof createSchema>;

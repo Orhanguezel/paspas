@@ -8,9 +8,15 @@ describe('giris ayarlari validation', () => {
       showQuickLogin: true,
       allowPasswordLogin: true,
       roleCardsEnabled: true,
+      passwordPolicy: {
+        minLength: 8,
+        requireUppercase: true,
+        requireNumber: true,
+        requireSpecialChar: false,
+      },
       redirects: {
         admin: '/admin/dashboard',
-        sevkiyatci: '/admin/satis-siparisleri',
+        sevkiyatci: '/admin/sevkiyat',
         operator: '/admin/operator',
         satin_almaci: '/admin/satin-alma',
       },
@@ -24,9 +30,15 @@ describe('giris ayarlari validation', () => {
       showQuickLogin: true,
       allowPasswordLogin: true,
       roleCardsEnabled: true,
+      passwordPolicy: {
+        minLength: 8,
+        requireUppercase: true,
+        requireNumber: true,
+        requireSpecialChar: false,
+      },
       redirects: {
         admin: 'admin/dashboard',
-        sevkiyatci: '/admin/satis-siparisleri',
+        sevkiyatci: '/admin/sevkiyat',
         operator: '/admin/operator',
         satin_almaci: '/admin/satin-alma',
       },

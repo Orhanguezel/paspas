@@ -9,29 +9,22 @@ import { useState } from "react";
 
 import Link from "next/link";
 
-import { AlertTriangle, ArrowLeft, Pencil, RefreshCcw } from "lucide-react";
-import { toast } from "sonner";
+import { AlertTriangle, ArrowLeft, CheckCircle2, Pencil, RefreshCcw, XCircle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useListIsYukleriAdminQuery } from "@/integrations/endpoints/admin/erp/is_yukler_admin.endpoints";
-import {
-  useGetUretimEmriAdminQuery,
-  useUpdateUretimEmriAdminMutation,
-} from "@/integrations/endpoints/admin/erp/uretim_emirleri_admin.endpoints";
+import { useCheckYeterlilikAdminQuery } from "@/integrations/endpoints/admin/erp/stoklar_admin.endpoints";
+import { useGetUretimEmriAdminQuery } from "@/integrations/endpoints/admin/erp/uretim_emirleri_admin.endpoints";
 import { IS_YUKU_DURUM_BADGE, IS_YUKU_DURUM_LABELS } from "@/integrations/shared/erp/is_yukler.types";
-import type { UretimEmriDurum } from "@/integrations/shared/erp/uretim_emirleri.types";
 import { EMIR_DURUM_BADGE, EMIR_DURUM_LABELS } from "@/integrations/shared/erp/uretim_emirleri.types";
 
 import UretimEmriForm from "../../_components/uretim-emri-form";
-
-const DURUM_OPTIONS: UretimEmriDurum[] = ["planlandi", "hazirlaniyor", "uretimde", "tamamlandi", "iptal"];
 
 interface Props {
   id: string;
@@ -39,33 +32,50 @@ interface Props {
 
 export default function UretimEmriDetayClient({ id }: Props) {
   const [formOpen, setFormOpen] = useState(false);
-  const [durumChanging, setChanging] = useState(false);
 
   const { data: emri, isLoading, refetch } = useGetUretimEmriAdminQuery(id);
   const { data: isYukleri } = useListIsYukleriAdminQuery({});
-  const [updateEmri] = useUpdateUretimEmriAdminMutation();
+  const { data: yeterlilik, isLoading: yeterlilikLoading } = useCheckYeterlilikAdminQuery(
+    { urunId: emri?.urunId ?? "", miktar: emri?.planlananMiktar ?? 0 },
+    { skip: !emri?.receteId },
+  );
 
   const makineMapped = (isYukleri?.items ?? []).filter((y) => y.uretimEmriId === id);
-
-  async function handleDurumChange(durum: UretimEmriDurum) {
-    setChanging(true);
-    try {
-      await updateEmri({ id, body: { durum } }).unwrap();
-      toast.success("Durum güncellendi");
-    } catch (err: unknown) {
-      const message =
-        typeof err === "object" && err && "data" in err
-          ? (err as { data?: { error?: { message?: string } } }).data?.error?.message
-          : undefined;
-      toast.error(message ?? "Güncelleme başarısız");
-    } finally {
-      setChanging(false);
-    }
-  }
+  const yeterlilikKalemleri = yeterlilik?.kalemler ?? [];
+  const eksikKalemSayisi = yeterlilikKalemleri.filter((kalem) => !kalem.yeterli).length;
+  const toplamGerekli = yeterlilikKalemleri.reduce((total, kalem) => total + kalem.gerekliMiktarFireli, 0);
+  const toplamStok = yeterlilikKalemleri.reduce((total, kalem) => total + kalem.mevcutStok, 0);
 
   function pct(uretilen: number, planlanan: number) {
     if (!planlanan) return 0;
     return Math.min(100, Math.round((uretilen / planlanan) * 100));
+  }
+
+  function formatDate(value: string | null | undefined) {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleDateString("tr-TR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }
+
+  function formatDateTime(value: string | null | undefined) {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    const tarih = d.toLocaleDateString("tr-TR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+    const saat = d.toLocaleTimeString("tr-TR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return `${tarih} ${saat}`;
   }
 
   if (isLoading) {
@@ -190,21 +200,21 @@ export default function UretimEmriDetayClient({ id }: Props) {
             <Separator />
             <div className="flex justify-between">
               <span className="text-muted-foreground">Başlangıç</span>
-              <span>{emri.baslangicTarihi ?? "—"}</span>
+              <span>{formatDate(emri.baslangicTarihi)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Termin</span>
               <div className="flex items-center gap-1">
                 {emri.terminRiski && <AlertTriangle className="size-3.5 text-destructive" />}
                 <span className={emri.terminRiski ? "font-medium text-destructive" : undefined}>
-                  {emri.terminTarihi ?? "—"}
+                  {formatDate(emri.terminTarihi)}
                 </span>
               </div>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Planlanan Bitiş</span>
               <div className="text-right">
-                <div>{emri.planlananBitisTarihi ?? emri.bitisTarihi ?? "—"}</div>
+                <div>{formatDateTime(emri.planlananBitisTarihi ?? emri.bitisTarihi)}</div>
                 <div className="text-muted-foreground text-xs">
                   {emri.makineAtamaSayisi > 0 ? `${emri.makineAtamaSayisi} makine atamasi` : "Operasyon tahmini"}
                 </div>
@@ -224,15 +234,15 @@ export default function UretimEmriDetayClient({ id }: Props) {
             <Separator />
             <div className="flex justify-between">
               <span className="text-muted-foreground">Oluşturulma</span>
-              <span className="tabular-nums">{String(emri.createdAt).slice(0, 16).replace("T", " ")}</span>
+              <span className="tabular-nums">{formatDateTime(String(emri.createdAt))}</span>
             </div>
           </CardContent>
         </Card>
 
-        {/* İlerleme + Durum değiştir */}
+        {/* İlerleme */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">İlerleme & Durum</CardTitle>
+            <CardTitle className="text-sm">İlerleme</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2">
@@ -248,25 +258,15 @@ export default function UretimEmriDetayClient({ id }: Props) {
 
             <Separator />
 
-            <div className="space-y-2">
-              <p className="font-medium text-sm">Durum Güncelle</p>
-              <Select
-                value={emri.durum}
-                onValueChange={(v) => handleDurumChange(v as UretimEmriDurum)}
-                disabled={durumChanging}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DURUM_OPTIONS.map((d) => (
-                    <SelectItem key={d} value={d}>
-                      {EMIR_DURUM_LABELS[d]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Durum</span>
+              <Badge variant={EMIR_DURUM_BADGE[emri.durum]} className="text-xs">
+                {EMIR_DURUM_LABELS[emri.durum]}
+              </Badge>
             </div>
+            <p className="text-muted-foreground text-xs">
+              Durum, makine ataması ve operatör işlemlerine göre otomatik güncellenir.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -310,6 +310,133 @@ export default function UretimEmriDetayClient({ id }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {/* Malzeme Yeterliliği */}
+      {emri.receteId && (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  Malzeme Yeterliliği
+                  {yeterlilik && !yeterlilikLoading && (
+                    <Badge variant={yeterlilik.tumYeterli ? "default" : "destructive"} className="text-xs">
+                      {yeterlilik.tumYeterli ? "Yeterli" : "Eksik"}
+                    </Badge>
+                  )}
+                </CardTitle>
+                {yeterlilik?.receteAd && (
+                  <p className="text-muted-foreground text-xs">Reçete: {yeterlilik.receteAd}</p>
+                )}
+              </div>
+
+              {!yeterlilikLoading && yeterlilik && (
+                <div className="grid min-w-[260px] gap-2 sm:grid-cols-3">
+                  <div className="rounded-md border bg-muted/30 px-3 py-2">
+                    <div className="text-[11px] text-muted-foreground">Malzeme</div>
+                    <div className="font-semibold tabular-nums">{yeterlilikKalemleri.length}</div>
+                  </div>
+                  <div className="rounded-md border bg-muted/30 px-3 py-2">
+                    <div className="text-[11px] text-muted-foreground">Eksik Kalem</div>
+                    <div className={`font-semibold tabular-nums ${eksikKalemSayisi > 0 ? "text-destructive" : "text-emerald-600"}`}>
+                      {eksikKalemSayisi}
+                    </div>
+                  </div>
+                  <div className="rounded-md border bg-muted/30 px-3 py-2">
+                    <div className="text-[11px] text-muted-foreground">Toplam Stok</div>
+                    <div className="font-semibold tabular-nums">{toplamStok.toFixed(1)}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {yeterlilikLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={`yeterlilik-skeleton-${i + 1}`} className="h-6 w-full" />
+                ))}
+              </div>
+            ) : !yeterlilik ? (
+              <p className="py-4 text-center text-muted-foreground text-sm">Yeterlilik bilgisi alınamadı</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="rounded-md border bg-muted/20 px-3 py-3 text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">Özet:</span>{' '}
+                  Toplam gerekli {toplamGerekli.toFixed(1)} birim malzeme, mevcut stok toplamı {toplamStok.toFixed(1)}.
+                  {!yeterlilik.tumYeterli && ` ${eksikKalemSayisi} kalemde stok açığı var.`}
+                </div>
+
+                <div className="space-y-3">
+                  {yeterlilik.kalemler.map((k) => (
+                    <div
+                      key={k.malzemeId}
+                      className={`rounded-lg border p-3 ${k.yeterli ? "bg-background" : "border-destructive/30 bg-destructive/5"}`}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          {k.malzemeGorselUrl ? (
+                            <img
+                              src={k.malzemeGorselUrl}
+                              alt={k.malzemeAd}
+                              className="size-12 rounded-md border object-cover"
+                            />
+                          ) : (
+                            <div className="size-12 rounded-md border bg-muted" />
+                          )}
+                          <div className="min-w-0">
+                            <div className="font-medium">{k.malzemeAd}</div>
+                            <div className="font-mono text-xs text-muted-foreground">{k.malzemeKod}</div>
+                          </div>
+                        </div>
+
+                        <Badge variant={k.yeterli ? "outline" : "destructive"} className="shrink-0">
+                          {k.yeterli ? "Yeterli" : "Eksik"}
+                        </Badge>
+                      </div>
+
+                      <div className="mt-3 grid gap-2 sm:grid-cols-4">
+                        <div className="rounded-md border bg-muted/30 px-3 py-2">
+                          <div className="text-[11px] text-muted-foreground">Gerekli</div>
+                          <div className="font-semibold tabular-nums">
+                            {k.gerekliMiktarFireli.toFixed(1)} {k.birim}
+                          </div>
+                          {k.fireOrani > 0 && (
+                            <div className="text-[11px] text-muted-foreground">%{(k.fireOrani * 100).toFixed(0)} fire dahil</div>
+                          )}
+                        </div>
+                        <div className="rounded-md border bg-muted/30 px-3 py-2">
+                          <div className="text-[11px] text-muted-foreground">Stok</div>
+                          <div className="font-semibold tabular-nums">
+                            {k.mevcutStok.toFixed(1)} {k.birim}
+                          </div>
+                        </div>
+                        <div className="rounded-md border bg-muted/30 px-3 py-2">
+                          <div className="text-[11px] text-muted-foreground">Fark</div>
+                          <div className={`font-semibold tabular-nums ${k.fark < 0 ? "text-destructive" : "text-emerald-600"}`}>
+                            {k.fark >= 0 ? "+" : ""}{k.fark.toFixed(1)} {k.birim}
+                          </div>
+                        </div>
+                        <div className="rounded-md border bg-muted/30 px-3 py-2">
+                          <div className="text-[11px] text-muted-foreground">Durum</div>
+                          <div className="flex items-center gap-2 font-semibold">
+                            {k.yeterli ? (
+                              <CheckCircle2 className="size-4 text-emerald-600" />
+                            ) : (
+                              <XCircle className="size-4 text-destructive" />
+                            )}
+                            <span>{k.yeterli ? "Hazır" : "Tedarik Gerekli"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <UretimEmriForm open={formOpen} onClose={() => setFormOpen(false)} emri={emri} />
     </div>

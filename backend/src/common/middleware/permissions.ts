@@ -21,6 +21,7 @@ export type AdminPermissionKey =
   | 'admin.stoklar'
   | 'admin.satin_alma'
   | 'admin.hareketler'
+  | 'admin.sevkiyat'
   | 'admin.gorevler'
   | 'admin.giris_ayarlari'
   | 'admin.operator'
@@ -34,6 +35,7 @@ export type AdminPermissionKey =
   | 'admin.properties'
   | 'admin.flash_sale'
   | 'admin.contacts'
+  | 'admin.mal_kabul'
   | 'admin.reviews';
 
 export type PermissionAction = 'view' | 'create' | 'update' | 'delete';
@@ -67,6 +69,8 @@ const ADMIN_PERMISSION_MAP: Record<AdminPermissionKey, AppRole[]> = {
   'admin.satin_alma': ADMIN_AND_SATIN_ALMACI,
   'admin.tedarikci': ADMIN_AND_SATIN_ALMACI,
   'admin.hareketler': ALL_ERP_ROLES,
+  'admin.mal_kabul': ADMIN_AND_SATIN_ALMACI,
+  'admin.sevkiyat': ADMIN_AND_SEVKIYATCI,
   'admin.gorevler': ALL_ERP_ROLES,
   'admin.giris_ayarlari': ADMIN_ONLY,
   'admin.operator': ADMIN_AND_OPERATOR,
@@ -96,6 +100,8 @@ const MODULE_META: Record<AdminPermissionKey, { label: string; group: string }> 
   'admin.stoklar': { label: 'Stoklar', group: 'ERP' },
   'admin.satin_alma': { label: 'Satin Alma', group: 'ERP' },
   'admin.hareketler': { label: 'Hareketler', group: 'ERP' },
+  'admin.mal_kabul': { label: 'Mal Kabul', group: 'ERP' },
+  'admin.sevkiyat': { label: 'Sevkiyat', group: 'ERP' },
   'admin.gorevler': { label: 'Gorevler', group: 'ERP' },
   'admin.giris_ayarlari': { label: 'Giris Ayarlari', group: 'Yonetim' },
   'admin.operator': { label: 'Operator', group: 'ERP' },

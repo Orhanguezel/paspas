@@ -7,6 +7,8 @@ import { baseApi } from '@/integrations/baseApi';
 import type {
   AtamaPayload,
   AtanmamisOperasyonDto,
+  KapasiteHesabiDto,
+  KapasiteQueryParams,
   KuyrukGrubuDto,
   KuyrukSiralaPayload,
   MakineCreatePayload,
@@ -16,6 +18,7 @@ import type {
 } from '@/integrations/shared/erp/makine_havuzu.types';
 import {
   normalizeAtanmamisOperasyon,
+  normalizeKapasiteHesabi,
   normalizeKuyrukGrubu,
   normalizeMakine,
   normalizeMakineList,
@@ -41,6 +44,12 @@ export const makineHavuzuAdminApi = baseApi.injectEndpoints({
       query: (id) => ({ url: `${BASE}/${id}` }),
       transformResponse: (res: unknown) => normalizeMakine(res),
       providesTags: (_r, _e, id) => [{ type: 'Makine' as const, id }],
+    }),
+
+    getMakineCapacityAdmin: b.query<KapasiteHesabiDto, { id: string; params?: KapasiteQueryParams }>({
+      query: ({ id, params }) => ({ url: `${BASE}/${id}/capacity`, params }),
+      transformResponse: (res: unknown) => normalizeKapasiteHesabi(res),
+      providesTags: (_r, _e, { id }) => [{ type: 'MakineCapacity' as const, id }],
     }),
 
     createMakineAdmin: b.mutation<MakineDto, MakineCreatePayload>({
@@ -88,6 +97,7 @@ export const makineHavuzuAdminApi = baseApi.injectEndpoints({
         { type: 'MakineKuyrugu', id: 'ATANMAMIS' },
         { type: 'MakineKuyrugu', id: 'KUYRUKLAR' },
         { type: 'UretimEmirleri', id: 'LIST' },
+        { type: 'Gantt', id: 'LIST' },
       ],
     }),
 
@@ -96,12 +106,16 @@ export const makineHavuzuAdminApi = baseApi.injectEndpoints({
       invalidatesTags: [
         { type: 'MakineKuyrugu', id: 'ATANMAMIS' },
         { type: 'MakineKuyrugu', id: 'KUYRUKLAR' },
+        { type: 'Gantt', id: 'LIST' },
       ],
     }),
 
     kuyrukSiralaAdmin: b.mutation<{ ok: boolean }, KuyrukSiralaPayload>({
       query: (body) => ({ url: `${BASE}/kuyruk-sirala`, method: 'PATCH', body }),
-      invalidatesTags: [{ type: 'MakineKuyrugu', id: 'KUYRUKLAR' }],
+      invalidatesTags: [
+        { type: 'MakineKuyrugu', id: 'KUYRUKLAR' },
+        { type: 'Gantt', id: 'LIST' },
+      ],
     }),
   }),
   overrideExisting: true,
@@ -110,6 +124,7 @@ export const makineHavuzuAdminApi = baseApi.injectEndpoints({
 export const {
   useListMakinelerAdminQuery,
   useGetMakineAdminQuery,
+  useGetMakineCapacityAdminQuery,
   useCreateMakineAdminMutation,
   useUpdateMakineAdminMutation,
   useDeleteMakineAdminMutation,

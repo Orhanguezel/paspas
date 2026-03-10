@@ -3,7 +3,7 @@
 // Paspas ERP — Ürünler DTO & normalizers
 // =============================================================
 
-export type UrunKategori = "urun" | "yarimamul" | "hammadde";
+export type UrunKategori = string;
 export type TedarikTipi = "uretim" | "satin_alma" | "fason";
 export type OperasyonTipi = "tek_tarafli" | "cift_tarafli";
 
@@ -38,6 +38,7 @@ export interface UrunDto {
   id: string;
   kategori: UrunKategori;
   tedarikTipi: TedarikTipi;
+  urunGrubu: string | null;
   kod: string;
   ad: string;
   aciklama: string | null;
@@ -50,7 +51,7 @@ export interface UrunDto {
   kritikStok: number;
   birimFiyat: number | null;
   kdvOrani: number;
-  operasyonTipi: OperasyonTipi;
+  operasyonTipi: OperasyonTipi | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -88,6 +89,7 @@ export interface BirimDonusumPayload {
 export interface UrunCreatePayload {
   kategori: UrunKategori;
   tedarikTipi: TedarikTipi;
+  urunGrubu?: string;
   kod: string;
   ad: string;
   aciklama?: string;
@@ -100,7 +102,7 @@ export interface UrunCreatePayload {
   kritikStok?: number;
   birimFiyat?: number;
   kdvOrani?: number;
-  operasyonTipi: OperasyonTipi;
+  operasyonTipi?: OperasyonTipi | null;
   isActive?: boolean;
   operasyonlar?: OperasyonPayload[];
   birimDonusumleri?: BirimDonusumPayload[];
@@ -167,6 +169,7 @@ export function normalizeUrun(raw: unknown): UrunDto {
     id: toStr(r.id),
     kategori: toStr(r.kategori, "urun") as UrunKategori,
     tedarikTipi: toStr(r.tedarikTipi, "uretim") as TedarikTipi,
+    urunGrubu: r.urunGrubu != null ? toStr(r.urunGrubu) : null,
     kod: toStr(r.kod),
     ad: toStr(r.ad),
     aciklama: r.aciklama != null ? toStr(r.aciklama) : null,
@@ -179,7 +182,7 @@ export function normalizeUrun(raw: unknown): UrunDto {
     kritikStok: toNum(r.kritikStok),
     birimFiyat: r.birimFiyat != null ? toNum(r.birimFiyat) : null,
     kdvOrani: toNum(r.kdvOrani, 20),
-    operasyonTipi: toStr(r.operasyonTipi, "tek_tarafli") as OperasyonTipi,
+    operasyonTipi: r.operasyonTipi != null ? (toStr(r.operasyonTipi) as OperasyonTipi) : null,
     isActive: toBool(r.isActive),
     createdAt: toStr(r.createdAt),
     updatedAt: toStr(r.updatedAt),
@@ -188,6 +191,52 @@ export function normalizeUrun(raw: unknown): UrunDto {
       ? (r.birimDonusumleri as unknown[]).map(normalizeBirimDonusum)
       : undefined,
   };
+}
+
+// -- Medya --
+
+export type MedyaTip = 'image' | 'video' | 'url';
+
+export interface UrunMedyaDto {
+  id: string;
+  urunId: string;
+  tip: MedyaTip;
+  url: string;
+  storageAssetId: string | null;
+  baslik: string | null;
+  sira: number;
+  isCover: boolean;
+  createdAt: string;
+}
+
+export interface UrunMedyaPayload {
+  id?: string;
+  tip: MedyaTip;
+  url: string;
+  storageAssetId?: string;
+  baslik?: string;
+  sira: number;
+  isCover: boolean;
+}
+
+export function normalizeUrunMedya(raw: unknown): UrunMedyaDto {
+  const r = isRecord(raw) ? raw : {};
+  return {
+    id: toStr(r.id),
+    urunId: toStr(r.urunId),
+    tip: (toStr(r.tip, 'image') as MedyaTip),
+    url: toStr(r.url),
+    storageAssetId: r.storageAssetId != null ? toStr(r.storageAssetId) : null,
+    baslik: r.baslik != null ? toStr(r.baslik) : null,
+    sira: toNum(r.sira),
+    isCover: toBool(r.isCover, false),
+    createdAt: toStr(r.createdAt),
+  };
+}
+
+export function normalizeUrunMedyaList(raw: unknown): UrunMedyaDto[] {
+  if (Array.isArray(raw)) return (raw as unknown[]).map(normalizeUrunMedya);
+  return [];
 }
 
 export function normalizeUrunList(res: unknown): UrunListResponse {

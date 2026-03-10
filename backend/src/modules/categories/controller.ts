@@ -13,6 +13,9 @@ const ERP_CATEGORY_DEFAULTS = {
   urun: {
     name: "Urun",
     slug: "urun",
+    varsayilan_birim: "takim",
+    varsayilan_kod_prefixi: "URN",
+    recetede_kullanilabilir: false,
     varsayilan_tedarik_tipi: "uretim",
     uretim_alanlari_aktif: true,
     operasyon_tipi_gerekli: true,
@@ -22,6 +25,9 @@ const ERP_CATEGORY_DEFAULTS = {
   yarimamul: {
     name: "Yarimamul",
     slug: "yarimamul",
+    varsayilan_birim: "adet",
+    varsayilan_kod_prefixi: "YM",
+    recetede_kullanilabilir: true,
     varsayilan_tedarik_tipi: "uretim",
     uretim_alanlari_aktif: true,
     operasyon_tipi_gerekli: false,
@@ -31,6 +37,9 @@ const ERP_CATEGORY_DEFAULTS = {
   hammadde: {
     name: "Hammadde",
     slug: "hammadde",
+    varsayilan_birim: "kg",
+    varsayilan_kod_prefixi: "HM",
+    recetede_kullanilabilir: true,
     varsayilan_tedarik_tipi: "satin_alma",
     uretim_alanlari_aktif: false,
     operasyon_tipi_gerekli: false,
@@ -187,6 +196,14 @@ export function buildInsertPayload(input: CategoryCreateInput) {
 
     whatsapp_number: (nullIfEmpty(input.whatsapp_number) as string | null) ?? null,
     phone_number: (nullIfEmpty(input.phone_number) as string | null) ?? null,
+    varsayilan_birim: String(input.varsayilan_birim ?? defaults?.varsayilan_birim ?? "adet").trim(),
+    varsayilan_kod_prefixi: String(
+      input.varsayilan_kod_prefixi ?? defaults?.varsayilan_kod_prefixi ?? "URN",
+    ).trim(),
+    recetede_kullanilabilir:
+      input.recetede_kullanilabilir === undefined
+        ? defaults?.recetede_kullanilabilir ?? false
+        : toBool(input.recetede_kullanilabilir),
     varsayilan_tedarik_tipi:
       input.varsayilan_tedarik_tipi ?? defaults?.varsayilan_tedarik_tipi ?? "uretim",
     uretim_alanlari_aktif:
@@ -236,6 +253,12 @@ export function buildUpdatePayload(patch: CategoryUpdateInput) {
     set.whatsapp_number = nullIfEmpty(patch.whatsapp_number) as string | null;
   if (patch.phone_number !== undefined)
     set.phone_number = nullIfEmpty(patch.phone_number) as string | null;
+  if (patch.varsayilan_birim !== undefined)
+    set.varsayilan_birim = String(patch.varsayilan_birim).trim();
+  if (patch.varsayilan_kod_prefixi !== undefined)
+    set.varsayilan_kod_prefixi = String(patch.varsayilan_kod_prefixi).trim();
+  if (patch.recetede_kullanilabilir !== undefined)
+    set.recetede_kullanilabilir = toBool(patch.recetede_kullanilabilir);
   if (patch.varsayilan_tedarik_tipi !== undefined)
     set.varsayilan_tedarik_tipi = patch.varsayilan_tedarik_tipi;
   if (patch.uretim_alanlari_aktif !== undefined)
@@ -256,6 +279,15 @@ export function buildUpdatePayload(patch: CategoryUpdateInput) {
   }
   if (patch.kod !== undefined && patch.varsayilan_tedarik_tipi === undefined && defaults?.varsayilan_tedarik_tipi) {
     set.varsayilan_tedarik_tipi = defaults.varsayilan_tedarik_tipi;
+  }
+  if (patch.kod !== undefined && patch.varsayilan_birim === undefined && defaults?.varsayilan_birim) {
+    set.varsayilan_birim = defaults.varsayilan_birim;
+  }
+  if (patch.kod !== undefined && patch.varsayilan_kod_prefixi === undefined && defaults?.varsayilan_kod_prefixi) {
+    set.varsayilan_kod_prefixi = defaults.varsayilan_kod_prefixi;
+  }
+  if (patch.kod !== undefined && patch.recetede_kullanilabilir === undefined && defaults) {
+    set.recetede_kullanilabilir = defaults.recetede_kullanilabilir;
   }
   if (patch.kod !== undefined && patch.uretim_alanlari_aktif === undefined && defaults) {
     set.uretim_alanlari_aktif = defaults.uretim_alanlari_aktif;

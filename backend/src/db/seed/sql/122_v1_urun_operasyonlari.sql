@@ -47,6 +47,7 @@ SELECT
   45.00,
   0
 FROM `urunler` u
-WHERE u.kategori = 'urun'
+WHERE u.`tedarik_tipi` = 'uretim'
+  AND COALESCE(u.`operasyon_tipi`, 'tek_tarafli') IS NOT NULL
   AND u.id NOT IN (SELECT urun_id FROM `urun_operasyonlari`)
 ON DUPLICATE KEY UPDATE `operasyon_adi` = VALUES(`operasyon_adi`);

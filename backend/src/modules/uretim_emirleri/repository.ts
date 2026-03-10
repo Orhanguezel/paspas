@@ -9,6 +9,7 @@ import { musteriler } from '@/modules/musteriler/schema';
 import { operatorGunlukKayitlari } from '@/modules/operator/schema';
 import { receteler } from '@/modules/receteler/schema';
 import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/schema';
+import { refreshSiparisDurum, getSiparisIdsByUretimEmriId } from '@/modules/satis_siparisleri/repository';
 import { urunler, urunOperasyonlari } from '@/modules/urunler/schema';
 
 import {
@@ -166,6 +167,7 @@ function buildWhere(query: ListQuery): SQL | undefined {
 function getOrderBy(query: ListQuery) {
   if (query.sort === 'emir_no') return query.order === 'asc' ? asc(uretimEmirleri.emir_no) : desc(uretimEmirleri.emir_no);
   if (query.sort === 'baslangic_tarihi') return query.order === 'asc' ? asc(uretimEmirleri.baslangic_tarihi) : desc(uretimEmirleri.baslangic_tarihi);
+  if (query.sort === 'bitis_tarihi') return query.order === 'asc' ? asc(uretimEmirleri.bitis_tarihi) : desc(uretimEmirleri.bitis_tarihi);
   return query.order === 'asc' ? asc(uretimEmirleri.created_at) : desc(uretimEmirleri.created_at);
 }
 
@@ -445,6 +447,9 @@ export async function repoCreate(data: CreateBody): Promise<EnrichedUretimEmriRo
   }
   // Urun operasyonlarindan emir operasyonlarini otomatik olustur
   await autoPopulateOperasyonlar(payload.id, data.urunId, data.planlananMiktar.toFixed(4));
+  // Auto-refresh linked sipariş durum (taslak/onaylandi → planlandi)
+  const siparisIds = await getSiparisIdsByUretimEmriId(payload.id);
+  for (const sid of siparisIds) await refreshSiparisDurum(sid);
   const row = await repoGetById(payload.id);
   if (!row) throw new Error('insert_failed');
   return row;

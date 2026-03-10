@@ -11,6 +11,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 
 import { Toaster } from '@/components/ui/sonner';
+import { DynamicFavicon } from '@/components/common/DynamicFavicon';
 import { fontVars } from '@/lib/fonts/registry';
 import { PREFERENCE_DEFAULTS } from '@/lib/preferences/preferences-config';
 import { fetchBrandingConfig } from '@/server/fetch-branding';
@@ -130,6 +131,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <StoreProvider>
           <PreferencesStoreProvider>
             <LocaleProvider>
+              <DynamicFavicon />
               {children}
               <Toaster />
             </LocaleProvider>

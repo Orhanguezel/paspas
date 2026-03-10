@@ -1,8 +1,8 @@
 import type { FastifyReply, RouteHandler } from 'fastify';
 
 import { rowToDto } from './schema';
-import { repoAtaOperasyon, repoCreate, repoDelete, repoGetById, repoKuyrukCikar, repoKuyrukSirala, repoList, repoListAtanmamis, repoListKaliplarByMakineIds, repoListKuyruklar, repoUpdate } from './repository';
-import { ataSchema, createSchema, kuyrukSiralaSchema, listQuerySchema, patchSchema } from './validation';
+import { repoAtaOperasyon, repoCalculateCapacity, repoCreate, repoDelete, repoGetById, repoKuyrukCikar, repoKuyrukSirala, repoList, repoListAtanmamis, repoListKaliplarByMakineIds, repoListKuyruklar, repoUpdate } from './repository';
+import { ataSchema, capacityQuerySchema, createSchema, kuyrukSiralaSchema, listQuerySchema, patchSchema } from './validation';
 
 function sendInternalError(reply: FastifyReply) {
   return reply.code(500).send({ error: { message: 'sunucu_hatasi' } });
@@ -143,6 +143,47 @@ export const kuyrukSirala: RouteHandler = async (req, reply) => {
     return reply.send({ ok: true });
   } catch (error) {
     req.log.error({ error }, 'kuyruk_sirala_failed');
+    return sendInternalError(reply);
+  }
+};
+
+// =====================================================
+// Kapasite Hesaplama
+// =====================================================
+
+/** GET /admin/makine-havuzu/:id/capacity */
+export const getCapacity: RouteHandler = async (req, reply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const parsed = capacityQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: { message: 'gecersiz_sorgu_parametreleri', issues: parsed.error.flatten() } });
+    }
+
+    const { startDate: startDateStr, endDate: endDateStr, days } = parsed.data;
+
+    let startDate: Date;
+    let endDate: Date;
+
+    if (startDateStr && endDateStr) {
+      startDate = new Date(startDateStr);
+      endDate = new Date(endDateStr);
+    } else {
+      // Default: today + N days (default 30)
+      const numDays = days ?? 30;
+      startDate = new Date();
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(startDate.getTime() + (numDays - 1) * 24 * 60 * 60 * 1000);
+    }
+
+    const result = await repoCalculateCapacity(id, startDate, endDate);
+    if (!result) {
+      return reply.code(404).send({ error: { message: 'makine_bulunamadi' } });
+    }
+
+    return reply.send(result);
+  } catch (error) {
+    req.log.error({ error }, 'get_capacity_failed');
     return sendInternalError(reply);
   }
 };

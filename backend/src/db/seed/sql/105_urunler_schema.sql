@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS `urunler` (
   `stok` decimal(12,4) NOT NULL DEFAULT 0.0000,
   `birim_fiyat` decimal(12,2) DEFAULT NULL,
   `kdv_orani` decimal(5,2) NOT NULL DEFAULT 20.00,
-  `operasyon_tipi` varchar(32) NOT NULL DEFAULT 'tek_tarafli',
+  `operasyon_tipi` varchar(32) DEFAULT NULL,
   `is_active` tinyint unsigned NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

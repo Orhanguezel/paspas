@@ -17,7 +17,7 @@ const BASE = '/admin/uretim-emirleri';
 
 export const uretimEmirleriAdminApi = baseApi.injectEndpoints({
   endpoints: (b) => ({
-    listUretimEmirleriAdmin: b.query<UretimEmriListResponse, { q?: string; durum?: string; urunId?: string; page?: number; limit?: number } | void>({
+    listUretimEmirleriAdmin: b.query<UretimEmriListResponse, { q?: string; durum?: string; urunId?: string; page?: number; limit?: number; sort?: string; order?: string } | void>({
       query: (params) => ({ url: BASE, params: params ?? undefined }),
       transformResponse: (res: unknown) => normalizeUretimEmriList(res),
       providesTags: (result) =>
@@ -49,7 +49,10 @@ export const uretimEmirleriAdminApi = baseApi.injectEndpoints({
     createUretimEmriAdmin: b.mutation<UretimEmriDto, UretimEmriCreatePayload>({
       query: (body) => ({ url: BASE, method: 'POST', body }),
       transformResponse: (res: unknown) => normalizeUretimEmri(res),
-      invalidatesTags: [{ type: 'UretimEmirleri', id: 'LIST' }],
+      invalidatesTags: [
+        { type: 'UretimEmirleri', id: 'LIST' },
+        { type: 'UretimEmirleri', id: 'ADAYLAR' },
+      ],
     }),
 
     updateUretimEmriAdmin: b.mutation<UretimEmriDto, { id: string; body: UretimEmriPatchPayload }>({
@@ -58,6 +61,7 @@ export const uretimEmirleriAdminApi = baseApi.injectEndpoints({
       invalidatesTags: (_r, _e, { id }) => [
         { type: 'UretimEmri', id },
         { type: 'UretimEmirleri', id: 'LIST' },
+        { type: 'UretimEmirleri', id: 'ADAYLAR' },
       ],
     }),
 
@@ -66,6 +70,7 @@ export const uretimEmirleriAdminApi = baseApi.injectEndpoints({
       invalidatesTags: (_r, _e, id) => [
         { type: 'UretimEmri', id },
         { type: 'UretimEmirleri', id: 'LIST' },
+        { type: 'UretimEmirleri', id: 'ADAYLAR' },
       ],
     }),
   }),

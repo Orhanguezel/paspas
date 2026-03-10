@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execFileSync } from 'child_process';
 import mysql from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
 import { env } from '@/core/env';
@@ -9,6 +10,7 @@ import { cleanSql, splitStatements, logStep } from './utils';
 // ESM için __dirname/__filename
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const backendRoot = path.resolve(__dirname, '../../..');
 
 type Flags = {
   noDrop?: boolean;
@@ -63,6 +65,97 @@ async function createConnToDb(): Promise<mysql.Connection> {
     // unicode_ci ile uyumlu
     charset: 'utf8mb4_unicode_ci',
   });
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isTooManyConnections(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const code = 'code' in err ? String(err.code ?? '') : '';
+  const errno = 'errno' in err ? Number(err.errno) : 0;
+  return code === 'ER_CON_COUNT_ERROR' || errno === 1040;
+}
+
+function stopLocalBackendDevProcesses(): number {
+  const pidSet = new Set<number>();
+  const currentPid = process.pid;
+
+  try {
+    const ssOutput = execFileSync('ss', ['-ltnp'], {
+      cwd: backendRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    const portPattern = new RegExp(`:${env.PORT}\\b`);
+    for (const line of ssOutput.split('\n')) {
+      if (!portPattern.test(line)) continue;
+      for (const match of line.matchAll(/pid=(\d+)/g)) {
+        const pid = Number(match[1]);
+        if (pid && pid !== currentPid) pidSet.add(pid);
+      }
+    }
+  } catch {
+    // ignore ss lookup failures
+  }
+
+  try {
+    const output = execFileSync('ps', ['-eo', 'pid=,args='], {
+      cwd: backendRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+
+    for (const line of output.split('\n').map((row) => row.trim()).filter(Boolean)) {
+      const match = line.match(/^(\d+)\s+(.*)$/);
+      if (!match) continue;
+      const pid = Number(match[1]);
+      const args = match[2];
+      if (pid === currentPid) continue;
+      if (
+        args.includes('bun --hot src/index.ts') ||
+        args.includes('node scripts/dev.mjs') ||
+        args.includes('dist/index.js')
+      ) {
+        try {
+          const cwd = fs.readlinkSync(`/proc/${pid}/cwd`);
+          if (cwd === backendRoot) pidSet.add(pid);
+        } catch {
+          // ignore cwd read failures
+        }
+      }
+    }
+  } catch {
+    // ignore ps lookup failures
+  }
+
+  for (const pid of pidSet) {
+    try {
+      process.kill(pid, 'SIGTERM');
+    } catch {
+      // ignore individual kill failures
+    }
+  }
+
+  return pidSet.size;
+}
+
+async function connectWithRecovery<T>(factory: () => Promise<T>, label: string): Promise<T> {
+  try {
+    return await factory();
+  } catch (err) {
+    if (!isTooManyConnections(err)) throw err;
+
+    const stopped = stopLocalBackendDevProcesses();
+    if (stopped > 0) {
+      logStep(`🧹 ${label}: fazla MySQL bağlantısı nedeniyle ${stopped} lokal backend süreci kapatıldı`);
+      await sleep(1500);
+      return factory();
+    }
+
+    throw err;
+  }
 }
 
 function shouldRun(file: string, flags: Flags) {
@@ -136,7 +229,7 @@ async function main() {
   const flags = parseFlags(process.argv);
 
   // 1) Root ile drop + create (opsiyonel)
-  const root = await createRoot();
+  const root = await connectWithRecovery(createRoot, 'root bağlantısı');
   try {
     if (!flags.noDrop) {
       logStep('💣 DROP + CREATE başlıyor');
@@ -150,7 +243,7 @@ async function main() {
   }
 
   // 2) DB bağlantısı
-  const conn = await createConnToDb();
+  const conn = await connectWithRecovery(createConnToDb, 'DB bağlantısı');
 
   try {
     // 3) Admin değişkenlerini hazırla

@@ -2,7 +2,7 @@
 
 import { Clock, Flame, GripVertical, Layers, Package, Trash2, User, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -57,12 +57,16 @@ function formatDateTime(dateStr: string | null): string | null {
   if (!dateStr) return null;
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString('tr-TR', {
+  const tarih = d.toLocaleDateString('tr-TR', {
     day: '2-digit',
     month: '2-digit',
+    year: 'numeric',
+  });
+  const saat = d.toLocaleTimeString('tr-TR', {
     hour: '2-digit',
     minute: '2-digit',
   });
+  return `${tarih} ${saat}`;
 }
 
 function KuyrukItem({
@@ -253,16 +257,21 @@ export default function MakineKuyrukTab({ t }: MakineKuyrukTabProps) {
   const [localKuyruklar, setLocalKuyruklar] = useState<NonNullable<typeof kuyruklar>>([]);
 
   // Sync backend data to local state
-  useState(() => {
+  useEffect(() => {
     if (kuyruklar) {
       setLocalKuyruklar(kuyruklar);
     }
-  });
+  }, [kuyruklar]);
 
-  // Update local state whenever backend data changes
-  if (kuyruklar && JSON.stringify(kuyruklar) !== JSON.stringify(localKuyruklar)) {
-    setLocalKuyruklar(kuyruklar);
-  }
+  const genelOzet = useMemo(() => {
+    const makineSayisi = localKuyruklar.length;
+    const toplamIs = localKuyruklar.reduce((sum, grup) => sum + grup.kuyruk.length, 0);
+    const calisanIs = localKuyruklar.reduce(
+      (sum, grup) => sum + grup.kuyruk.filter((item) => item.durum === 'calisiyor').length,
+      0,
+    );
+    return { makineSayisi, toplamIs, calisanIs };
+  }, [localKuyruklar]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -346,28 +355,60 @@ export default function MakineKuyrukTab({ t }: MakineKuyrukTabProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      {localKuyruklar.map((grup) => {
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-muted-foreground text-xs">{t('kuyrukYonetimi.kuyruklar.ozet.makine')}</div>
+            <div className="mt-1 font-semibold text-2xl tabular-nums">{genelOzet.makineSayisi}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-muted-foreground text-xs">{t('kuyrukYonetimi.kuyruklar.ozet.toplamIs')}</div>
+            <div className="mt-1 font-semibold text-2xl tabular-nums">{genelOzet.toplamIs}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-muted-foreground text-xs">{t('kuyrukYonetimi.kuyruklar.ozet.calisan')}</div>
+            <div className="mt-1 font-semibold text-2xl tabular-nums text-emerald-600">{genelOzet.calisanIs}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        {localKuyruklar.map((grup) => {
         const toplamSureDk = grup.kuyruk.reduce(
           (sum, item) => sum + item.hazirlikSuresiDk + item.planlananSureDk,
           0,
         );
+        const calisanSayisi = grup.kuyruk.filter((item) => item.durum === 'calisiyor').length;
         return (
           <Card key={grup.makineId}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <span className="font-mono font-semibold">{grup.makineKod}</span>
-                <span className="text-muted-foreground font-normal">{grup.makineAd}</span>
-                <div className="ml-auto flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">
-                    <Clock className="size-3 mr-1" />
-                    {formatDk(toplamSureDk)}
-                  </Badge>
-                  <Badge variant="secondary" className="text-xs">
-                    {t('kuyrukYonetimi.kuyruklar.isAdet', { count: String(grup.kuyruk.length) })}
-                  </Badge>
+              <div className="flex flex-wrap items-start gap-3">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <span className="font-mono font-semibold">{grup.makineKod}</span>
+                    <span className="font-normal text-muted-foreground">{grup.makineAd}</span>
+                  </CardTitle>
                 </div>
-              </CardTitle>
+                <div className="ml-auto grid min-w-[220px] gap-2 sm:grid-cols-3">
+                  <div className="rounded-md border bg-muted/20 px-3 py-2">
+                    <div className="text-[11px] text-muted-foreground">{t('kuyrukYonetimi.kuyruklar.ozet.is')}</div>
+                    <div className="font-semibold tabular-nums">{grup.kuyruk.length}</div>
+                  </div>
+                  <div className="rounded-md border bg-muted/20 px-3 py-2">
+                    <div className="text-[11px] text-muted-foreground">{t('kuyrukYonetimi.kuyruklar.ozet.calisan')}</div>
+                    <div className="font-semibold tabular-nums">{calisanSayisi}</div>
+                  </div>
+                  <div className="rounded-md border bg-muted/20 px-3 py-2">
+                    <div className="text-[11px] text-muted-foreground">{t('kuyrukYonetimi.kuyruklar.ozet.toplamSure')}</div>
+                    <div className="font-semibold tabular-nums">{formatDk(toplamSureDk)}</div>
+                  </div>
+                </div>
+              </div>
             </CardHeader>
             <Separator />
             <CardContent className="pt-3 space-y-1.5">
@@ -395,6 +436,7 @@ export default function MakineKuyrukTab({ t }: MakineKuyrukTabProps) {
           </Card>
         );
       })}
+      </div>
     </div>
   );
 }

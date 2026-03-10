@@ -6,6 +6,7 @@ import {
   createUrun,
   deleteUrun,
   getUrun,
+  getNextCode,
   listUrunler,
   updateUrun,
   listOperasyonlar,
@@ -13,6 +14,8 @@ import {
   getUrunRecete,
   saveUrunRecete,
   deleteUrunRecete,
+  listUrunMedya,
+  saveUrunMedya,
 } from './controller';
 
 export async function registerUrunler(app: FastifyInstance) {
@@ -20,6 +23,7 @@ export async function registerUrunler(app: FastifyInstance) {
   const guard = makeAdminPermissionGuard('admin.urunler');
 
   app.get(`${BASE}`, { preHandler: guard }, listUrunler);
+  app.get(`${BASE}/next-code`, { preHandler: guard }, getNextCode);
   app.get(`${BASE}/:id`, { preHandler: guard }, getUrun);
   app.post(`${BASE}`, { preHandler: guard }, createUrun);
   app.patch(`${BASE}/:id`, { preHandler: guard }, updateUrun);
@@ -33,4 +37,8 @@ export async function registerUrunler(app: FastifyInstance) {
   app.get(`${BASE}/:id/recete`, { preHandler: guard }, getUrunRecete);
   app.put(`${BASE}/:id/recete`, { preHandler: guard }, saveUrunRecete);
   app.delete(`${BASE}/:id/recete`, { preHandler: guard }, deleteUrunRecete);
+
+  // Medya
+  app.get(`${BASE}/:id/medya`, { preHandler: guard }, listUrunMedya);
+  app.put(`${BASE}/:id/medya`, { preHandler: guard }, saveUrunMedya);
 }

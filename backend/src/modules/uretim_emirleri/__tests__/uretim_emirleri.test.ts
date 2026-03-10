@@ -29,8 +29,8 @@ describe("uretim_emirleri validation", () => {
 
     expect(parsed.limit).toBe(100);
     expect(parsed.offset).toBe(0);
-    expect(parsed.sort).toBe("created_at");
-    expect(parsed.order).toBe("desc");
+    expect(parsed.sort).toBe("bitis_tarihi");
+    expect(parsed.order).toBe("asc");
   });
 
   it("coerces isActive from string query values", () => {
@@ -71,6 +71,15 @@ describe("uretim_emirleri validation", () => {
     expect(parsed.success).toBe(false);
     if (!parsed.success) {
       expect(parsed.error.issues.some((issue) => issue.message === "en_az_bir_alan_gonderilmeli")).toBe(true);
+    }
+  });
+
+  it("allows only iptal as manual durum patch", () => {
+    expect(patchSchema.safeParse({ durum: "iptal" }).success).toBe(true);
+    const invalid = patchSchema.safeParse({ durum: "planlandi" });
+    expect(invalid.success).toBe(false);
+    if (!invalid.success) {
+      expect(invalid.error.issues.some((issue) => issue.message === "manuel_durum_guncelleme_desteklenmiyor")).toBe(true);
     }
   });
 });

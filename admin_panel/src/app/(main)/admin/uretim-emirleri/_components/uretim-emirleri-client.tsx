@@ -5,7 +5,7 @@
 // Paspas ERP — Üretim Emirleri liste sayfası
 // =============================================================
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import Link from "next/link";
 
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -37,35 +38,109 @@ import {
 } from "@/integrations/endpoints/admin/erp/uretim_emirleri_admin.endpoints";
 import type { UretimEmriDto, UretimEmriDurum } from "@/integrations/shared/erp/uretim_emirleri.types";
 import { EMIR_DURUM_BADGE } from "@/integrations/shared/erp/uretim_emirleri.types";
+import { useCheckYeterlilikAdminQuery } from "@/integrations/endpoints/admin/erp/stoklar_admin.endpoints";
 
 import UretimEmriForm from "./uretim-emri-form";
+
+function MalzemeBadge({ urunId, miktar, receteId }: { urunId: string; miktar: number; receteId: string | null }) {
+  const { data, isLoading } = useCheckYeterlilikAdminQuery(
+    { urunId, miktar },
+    { skip: !receteId },
+  );
+
+  if (!receteId) return <span className="text-muted-foreground text-xs">—</span>;
+  if (isLoading) return <Skeleton className="h-5 w-16" />;
+  if (!data) return <span className="text-muted-foreground text-xs">—</span>;
+
+  if (data.tumYeterli) {
+    return <Badge variant="default" className="bg-emerald-600 text-xs">Yeterli</Badge>;
+  }
+
+  const eksikSayisi = data.kalemler.filter((k) => !k.yeterli).length;
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge variant="destructive" className="text-xs cursor-help">
+            {eksikSayisi} eksik
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="max-w-xs">
+          <div className="space-y-1 text-xs">
+            {data.kalemler.filter((k) => !k.yeterli).map((k) => (
+              <div key={k.malzemeId}>
+                <span className="font-medium">{k.malzemeAd}</span>: stok {k.mevcutStok.toFixed(1)}, gerekli {k.gerekliMiktarFireli.toFixed(1)} {k.birim}
+              </div>
+            ))}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 export default function UretimEmirleriClient() {
   const { t } = useLocaleContext();
   const [search, setSearch] = useState("");
   const [durum, setDurum] = useState<UretimEmriDurum | "hepsi">("hepsi");
+  const [sortBy, setSortBy] = useState("bitis_tarihi");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<UretimEmriDto | null>(null);
   const [deleteTarget, setDelete] = useState<UretimEmriDto | null>(null);
 
   const DURUM_OPTIONS: Array<{ value: UretimEmriDurum | "hepsi"; label: string }> = [
     { value: "hepsi", label: t("admin.erp.uretimEmirleri.statuses.hepsi") },
+    { value: "atanmamis", label: t("admin.erp.uretimEmirleri.statuses.atanmamis") },
     { value: "planlandi", label: t("admin.erp.uretimEmirleri.statuses.planlandi") },
-    { value: "hazirlaniyor", label: t("admin.erp.uretimEmirleri.statuses.hazirlaniyor") },
     { value: "uretimde", label: t("admin.erp.uretimEmirleri.statuses.uretimde") },
     { value: "tamamlandi", label: t("admin.erp.uretimEmirleri.statuses.tamamlandi") },
     { value: "iptal", label: t("admin.erp.uretimEmirleri.statuses.iptal") },
   ];
 
+  const SORT_OPTIONS = [
+    { value: "created_at", label: t("admin.erp.uretimEmirleri.sortOptions.createdAt") },
+    { value: "bitis_tarihi", label: t("admin.erp.uretimEmirleri.sortOptions.bitisTarihi") },
+    { value: "baslangic_tarihi", label: t("admin.erp.uretimEmirleri.sortOptions.baslangicTarihi") },
+    { value: "emir_no", label: t("admin.erp.uretimEmirleri.sortOptions.emirNo") },
+  ];
+
   const params = {
     ...(search ? { q: search } : {}),
     ...(durum !== "hepsi" ? { durum } : {}),
+    sort: sortBy,
+    order: (sortBy === "bitis_tarihi" ? "asc" : "desc") as "asc" | "desc",
   };
 
   const { data, isLoading, isFetching, refetch } = useListUretimEmirleriAdminQuery(params);
   const [deleteEmri, deleteState] = useDeleteUretimEmriAdminMutation();
 
-  const items = data?.items ?? [];
+  const rawItems = data?.items ?? [];
+
+  // Client-side sort by planlananBitisTarihi (computed field, not a DB column)
+  // NULL values (atanmamış — no machine assigned) go to the end
+  const items = useMemo(() => {
+    if (sortBy !== "bitis_tarihi") return rawItems;
+    return [...rawItems].sort((a, b) => {
+      const dateA = a.planlananBitisTarihi ?? a.bitisTarihi;
+      const dateB = b.planlananBitisTarihi ?? b.bitisTarihi;
+      if (!dateA && !dateB) return 0;
+      if (!dateA) return 1;
+      if (!dateB) return -1;
+      return dateA < dateB ? -1 : dateA > dateB ? 1 : 0;
+    });
+  }, [rawItems, sortBy]);
+
+  const ozet = useMemo(() => {
+    const terminRiskli = items.filter((item) => item.terminRiski && item.durum !== "tamamlandi").length;
+    const aktif = items.filter((item) => item.durum === "planlandi" || item.durum === "uretimde").length;
+    const tamamlanan = items.filter((item) => item.durum === "tamamlandi").length;
+    return {
+      toplam: data?.total ?? 0,
+      terminRiskli,
+      aktif,
+      tamamlanan,
+    };
+  }, [data?.total, items]);
 
   function openCreate() {
     setEditing(null);
@@ -102,9 +177,34 @@ export default function UretimEmirleriClient() {
     return t(`admin.erp.uretimEmirleri.statuses.${d}`);
   }
 
+  function resetFilters() {
+    setSearch("");
+    setDurum("hepsi");
+    setSortBy("bitis_tarihi");
+  }
+
   function formatDate(value: string | null | undefined) {
     if (!value) return "—";
-    return String(value).slice(0, 16).replace("T", " ");
+    try {
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return String(value);
+      const tarih = d.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+      const saat = d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+      return { tarih, saat };
+    } catch {
+      return String(value);
+    }
+  }
+
+  function renderDate(value: string | null | undefined) {
+    const result = formatDate(value);
+    if (typeof result === "string") return <span>{result}</span>;
+    return (
+      <div>
+        <div>{result.tarih}</div>
+        <div className="text-muted-foreground text-xs">{result.saat}</div>
+      </div>
+    );
   }
 
   function renderDeleteButton(e: UretimEmriDto) {
@@ -160,7 +260,36 @@ export default function UretimEmirleriClient() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-muted-foreground text-xs">{t("admin.erp.uretimEmirleri.summary.total")}</div>
+            <div className="mt-1 font-semibold text-2xl tabular-nums">{ozet.toplam}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-muted-foreground text-xs">{t("admin.erp.uretimEmirleri.summary.active")}</div>
+            <div className="mt-1 font-semibold text-2xl tabular-nums">{ozet.aktif}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-muted-foreground text-xs">{t("admin.erp.uretimEmirleri.summary.terminRiskli")}</div>
+            <div className={`mt-1 font-semibold text-2xl tabular-nums ${ozet.terminRiskli > 0 ? "text-destructive" : ""}`}>
+              {ozet.terminRiskli}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-muted-foreground text-xs">{t("admin.erp.uretimEmirleri.summary.completed")}</div>
+            <div className="mt-1 font-semibold text-2xl tabular-nums text-emerald-600">{ozet.tamamlanan}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex flex-wrap items-end gap-3">
         <div className="relative min-w-48 max-w-xs flex-1">
           <Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
           <Input
@@ -182,6 +311,21 @@ export default function UretimEmirleriClient() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button variant="ghost" size="sm" onClick={resetFilters}>
+          {t("admin.erp.uretimEmirleri.resetFilters")}
+        </Button>
       </div>
 
       <div className="rounded-md border">
@@ -193,8 +337,8 @@ export default function UretimEmirleriClient() {
               <TableHead>{t("admin.erp.uretimEmirleri.columns.musteri")}</TableHead>
               <TableHead>{t("admin.erp.uretimEmirleri.columns.planlanan")}</TableHead>
               <TableHead>{t("admin.erp.uretimEmirleri.columns.ilerleme")}</TableHead>
-              <TableHead>{t("admin.erp.uretimEmirleri.columns.termin")}</TableHead>
-              <TableHead>{t("admin.erp.uretimEmirleri.columns.bitis")}</TableHead>
+              <TableHead>{t("admin.erp.uretimEmirleri.columns.takvim")}</TableHead>
+              <TableHead>{t("admin.erp.uretimEmirleri.columns.malzeme")}</TableHead>
               <TableHead>{t("admin.erp.uretimEmirleri.columns.durum")}</TableHead>
               <TableHead className="w-24" />
             </TableRow>
@@ -265,20 +409,30 @@ export default function UretimEmirleriClient() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex min-w-[120px] items-center gap-1">
-                      {e.terminRiski && <AlertTriangle className="size-3.5 text-destructive" />}
-                      <span className={e.terminRiski ? "font-medium text-destructive" : undefined}>
-                        {formatDate(e.terminTarihi)}
-                      </span>
+                    <div className="min-w-[170px] space-y-2 text-xs">
+                      <div>
+                        <div className="text-muted-foreground">{t("admin.erp.uretimEmirleri.columns.termin")}</div>
+                        <div className="flex items-center gap-1">
+                          {e.terminRiski && <AlertTriangle className="size-3.5 text-destructive" />}
+                          <span className={e.terminRiski ? "font-medium text-destructive" : undefined}>
+                            {renderDate(e.terminTarihi)}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">{t("admin.erp.uretimEmirleri.columns.bitis")}</div>
+                        <div>
+                          {e.makineAtamaSayisi > 0 ? (
+                            renderDate(e.planlananBitisTarihi ?? e.bitisTarihi)
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="min-w-[150px]">
-                      <div>{formatDate(e.planlananBitisTarihi ?? e.bitisTarihi)}</div>
-                      <div className="text-muted-foreground text-xs">
-                        {e.makineAtamaSayisi > 0 ? `${e.makineAtamaSayisi} makine ataması` : "Makine ataması yok"}
-                      </div>
-                    </div>
+                    <MalzemeBadge urunId={e.urunId} miktar={e.planlananMiktar} receteId={e.receteId} />
                   </TableCell>
                   <TableCell>
                     <Badge

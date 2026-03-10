@@ -52,6 +52,9 @@ export const categories = mysqlTable(
     phone_number: varchar("phone_number", { length: 50 }),
 
     /** ERP kategori davranislari */
+    varsayilan_birim: varchar("varsayilan_birim", { length: 32 }).notNull().default("adet"),
+    varsayilan_kod_prefixi: varchar("varsayilan_kod_prefixi", { length: 16 }).notNull().default("URN"),
+    recetede_kullanilabilir: tinyint("recetede_kullanilabilir").notNull().default(0).$type<boolean>(),
     varsayilan_tedarik_tipi: varchar("varsayilan_tedarik_tipi", { length: 32 })
       .notNull()
       .default("uretim"),

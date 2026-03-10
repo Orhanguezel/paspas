@@ -91,3 +91,21 @@ export const patchDurusNedeniSchema = durusNedeniFieldsSchema
 
 export type CreateDurusNedeniBody = z.infer<typeof createDurusNedeniSchema>;
 export type PatchDurusNedeniBody = z.infer<typeof patchDurusNedeniSchema>;
+
+// ── Hafta Sonu Çalışma Planları ────────────────────────────
+const haftaSonuPlanFieldsSchema = z.object({
+  haftaBaslangic: z.string().date(), // YYYY-MM-DD formatında, Pazartesi olmalı
+  makineId: z.string().min(1).nullable().optional(), // null = tüm makineler
+  cumartesiCalisir: z.boolean(),
+  pazarCalisir: z.boolean(),
+  aciklama: z.string().trim().max(500).optional(),
+});
+
+export const createHaftaSonuPlanSchema = haftaSonuPlanFieldsSchema;
+
+export const patchHaftaSonuPlanSchema = haftaSonuPlanFieldsSchema
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, { message: 'en_az_bir_alan_gonderilmeli' });
+
+export type CreateHaftaSonuPlanBody = z.infer<typeof createHaftaSonuPlanSchema>;
+export type PatchHaftaSonuPlanBody = z.infer<typeof patchHaftaSonuPlanSchema>;

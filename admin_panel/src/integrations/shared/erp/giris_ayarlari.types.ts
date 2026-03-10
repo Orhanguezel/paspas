@@ -24,6 +24,12 @@ export interface LoginSettingsDto {
     showQuickLogin: boolean;
     allowPasswordLogin: boolean;
     roleCardsEnabled: boolean;
+    passwordPolicy: {
+      minLength: number;
+      requireUppercase: boolean;
+      requireNumber: boolean;
+      requireSpecialChar: boolean;
+    };
     redirects: Record<LoginRole, string>;
     enabledRoles: LoginRole[];
   };
@@ -73,6 +79,19 @@ export function normalizeLoginSettings(raw: unknown): LoginSettingsDto {
       showQuickLogin: settings.showQuickLogin === true,
       allowPasswordLogin: settings.allowPasswordLogin !== false,
       roleCardsEnabled: settings.roleCardsEnabled !== false,
+      passwordPolicy: isRecord(settings.passwordPolicy)
+        ? {
+            minLength: Math.max(toNum(settings.passwordPolicy.minLength, 8), 6),
+            requireUppercase: settings.passwordPolicy.requireUppercase !== false,
+            requireNumber: settings.passwordPolicy.requireNumber !== false,
+            requireSpecialChar: settings.passwordPolicy.requireSpecialChar === true,
+          }
+        : {
+            minLength: 8,
+            requireUppercase: true,
+            requireNumber: true,
+            requireSpecialChar: false,
+          },
       redirects: {
         admin: toStr(redirects.admin, '/admin/dashboard'),
         sevkiyatci: toStr(redirects.sevkiyatci, '/admin/satis-siparisleri'),

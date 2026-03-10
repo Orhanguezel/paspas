@@ -12,6 +12,12 @@ export const updateSchema = z.object({
   showQuickLogin: z.boolean(),
   allowPasswordLogin: z.boolean(),
   roleCardsEnabled: z.boolean(),
+  passwordPolicy: z.object({
+    minLength: z.number().int().min(6).max(64),
+    requireUppercase: z.boolean(),
+    requireNumber: z.boolean(),
+    requireSpecialChar: z.boolean(),
+  }),
   redirects: z.object({
     admin: pathSchema,
     sevkiyatci: pathSchema,

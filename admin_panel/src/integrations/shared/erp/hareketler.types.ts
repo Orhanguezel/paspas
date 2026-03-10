@@ -27,7 +27,9 @@ export interface HareketListResponse {
     toplamGiris: number;
     toplamCikis: number;
     sevkiyatAdet: number;
+    sevkiyatMiktar: number;
     malKabulAdet: number;
+    malKabulMiktar: number;
     duzeltmeAdet: number;
   };
 }
@@ -90,7 +92,9 @@ export function normalizeHareketList(res: unknown): HareketListResponse {
           toplamGiris: toNum(r.summary.toplamGiris),
           toplamCikis: toNum(r.summary.toplamCikis),
           sevkiyatAdet: toNum(r.summary.sevkiyatAdet),
+          sevkiyatMiktar: toNum(r.summary.sevkiyatMiktar),
           malKabulAdet: toNum(r.summary.malKabulAdet),
+          malKabulMiktar: toNum(r.summary.malKabulMiktar),
           duzeltmeAdet: toNum(r.summary.duzeltmeAdet),
         }
       : {
@@ -98,7 +102,9 @@ export function normalizeHareketList(res: unknown): HareketListResponse {
           toplamGiris: 0,
           toplamCikis: 0,
           sevkiyatAdet: 0,
+          sevkiyatMiktar: 0,
           malKabulAdet: 0,
+          malKabulMiktar: 0,
           duzeltmeAdet: 0,
         },
   };

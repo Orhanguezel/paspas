@@ -15,6 +15,7 @@ const OPEN_ORDER_STATUSES = ['taslak', 'onaylandi', 'siparis_verildi', 'kismen_t
 
 type SatinAlmaSiparisListRow = SatinAlmaSiparisRow & {
   tedarikci_ad: string | null;
+  items?: SatinAlmaKalemDetailRow[];
 };
 
 type SatinAlmaKalemDetailRow = SatinAlmaKalemRow & {
@@ -113,6 +114,25 @@ async function getNextSiparisNoBatch(count: number): Promise<string[]> {
   return Array.from({ length: count }, (_, index) => `${prefix}${String(next + index).padStart(3, '0')}`);
 }
 
+function buildAutoDraftNote(
+  urunlerById: Map<string, { kod: string; ad: string; stok: string | number | null; kritikStok: string | number | null }>,
+  urunIds: string[],
+): string {
+  const detaylar = urunIds
+    .map((urunId) => {
+      const urun = urunlerById.get(urunId);
+      if (!urun) return null;
+      const mevcutStok = Number(urun.stok ?? 0);
+      const kritikStok = Number(urun.kritikStok ?? 0);
+      const eksik = Math.max(kritikStok - mevcutStok, 0);
+      return `${urun.kod} (${urun.ad}) | mevcut: ${mevcutStok.toFixed(4)} | kritik: ${kritikStok.toFixed(4)} | eksik: ${eksik.toFixed(4)}`;
+    })
+    .filter((satir): satir is string => Boolean(satir));
+
+  if (detaylar.length === 0) return AUTO_DRAFT_NOTE;
+  return `${AUTO_DRAFT_NOTE} ${detaylar.join(' ; ')}`;
+}
+
 async function ensureCriticalStockDrafts(): Promise<void> {
   const [kritikUrunler, tedarikciler, acikSiparisKalemleri] = await Promise.all([
     db
@@ -146,6 +166,12 @@ async function ensureCriticalStockDrafts(): Promise<void> {
   ]);
 
   if (kritikUrunler.length === 0 || tedarikciler.length === 0) return;
+  const urunById = new Map(
+    kritikUrunler.map((urun) => [
+      urun.id,
+      { kod: urun.kod, ad: urun.ad, stok: urun.stok, kritikStok: urun.kritikStok },
+    ]),
+  );
 
   const existingOpenProductIds = new Set(acikSiparisKalemleri.map((row) => row.urunId));
   const eksikUrunler = kritikUrunler.filter((urun) => !existingOpenProductIds.has(urun.id));
@@ -227,7 +253,7 @@ async function ensureCriticalStockDrafts(): Promise<void> {
         tedarikci_id: supplierId,
         siparis_tarihi: new Date(today),
         durum: 'taslak',
-        aciklama: AUTO_DRAFT_NOTE,
+        aciklama: buildAutoDraftNote(urunById, kalemler.map((kalem) => kalem.urunId)),
         is_active: 1,
       });
 
@@ -277,7 +303,44 @@ export async function repoList(query: ListQuery): Promise<ListResult> {
       .leftJoin(musteriler, eq(musteriler.id, satinAlmaSiparisleri.tedarikci_id))
       .where(where),
   ]);
-  return { items, total: Number(countResult[0]?.count ?? 0) };
+  if (items.length === 0) {
+    return { items, total: Number(countResult[0]?.count ?? 0) };
+  }
+
+  const siparisIds = items.map((item) => item.id);
+  const kalemRows = await db
+    .select({
+      id: satinAlmaKalemleri.id,
+      siparis_id: satinAlmaKalemleri.siparis_id,
+      urun_id: satinAlmaKalemleri.urun_id,
+      urun_kod: urunler.kod,
+      urun_ad: urunler.ad,
+      birim: urunler.birim,
+      miktar: satinAlmaKalemleri.miktar,
+      birim_fiyat: satinAlmaKalemleri.birim_fiyat,
+      sira: satinAlmaKalemleri.sira,
+      kabul_miktar: sql<string>`(SELECT COALESCE(SUM(m.gelen_miktar), 0) FROM mal_kabul_kayitlari m WHERE m.satin_alma_kalem_id = ${satinAlmaKalemleri.id})`,
+      created_at: satinAlmaKalemleri.created_at,
+      updated_at: satinAlmaKalemleri.updated_at,
+    })
+    .from(satinAlmaKalemleri)
+    .leftJoin(urunler, eq(urunler.id, satinAlmaKalemleri.urun_id))
+    .where(inArray(satinAlmaKalemleri.siparis_id, siparisIds))
+    .orderBy(asc(satinAlmaKalemleri.sira));
+
+  const kalemlerBySiparisId = new Map<string, SatinAlmaKalemDetailRow[]>();
+  for (const row of kalemRows) {
+    const existing = kalemlerBySiparisId.get(row.siparis_id) ?? [];
+    existing.push(row);
+    kalemlerBySiparisId.set(row.siparis_id, existing);
+  }
+
+  const enrichedItems = items.map((item) => ({
+    ...item,
+    items: kalemlerBySiparisId.get(item.id) ?? [],
+  }));
+
+  return { items: enrichedItems, total: Number(countResult[0]?.count ?? 0) };
 }
 
 export async function repoGetById(id: string): Promise<DetailResult | null> {

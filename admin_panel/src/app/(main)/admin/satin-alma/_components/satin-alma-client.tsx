@@ -5,7 +5,7 @@
 // Paspas ERP — Satin Alma Siparisleri listesi
 // =============================================================
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Plus, RefreshCcw, Pencil, Trash2, Search, Eye } from 'lucide-react';
 import { toast } from 'sonner';
@@ -14,6 +14,7 @@ import { useLocaleContext } from '@/i18n/LocaleProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -27,6 +28,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 
 import {
+  useGetSatinAlmaAdminQuery,
   useListSatinAlmaAdminQuery,
   useDeleteSatinAlmaAdminMutation,
 } from '@/integrations/endpoints/admin/erp/satin_alma_admin.endpoints';
@@ -72,12 +74,46 @@ export default function SatinAlmaClient({ initialTedarikciId }: SatinAlmaClientP
   };
 
   const { data, isLoading, isFetching, refetch } = useListSatinAlmaAdminQuery(params);
+  const { data: editingDetail } = useGetSatinAlmaAdminQuery(editing?.id ?? '', {
+    skip: !editing?.id,
+  });
   const [deleteSiparis, deleteState] = useDeleteSatinAlmaAdminMutation();
 
   const items = data?.items ?? [];
+  const summary = useMemo(() => {
+    const otomatik = items.filter((item) => item.aciklama?.includes('Kritik stok nedeniyle otomatik')).length;
+    const acik = items.filter((item) => item.durum !== 'tamamlandi' && item.durum !== 'iptal').length;
+    const teslimBekleyen = items.filter((item) => item.durum === 'siparis_verildi' || item.durum === 'kismen_teslim').length;
+    return {
+      total: data?.total ?? 0,
+      otomatik,
+      acik,
+      teslimBekleyen,
+    };
+  }, [data?.total, items]);
 
   function openCreate() { setEditing(null); setFormOpen(true); }
   function openEdit(s: SatinAlmaSiparisDto) { setEditing(s); setFormOpen(true); }
+
+  function formatDate(value: string | null | undefined) {
+    if (!value) return '—';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleDateString('tr-TR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  }
+
+  function isAutomaticOrder(siparis: SatinAlmaSiparisDto) {
+    return siparis.aciklama?.includes('Kritik stok nedeniyle otomatik') ?? false;
+  }
+
+  function resetFilters() {
+    setSearch('');
+    setDurum('hepsi');
+  }
 
   async function confirmDelete() {
     if (!deleteTarget) return;
@@ -110,6 +146,33 @@ export default function SatinAlmaClient({ initialTedarikciId }: SatinAlmaClientP
         </div>
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-muted-foreground text-xs">{t('admin.erp.satinAlma.summary.total')}</div>
+            <div className="mt-1 font-semibold text-2xl tabular-nums">{summary.total}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-muted-foreground text-xs">{t('admin.erp.satinAlma.summary.open')}</div>
+            <div className="mt-1 font-semibold text-2xl tabular-nums">{summary.acik}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-muted-foreground text-xs">{t('admin.erp.satinAlma.summary.pendingDelivery')}</div>
+            <div className="mt-1 font-semibold text-2xl tabular-nums">{summary.teslimBekleyen}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-muted-foreground text-xs">{t('admin.erp.satinAlma.summary.automatic')}</div>
+            <div className="mt-1 font-semibold text-2xl tabular-nums text-amber-600">{summary.otomatik}</div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-48 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -130,6 +193,9 @@ export default function SatinAlmaClient({ initialTedarikciId }: SatinAlmaClientP
             ))}
           </SelectContent>
         </Select>
+        <Button variant="ghost" size="sm" onClick={resetFilters}>
+          {t('admin.erp.satinAlma.resetFilters')}
+        </Button>
       </div>
 
       <div className="rounded-md border">
@@ -138,6 +204,7 @@ export default function SatinAlmaClient({ initialTedarikciId }: SatinAlmaClientP
             <TableRow>
               <TableHead>{t('admin.erp.satinAlma.columns.siparisNo')}</TableHead>
               <TableHead>{t('admin.erp.satinAlma.columns.tedarikci')}</TableHead>
+              <TableHead>{t('admin.erp.satinAlma.columns.malzeme')}</TableHead>
               <TableHead>{t('admin.erp.satinAlma.columns.siparisTarihi')}</TableHead>
               <TableHead>{t('admin.erp.satinAlma.columns.termin')}</TableHead>
               <TableHead>{t('admin.erp.satinAlma.columns.durum')}</TableHead>
@@ -147,14 +214,14 @@ export default function SatinAlmaClient({ initialTedarikciId }: SatinAlmaClientP
           <TableBody>
             {isLoading && Array.from({ length: 5 }).map((_, i) => (
               <TableRow key={i}>
-                {Array.from({ length: 6 }).map((__, j) => (
+                {Array.from({ length: 7 }).map((__, j) => (
                   <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                 ))}
               </TableRow>
             ))}
             {!isLoading && items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                   {t('admin.erp.satinAlma.notFound')}
                 </TableCell>
               </TableRow>
@@ -163,12 +230,44 @@ export default function SatinAlmaClient({ initialTedarikciId }: SatinAlmaClientP
               <TableRow key={s.id}>
                 <TableCell className="font-mono font-medium">{s.siparisNo}</TableCell>
                 <TableCell>
-                  <Link href={`/admin/tedarikci/${s.tedarikciId}`} className="hover:underline">
-                    {s.tedarikciAd ?? s.tedarikciId}
-                  </Link>
+                  <div className="space-y-1">
+                    <Link href={`/admin/tedarikci/${s.tedarikciId}`} className="hover:underline">
+                      {s.tedarikciAd ?? s.tedarikciId}
+                    </Link>
+                    {isAutomaticOrder(s) && (
+                      <Badge variant="secondary" className="text-[10px]">
+                        {t('admin.erp.satinAlma.badges.automatic')}
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
-                <TableCell>{s.siparisTarihi}</TableCell>
-                <TableCell>{s.terminTarihi ?? '—'}</TableCell>
+                <TableCell>
+                  <div className="min-w-[220px] space-y-1">
+                    {(s.items?.length ?? 0) > 0 ? (
+                      <>
+                        {(s.items ?? []).slice(0, 2).map((item) => (
+                          <div key={item.id} className="text-xs">
+                            <span className="font-mono text-muted-foreground">{item.urunKod ?? item.urunId}</span>
+                            {' '}
+                            <span>{item.urunAd ?? item.urunId}</span>
+                            <span className="text-muted-foreground">
+                              {' '}· {item.miktar} {item.birim ?? ''}
+                            </span>
+                          </div>
+                        ))}
+                        {(s.items?.length ?? 0) > 2 && (
+                          <div className="text-[11px] text-muted-foreground">
+                            {t('admin.erp.satinAlma.moreItems', { count: String((s.items?.length ?? 0) - 2) })}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">{t('admin.erp.satinAlma.noItems')}</span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>{formatDate(s.siparisTarihi)}</TableCell>
+                <TableCell>{formatDate(s.terminTarihi)}</TableCell>
                 <TableCell>
                   <Badge variant={SATIN_ALMA_DURUM_BADGE[s.durum]}>
                     {DURUM_LABELS[s.durum]}
@@ -199,7 +298,11 @@ export default function SatinAlmaClient({ initialTedarikciId }: SatinAlmaClientP
         </Table>
       </div>
 
-      <SatinAlmaForm open={formOpen} onClose={() => setFormOpen(false)} siparis={editing} />
+      <SatinAlmaForm
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        siparis={editing ? (editingDetail?.id === editing.id ? editingDetail : editing) : null}
+      />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDelete(null)}>
         <AlertDialogContent>

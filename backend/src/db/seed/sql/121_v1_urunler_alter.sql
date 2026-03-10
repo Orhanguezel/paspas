@@ -20,9 +20,20 @@ SET @col := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA 
 SET @s := IF(@col = 0, 'ALTER TABLE `urunler` ADD COLUMN `kdv_orani` decimal(5,2) NOT NULL DEFAULT 20.00 AFTER `birim_fiyat`', 'SELECT 1');
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- operasyon_tipi: tek_tarafli | cift_tarafli (sadece kategori=urun icin anlamli)
+-- operasyon_tipi: kategori metadata'si gerektiriyorsa kullanilir, digerlerinde NULL kalir
 SET @col := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'urunler' AND COLUMN_NAME = 'operasyon_tipi');
-SET @s := IF(@col = 0, 'ALTER TABLE `urunler` ADD COLUMN `operasyon_tipi` varchar(32) NOT NULL DEFAULT ''tek_tarafli'' AFTER `kdv_orani`', 'SELECT 1');
+SET @s := IF(@col = 0, 'ALTER TABLE `urunler` ADD COLUMN `operasyon_tipi` varchar(32) DEFAULT NULL AFTER `kdv_orani`', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @is_not_null := (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'urunler'
+    AND COLUMN_NAME = 'operasyon_tipi'
+    AND IS_NULLABLE = 'NO'
+);
+SET @s := IF(@is_not_null = 1, 'ALTER TABLE `urunler` MODIFY COLUMN `operasyon_tipi` varchar(32) DEFAULT NULL', 'SELECT 1');
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- kategori index
@@ -37,3 +48,7 @@ WHERE `kod` LIKE 'HM-%';
 -- Mamul urunleri guncelle (varsayilan zaten 'urun' ve 'uretim')
 UPDATE `urunler` SET `kategori` = 'urun', `tedarik_tipi` = 'uretim'
 WHERE `kod` NOT LIKE 'HM-%';
+
+UPDATE `urunler`
+SET `operasyon_tipi` = NULL
+WHERE `tedarik_tipi` <> 'uretim';

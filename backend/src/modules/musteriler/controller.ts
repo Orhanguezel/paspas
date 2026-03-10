@@ -1,8 +1,8 @@
 import type { FastifyReply, RouteHandler } from 'fastify';
 
 import { rowToDto } from './schema';
-import { repoCreate, repoDelete, repoGetById, repoList, repoUpdate } from './repository';
-import { createSchema, listQuerySchema, patchSchema } from './validation';
+import { repoCreate, repoDelete, repoGetById, repoGetNextKod, repoList, repoUpdate } from './repository';
+import { createSchema, listQuerySchema, nextKodQuerySchema, patchSchema } from './validation';
 
 function sendInternalError(reply: FastifyReply) {
   return reply.code(500).send({ error: { message: 'sunucu_hatasi' } });
@@ -25,6 +25,25 @@ export const listMusteriler: RouteHandler = async (req, reply) => {
     return reply.send(items.map(rowToDto));
   } catch (error) {
     req.log.error({ error }, 'list_musteriler_failed');
+    return sendInternalError(reply);
+  }
+};
+
+export const getNextKod: RouteHandler = async (req, reply) => {
+  try {
+    const parsed = nextKodQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: {
+          message: 'gecersiz_sorgu_parametreleri',
+          issues: parsed.error.flatten(),
+        },
+      });
+    }
+    const kod = await repoGetNextKod(parsed.data.tur);
+    return reply.send({ kod });
+  } catch (error) {
+    req.log.error({ error }, 'get_next_kod_failed');
     return sendInternalError(reply);
   }
 };

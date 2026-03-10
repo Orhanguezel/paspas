@@ -56,7 +56,7 @@ PREPARE stmt FROM @add_sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- operasyon_tipi: tek_tarafli | cift_tarafli
+-- operasyon_tipi: kategori metadata'si gerektiriyorsa kullanilir, digerlerinde NULL kalir
 SET @col_exists := (
   SELECT COUNT(*)
   FROM information_schema.COLUMNS
@@ -66,9 +66,26 @@ SET @col_exists := (
 );
 SET @add_sql := IF(
   @col_exists = 0,
-  'ALTER TABLE `urunler` ADD COLUMN `operasyon_tipi` varchar(32) NOT NULL DEFAULT ''tek_tarafli'' AFTER `kdv_orani`',
+  'ALTER TABLE `urunler` ADD COLUMN `operasyon_tipi` varchar(32) DEFAULT NULL AFTER `kdv_orani`',
   'SELECT 1'
 );
 PREPARE stmt FROM @add_sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @is_not_null := (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'urunler'
+    AND COLUMN_NAME = 'operasyon_tipi'
+    AND IS_NULLABLE = 'NO'
+);
+SET @alter_sql := IF(
+  @is_not_null = 1,
+  'ALTER TABLE `urunler` MODIFY COLUMN `operasyon_tipi` varchar(32) DEFAULT NULL',
+  'SELECT 1'
+);
+PREPARE stmt FROM @alter_sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;

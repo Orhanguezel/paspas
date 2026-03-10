@@ -9,14 +9,17 @@ import {
   Building2,
   Calendar,
   CalendarDays,
+  CalendarRange,
   CircleOff,
   Clock,
+  ClipboardCheck,
   ClipboardList,
   Cpu,
   Database,
   Factory,
   Fence,
   FileSearch,
+  FolderTree,
   HardDrive,
   KeyRound,
   LayoutDashboard,
@@ -67,6 +70,7 @@ export type AdminNavConfigItem = {
   icon?: LucideIcon;
   comingSoon?: boolean;
   roles?: AdminSidebarRole[];
+  subItems?: AdminNavConfigItem[];
 };
 
 export type AdminNavConfigGroup = {
@@ -83,14 +87,40 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
     items: [
       { key: 'dashboard',         url: '/admin/dashboard',         icon: LayoutDashboard, roles: ['admin'] },
       { key: 'gorevler',          url: '/admin/gorevler',          icon: ClipboardList,   roles: ['admin', 'operator', 'satin_almaci', 'nakliyeci'] },
-      { key: 'musteriler',        url: '/admin/musteriler',        icon: Users,           roles: ['admin'] },
-      { key: 'tedarikci',         url: '/admin/tedarikci',         icon: Building2,       roles: ['admin', 'satin_almaci'] },
+      { 
+        key: 'is_ortaklari', 
+        url: '/admin/musteriler',  
+        icon: Users, 
+        roles: ['admin', 'satin_almaci'],
+        subItems: [
+          { key: 'musteriler',  url: '/admin/musteriler',   icon: Users,     roles: ['admin'] },
+          { key: 'tedarikci',   url: '/admin/tedarikci',    icon: Building2, roles: ['admin', 'satin_almaci'] },
+        ],
+      },
       { key: 'urunler',           url: '/admin/urunler',           icon: Package,         roles: ['admin'] },
-      { key: 'makineler',         url: '/admin/makineler',         icon: Timer,           roles: ['admin'] },
-      { key: 'kaliplar',          url: '/admin/tanimlar?tab=kaliplar',        icon: Fence,       roles: ['admin'] },
-      { key: 'tatil_gunleri',     url: '/admin/tanimlar?tab=tatiller',        icon: CalendarDays, roles: ['admin'] },
-      { key: 'vardiyalar',        url: '/admin/tanimlar?tab=vardiyalar',      icon: Clock,       roles: ['admin'] },
-      { key: 'durus_nedenleri',   url: '/admin/tanimlar?tab=durus-nedenleri', icon: CircleOff,   roles: ['admin'] },
+      { key: 'kategoriler',       url: '/admin/tanimlar?tab=kategoriler', icon: FolderTree, roles: ['admin'] },
+      { 
+        key: 'uretim_tanimlari', 
+        url: '/admin/makineler',  
+        icon: Timer, 
+        roles: ['admin'],
+        subItems: [
+          { key: 'makineler',       url: '/admin/makineler',                     icon: Timer,      roles: ['admin'] },
+          { key: 'kaliplar',        url: '/admin/tanimlar?tab=kaliplar',         icon: Fence,      roles: ['admin'] },
+          { key: 'durus_nedenleri', url: '/admin/tanimlar?tab=durus-nedenleri',  icon: CircleOff,  roles: ['admin'] },
+        ],
+      },
+      { 
+        key: 'calisma_planlari', 
+        url: '/admin/tanimlar?tab=tatiller',  
+        icon: CalendarDays, 
+        roles: ['admin'],
+        subItems: [
+          { key: 'tatil_gunleri',       url: '/admin/tanimlar?tab=tatiller',             icon: CalendarDays,   roles: ['admin'] },
+          { key: 'vardiyalar',          url: '/admin/tanimlar?tab=vardiyalar',           icon: Clock,          roles: ['admin'] },
+          { key: 'hafta_sonu_planlari', url: '/admin/tanimlar?tab=hafta-sonu-planlari',  icon: CalendarRange,  roles: ['admin'] },
+        ],
+      },
     ],
   },
   // ─── Üretim Süreçleri ───
@@ -111,8 +141,10 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
     id: 3,
     key: 'logistics',
     items: [
+      { key: 'sevkiyat',          url: '/admin/sevkiyat',          icon: Truck,      roles: ['admin', 'nakliyeci'] },
       { key: 'stoklar',           url: '/admin/stoklar',           icon: BarChart2,  roles: ['admin', 'satin_almaci'] },
       { key: 'satin_alma',        url: '/admin/satin-alma',        icon: Truck,      roles: ['admin', 'satin_almaci'] },
+      { key: 'mal_kabul',         url: '/admin/mal-kabul',         icon: ClipboardCheck, roles: ['admin', 'satin_almaci'] },
       { key: 'hareketler',        url: '/admin/hareketler',        icon: Activity,   roles: ['admin', 'satin_almaci', 'nakliyeci'] },
     ],
   },
@@ -148,6 +180,7 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   gorevler:          'Görevler',
   urunler:           'Ürünler',
   musteriler:        'Müşteriler',
+  is_ortaklari:      'İş Ortakları',
   makineler:         'Makineler',
   kaliplar:          'Kalıplar',
   tatil_gunleri:     'Tatil Günleri',
@@ -161,7 +194,15 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   hareketler:        'Hareketler',
   operator:          'Operatör',
   tanimlar:          'Tanımlar',
+  vardiyalar:        'Vardiyalar',
+  durus_nedenleri:   'Duruş Nedenleri',
+  hafta_sonu_planlari: 'Hafta Sonu Planları',
+  calisma_planlari:  'Çalışma Planları',
+  uretim_tanimlari:  'Üretim Tanımları',
   tedarikci:         'Tedarikçiler',
+  kategoriler:       'Kategoriler',
+  sevkiyat:          'Sevkiyat',
+  mal_kabul:         'Mal Kabul',
   audit_logs:        'Audit Logları',
   kullanicilar:      'Kullanıcılar',
   giris_ayarlari:    'Giriş Ayarları',
@@ -177,6 +218,33 @@ export function buildAdminSidebarItems(
 ): NavGroup[] {
   const labels = copy?.labels ?? ({} as AdminNavCopy['labels']);
   const items = copy?.items ?? ({} as AdminNavCopy['items']);
+
+  const getTitle = (item: AdminNavConfigItem): string => {
+    const tKey = `admin.dashboard.items.${item.key}` as any;
+    const translated = t ? t(tKey) : '';
+    return (
+      items[item.key] ||
+      (translated && translated !== tKey ? translated : '') ||
+      FALLBACK_TITLES[item.key] ||
+      item.key
+    );
+  };
+
+  const mapSubItems = (subItems: AdminNavConfigItem[] | undefined): NavSubItem[] | undefined => {
+    if (!subItems?.length) return undefined;
+    return subItems
+      .filter((sub) => {
+        const allowed = sub.roles ?? getAdminNavRoles(sub.key);
+        if (!allowed?.length) return role === 'admin';
+        return allowed.includes(role);
+      })
+      .map((sub) => ({
+        title: getTitle(sub),
+        url: sub.url,
+        icon: sub.icon,
+        comingSoon: sub.comingSoon,
+      }));
+  };
 
   return adminNavConfig
     .map((group) => {
@@ -195,22 +263,13 @@ export function buildAdminSidebarItems(
             if (!allowed?.length) return role === 'admin';
             return allowed.includes(role);
           })
-          .map((item) => {
-            const tKey = `admin.dashboard.items.${item.key}` as any;
-            const translated = t ? t(tKey) : '';
-            const title =
-              items[item.key] ||
-              (translated && translated !== tKey ? translated : '') ||
-              FALLBACK_TITLES[item.key] ||
-              item.key;
-
-            return {
-              title,
-              url: item.url,
-              icon: item.icon,
-              comingSoon: item.comingSoon,
-            };
-          }),
+          .map((item) => ({
+            title: getTitle(item),
+            url: item.url,
+            icon: item.icon,
+            comingSoon: item.comingSoon,
+            subItems: mapSubItems(item.subItems),
+          })),
       };
     })
     .filter((group) => group.items.length > 0);

@@ -26,6 +26,11 @@ import {
   createDurusNedeni,
   updateDurusNedeni,
   deleteDurusNedeni,
+  listHaftaSonuPlanlari,
+  getHaftaSonuPlan,
+  createHaftaSonuPlan,
+  updateHaftaSonuPlan,
+  deleteHaftaSonuPlan,
 } from './controller';
 
 export async function registerTanimlar(app: FastifyInstance) {
@@ -59,4 +64,11 @@ export async function registerTanimlar(app: FastifyInstance) {
   app.post(`${BASE}/durus-nedenleri`, { preHandler: guard }, createDurusNedeni);
   app.patch(`${BASE}/durus-nedenleri/:id`, { preHandler: guard }, updateDurusNedeni);
   app.delete(`${BASE}/durus-nedenleri/:id`, { preHandler: guard }, deleteDurusNedeni);
+
+  // Hafta Sonu Çalışma Planları
+  app.get(`${BASE}/hafta-sonu-planlari`, { preHandler: guard }, listHaftaSonuPlanlari);
+  app.get(`${BASE}/hafta-sonu-planlari/:id`, { preHandler: guard }, getHaftaSonuPlan);
+  app.post(`${BASE}/hafta-sonu-planlari`, { preHandler: guard }, createHaftaSonuPlan);
+  app.patch(`${BASE}/hafta-sonu-planlari/:id`, { preHandler: guard }, updateHaftaSonuPlan);
+  app.delete(`${BASE}/hafta-sonu-planlari/:id`, { preHandler: guard }, deleteHaftaSonuPlan);
 }

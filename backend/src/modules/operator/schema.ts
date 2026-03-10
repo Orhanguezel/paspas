@@ -69,15 +69,22 @@ export const sevkiyatKalemleri = mysqlTable('sevkiyat_kalemleri', {
 });
 
 // -- Mal Kabul Kayitlari --
+// Not: Canonical schema is in @/modules/mal_kabul/schema.ts
+// This is kept for backward compat with operator module imports
 export const malKabulKayitlari = mysqlTable('mal_kabul_kayitlari', {
   id: char('id', { length: 36 }).primaryKey().notNull(),
-  satin_alma_siparis_id: char('satin_alma_siparis_id', { length: 36 }).notNull(),
-  satin_alma_kalem_id: char('satin_alma_kalem_id', { length: 36 }).notNull(),
+  kaynak_tipi: varchar('kaynak_tipi', { length: 32 }).notNull().default('satin_alma'),
+  satin_alma_siparis_id: char('satin_alma_siparis_id', { length: 36 }),
+  satin_alma_kalem_id: char('satin_alma_kalem_id', { length: 36 }),
   urun_id: char('urun_id', { length: 36 }).notNull(),
+  tedarikci_id: char('tedarikci_id', { length: 36 }),
   gelen_miktar: decimal('gelen_miktar', { precision: 12, scale: 4 }).notNull(),
+  parti_no: varchar('parti_no', { length: 64 }),
   operator_user_id: char('operator_user_id', { length: 36 }),
   kabul_tarihi: datetime('kabul_tarihi').notNull().default(sql`CURRENT_TIMESTAMP`),
   notlar: varchar('notlar', { length: 500 }),
+  kalite_durumu: varchar('kalite_durumu', { length: 32 }).notNull().default('kabul'),
+  kalite_notu: varchar('kalite_notu', { length: 500 }),
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -202,8 +209,9 @@ export function durusRowToDto(row: DurusKayitRow): DurusKayitDto {
 
 export type MalKabulDto = {
   id: string;
-  satinAlmaSiparisId: string;
-  satinAlmaKalemId: string;
+  kaynakTipi: string;
+  satinAlmaSiparisId: string | null;
+  satinAlmaKalemId: string | null;
   urunId: string;
   gelenMiktar: number;
   operatorUserId: string | null;
@@ -214,8 +222,9 @@ export type MalKabulDto = {
 export function malKabulRowToDto(row: MalKabulRow): MalKabulDto {
   return {
     id: row.id,
-    satinAlmaSiparisId: row.satin_alma_siparis_id,
-    satinAlmaKalemId: row.satin_alma_kalem_id,
+    kaynakTipi: row.kaynak_tipi,
+    satinAlmaSiparisId: row.satin_alma_siparis_id ?? null,
+    satinAlmaKalemId: row.satin_alma_kalem_id ?? null,
     urunId: row.urun_id,
     gelenMiktar: Number(row.gelen_miktar),
     operatorUserId: row.operator_user_id ?? null,

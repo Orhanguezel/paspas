@@ -27,7 +27,7 @@ export const uretimEmirleri = mysqlTable('uretim_emirleri', {
   baslangic_tarihi: date('baslangic_tarihi'),
   bitis_tarihi: date('bitis_tarihi'),
   termin_tarihi: date('termin_tarihi'),
-  durum: varchar('durum', { length: 32 }).notNull().default('planlandi'),
+  durum: varchar('durum', { length: 32 }).notNull().default('atanmamis'),
   is_active: tinyint('is_active', { unsigned: true }).notNull().default(1),
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updated_at: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),

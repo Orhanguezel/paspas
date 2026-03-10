@@ -33,9 +33,7 @@ import {
   useUpdateUretimEmriAdminMutation,
 } from '@/integrations/endpoints/admin/erp/uretim_emirleri_admin.endpoints';
 import { useListUrunlerAdminQuery } from '@/integrations/endpoints/admin/erp/urunler_admin.endpoints';
-import type { UretimEmriAdayDto, UretimEmriDto, UretimEmriDurum } from '@/integrations/shared/erp/uretim_emirleri.types';
-
-const durumValues = ['planlandi', 'hazirlaniyor', 'uretimde', 'tamamlandi', 'iptal'] as const;
+import type { UretimEmriAdayDto, UretimEmriDto } from '@/integrations/shared/erp/uretim_emirleri.types';
 
 const schema = z.object({
   emirNo:          z.string().min(1, 'Zorunlu'),
@@ -45,7 +43,6 @@ const schema = z.object({
   baslangicTarihi: z.string().optional(),
   bitisTarihi:     z.string().optional(),
   terminTarihi:    z.string().optional(),
-  durum:           z.enum(durumValues).default('planlandi'),
   musteriOzet:     z.string().optional(),
   musteriDetay:    z.string().optional(),
 });
@@ -72,7 +69,7 @@ function groupByUrun(adaylar: UretimEmriAdayDto[]): Map<string, UretimEmriAdayDt
 export default function UretimEmriForm({ open, onClose, emri }: Props) {
   const { t } = useLocaleContext();
   const isEdit = !!emri;
-  const [kaynakTipi, setKaynakTipi] = useState<'manuel' | 'siparis'>('manuel');
+  const [kaynakTipi, setKaynakTipi] = useState<'manuel' | 'siparis'>('siparis');
   const [selectedKalemIds, setSelectedKalemIds] = useState<Set<string>>(new Set());
   const [create, createState] = useCreateUretimEmriAdminMutation();
   const [update, updateState] = useUpdateUretimEmriAdminMutation();
@@ -84,11 +81,10 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { durum: 'planlandi', uretilenMiktar: 0 },
+    defaultValues: { uretilenMiktar: 0 },
   });
 
   const selectedUrunId = watch('urunId');
-  const durumVal = watch('durum');
 
   const urunler = urunlerData?.items ?? [];
   const grouped = useMemo(() => groupByUrun(adaylar), [adaylar]);
@@ -97,6 +93,18 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
   const selectedAdaylar = useMemo(
     () => adaylar.filter((a) => selectedKalemIds.has(a.siparisKalemId)),
     [adaylar, selectedKalemIds],
+  );
+  const selectedToplamMiktar = useMemo(
+    () => selectedAdaylar.reduce((sum, aday) => sum + aday.miktar, 0),
+    [selectedAdaylar],
+  );
+  const selectedEnErkenTermin = useMemo(
+    () =>
+      selectedAdaylar
+        .map((aday) => aday.terminTarihi)
+        .filter((tarih): tarih is string => Boolean(tarih))
+        .sort()[0] ?? '',
+    [selectedAdaylar],
   );
 
   // When selections change, auto-fill form fields
@@ -137,16 +145,14 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
         baslangicTarihi: emri.baslangicTarihi ?? '',
         bitisTarihi:     emri.bitisTarihi ?? '',
         terminTarihi:    emri.terminTarihi ?? '',
-        durum:           emri.durum as FormValues['durum'],
         musteriOzet:     emri.musteriAd ?? '',
         musteriDetay:    emri.musteriDetay ?? '',
       });
     } else {
-      setKaynakTipi('manuel');
+      setKaynakTipi('siparis');
       setSelectedKalemIds(new Set());
       reset({
         emirNo: nextNoData?.emirNo ?? '',
-        durum: 'planlandi',
         uretilenMiktar: 0,
         urunId: '',
         terminTarihi: '',
@@ -232,42 +238,75 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
           <input type="hidden" {...register('musteriOzet')} />
           <input type="hidden" {...register('musteriDetay')} />
           <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
-            {/* Emir No + Durum */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label>{t('admin.erp.uretimEmirleri.form.emirNo')} *</Label>
-                <Input {...register('emirNo')} placeholder={t('admin.erp.uretimEmirleri.form.emirNoPlaceholder')} />
-                {errors.emirNo && <p className="text-destructive text-xs">{errors.emirNo.message}</p>}
-              </div>
-              <div className="space-y-1">
-                <Label>{t('admin.erp.uretimEmirleri.form.durum')}</Label>
-                <Select value={durumVal} onValueChange={(v) => setValue('durum', v as UretimEmriDurum)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {durumValues.map((d) => (
-                      <SelectItem key={d} value={d}>{t(`admin.erp.uretimEmirleri.statuses.${d}`)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Emir No */}
+            <div className="space-y-1">
+              <Label>{t('admin.erp.uretimEmirleri.form.emirNo')} *</Label>
+              <Input {...register('emirNo')} placeholder={t('admin.erp.uretimEmirleri.form.emirNoPlaceholder')} />
+              {errors.emirNo && <p className="text-destructive text-xs">{errors.emirNo.message}</p>}
             </div>
 
             {/* Kaynak Tipi */}
-            <div className="space-y-2 rounded-md border p-3">
+            <div className="space-y-3 rounded-md border p-3">
               <Label>{t('admin.erp.uretimEmirleri.form.kaynak')}</Label>
-              <Select value={kaynakTipi} onValueChange={(v) => handleKaynakTipiChange(v as 'manuel' | 'siparis')}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="manuel">{t('admin.erp.uretimEmirleri.form.kaynakManuel')}</SelectItem>
-                  <SelectItem value="siparis">{t('admin.erp.uretimEmirleri.form.kaynakSiparis')}</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(['siparis', 'manuel'] as const).map((secenek) => {
+                  const selected = kaynakTipi === secenek;
+                  const titleKey =
+                    secenek === 'siparis'
+                      ? 'admin.erp.uretimEmirleri.form.kaynakSiparis'
+                      : 'admin.erp.uretimEmirleri.form.kaynakManuel';
+                  const descKey =
+                    secenek === 'siparis'
+                      ? 'admin.erp.uretimEmirleri.form.kaynakSiparisDesc'
+                      : 'admin.erp.uretimEmirleri.form.kaynakManuelDesc';
+                  return (
+                    <button
+                      key={secenek}
+                      type="button"
+                      onClick={() => handleKaynakTipiChange(secenek)}
+                      className={`rounded-lg border p-4 text-left transition-colors ${
+                        selected ? 'border-primary bg-primary/5' : 'hover:bg-muted/40'
+                      }`}
+                    >
+                      <div className="font-medium">{t(titleKey)}</div>
+                      <div className="mt-1 text-muted-foreground text-xs">{t(descKey)}</div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="rounded-md bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                {kaynakTipi === 'siparis'
+                  ? t('admin.erp.uretimEmirleri.form.kaynakSiparisBilgi')
+                  : t('admin.erp.uretimEmirleri.form.kaynakManuelBilgi')}
+              </div>
             </div>
 
             {/* Sipariş kalemleri — checkbox multi-select */}
             {kaynakTipi === 'siparis' && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label>{t('admin.erp.uretimEmirleri.form.siparisAdaylari')}</Label>
+                {selectedAdaylar.length > 0 && (
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-md border bg-muted/20 px-3 py-3">
+                      <div className="text-[11px] text-muted-foreground">
+                        {t('admin.erp.uretimEmirleri.form.seciliKalem')}
+                      </div>
+                      <div className="mt-1 font-semibold tabular-nums">{selectedAdaylar.length}</div>
+                    </div>
+                    <div className="rounded-md border bg-muted/20 px-3 py-3">
+                      <div className="text-[11px] text-muted-foreground">
+                        {t('admin.erp.uretimEmirleri.form.toplamMiktar')}
+                      </div>
+                      <div className="mt-1 font-semibold tabular-nums">{selectedToplamMiktar}</div>
+                    </div>
+                    <div className="rounded-md border bg-muted/20 px-3 py-3">
+                      <div className="text-[11px] text-muted-foreground">
+                        {t('admin.erp.uretimEmirleri.form.enErkenTermin')}
+                      </div>
+                      <div className="mt-1 font-semibold tabular-nums">{selectedEnErkenTermin || '—'}</div>
+                    </div>
+                  </div>
+                )}
                 {adaylar.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-2">
                     {t('admin.erp.uretimEmirleri.form.adayYok')}
@@ -279,9 +318,10 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
                       const isDisabled = lockedUrunId !== null && lockedUrunId !== urunId;
                       return (
                         <div key={urunId} className="border-b last:border-b-0">
-                          <div className="bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                            {first.urunAd ?? first.urunKod ?? urunId}
-                            {first.urunKod && <span className="ml-1 font-mono">({first.urunKod})</span>}
+                          <div className="bg-muted/50 px-3 py-2.5 flex items-center gap-2">
+                            <span className="font-bold text-sm">{first.urunAd ?? first.urunKod ?? urunId}</span>
+                            {first.urunKod && <span className="text-xs font-mono text-muted-foreground">({first.urunKod})</span>}
+                            <span className="ml-auto text-muted-foreground text-xs">{kalemleri.length} kalem</span>
                           </div>
                           {kalemleri.map((kalem) => {
                             const isChecked = selectedKalemIds.has(kalem.siparisKalemId);
@@ -296,9 +336,8 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
                                   disabled={isDisabled && !isChecked}
                                 />
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium">{kalem.musteriAd}</span>
-                                    <span className="text-muted-foreground text-xs">{kalem.siparisNo}</span>
+                                  <div className="text-muted-foreground text-xs">
+                                    {kalem.musteriAd} — {kalem.siparisNo}
                                   </div>
                                 </div>
                                 <div className="text-right shrink-0">
@@ -329,7 +368,7 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('admin.erp.uretimEmirleri.form.toplamMiktar')}</span>
                       <span className="font-mono font-medium">
-                        {selectedAdaylar.reduce((s, a) => s + a.miktar, 0)} ad.
+                        {selectedToplamMiktar} ad.
                       </span>
                     </div>
                     {selectedAdaylar.length > 1 && (
@@ -339,6 +378,12 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
                     )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {kaynakTipi === 'manuel' && (
+              <div className="rounded-md border border-dashed bg-muted/20 p-3 text-sm text-muted-foreground">
+                {t('admin.erp.uretimEmirleri.form.manuelUretimBilgi')}
               </div>
             )}
 

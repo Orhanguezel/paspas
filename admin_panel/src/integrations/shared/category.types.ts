@@ -28,10 +28,13 @@ export interface CategoryDto {
 
   whatsapp_number: string | null;
   phone_number: string | null;
-  varsayilan_tedarik_tipi: 'uretim' | 'satin_alma' | 'fason';
+  varsayilan_birim: string;
+  varsayilan_kod_prefixi: string;
+  recetede_kullanilabilir: boolean;
+  varsayilan_tedarik_tipi: "uretim" | "satin_alma" | "fason";
   uretim_alanlari_aktif: boolean;
   operasyon_tipi_gerekli: boolean;
-  varsayilan_operasyon_tipi: 'tek_tarafli' | 'cift_tarafli' | null;
+  varsayilan_operasyon_tipi: "tek_tarafli" | "cift_tarafli" | null;
 
   created_at: string;
   updated_at: string;
@@ -47,8 +50,8 @@ export interface CategoryListQueryParams {
   is_featured?: boolean | string;
   limit?: number;
   offset?: number;
-  sort?: 'display_order' | 'name' | 'created_at' | 'updated_at';
-  order?: 'asc' | 'desc';
+  sort?: "display_order" | "name" | "created_at" | "updated_at";
+  order?: "asc" | "desc";
 }
 
 /**
@@ -56,7 +59,7 @@ export interface CategoryListQueryParams {
  */
 export interface CategoryCreatePayload {
   id?: string; // genelde backend randomUUID, ama opsiyonel bırakıyoruz
-  kod: 'urun' | 'yarimamul' | 'hammadde';
+  kod: string;
 
   name?: string;
   slug?: string;
@@ -68,26 +71,29 @@ export interface CategoryCreatePayload {
   icon?: string | null;
 
   // boolLike ile uyumlu tip
-  is_active?: boolean | 0 | 1 | '0' | '1' | 'true' | 'false';
-  is_featured?: boolean | 0 | 1 | '0' | '1' | 'true' | 'false';
-  has_cart?: boolean | 0 | 1 | '0' | '1' | 'true' | 'false';
-  is_unlimited?: boolean | 0 | 1 | '0' | '1' | 'true' | 'false';
+  is_active?: boolean | 0 | 1 | "0" | "1" | "true" | "false";
+  is_featured?: boolean | 0 | 1 | "0" | "1" | "true" | "false";
+  has_cart?: boolean | 0 | 1 | "0" | "1" | "true" | "false";
+  is_unlimited?: boolean | 0 | 1 | "0" | "1" | "true" | "false";
 
   display_order?: number;
 
   whatsapp_number?: string | null;
   phone_number?: string | null;
-  varsayilan_tedarik_tipi?: 'uretim' | 'satin_alma' | 'fason';
-  uretim_alanlari_aktif?: boolean | 0 | 1 | '0' | '1' | 'true' | 'false';
-  operasyon_tipi_gerekli?: boolean | 0 | 1 | '0' | '1' | 'true' | 'false';
-  varsayilan_operasyon_tipi?: 'tek_tarafli' | 'cift_tarafli' | null;
+  varsayilan_birim?: string;
+  varsayilan_kod_prefixi?: string;
+  recetede_kullanilabilir?: boolean | 0 | 1 | "0" | "1" | "true" | "false";
+  varsayilan_tedarik_tipi?: "uretim" | "satin_alma" | "fason";
+  uretim_alanlari_aktif?: boolean | 0 | 1 | "0" | "1" | "true" | "false";
+  operasyon_tipi_gerekli?: boolean | 0 | 1 | "0" | "1" | "true" | "false";
+  varsayilan_operasyon_tipi?: "tek_tarafli" | "cift_tarafli" | null;
 }
 
 /**
  * Update payload – categoryUpdateSchema.partial()
  *  - id body’de beklenmediği için hariç tutuldu
  */
-export type CategoryUpdatePayload = Partial<Omit<CategoryCreatePayload, 'id'>>;
+export type CategoryUpdatePayload = Partial<Omit<CategoryCreatePayload, "id">>;
 
 /**
  * Sıralama endpoint’i için payload

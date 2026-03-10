@@ -22,6 +22,7 @@ type QueryRow = {
   urunKod: string | null;
   urunAd: string | null;
   montaj: number | boolean | null;
+  operasyonOzet: string | null;
 };
 
 function buildWhere(query: ListQuery): SQL | undefined {
@@ -53,6 +54,7 @@ export async function repoList(query: ListQuery): Promise<{ items: GanttItemDto[
   const where = buildWhere(query);
 
   const montajSubquery = sql<number>`(SELECT COUNT(*) FROM uretim_emri_operasyonlari op WHERE op.uretim_emri_id = ${uretimEmirleri.id} AND op.montaj = 1)`;
+  const operasyonOzetSubquery = sql<string>`(SELECT GROUP_CONCAT(op.operasyon_adi ORDER BY op.sira SEPARATOR ', ') FROM uretim_emri_operasyonlari op WHERE op.uretim_emri_id = ${uretimEmirleri.id})`;
 
   const [rows, countResult] = await Promise.all([
     db
@@ -70,6 +72,7 @@ export async function repoList(query: ListQuery): Promise<{ items: GanttItemDto[
         urunKod: urunler.kod,
         urunAd: urunler.ad,
         montaj: montajSubquery,
+        operasyonOzet: operasyonOzetSubquery,
       })
       .from(uretimEmirleri)
       .leftJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
@@ -104,6 +107,7 @@ function rowToDto(row: QueryRow): GanttItemDto {
     urunKod: (row as QueryRow).urunKod ?? null,
     urunAd: (row as QueryRow).urunAd ?? null,
     musteriOzet: row.musteri_ozet ?? null,
+    operasyonOzet: (row as QueryRow).operasyonOzet ?? null,
     montaj: Number((row as QueryRow).montaj ?? 0) > 0,
     baslangicTarihi: toDateString(row.baslangic_tarihi),
     bitisTarihi: toDateString(row.bitis_tarihi),
@@ -128,6 +132,7 @@ function mapPatchInput(data: PatchBody): Partial<typeof uretimEmirleri.$inferIns
 
 export async function repoGetById(id: string): Promise<GanttItemDto | null> {
   const montajSubquery = sql<number>`(SELECT COUNT(*) FROM uretim_emri_operasyonlari op WHERE op.uretim_emri_id = ${uretimEmirleri.id} AND op.montaj = 1)`;
+  const operasyonOzetSubquery = sql<string>`(SELECT GROUP_CONCAT(op.operasyon_adi ORDER BY op.sira SEPARATOR ', ') FROM uretim_emri_operasyonlari op WHERE op.uretim_emri_id = ${uretimEmirleri.id})`;
   const rows = await db
     .select({
       id: uretimEmirleri.id,
@@ -143,6 +148,7 @@ export async function repoGetById(id: string): Promise<GanttItemDto | null> {
       urunKod: urunler.kod,
       urunAd: urunler.ad,
       montaj: montajSubquery,
+      operasyonOzet: operasyonOzetSubquery,
     })
     .from(uretimEmirleri)
     .leftJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))

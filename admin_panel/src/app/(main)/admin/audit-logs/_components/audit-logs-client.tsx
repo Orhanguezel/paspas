@@ -62,6 +62,45 @@ const MODULE_OPTIONS = [
 
 type SortKey = 'created_at' | 'status_code' | 'action';
 
+/**
+ * HTTP status kodlarının kullanıcı dostu açıklamaları
+ * Gerçek HTTP standartlarına uygun + anlaşılır türkçe
+ */
+function statusDescription(code: number): string {
+  // 2xx - Başarılı
+  if (code === 200) return 'OK – İşlem başarılı';
+  if (code === 201) return 'Created – Kayıt oluşturuldu';
+  if (code === 204) return 'No Content – İşlem tamamlandı (içerik yok)';
+
+  // 3xx - Yönlendirme
+  if (code === 301) return 'Moved Permanently – Kalıcı yönlendirme';
+  if (code === 302) return 'Found – Geçici yönlendirme';
+  if (code === 304) return 'Not Modified – Değişiklik yok';
+
+  // 4xx - İstemci Hataları
+  if (code === 400) return 'Bad Request – Geçersiz istek formatı';
+  if (code === 401) return 'Unauthorized – Oturum gerekli';
+  if (code === 403) return 'Forbidden – Yetki yetersiz';
+  if (code === 404) return 'Not Found – Kayıt bulunamadı';
+  if (code === 409) return 'Conflict – Çakışma (kayıt zaten var)';
+  if (code === 422) return 'Unprocessable Entity – Validasyon hatası';
+  if (code === 429) return 'Too Many Requests – Çok fazla istek';
+
+  // 5xx - Sunucu Hataları
+  if (code === 500) return 'Internal Server Error – Sunucu hatası';
+  if (code === 502) return 'Bad Gateway – Ağ geçidi hatası';
+  if (code === 503) return 'Service Unavailable – Servis kullanılamıyor';
+  if (code === 504) return 'Gateway Timeout – Zaman aşımı';
+
+  // Genel kategoriler
+  if (code >= 200 && code < 300) return `${code} – Başarılı`;
+  if (code >= 300 && code < 400) return `${code} – Yönlendirme`;
+  if (code >= 400 && code < 500) return `${code} – İstemci hatası`;
+  if (code >= 500) return `${code} – Sunucu hatası`;
+
+  return `${code}`;
+}
+
 function statusBadge(statusCode: number): 'default' | 'secondary' | 'destructive' | 'outline' {
   if (statusCode >= 500) return 'destructive';
   if (statusCode >= 400) return 'secondary';
@@ -389,7 +428,10 @@ export default function AuditLogsClient() {
                     {item.actor_email || item.actor_user_id || '-'}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={statusBadge(item.status_code)}>{item.status_code}</Badge>
+                    <div className="flex flex-col gap-0.5">
+                      <Badge variant={statusBadge(item.status_code)}>{item.status_code}</Badge>
+                      <span className="text-xs text-muted-foreground">{statusDescription(item.status_code)}</span>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -428,7 +470,10 @@ export default function AuditLogsClient() {
                     <CardTitle className="text-sm">Status</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Badge variant={statusBadge(selectedLog.status_code)}>{selectedLog.status_code}</Badge>
+                    <div className="space-y-1">
+                      <Badge variant={statusBadge(selectedLog.status_code)}>{selectedLog.status_code}</Badge>
+                      <p className="text-xs text-muted-foreground">{statusDescription(selectedLog.status_code)}</p>
+                    </div>
                   </CardContent>
                 </Card>
                 <Card>

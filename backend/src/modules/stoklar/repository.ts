@@ -93,7 +93,7 @@ export async function repoList(query: ListQuery): Promise<ListResult> {
 export async function repoGetAcikUretimIhtiyaciMap(urunIds?: string[]): Promise<Map<string, number>> {
   const conditions: SQL[] = [
     eq(uretimEmirleri.is_active, 1),
-    inArray(uretimEmirleri.durum, ['planlandi', 'hazirlaniyor', 'uretimde']),
+    inArray(uretimEmirleri.durum, ['atanmamis', 'planlandi', 'uretimde']),
   ];
 
   if (urunIds?.length) {
@@ -150,6 +150,7 @@ export type YeterlilikKalemResult = {
   malzemeId: string;
   malzemeKod: string;
   malzemeAd: string;
+  malzemeGorselUrl: string | null;
   birim: string;
   gerekliMiktar: number;
   fireOrani: number;
@@ -215,6 +216,7 @@ export async function repoCheckYeterlilik(query: YeterlilikQuery): Promise<Yeter
       malzemeId: kalem.urun_id,
       malzemeKod: malzeme?.kod ?? '',
       malzemeAd: malzeme?.ad ?? '',
+      malzemeGorselUrl: malzeme?.image_url ?? null,
       birim: malzeme?.birim ?? 'kg',
       gerekliMiktar: miktar,
       fireOrani,

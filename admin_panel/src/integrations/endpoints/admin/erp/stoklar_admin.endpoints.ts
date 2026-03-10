@@ -20,7 +20,7 @@ export const stoklarAdminApi = baseApi.injectEndpoints({
       StokListResponse,
       | {
           q?: string;
-          kategori?: "urun" | "yarimamul" | "hammadde";
+          kategori?: string;
           durum?: "yeterli" | "kritik" | "yetersiz";
           kritikOnly?: boolean;
           sort?: "ad" | "kod" | "stok" | "kritik_stok";

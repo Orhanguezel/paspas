@@ -4,9 +4,10 @@ import { and, asc, desc, eq, inArray, isNull, like, or, sql } from 'drizzle-orm'
 import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
-import { kalipUyumluMakineler, kaliplar } from '@/modules/tanimlar/schema';
+import { kalipUyumluMakineler, kaliplar, tatiller, haftaSonuPlanlari } from '@/modules/tanimlar/schema';
+import { repoGetHaftaSonuPlanByDate } from '@/modules/tanimlar/repository';
 import { uretimEmirleri, uretimEmriOperasyonlari } from '@/modules/uretim_emirleri/schema';
-import { urunler, urunOperasyonMakineleri, urunOperasyonlari } from '@/modules/urunler/schema';
+import { urunler } from '@/modules/urunler/schema';
 
 import { makineler, makineKuyrugu, type MakineRow } from './schema';
 import type { AtaBody, CreateBody, KuyrukSiralaBody, ListQuery, PatchBody } from './validation';
@@ -158,7 +159,6 @@ export type AtanmamisOperasyonDto = {
   planlananMiktar: number;
   montaj: boolean;
   terminTarihi: string | null;
-  onerilenMakineler: { makineId: string; makineKod: string; makineAd: string; oncelikSira: number }[];
 };
 
 /** Makineye atanmamis emir operasyonlari */
@@ -178,7 +178,6 @@ export async function repoListAtanmamis(): Promise<AtanmamisOperasyonDto[]> {
       planlananMiktar: uretimEmriOperasyonlari.planlanan_miktar,
       montaj: uretimEmriOperasyonlari.montaj,
       terminTarihi: uretimEmirleri.termin_tarihi,
-      urunOperasyonId: uretimEmriOperasyonlari.urun_operasyon_id,
     })
     .from(uretimEmriOperasyonlari)
     .innerJoin(uretimEmirleri, eq(uretimEmriOperasyonlari.uretim_emri_id, uretimEmirleri.id))
@@ -191,52 +190,6 @@ export async function repoListAtanmamis(): Promise<AtanmamisOperasyonDto[]> {
       ),
     )
     .orderBy(asc(uretimEmirleri.termin_tarihi), asc(uretimEmriOperasyonlari.sira));
-
-  // Onerilen makineler: urun_operasyon_makineleri tablosundan
-  const urunOpIds = rows.map((r) => r.urunOperasyonId).filter(Boolean) as string[];
-  let oneriMap = new Map<string, { makineId: string; makineKod: string; makineAd: string; oncelikSira: number }[]>();
-  const kalipIds = rows.map((row) => row.kalipId).filter(Boolean) as string[];
-  let uyumlulukMap = new Map<string, Set<string>>();
-
-  if (urunOpIds.length > 0) {
-    const oneriRows = await db
-      .select({
-        urunOperasyonId: urunOperasyonMakineleri.urun_operasyon_id,
-        makineId: urunOperasyonMakineleri.makine_id,
-        makineKod: makineler.kod,
-        makineAd: makineler.ad,
-        oncelikSira: urunOperasyonMakineleri.oncelik_sira,
-      })
-      .from(urunOperasyonMakineleri)
-      .innerJoin(makineler, eq(urunOperasyonMakineleri.makine_id, makineler.id))
-      .where(inArray(urunOperasyonMakineleri.urun_operasyon_id, urunOpIds))
-      .orderBy(asc(urunOperasyonMakineleri.oncelik_sira));
-
-    oneriMap = oneriRows.reduce((acc, r) => {
-      const key = r.urunOperasyonId;
-      const items = acc.get(key) ?? [];
-      items.push({ makineId: r.makineId, makineKod: r.makineKod, makineAd: r.makineAd, oncelikSira: r.oncelikSira });
-      acc.set(key, items);
-      return acc;
-    }, new Map<string, { makineId: string; makineKod: string; makineAd: string; oncelikSira: number }[]>());
-  }
-
-  if (kalipIds.length > 0) {
-    const uyumlulukRows = await db
-      .select({
-        kalipId: kalipUyumluMakineler.kalip_id,
-        makineId: kalipUyumluMakineler.makine_id,
-      })
-      .from(kalipUyumluMakineler)
-      .where(inArray(kalipUyumluMakineler.kalip_id, kalipIds));
-
-    uyumlulukMap = uyumlulukRows.reduce((acc, row) => {
-      const items = acc.get(row.kalipId) ?? new Set<string>();
-      items.add(row.makineId);
-      acc.set(row.kalipId, items);
-      return acc;
-    }, new Map<string, Set<string>>());
-  }
 
   return rows.map((r) => ({
     id: r.id,
@@ -252,14 +205,6 @@ export async function repoListAtanmamis(): Promise<AtanmamisOperasyonDto[]> {
     planlananMiktar: Number(r.planlananMiktar),
     montaj: r.montaj === 1,
     terminTarihi: r.terminTarihi ? String(r.terminTarihi).slice(0, 10) : null,
-    onerilenMakineler: r.urunOperasyonId
-      ? (oneriMap.get(r.urunOperasyonId) ?? []).filter((makine) => {
-          if (!r.kalipId) return true;
-          const uyumlu = uyumlulukMap.get(r.kalipId);
-          if (!uyumlu || uyumlu.size === 0) return true;
-          return uyumlu.has(makine.makineId);
-        })
-      : [],
   }));
 }
 
@@ -390,10 +335,69 @@ export async function repoListKuyruklar(): Promise<KuyrukGrubuDto[]> {
 }
 
 /**
+ * Belirli bir tarihte makine calisabilir mi kontrolu (tatil ve hafta sonu planlari).
+ * Varsayilan olarak hafta sonu (Cumartesi/Pazar) calisma yok, hafta_sonu_planlari tablosundan override.
+ */
+async function isMakineWorkingDay(makineId: string, date: Date): Promise<boolean> {
+  const dayOfWeek = date.getDay(); // 0=Pazar, 6=Cumartesi
+
+  // Hafta ici (1-5) = calisma gunu
+  if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+    return true;
+  }
+
+  // Hafta sonu: hafta_sonu_planlari tablosuna bak
+  // Once makine bazli plan var mi kontrol et, yoksa genel plan (makine_id=NULL)
+  const plan = await repoGetHaftaSonuPlanByDate(date, makineId);
+
+  if (plan) {
+    // Cumartesi
+    if (dayOfWeek === 6) return plan.cumartesiCalisir;
+    // Pazar
+    if (dayOfWeek === 0) return plan.pazarCalisir;
+  }
+
+  // Plan yoksa varsayilan: hafta sonu calisma yok
+  return false;
+}
+
+/**
+ * Bir tarihi ileriye tasir, tatil ve hafta sonu kontrolu yapar.
+ * Tatil veya calisma disinda ise bir sonraki calisma gunune atar.
+ */
+async function skipToNextWorkingDay(date: Date, makineId: string): Promise<Date> {
+  const maxIterations = 30; // sonsuz donguyu engellemek icin
+  let current = new Date(date);
+  
+  for (let i = 0; i < maxIterations; i++) {
+    const isWorking = await isMakineWorkingDay(makineId, current);
+    if (isWorking) {
+      // Tatil kontrolu
+      const dateStr = current.toISOString().slice(0, 10);
+      const [tatil] = await db
+        .select({ id: tatiller.id })
+        .from(tatiller)
+        .where(eq(tatiller.tarih, new Date(dateStr)))
+        .limit(1);
+
+      if (!tatil) {
+        return current; // Calisma gunu ve tatil yok
+      }
+    }
+
+    // Sonraki gune gec (gun basinda)
+    current = new Date(current.getFullYear(), current.getMonth(), current.getDate() + 1, 8, 0, 0);
+  }
+
+  return current;
+}
+
+/**
  * Kuyruk sirasina gore planlanan baslangic/bitis tarihlerini hesapla ve guncelle.
  * - calisiyor durumundaki is: gercek_baslangic varsa onu kullan, yoksa simdiyi
  * - bekliyor durumundaki is: onceki isin planlanan_bitis'inden devam
  * - sure = hazirlik_suresi_dk + planlanan_sure_dk (dakika)
+ * - Tatil ve hafta sonu calisma planlarini dikkate alir
  */
 async function recalcMakineKuyrukTarihleri(makineId: string): Promise<void> {
   const items = await db
@@ -418,7 +422,7 @@ async function recalcMakineKuyrukTarihleri(makineId: string): Promise<void> {
 
   if (items.length === 0) return;
 
-  let cursor = new Date(); // baslangic noktasi: simdi
+  let cursor = await skipToNextWorkingDay(new Date(), makineId); // baslangic noktasi: simdi (calisma gunu)
 
   for (const item of items) {
     const totalDk = item.hazirlikSuresiDk + item.planlananSureDk;
@@ -431,8 +435,8 @@ async function recalcMakineKuyrukTarihleri(makineId: string): Promise<void> {
       baslangic = item.gercekBaslangic ? new Date(item.gercekBaslangic) : cursor;
       bitis = new Date(baslangic.getTime() + totalDk * 60_000);
     } else {
-      // Bekleyen is: onceki isin bitis zamanindan basla
-      baslangic = new Date(cursor.getTime());
+      // Bekleyen is: onceki isin bitis zamanindan basla, calisma gunu kontrolu yap
+      baslangic = await skipToNextWorkingDay(cursor, makineId);
       bitis = new Date(baslangic.getTime() + totalDk * 60_000);
     }
 
@@ -557,6 +561,19 @@ export async function repoAtaOperasyon(data: AtaBody): Promise<void> {
       hazirlik_suresi_dk: opRow.hazirlik_suresi_dk,
       durum: 'bekliyor',
     });
+
+    // 3. Auto-derive: atanmamis → planlandi
+    const [emirRow] = await tx
+      .select({ durum: uretimEmirleri.durum })
+      .from(uretimEmirleri)
+      .where(eq(uretimEmirleri.id, opRow.uretim_emri_id))
+      .limit(1);
+    if (emirRow?.durum === 'atanmamis') {
+      await tx
+        .update(uretimEmirleri)
+        .set({ durum: 'planlandi' })
+        .where(eq(uretimEmirleri.id, opRow.uretim_emri_id));
+    }
   });
 
   // Tarih hesapla
@@ -575,6 +592,8 @@ export async function repoKuyrukCikar(kuyruguId: string): Promise<void> {
 
   const affectedMakineId = row.makine_id;
 
+  const affectedEmriId = row.uretim_emri_id;
+
   await db.transaction(async (tx) => {
     // Emir operasyonunda makine_id ve plan tarihlerini temizle
     if (row.emir_operasyon_id) {
@@ -585,6 +604,27 @@ export async function repoKuyrukCikar(kuyruguId: string): Promise<void> {
     }
     // Kuyruk kaydini sil
     await tx.delete(makineKuyrugu).where(eq(makineKuyrugu.id, kuyruguId));
+
+    // Auto-derive: planlandi → atanmamis (if no remaining kuyruk entries)
+    if (affectedEmriId) {
+      const [remaining] = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(makineKuyrugu)
+        .where(eq(makineKuyrugu.uretim_emri_id, affectedEmriId));
+      if (Number(remaining?.count ?? 0) === 0) {
+        const [emirRow] = await tx
+          .select({ durum: uretimEmirleri.durum })
+          .from(uretimEmirleri)
+          .where(eq(uretimEmirleri.id, affectedEmriId))
+          .limit(1);
+        if (emirRow?.durum === 'planlandi') {
+          await tx
+            .update(uretimEmirleri)
+            .set({ durum: 'atanmamis' })
+            .where(eq(uretimEmirleri.id, affectedEmriId));
+        }
+      }
+    }
   });
 
   // Kalan kuyruk icin tarihleri yeniden hesapla
@@ -602,4 +642,100 @@ export async function repoKuyrukSirala(data: KuyrukSiralaBody): Promise<void> {
 
   // Tarihleri yeniden hesapla
   await recalcMakineKuyrukTarihleri(data.makineId);
+}
+
+// =====================================================
+// Kapasite Hesaplama
+// =====================================================
+
+export type KapasiteHesabiDto = {
+  makineId: string;
+  makineKod: string;
+  makineAd: string;
+  calisir24Saat: boolean;
+  saatlikKapasite: number | null;
+  gunlukCalismaSaati: number;
+  toplamCalismaGunu: number;
+  toplamCalismaSaati: number;
+  baslangicTarihi: string;
+  bitisTarihi: string;
+  gunler: Array<{
+    tarih: string;
+    gunAdi: string;
+    calisiyor: boolean;
+    tatilMi: boolean;
+    haftaSonuMu: boolean;
+  }>;
+};
+
+const GUN_ADLARI = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+
+/**
+ * Bir makine için belirli tarih aralığında dinamik kapasite hesapla.
+ * - Tatil günlerini hariç tutar.
+ * - Hafta sonu çalışma planlarını dikkate alır.
+ * - 24 saat çalışan makineler için günde 24 saat, diğerleri için 8 saat hesaplar.
+ */
+export async function repoCalculateCapacity(
+  makineId: string,
+  startDate: Date,
+  endDate: Date,
+): Promise<KapasiteHesabiDto | null> {
+  const makine = await repoGetById(makineId);
+  if (!makine) return null;
+
+  const gunlukSaat = makine.calisir_24_saat === 1 ? 24 : 8;
+  const gunler: KapasiteHesabiDto['gunler'] = [];
+
+  let totalWorkingDays = 0;
+  let current = new Date(startDate);
+
+  while (current <= endDate) {
+    const dayOfWeek = current.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const dateStr = current.toISOString().slice(0, 10);
+
+    // Tatil kontrolü
+    const [tatil] = await db
+      .select({ id: tatiller.id })
+      .from(tatiller)
+      .where(eq(tatiller.tarih, current))
+      .limit(1);
+    const isTatil = !!tatil;
+
+    // Çalışılabilir gün kontrolü
+    let calisiyor = false;
+    if (!isTatil) {
+      calisiyor = await isMakineWorkingDay(makineId, current);
+    }
+
+    gunler.push({
+      tarih: dateStr,
+      gunAdi: GUN_ADLARI[dayOfWeek],
+      calisiyor,
+      tatilMi: isTatil,
+      haftaSonuMu: isWeekend,
+    });
+
+    if (calisiyor) {
+      totalWorkingDays++;
+    }
+
+    // Sonraki güne geç
+    current = new Date(current.getTime() + 24 * 60 * 60 * 1000);
+  }
+
+  return {
+    makineId: makine.id,
+    makineKod: makine.kod,
+    makineAd: makine.ad,
+    calisir24Saat: makine.calisir_24_saat === 1,
+    saatlikKapasite: makine.saatlik_kapasite ? Number(makine.saatlik_kapasite) : null,
+    gunlukCalismaSaati: gunlukSaat,
+    toplamCalismaGunu: totalWorkingDays,
+    toplamCalismaSaati: totalWorkingDays * gunlukSaat,
+    baslangicTarihi: startDate.toISOString().slice(0, 10),
+    bitisTarihi: endDate.toISOString().slice(0, 10),
+    gunler,
+  };
 }

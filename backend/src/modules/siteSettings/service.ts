@@ -236,3 +236,99 @@ export async function getDefaultLocale(
     return fb;
   }
 }
+
+export type ErpCompanyProfile = {
+  companyName: string | null;
+  legalName: string | null;
+  slogan: string | null;
+  taxOffice: string | null;
+  taxNumber: string | null;
+  mersisNumber: string | null;
+  tradeRegistryNumber: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  address: string | null;
+  district: string | null;
+  city: string | null;
+  postalCode: string | null;
+  productionAddress: string | null;
+  shipmentContactName: string | null;
+  shipmentContactPhone: string | null;
+  financeContactName: string | null;
+  financeContactEmail: string | null;
+  about: string | null;
+};
+
+function normalizeCompanyProfileValue(raw: unknown): ErpCompanyProfile {
+  const parsed =
+    typeof raw === "string"
+      ? (() => {
+          try {
+            return JSON.parse(raw) as Record<string, unknown>;
+          } catch {
+            return {};
+          }
+        })()
+      : raw && typeof raw === "object"
+        ? (raw as Record<string, unknown>)
+        : {};
+
+  return {
+    companyName: parseSettingString(parsed.company_name),
+    legalName: parseSettingString(parsed.legal_name),
+    slogan: parseSettingString(parsed.slogan),
+    taxOffice: parseSettingString(parsed.tax_office),
+    taxNumber: parseSettingString(parsed.tax_number),
+    mersisNumber: parseSettingString(parsed.mersis_number),
+    tradeRegistryNumber: parseSettingString(parsed.trade_registry_number),
+    phone: parseSettingString(parsed.phone),
+    email: parseSettingString(parsed.email),
+    website: parseSettingString(parsed.website),
+    address: parseSettingString(parsed.address),
+    district: parseSettingString(parsed.district),
+    city: parseSettingString(parsed.city),
+    postalCode: parseSettingString(parsed.postal_code),
+    productionAddress: parseSettingString(parsed.production_address),
+    shipmentContactName: parseSettingString(parsed.shipment_contact_name),
+    shipmentContactPhone: parseSettingString(parsed.shipment_contact_phone),
+    financeContactName: parseSettingString(parsed.finance_contact_name),
+    financeContactEmail: parseSettingString(parsed.finance_contact_email),
+    about: parseSettingString(parsed.about),
+  };
+}
+
+export async function getErpCompanyProfile(): Promise<ErpCompanyProfile> {
+  const [companyRows, contactRows] = await Promise.all([
+    db
+      .select({ value: siteSettings.value })
+      .from(siteSettings)
+      .where(eq(siteSettings.key, "company_profile"))
+      .limit(1),
+    db
+      .select({ value: siteSettings.value })
+      .from(siteSettings)
+      .where(eq(siteSettings.key, "contact_info"))
+      .limit(1),
+  ]);
+
+  const company = normalizeCompanyProfileValue(companyRows[0]?.value);
+
+  const contactRaw =
+    typeof contactRows[0]?.value === "string"
+      ? (() => {
+          try {
+            return JSON.parse(contactRows[0].value) as Record<string, unknown>;
+          } catch {
+            return {};
+          }
+        })()
+      : {};
+
+  return {
+    ...company,
+    phone: company.phone ?? parseSettingString(contactRaw.phone),
+    email: company.email ?? parseSettingString(contactRaw.email),
+    address: company.address ?? parseSettingString(contactRaw.address),
+  };
+}

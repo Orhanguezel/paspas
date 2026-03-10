@@ -13,18 +13,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocaleContext } from "@/i18n/LocaleProvider";
 import { useListStoklarAdminQuery } from "@/integrations/endpoints/admin/erp/stoklar_admin.endpoints";
+import { useListCategoriesAdminQuery } from "@/integrations/endpoints/admin/categories_admin.endpoints";
 import type { StokDto } from "@/integrations/shared/erp/stoklar.types";
 
 import StokDetayDialog from "./stok-detay-dialog";
 import YeterlilikDialog from "./yeterlilik-dialog";
 
-const KATEGORI_OPTIONS: Array<StokDto["kategori"]> = ["hammadde", "yarimamul", "urun"];
-
 export default function StoklarClient() {
   const { t } = useLocaleContext();
   const [search, setSearch] = useState("");
-  const [kategori, setKategori] = useState<"all" | StokDto["kategori"]>("all");
+  const [kategori, setKategori] = useState<string>("all");
   const [durum, setDurum] = useState<"all" | StokDto["durum"]>("all");
+  const { data: categories = [] } = useListCategoriesAdminQuery({ limit: 50, sort: "display_order", order: "asc" });
 
   const query = {
     ...(search ? { q: search } : {}),
@@ -104,9 +104,9 @@ export default function StoklarClient() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("admin.erp.stoklar.filters.allCategories")}</SelectItem>
-              {KATEGORI_OPTIONS.map((item) => (
-                <SelectItem key={item} value={item}>
-                  {t(`admin.erp.urunler.kategoriLabel.${item}`)}
+              {categories.map((cat) => (
+                <SelectItem key={cat.kod} value={cat.kod}>
+                  {cat.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -127,9 +127,9 @@ export default function StoklarClient() {
         <Tabs value={kategori} onValueChange={(value) => setKategori(value as typeof kategori)}>
           <TabsList className="mb-4">
             <TabsTrigger value="all">Tümü</TabsTrigger>
-            {KATEGORI_OPTIONS.map((item) => (
-              <TabsTrigger key={item} value={item}>
-                {t(`admin.erp.urunler.kategoriLabel.${item}`)}
+            {categories.map((cat) => (
+              <TabsTrigger key={cat.kod} value={cat.kod}>
+                {cat.name}
               </TabsTrigger>
             ))}
           </TabsList>

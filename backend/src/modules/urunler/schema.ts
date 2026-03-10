@@ -6,6 +6,7 @@ export const urunler = mysqlTable('urunler', {
   id: char('id', { length: 36 }).primaryKey().notNull(),
   kategori: varchar('kategori', { length: 32 }).notNull().default('urun'),
   tedarik_tipi: varchar('tedarik_tipi', { length: 32 }).notNull().default('uretim'),
+  urun_grubu: varchar('urun_grubu', { length: 128 }),
   kod: varchar('kod', { length: 64 }).notNull(),
   ad: varchar('ad', { length: 255 }).notNull(),
   aciklama: varchar('aciklama', { length: 500 }),
@@ -18,7 +19,7 @@ export const urunler = mysqlTable('urunler', {
   kritik_stok: decimal('kritik_stok', { precision: 12, scale: 4 }).notNull().default('0.0000'),
   birim_fiyat: decimal('birim_fiyat', { precision: 12, scale: 2 }),
   kdv_orani: decimal('kdv_orani', { precision: 5, scale: 2 }).notNull().default('20.00'),
-  operasyon_tipi: varchar('operasyon_tipi', { length: 32 }).notNull().default('tek_tarafli'),
+  operasyon_tipi: varchar('operasyon_tipi', { length: 32 }),
   is_active: tinyint('is_active', { unsigned: true }).notNull().default(1),
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updated_at: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
@@ -30,6 +31,7 @@ export type UrunDto = {
   id: string;
   kategori: string;
   tedarikTipi: string;
+  urunGrubu: string | null;
   kod: string;
   ad: string;
   aciklama: string | null;
@@ -42,7 +44,7 @@ export type UrunDto = {
   kritikStok: number;
   birimFiyat: number | null;
   kdvOrani: number;
-  operasyonTipi: string;
+  operasyonTipi: string | null;
   isActive: boolean;
   createdAt: Date | string;
   updatedAt: Date | string;
@@ -53,6 +55,7 @@ export function rowToDto(row: UrunRow): UrunDto {
     id: row.id,
     kategori: row.kategori,
     tedarikTipi: row.tedarik_tipi,
+    urunGrubu: row.urun_grubu ?? null,
     kod: row.kod,
     ad: row.ad,
     aciklama: row.aciklama ?? null,
@@ -65,7 +68,7 @@ export function rowToDto(row: UrunRow): UrunDto {
     kritikStok: Number(row.kritik_stok ?? 0),
     birimFiyat: row.birim_fiyat ? Number(row.birim_fiyat) : null,
     kdvOrani: Number(row.kdv_orani ?? 20),
-    operasyonTipi: row.operasyon_tipi,
+    operasyonTipi: row.operasyon_tipi ?? null,
     isActive: row.is_active === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -168,5 +171,47 @@ export function birimDonusumRowToDto(row: BirimDonusumRow): BirimDonusumDto {
     urunId: row.urun_id,
     hedefBirim: row.hedef_birim,
     carpan: Number(row.carpan),
+  };
+}
+
+// -- Urun Medya --
+export const urunMedya = mysqlTable('urun_medya', {
+  id: char('id', { length: 36 }).primaryKey().notNull(),
+  urun_id: char('urun_id', { length: 36 }).notNull(),
+  tip: varchar('tip', { length: 16 }).notNull().default('image'),
+  url: varchar('url', { length: 1024 }).notNull(),
+  storage_asset_id: char('storage_asset_id', { length: 36 }),
+  baslik: varchar('baslik', { length: 255 }),
+  sira: int('sira', { unsigned: true }).notNull().default(0),
+  is_cover: tinyint('is_cover', { unsigned: true }).notNull().default(0),
+  created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updated_at: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
+});
+
+export type UrunMedyaRow = typeof urunMedya.$inferSelect;
+
+export type UrunMedyaDto = {
+  id: string;
+  urunId: string;
+  tip: string;
+  url: string;
+  storageAssetId: string | null;
+  baslik: string | null;
+  sira: number;
+  isCover: boolean;
+  createdAt: Date | string;
+};
+
+export function medyaRowToDto(row: UrunMedyaRow): UrunMedyaDto {
+  return {
+    id: row.id,
+    urunId: row.urun_id,
+    tip: row.tip,
+    url: row.url,
+    storageAssetId: row.storage_asset_id ?? null,
+    baslik: row.baslik ?? null,
+    sira: row.sira,
+    isCover: row.is_cover === 1,
+    createdAt: row.created_at,
   };
 }

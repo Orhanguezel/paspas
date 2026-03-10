@@ -125,3 +125,32 @@ export function durusNedeniRowToDto(row: DurusNedeniRow) {
     updatedAt: row.updated_at,
   };
 }
+
+// ── Hafta Sonu Çalışma Planları ──────────────────────────────────────────────
+export const haftaSonuPlanlari = mysqlTable('hafta_sonu_planlari', {
+  id: char('id', { length: 36 }).primaryKey().notNull(),
+  hafta_baslangic: date('hafta_baslangic').notNull(),
+  makine_id: char('makine_id', { length: 36 }),
+  cumartesi_calisir: tinyint('cumartesi_calisir', { unsigned: true }).notNull().default(0),
+  pazar_calisir: tinyint('pazar_calisir', { unsigned: true }).notNull().default(0),
+  aciklama: varchar('aciklama', { length: 500 }),
+  created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updated_at: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
+  created_by: char('created_by', { length: 36 }),
+});
+
+export type HaftaSonuPlanRow = typeof haftaSonuPlanlari.$inferSelect;
+
+export function haftaSonuPlanRowToDto(row: HaftaSonuPlanRow, makineAd?: string) {
+  return {
+    id: row.id,
+    haftaBaslangic: row.hafta_baslangic,
+    makineId: row.makine_id ?? null,
+    makineAd: makineAd ?? null,
+    cumartesiCalisir: row.cumartesi_calisir === 1,
+    pazarCalisir: row.pazar_calisir === 1,
+    aciklama: row.aciklama ?? null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}

@@ -99,13 +99,6 @@ export function normalizeMakineList(res: unknown): MakineListResponse {
 // Kuyruk Yonetimi Tipleri
 // =====================================================
 
-export interface OnerilenMakine {
-  makineId: string;
-  makineKod: string;
-  makineAd: string;
-  oncelikSira: number;
-}
-
 export interface AtanmamisOperasyonDto {
   id: string;
   uretimEmriId: string;
@@ -120,7 +113,17 @@ export interface AtanmamisOperasyonDto {
   planlananMiktar: number;
   montaj: boolean;
   terminTarihi: string | null;
-  onerilenMakineler: OnerilenMakine[];
+}
+
+/** Üretim emri bazında gruplanmış atanmamış operasyonlar (frontend-only) */
+export interface AtanmamisEmirDto {
+  uretimEmriId: string;
+  emirNo: string;
+  urunKod: string;
+  urunAd: string;
+  planlananMiktar: number;
+  terminTarihi: string | null;
+  operasyonlar: AtanmamisOperasyonDto[];
 }
 
 export interface KuyrukItemDto {
@@ -167,16 +170,6 @@ export interface KuyrukSiralaPayload {
   siralar: { kuyruguId: string; sira: number }[];
 }
 
-function normalizeOnerilenMakine(raw: unknown): OnerilenMakine {
-  const r = isRecord(raw) ? raw : {};
-  return {
-    makineId: toStr(r.makineId),
-    makineKod: toStr(r.makineKod),
-    makineAd: toStr(r.makineAd),
-    oncelikSira: toNum(r.oncelikSira, 1),
-  };
-}
-
 export function normalizeAtanmamisOperasyon(raw: unknown): AtanmamisOperasyonDto {
   const r = isRecord(raw) ? raw : {};
   return {
@@ -193,10 +186,29 @@ export function normalizeAtanmamisOperasyon(raw: unknown): AtanmamisOperasyonDto
     planlananMiktar: toNum(r.planlananMiktar),
     montaj: toBool(r.montaj, false),
     terminTarihi: r.terminTarihi != null ? toStr(r.terminTarihi) : null,
-    onerilenMakineler: Array.isArray(r.onerilenMakineler)
-      ? (r.onerilenMakineler as unknown[]).map(normalizeOnerilenMakine)
-      : [],
   };
+}
+
+/** Flat operasyon listesini üretim emri bazında grupla */
+export function groupByEmirId(ops: AtanmamisOperasyonDto[]): AtanmamisEmirDto[] {
+  const map = new Map<string, AtanmamisEmirDto>();
+  for (const op of ops) {
+    let emir = map.get(op.uretimEmriId);
+    if (!emir) {
+      emir = {
+        uretimEmriId: op.uretimEmriId,
+        emirNo: op.emirNo,
+        urunKod: op.urunKod,
+        urunAd: op.urunAd,
+        planlananMiktar: op.planlananMiktar,
+        terminTarihi: op.terminTarihi,
+        operasyonlar: [],
+      };
+      map.set(op.uretimEmriId, emir);
+    }
+    emir.operasyonlar.push(op);
+  }
+  return Array.from(map.values());
 }
 
 function normalizeKuyrukItem(raw: unknown): KuyrukItemDto {
@@ -236,6 +248,66 @@ export function normalizeKuyrukGrubu(raw: unknown): KuyrukGrubuDto {
     makineAd: toStr(r.makineAd),
     kuyruk: Array.isArray(r.kuyruk)
       ? (r.kuyruk as unknown[]).map(normalizeKuyrukItem)
+      : [],
+  };
+}
+
+// =====================================================
+// Kapasite Hesaplama Tipleri
+// =====================================================
+
+export interface KapasiteGunDto {
+  tarih: string;
+  gunAdi: string;
+  calisiyor: boolean;
+  tatilMi: boolean;
+  haftaSonuMu: boolean;
+}
+
+export interface KapasiteHesabiDto {
+  makineId: string;
+  makineKod: string;
+  makineAd: string;
+  calisir24Saat: boolean;
+  saatlikKapasite: number | null;
+  gunlukCalismaSaati: number;
+  toplamCalismaGunu: number;
+  toplamCalismaSaati: number;
+  baslangicTarihi: string;
+  bitisTarihi: string;
+  gunler: KapasiteGunDto[];
+}
+
+export interface KapasiteQueryParams {
+  startDate?: string;
+  endDate?: string;
+  days?: number;
+}
+
+export function normalizeKapasiteHesabi(raw: unknown): KapasiteHesabiDto {
+  const r = isRecord(raw) ? raw : {};
+  return {
+    makineId: toStr(r.makineId),
+    makineKod: toStr(r.makineKod),
+    makineAd: toStr(r.makineAd),
+    calisir24Saat: toBool(r.calisir24Saat, false),
+    saatlikKapasite: r.saatlikKapasite != null ? toNum(r.saatlikKapasite) : null,
+    gunlukCalismaSaati: toNum(r.gunlukCalismaSaati, 8),
+    toplamCalismaGunu: toNum(r.toplamCalismaGunu),
+    toplamCalismaSaati: toNum(r.toplamCalismaSaati),
+    baslangicTarihi: toStr(r.baslangicTarihi),
+    bitisTarihi: toStr(r.bitisTarihi),
+    gunler: Array.isArray(r.gunler)
+      ? (r.gunler as unknown[]).map((g) => {
+          const gr = isRecord(g) ? g : {};
+          return {
+            tarih: toStr(gr.tarih),
+            gunAdi: toStr(gr.gunAdi),
+            calisiyor: toBool(gr.calisiyor, false),
+            tatilMi: toBool(gr.tatilMi, false),
+            haftaSonuMu: toBool(gr.haftaSonuMu, false),
+          };
+        })
       : [],
   };
 }

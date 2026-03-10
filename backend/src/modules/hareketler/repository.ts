@@ -112,7 +112,9 @@ export async function repoList(query: ListQuery): Promise<ListResult> {
         toplam_giris: sql<number>`coalesce(sum(case when ${hareketler.hareket_tipi} = 'giris' then ${hareketler.miktar} else 0 end), 0)`,
         toplam_cikis: sql<number>`coalesce(sum(case when ${hareketler.hareket_tipi} = 'cikis' then abs(${hareketler.miktar}) else 0 end), 0)`,
         sevkiyat_adet: sql<number>`sum(case when ${hareketler.referans_tipi} = 'sevkiyat' then 1 else 0 end)`,
+        sevkiyat_miktar: sql<number>`coalesce(sum(case when ${hareketler.referans_tipi} = 'sevkiyat' then abs(${hareketler.miktar}) else 0 end), 0)`,
         mal_kabul_adet: sql<number>`sum(case when ${hareketler.referans_tipi} = 'mal_kabul' then 1 else 0 end)`,
+        mal_kabul_miktar: sql<number>`coalesce(sum(case when ${hareketler.referans_tipi} = 'mal_kabul' then abs(${hareketler.miktar}) else 0 end), 0)`,
         duzeltme_adet: sql<number>`sum(case when ${hareketler.hareket_tipi} = 'duzeltme' then 1 else 0 end)`,
       })
       .from(hareketler)
@@ -129,7 +131,9 @@ export async function repoList(query: ListQuery): Promise<ListResult> {
       toplamGiris: Number(summary?.toplam_giris ?? 0),
       toplamCikis: Number(summary?.toplam_cikis ?? 0),
       sevkiyatAdet: Number(summary?.sevkiyat_adet ?? 0),
+      sevkiyatMiktar: Number(summary?.sevkiyat_miktar ?? 0),
       malKabulAdet: Number(summary?.mal_kabul_adet ?? 0),
+      malKabulMiktar: Number(summary?.mal_kabul_miktar ?? 0),
       duzeltmeAdet: Number(summary?.duzeltme_adet ?? 0),
     },
   };

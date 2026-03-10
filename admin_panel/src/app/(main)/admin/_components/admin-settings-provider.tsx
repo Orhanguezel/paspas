@@ -24,9 +24,25 @@ import { DEFAULT_BRANDING, type AdminBrandingConfig } from '@/config/app-config'
 
 export type AdminPageMeta = Record<string, { title: string; description?: string; metrics?: string[] }>;
 
+export type AdminCompanyInfo = {
+  companyName: string;
+  legalName: string;
+  slogan: string;
+  email: string;
+  phone: string;
+  address: string;
+  productionAddress: string;
+  website: string;
+  headerTitle: string;
+  sidebarTitle: string;
+  sidebarSubtitle: string;
+  footerTitle: string;
+};
+
 type AdminSettingsContextValue = {
   pageMeta: AdminPageMeta;
   branding: AdminBrandingConfig;
+  companyInfo: AdminCompanyInfo;
   loading: boolean;
   /** Mevcut tercihleri DB'ye kaydeder (debounced 1s) */
   saveAdminConfig: () => void;
@@ -35,11 +51,50 @@ type AdminSettingsContextValue = {
 const AdminSettingsContext = createContext<AdminSettingsContextValue>({
   pageMeta: {},
   branding: DEFAULT_BRANDING,
+  companyInfo: {
+    companyName: DEFAULT_BRANDING.app_copyright,
+    legalName: '',
+    slogan: '',
+    email: '',
+    phone: '',
+    address: '',
+    productionAddress: '',
+    website: '',
+    headerTitle: DEFAULT_BRANDING.app_name,
+    sidebarTitle: DEFAULT_BRANDING.app_copyright,
+    sidebarSubtitle: 'Uretim Yonetim Sistemi',
+    footerTitle: DEFAULT_BRANDING.app_copyright,
+  },
   loading: false,
   saveAdminConfig: () => {},
 });
 
 export const useAdminSettings = () => useContext(AdminSettingsContext);
+
+function asObject(value: unknown): Record<string, unknown> {
+  if (!value) return {};
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : {};
+    } catch {
+      return {};
+    }
+  }
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function pickText(...values: unknown[]): string {
+  for (const value of values) {
+    const text = String(value ?? '').trim();
+    if (text) return text;
+  }
+  return '';
+}
 
 export function AdminSettingsProvider({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
@@ -90,6 +145,11 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
   });
   const pagesRow = pagesRows?.find((row) => row.key === 'ui_admin_pages') ?? null;
 
+  const { data: companyRows, isLoading: companyLoading } = useListSiteSettingsAdminQuery({
+    keys: ['company_profile', 'contact_info'],
+    limit: 10,
+  });
+
   const pageMeta = useMemo(() => {
     if (!pagesRow?.value) return {};
     try {
@@ -106,6 +166,44 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
       meta: { ...DEFAULT_BRANDING.meta, ...config.branding.meta },
     };
   }, [config]);
+
+  const companyInfo = useMemo<AdminCompanyInfo>(() => {
+    const rows = Array.isArray(companyRows) ? companyRows : [];
+    const companyProfile = asObject(rows.find((row) => row.key === 'company_profile')?.value);
+    const contactInfo = asObject(rows.find((row) => row.key === 'contact_info')?.value);
+
+    const companyName = pickText(
+      companyProfile.company_name,
+      branding.app_copyright,
+      branding.app_name.replace(/\badmin\s*panel\b/gi, '').trim(),
+    );
+    const legalName = pickText(companyProfile.legal_name);
+    const slogan = pickText(companyProfile.slogan);
+    const email = pickText(companyProfile.email, contactInfo.email);
+    const phone = pickText(companyProfile.phone, contactInfo.phone, contactInfo.whatsapp);
+    const address = pickText(companyProfile.address, contactInfo.address);
+    const productionAddress = pickText(companyProfile.production_address);
+    const website = pickText(companyProfile.website);
+    const headerBase = pickText(branding.app_name, `${companyName} Uretim ERP`);
+    const headerTitle = /admin\s*panel/i.test(headerBase)
+      ? headerBase
+      : `${headerBase} Admin Panel`;
+
+    return {
+      companyName,
+      legalName,
+      slogan,
+      email,
+      phone,
+      address,
+      productionAddress,
+      website,
+      headerTitle,
+      sidebarTitle: pickText(companyName, branding.app_name),
+      sidebarSubtitle: pickText(slogan, legalName, 'Uretim Yonetim Sistemi'),
+      footerTitle: pickText(legalName, companyName, branding.app_name),
+    };
+  }, [companyRows, branding]);
 
   /* ================================================================ */
   /*  4. DB → Redux + Zustand sync + DOM apply (ilk yükleme)           */
@@ -204,9 +302,10 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
   const ctxValue = useMemo<AdminSettingsContextValue>(() => ({
     pageMeta: pageMeta as AdminPageMeta,
     branding,
-    loading: configLoading || pagesLoading,
+    companyInfo,
+    loading: configLoading || pagesLoading || companyLoading,
     saveAdminConfig,
-  }), [pageMeta, branding, configLoading, pagesLoading, saveAdminConfig]);
+  }), [pageMeta, branding, companyInfo, configLoading, pagesLoading, companyLoading, saveAdminConfig]);
 
   return (
     <AdminSettingsContext.Provider value={ctxValue}>

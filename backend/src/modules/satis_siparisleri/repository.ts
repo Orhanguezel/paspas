@@ -211,6 +211,25 @@ export async function repoGetKalemSevkMiktarlari(siparisId: string): Promise<Map
   return result;
 }
 
+export async function repoGetKalemUretilenMiktarlari(siparisId: string): Promise<Map<string, number>> {
+  const rows = await db
+    .select({
+      siparisKalemId: uretimEmriSiparisKalemleri.siparis_kalem_id,
+      miktar: sql<string>`coalesce(sum(${uretimEmirleri.uretilen_miktar}), 0)`,
+    })
+    .from(uretimEmriSiparisKalemleri)
+    .innerJoin(siparisKalemleri, eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemleri.id))
+    .innerJoin(uretimEmirleri, eq(uretimEmriSiparisKalemleri.uretim_emri_id, uretimEmirleri.id))
+    .where(eq(siparisKalemleri.siparis_id, siparisId))
+    .groupBy(uretimEmriSiparisKalemleri.siparis_kalem_id);
+
+  const result = new Map<string, number>();
+  for (const row of rows) {
+    if (row.siparisKalemId) result.set(row.siparisKalemId, Number(row.miktar ?? 0));
+  }
+  return result;
+}
+
 export async function repoList(query: ListQuery): Promise<ListResult> {
   const where = buildWhere(query);
   const orderBy = getOrderBy(query);
@@ -312,6 +331,65 @@ export async function repoGetNextSiparisNo(): Promise<string> {
   if (!last) return `${prefix}0001`;
   const seq = Number.parseInt(last.replace(prefix, ''), 10);
   return `${prefix}${String(seq + 1).padStart(4, '0')}`;
+}
+
+// ── Auto sipariş durum refresh ────────────────────────────
+// Determines the correct sipariş durum from linked üretim emirleri & sevkiyat data.
+// Called after: üretim emri create, operator başlat, operator bitir.
+export async function refreshSiparisDurum(siparisId: string): Promise<void> {
+  const [siparis] = await db
+    .select({ durum: satisSiparisleri.durum })
+    .from(satisSiparisleri)
+    .where(eq(satisSiparisleri.id, siparisId))
+    .limit(1);
+  if (!siparis || siparis.durum === 'kapali' || siparis.durum === 'iptal') return;
+
+  const ozet = await repoGetSiparisOzetleri([siparisId]);
+  const o = ozet.get(siparisId);
+  if (!o) return;
+
+  // Check if any linked üretim emri is actively in 'uretimde' state
+  const [uretimdeRow] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(uretimEmriSiparisKalemleri)
+    .innerJoin(siparisKalemleri, eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemleri.id))
+    .innerJoin(uretimEmirleri, eq(uretimEmriSiparisKalemleri.uretim_emri_id, uretimEmirleri.id))
+    .where(
+      and(
+        eq(siparisKalemleri.siparis_id, siparisId),
+        inArray(uretimEmirleri.durum, ['uretimde', 'tamamlandi']),
+      ),
+    );
+  const anyUretimStarted = Number(uretimdeRow?.count ?? 0) > 0;
+
+  // Priority: sevkiyat > üretim > planlama
+  let yeniDurum: string | null = null;
+  if (o.toplamMiktar > 0 && o.sevkEdilenMiktar >= o.toplamMiktar) {
+    yeniDurum = 'tamamlandi';
+  } else if (o.sevkEdilenMiktar > 0) {
+    yeniDurum = 'kismen_sevk';
+  } else if (o.uretimTamamlananMiktar > 0 || anyUretimStarted) {
+    yeniDurum = 'uretimde';
+  } else if (o.uretimeAktarilanKalemSayisi > 0) {
+    yeniDurum = 'planlandi';
+  }
+
+  if (yeniDurum && yeniDurum !== siparis.durum) {
+    await db
+      .update(satisSiparisleri)
+      .set({ durum: yeniDurum })
+      .where(eq(satisSiparisleri.id, siparisId));
+  }
+}
+
+// Returns distinct sipariş IDs linked to a given üretim emri via junction table
+export async function getSiparisIdsByUretimEmriId(uretimEmriId: string): Promise<string[]> {
+  const rows = await db
+    .select({ siparisId: siparisKalemleri.siparis_id })
+    .from(uretimEmriSiparisKalemleri)
+    .innerJoin(siparisKalemleri, eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemleri.id))
+    .where(eq(uretimEmriSiparisKalemleri.uretim_emri_id, uretimEmriId));
+  return [...new Set(rows.map((r) => r.siparisId))];
 }
 
 export async function repoDelete(id: string): Promise<void> {

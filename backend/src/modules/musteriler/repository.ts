@@ -48,6 +48,10 @@ async function generateMusteriKod(tur: 'musteri' | 'tedarikci'): Promise<string>
   return `${prefix}-${String(next).padStart(3, '0')}`;
 }
 
+export async function repoGetNextKod(tur: 'musteri' | 'tedarikci'): Promise<string> {
+  return generateMusteriKod(tur);
+}
+
 async function mapCreateInput(data: CreateBody): Promise<typeof musteriler.$inferInsert> {
   const kod = data.kod?.trim() || await generateMusteriKod(data.tur);
   return {

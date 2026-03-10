@@ -35,6 +35,12 @@ export type LoginSettingsDto = {
     showQuickLogin: boolean;
     allowPasswordLogin: boolean;
     roleCardsEnabled: boolean;
+    passwordPolicy: {
+      minLength: number;
+      requireUppercase: boolean;
+      requireNumber: boolean;
+      requireSpecialChar: boolean;
+    };
     redirects: Record<LoginRole, string>;
     enabledRoles: LoginRole[];
   };
@@ -61,9 +67,15 @@ const DEFAULT_SETTINGS: LoginSettingsDto['settings'] = {
   showQuickLogin: true,
   allowPasswordLogin: true,
   roleCardsEnabled: true,
+  passwordPolicy: {
+    minLength: 8,
+    requireUppercase: true,
+    requireNumber: true,
+    requireSpecialChar: false,
+  },
   redirects: {
     admin: '/admin/dashboard',
-    sevkiyatci: '/admin/satis-siparisleri',
+    sevkiyatci: '/admin/sevkiyat',
     operator: '/admin/operator',
     satin_almaci: '/admin/satin-alma',
   },
@@ -89,9 +101,19 @@ function toIso(value: Date | string | null | undefined): string | null {
 function buildGaps(dto: {
   tempLoginEnabled: boolean;
   roles: LoginRoleSummary[];
+  passwordPolicy: LoginSettingsDto['settings']['passwordPolicy'];
 }): string[] {
   const gaps: string[] = [];
   if (dto.tempLoginEnabled) gaps.push('ALLOW_TEMP_LOGIN aktif; prod oncesi kapatilmasi gerekir.');
+  if (dto.passwordPolicy.minLength < 8) {
+    gaps.push('Sifre minimum uzunlugu 8 karakterin altinda.');
+  }
+  if (!dto.passwordPolicy.requireUppercase) {
+    gaps.push('Sifre politikasi buyuk harf zorunlulugu icermiyor.');
+  }
+  if (!dto.passwordPolicy.requireNumber) {
+    gaps.push('Sifre politikasi rakam zorunlulugu icermiyor.');
+  }
   for (const role of dto.roles) {
     if (role.activeCount === 0) {
       gaps.push(`${role.role} rolu icin aktif giris hesabi yok.`);
@@ -126,6 +148,10 @@ export async function repoGetLoginSettings(): Promise<LoginSettingsDto> {
   const settings: LoginSettingsDto['settings'] = {
     ...DEFAULT_SETTINGS,
     ...storedSettings,
+    passwordPolicy: {
+      ...DEFAULT_SETTINGS.passwordPolicy,
+      ...(storedSettings.passwordPolicy ?? {}),
+    },
     redirects: {
       ...DEFAULT_SETTINGS.redirects,
       ...(storedSettings.redirects ?? {}),
@@ -191,7 +217,11 @@ export async function repoGetLoginSettings(): Promise<LoginSettingsDto> {
       activeLoginUsers,
       passiveLoginUsers: Math.max(totalLoginUsers - activeLoginUsers, 0),
     },
-    gaps: buildGaps({ tempLoginEnabled: runtime.tempLoginEnabled, roles }),
+    gaps: buildGaps({
+      tempLoginEnabled: runtime.tempLoginEnabled,
+      roles,
+      passwordPolicy: settings.passwordPolicy,
+    }),
   };
 }
 

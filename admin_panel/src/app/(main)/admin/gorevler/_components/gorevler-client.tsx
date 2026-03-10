@@ -21,6 +21,9 @@ import {
   useListGorevlerAdminQuery,
   useUpdateGorevAdminMutation,
 } from '@/integrations/endpoints/admin/erp/gorevler_admin.endpoints';
+import { useStatusQuery } from '@/integrations/endpoints/users/auth_public.endpoints';
+import type { AuthStatusResponse } from '@/integrations/shared/users/auth.public';
+import { normalizeMeFromStatus } from '@/integrations/shared/users/auth.public';
 import type { GorevDto } from '@/integrations/shared/erp/gorevler.types';
 
 const DURUM_OPTIONS = [
@@ -100,6 +103,10 @@ function toDateInputValue(value: string | null) {
 }
 
 export default function GorevlerClient() {
+  const statusQ = useStatusQuery();
+  const me = normalizeMeFromStatus(statusQ.data as AuthStatusResponse | undefined);
+  const userIsAdmin = me?.isAdmin ?? false;
+
   const [q, setQ] = useState('');
   const [durum, setDurum] = useState('hepsi');
   const [oncelik, setOncelik] = useState('hepsi');
@@ -169,7 +176,9 @@ export default function GorevlerClient() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold">Görevler</h1>
-          <p className="text-sm text-muted-foreground">Kullanıcılara atanan işler, terminler ve takip akışı</p>
+          <p className="text-sm text-muted-foreground">
+            {userIsAdmin ? 'Tüm kullanıcılara atanan görevler' : 'Size ve rolünüze atanan görevler'}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => gorevlerQ.refetch()} disabled={gorevlerQ.isFetching}>
@@ -216,7 +225,7 @@ export default function GorevlerClient() {
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <Button variant={sadeceBenim ? 'default' : 'outline'} size="sm" onClick={() => setSadeceBenim((value) => !value)}>
-          Sadece bana atananlar
+          {userIsAdmin ? 'Sadece bana atananlar' : 'Yalnızca doğrudan bana atananlar'}
         </Button>
         <Button variant={gecikenOnly ? 'destructive' : 'outline'} size="sm" onClick={() => setGecikenOnly((value) => !value)}>
           Sadece gecikenler

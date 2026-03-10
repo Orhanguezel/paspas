@@ -72,6 +72,53 @@ FROM (
 ) AS src;
 
 -- =============================================================
+-- ERP COMPANY PROFILE
+-- =============================================================
+INSERT INTO `site_settings` (`id`,`key`,`value`,`created_at`,`updated_at`)
+SELECT
+  LOWER(CONCAT(
+    SUBSTR(MD5(CONCAT('site-setting:', src.`key`)), 1, 8), '-',
+    SUBSTR(MD5(CONCAT('site-setting:', src.`key`)), 9, 4), '-',
+    SUBSTR(MD5(CONCAT('site-setting:', src.`key`)), 13, 4), '-',
+    SUBSTR(MD5(CONCAT('site-setting:', src.`key`)), 17, 4), '-',
+    SUBSTR(MD5(CONCAT('site-setting:', src.`key`)), 21, 12)
+  )),
+  src.`key`,
+  src.`value`,
+  @seed_ts,
+  @seed_ts
+FROM (
+  SELECT 'contact_info' AS `key`, JSON_OBJECT(
+    'phone', '+90 212 485 75 70',
+    'email', 'info@promats.com.tr',
+    'whatsapp', '+90 212 485 75 70',
+    'address', 'Ikitelli OSB Mah. Mutsan Sanayi Sitesi M1 Blok No: 20/22/24 Basaksehir, Istanbul'
+  ) AS `value`
+  UNION ALL SELECT 'company_profile', JSON_OBJECT(
+    'company_name', 'Promats Uretim',
+    'legal_name', 'Promats Universal Paspaslar San. ve Tic. Ltd. Sti.',
+    'slogan', 'Otomotiv paspas uretim ve planlama merkezi',
+    'tax_office', 'Ikitelli',
+    'tax_number', '1234567890',
+    'mersis_number', '0123456789000001',
+    'trade_registry_number', '987654',
+    'phone', '+90 212 485 75 70',
+    'email', 'admin@promats.com',
+    'website', 'https://promats.com.tr',
+    'address', 'Ikitelli OSB Mah. Mutsan Sanayi Sitesi M1 Blok No: 20/22/24 Basaksehir, Istanbul',
+    'district', 'Basaksehir',
+    'city', 'Istanbul',
+    'postal_code', '34490',
+    'production_address', 'Demirciler Sanayi Sitesi, Basaksehir / Istanbul',
+    'shipment_contact_name', 'Sevkiyat Merkezi',
+    'shipment_contact_phone', '+90 212 485 75 71',
+    'finance_contact_name', 'Muhasebe Birimi',
+    'finance_contact_email', 'muhasebe@promats.com',
+    'about', 'Promats, otomotiv paspas uretimi, siparis planlama ve sevkiyat operasyonlarini tek merkezden yoneten uretim sirketidir.'
+  )
+) AS src;
+
+-- =============================================================
 -- SOCIAL MEDIA
 -- =============================================================
 INSERT INTO `site_settings` (`id`,`key`,`value`,`created_at`,`updated_at`)

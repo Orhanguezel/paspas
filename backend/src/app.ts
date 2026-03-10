@@ -49,8 +49,11 @@ import { registerTanimlar } from '@/modules/tanimlar/router';
 import { registerTedarikci } from '@/modules/tedarikci/router';
 import { registerCategories } from '@/modules/categories/router';
 import { registerCategoriesAdmin } from '@/modules/categories/admin.routes';
+import { registerSubCategoriesAdmin } from '@/modules/subCategories/admin.routes';
 import { registerGorevler } from '@/modules/gorevler/router';
 import { registerGirisAyarlari } from '@/modules/giris_ayarlari/router';
+import { registerSevkiyat } from '@/modules/sevkiyat/router';
+import { registerMalKabul } from '@/modules/mal_kabul/router';
 
 // Storage config (site_settings + env)
 import { getStorageSettings } from '@/modules/siteSettings/service';
@@ -195,8 +198,11 @@ export async function createApp() {
     await api.register(registerTanimlar,         { prefix: '/admin' });
     await api.register(registerTedarikci,        { prefix: '/admin' });
     await api.register(registerCategoriesAdmin,  { prefix: '/admin' });
+    await api.register(registerSubCategoriesAdmin, { prefix: '/admin' });
     await api.register(registerGorevler,         { prefix: '/admin' });
     await api.register(registerGirisAyarlari,    { prefix: '/admin' });
+    await api.register(registerSevkiyat,        { prefix: '/admin' });
+    await api.register(registerMalKabul,        { prefix: '/admin' });
 
     // --- Public modüller → /api/... ---
     await registerAuth(api);

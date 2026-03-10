@@ -41,6 +41,12 @@ export const getMediaOrigin = (): string => {
   return '';
 };
 
+/** Static paths served by Next.js from public/ folder — no origin prefix */
+const STATIC_PATH_PREFIXES = ['/logo/', '/favicon/', '/apple/', '/images/', '/icons/'];
+
+const isStaticPath = (path: string): boolean =>
+  STATIC_PATH_PREFIXES.some((p) => path.startsWith(p));
+
 export const resolveMediaUrl = (raw: string | null | undefined): string => {
   const s = String(raw || '').trim();
   if (!s) return '';
@@ -48,6 +54,9 @@ export const resolveMediaUrl = (raw: string | null | undefined): string => {
   if (isAbsoluteUrl(s)) return s;
 
   if (s.startsWith('/')) {
+    // Static paths (public folder) should be served by Next.js, not the API
+    if (isStaticPath(s)) return s;
+
     const origin = getMediaOrigin();
     return origin ? `${origin}${s}` : s;
   }

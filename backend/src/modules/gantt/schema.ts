@@ -5,6 +5,7 @@ export type GanttItemDto = {
   urunKod: string | null;
   urunAd: string | null;
   musteriOzet: string | null;
+  operasyonOzet: string | null;
   montaj: boolean;
   baslangicTarihi: string | null;
   bitisTarihi: string | null;

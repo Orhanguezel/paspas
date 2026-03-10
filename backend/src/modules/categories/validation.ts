@@ -6,7 +6,10 @@ import { z } from "zod";
 const emptyToNull = <T extends z.ZodTypeAny>(schema: T) =>
   z.preprocess((v) => (v === "" ? null : v), schema);
 
-const categoryCodeEnum = z.enum(["urun", "yarimamul", "hammadde"]);
+// Dynamic — no longer restricted to a fixed enum
+const categoryCodeEnum = z.string().min(1).max(32);
+const unitEnum = z.string().min(1).max(32);
+const codePrefixEnum = z.string().trim().min(1).max(16);
 const supplyTypeEnum = z.enum(["uretim", "satin_alma", "fason"]);
 const operationTypeEnum = z.enum(["tek_tarafli", "cift_tarafli"]);
 
@@ -42,6 +45,9 @@ const baseCategorySchema = z
 
     whatsapp_number: emptyToNull(z.string().max(50).optional().nullable()),
     phone_number: emptyToNull(z.string().max(50).optional().nullable()),
+    varsayilan_birim: unitEnum.optional(),
+    varsayilan_kod_prefixi: codePrefixEnum.optional(),
+    recetede_kullanilabilir: boolLike.optional(),
     varsayilan_tedarik_tipi: supplyTypeEnum.optional(),
     uretim_alanlari_aktif: boolLike.optional(),
     operasyon_tipi_gerekli: boolLike.optional(),

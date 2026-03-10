@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -33,10 +34,12 @@ import { useLocaleContext } from "@/i18n/LocaleProvider";
 import { useListMakinelerAdminQuery } from "@/integrations/endpoints/admin/erp/makine_havuzu_admin.endpoints";
 import {
   useDeleteDurusNedeniAdminMutation,
+  useDeleteHaftaSonuPlanAdminMutation,
   useDeleteKalipAdminMutation,
   useDeleteTatilAdminMutation,
   useDeleteVardiyaAdminMutation,
   useListDurusNedenleriAdminQuery,
+  useListHaftaSonuPlanlariAdminQuery,
   useListKaliplarAdminQuery,
   useListTatillerAdminQuery,
   useListVardiyalarAdminQuery,
@@ -45,13 +48,16 @@ import {
 import {
   DURUS_KATEGORI_LABELS,
   type DurusNedeniDto,
+  type HaftaSonuPlanDto,
   type KalipDto,
   type TatilDto,
   type VardiyaDto,
 } from "@/integrations/shared/erp/tanimlar.types";
 
 import DurusNedeniForm from "./durus-nedeni-form";
+import HaftaSonuPlanForm from "./hafta-sonu-plan-form";
 import KalipForm from "./kalip-form";
+import KategorilerTab from "./kategoriler-tab";
 import TatilForm from "./tatil-form";
 import VardiyaForm from "./vardiya-form";
 
@@ -88,17 +94,22 @@ export default function TanimlarClient() {
     if (tab === "tatiller") return "tatiller";
     if (tab === "vardiyalar") return "vardiyalar";
     if (tab === "durus-nedenleri") return "durus-nedenleri";
+    if (tab === "hafta-sonu-planlari") return "hafta-sonu-planlari";
+    if (tab === "kategoriler") return "kategoriler";
     return "kaliplar";
   }, [searchParams]);
   const isKaliplar      = activeTab === "kaliplar";
   const isTatiller      = activeTab === "tatiller";
   const isVardiyalar    = activeTab === "vardiyalar";
   const isDurusNedenleri = activeTab === "durus-nedenleri";
+  const isHaftaSonuPlanlari = activeTab === "hafta-sonu-planlari";
+  const isKategoriler = activeTab === "kategoriler";
 
   const [kalipFormOpen, setKalipFormOpen] = useState(false);
   const [editingKalip, setEditingKalip] = useState<KalipDto | null>(null);
   const [deleteKalip, setDeleteKalip] = useState<KalipDto | null>(null);
   const [selectedKalipId, setSelectedKalipId] = useState<string | null>(null);
+  const [kalipSearch, setKalipSearch] = useState("");
 
   const [tatilFormOpen, setTatilFormOpen] = useState(false);
   const [viewingTatil, setViewingTatil] = useState<TatilDto | null>(null);
@@ -113,16 +124,22 @@ export default function TanimlarClient() {
   const [editingDurus, setEditingDurus] = useState<DurusNedeniDto | null>(null);
   const [deleteDurus, setDeleteDurus] = useState<DurusNedeniDto | null>(null);
 
+  const [haftaSonuFormOpen, setHaftaSonuFormOpen] = useState(false);
+  const [editingHaftaSonu, setEditingHaftaSonu] = useState<HaftaSonuPlanDto | null>(null);
+  const [deleteHaftaSonu, setDeleteHaftaSonu] = useState<HaftaSonuPlanDto | null>(null);
+
   const { data: kaliplar, isLoading: kalipLoading, refetch: refetchKalip } = useListKaliplarAdminQuery({});
   const { data: makineData, isLoading: makineLoading } = useListMakinelerAdminQuery({});
   const { data: tatiller, isLoading: tatilLoading, refetch: refetchTatil } = useListTatillerAdminQuery();
   const { data: vardiyalar, isLoading: vardiyaLoading, refetch: refetchVardiya } = useListVardiyalarAdminQuery();
   const { data: durusNedenleri, isLoading: durusLoading, refetch: refetchDurus } = useListDurusNedenleriAdminQuery();
+  const { data: haftaSonuPlanlari, isLoading: haftaSonuLoading, refetch: refetchHaftaSonu } = useListHaftaSonuPlanlariAdminQuery();
   const [doDeleteKalip, deleteKalipState] = useDeleteKalipAdminMutation();
   const [setUyumluMakineler, setUyumluMakinelerState] = useSetUyumluMakinelerAdminMutation();
   const [doDeleteTatil, deleteTatilState] = useDeleteTatilAdminMutation();
   const [doDeleteVardiya, deleteVardiyaState] = useDeleteVardiyaAdminMutation();
   const [doDeleteDurus, deleteDurusState] = useDeleteDurusNedeniAdminMutation();
+  const [doDeleteHaftaSonu, deleteHaftaSonuState] = useDeleteHaftaSonuPlanAdminMutation();
   const [matrixState, setMatrixState] = useState<Record<string, string[]>>({});
   const [dirtyKalipIds, setDirtyKalipIds] = useState<string[]>([]);
 
@@ -197,6 +214,18 @@ export default function TanimlarClient() {
     }
   }
 
+  async function confirmDeleteHaftaSonu() {
+    if (!deleteHaftaSonu) return;
+    try {
+      await doDeleteHaftaSonu(deleteHaftaSonu.id).unwrap();
+      toast.success(t("admin.erp.common.deleted"));
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err) ?? t("admin.erp.common.deleteFailed"));
+    } finally {
+      setDeleteHaftaSonu(null);
+    }
+  }
+
   function toggleUyumluluk(kalipId: string, makineId: string, checked: boolean) {
     setMatrixState((prev) => {
       const current = prev[kalipId] ?? [];
@@ -234,7 +263,11 @@ export default function TanimlarClient() {
               ? t("admin.erp.tanimlar.tabs.tatiller")
               : isVardiyalar
                 ? t("admin.erp.tanimlar.tabs.vardiyalar")
-                : t("admin.erp.tanimlar.tabs.durusNedenleri")}
+                : isHaftaSonuPlanlari
+                  ? t("admin.erp.tanimlar.tabs.haftaSonuPlanlari")
+                  : isKategoriler
+                    ? t("admin.erp.tanimlar.tabs.kategoriler")
+                    : t("admin.erp.tanimlar.tabs.durusNedenleri")}
         </h1>
         <p className="text-sm text-muted-foreground">
           {isKaliplar
@@ -242,8 +275,12 @@ export default function TanimlarClient() {
             : isTatiller
               ? t("admin.erp.tanimlar.tatiller.pageDescription")
               : isVardiyalar
-                ? t("admin.erp.tanimlar.vardiyalar.pageDescription")
-                : t("admin.erp.tanimlar.durusNedenleri.pageDescription")}
+              ? t("admin.erp.tanimlar.vardiyalar.pageDescription")
+              : isHaftaSonuPlanlari
+                ? t("admin.erp.tanimlar.haftaSonuPlanlari.pageDescription")
+                : isKategoriler
+                  ? t("admin.erp.tanimlar.kategoriler.pageDescription")
+                  : t("admin.erp.tanimlar.durusNedenleri.pageDescription")}
         </p>
       </div>
 
@@ -273,6 +310,12 @@ export default function TanimlarClient() {
               <CardHeader className="border-b">
                 <CardTitle>{t("admin.erp.tanimlar.tabs.kaliplar")}</CardTitle>
                 <CardDescription>{t("admin.erp.tanimlar.kaliplar.pageDescription")}</CardDescription>
+                <Input
+                  placeholder={t("admin.erp.tanimlar.kaliplar.searchPlaceholder")}
+                  value={kalipSearch}
+                  onChange={(e) => setKalipSearch(e.target.value)}
+                  className="mt-2 h-8"
+                />
               </CardHeader>
               <CardContent className="p-4">
                 {kalipLoading ? (
@@ -291,7 +334,11 @@ export default function TanimlarClient() {
                   </div>
                 ) : (
                   <div className="grid gap-3 md:grid-cols-2">
-                    {kaliplar.items.map((kalip) => {
+                    {kaliplar.items.filter((k) => {
+                      if (!kalipSearch.trim()) return true;
+                      const q = kalipSearch.toLowerCase();
+                      return k.kod.toLowerCase().includes(q) || k.ad.toLowerCase().includes(q);
+                    }).map((kalip) => {
                       const isSelected = kalip.id === selectedKalipId;
                       const uyumluSayisi = matrixState[kalip.id]?.length ?? 0;
                       return (
@@ -600,6 +647,96 @@ export default function TanimlarClient() {
             </Table>
           </div>
         </div>
+      ) : isHaftaSonuPlanlari ? (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {haftaSonuPlanlari?.total ?? 0} {t("admin.erp.tanimlar.haftaSonuPlanlari.count")}
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => refetchHaftaSonu()}>
+                <RefreshCcw className="size-4" />
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingHaftaSonu(null);
+                  setHaftaSonuFormOpen(true);
+                }}
+              >
+                <Plus className="mr-1 size-4" /> {t("admin.erp.tanimlar.haftaSonuPlanlari.newItem")}
+              </Button>
+            </div>
+          </div>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("admin.erp.tanimlar.haftaSonuPlanlari.columns.haftaBaslangic")}</TableHead>
+                  <TableHead>{t("admin.erp.tanimlar.haftaSonuPlanlari.columns.makine")}</TableHead>
+                  <TableHead>{t("admin.erp.tanimlar.haftaSonuPlanlari.columns.cumartesi")}</TableHead>
+                  <TableHead>{t("admin.erp.tanimlar.haftaSonuPlanlari.columns.pazar")}</TableHead>
+                  <TableHead className="w-24" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {haftaSonuLoading &&
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <TableRow key={i}>
+                      {Array.from({ length: 5 }).map((__, j) => (
+                        <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                {!haftaSonuLoading && !haftaSonuPlanlari?.items.length && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                      {t("admin.erp.tanimlar.haftaSonuPlanlari.notFound")}
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!haftaSonuLoading &&
+                  haftaSonuPlanlari?.items.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-mono">{formatTatilDate(p.haftaBaslangic)}</TableCell>
+                      <TableCell>
+                        {p.makineAd ?? t("admin.erp.tanimlar.haftaSonuPlanlari.allMachines")}
+                      </TableCell>
+                      <TableCell>
+                        {p.cumartesiCalisir
+                          ? <Badge variant="default">{t("admin.erp.tanimlar.haftaSonuPlanlari.works")}</Badge>
+                          : <Badge variant="secondary">{t("admin.erp.tanimlar.haftaSonuPlanlari.off")}</Badge>}
+                      </TableCell>
+                      <TableCell>
+                        {p.pazarCalisir
+                          ? <Badge variant="default">{t("admin.erp.tanimlar.haftaSonuPlanlari.works")}</Badge>
+                          : <Badge variant="secondary">{t("admin.erp.tanimlar.haftaSonuPlanlari.off")}</Badge>}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost" size="icon"
+                            onClick={() => { setEditingHaftaSonu(p); setHaftaSonuFormOpen(true); }}
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setDeleteHaftaSonu(p)}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      ) : isKategoriler ? (
+        <KategorilerTab />
       ) : (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -690,6 +827,7 @@ export default function TanimlarClient() {
       <TatilForm open={tatilFormOpen} onClose={() => setTatilFormOpen(false)} tatil={editingTatil} />
       <VardiyaForm open={vardiyaFormOpen} onClose={() => setVardiyaFormOpen(false)} vardiya={editingVardiya} />
       <DurusNedeniForm open={durusFormOpen} onClose={() => setDurusFormOpen(false)} durusNedeni={editingDurus} />
+      <HaftaSonuPlanForm open={haftaSonuFormOpen} onClose={() => setHaftaSonuFormOpen(false)} plan={editingHaftaSonu} />
       <Dialog open={!!viewingTatil} onOpenChange={(open) => !open && setViewingTatil(null)}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
@@ -806,6 +944,28 @@ export default function TanimlarClient() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteDurusState.isLoading ? t("admin.erp.common.deleting") : t("admin.common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Hafta Sonu Plan sil */}
+      <AlertDialog open={!!deleteHaftaSonu} onOpenChange={(v) => !v && setDeleteHaftaSonu(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("admin.erp.tanimlar.haftaSonuPlanlari.deleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {formatTatilDate(deleteHaftaSonu?.haftaBaslangic)} {t("admin.erp.common.deleteDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("admin.common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteHaftaSonu}
+              disabled={deleteHaftaSonuState.isLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteHaftaSonuState.isLoading ? t("admin.erp.common.deleting") : t("admin.common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -31,7 +31,7 @@ export default function Login() {
         <div className="flex h-full flex-col items-center justify-center p-12 text-center">
           <div className="space-y-6">
             {loginLogo ? (
-              <div className="mx-auto size-24 relative">
+              <div className="mx-auto size-48 relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={loginLogo}
@@ -40,7 +40,7 @@ export default function Login() {
                 />
               </div>
             ) : (
-              <div className="mx-auto flex size-24 items-center justify-center rounded-xl bg-primary-foreground/10">
+              <div className="mx-auto flex size-48 items-center justify-center rounded-xl bg-primary-foreground/10">
                 <span className="text-3xl font-bold text-primary-foreground">
                   {appName.charAt(0)}
                 </span>

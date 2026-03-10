@@ -50,6 +50,9 @@ export type SiparisKalemDto = {
   sira: number;
 };
 
+export type UretimDurumu = 'beklemede' | 'planlandi' | 'uretimde' | 'tamamlandi';
+export type SevkDurumu = 'sevk_edilmedi' | 'kismen_sevk' | 'tamamlandi';
+
 export type SatisSiparisDto = {
   id: string;
   siparisNo: string;
@@ -59,6 +62,8 @@ export type SatisSiparisDto = {
   siparisTarihi: string;
   terminTarihi: string | null;
   durum: string;
+  uretimDurumu: UretimDurumu;
+  sevkDurumu: SevkDurumu;
   aciklama: string | null;
   isActive: boolean;
   kalemSayisi: number;
@@ -72,6 +77,19 @@ export type SatisSiparisDto = {
   updatedAt: Date | string;
   items?: SiparisKalemDto[];
 };
+
+export function computeUretimDurumu(o: { uretimeAktarilanKalemSayisi: number; uretimPlanlananMiktar: number; uretimTamamlananMiktar: number }): UretimDurumu {
+  if (o.uretimeAktarilanKalemSayisi === 0) return 'beklemede';
+  if (o.uretimPlanlananMiktar > 0 && o.uretimTamamlananMiktar >= o.uretimPlanlananMiktar) return 'tamamlandi';
+  if (o.uretimTamamlananMiktar > 0) return 'uretimde';
+  return 'planlandi';
+}
+
+export function computeSevkDurumu(o: { toplamMiktar: number; sevkEdilenMiktar: number }): SevkDurumu {
+  if (o.toplamMiktar > 0 && o.sevkEdilenMiktar >= o.toplamMiktar) return 'tamamlandi';
+  if (o.sevkEdilenMiktar > 0) return 'kismen_sevk';
+  return 'sevk_edilmedi';
+}
 
 export function siparisRowToDto(row: EnrichedSatisSiparisRow): SatisSiparisDto {
   const toDateString = (value: Date | string | null | undefined): string | null => {
@@ -89,6 +107,8 @@ export function siparisRowToDto(row: EnrichedSatisSiparisRow): SatisSiparisDto {
     siparisTarihi: toDateString(row.siparis_tarihi) ?? '',
     terminTarihi: toDateString(row.termin_tarihi),
     durum: row.durum,
+    uretimDurumu: 'beklemede' as UretimDurumu,
+    sevkDurumu: 'sevk_edilmedi' as SevkDurumu,
     aciklama: row.aciklama ?? null,
     isActive: row.is_active === 1,
     kalemSayisi: 0,

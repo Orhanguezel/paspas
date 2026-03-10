@@ -19,6 +19,10 @@ export const listQuerySchema = z.object({
   order: orderEnum.default('desc'),
 });
 
+export const nextKodQuerySchema = z.object({
+  tur: musteriTurEnum.default('musteri'),
+});
+
 export const createSchema = z.object({
   tur: musteriTurEnum.default('musteri'),
   kod: z.string().trim().min(1).max(32).optional(),

@@ -10,6 +10,7 @@ export interface GanttItemDto {
   urunKod: string | null;
   urunAd: string | null;
   musteriOzet: string | null;
+  operasyonOzet: string | null;
   montaj: boolean;
   baslangicTarihi: string | null;
   bitisTarihi: string | null;
@@ -40,6 +41,7 @@ export function normalizeGanttItem(raw: unknown): GanttItemDto {
     urunKod:         r.urunKod != null ? toStr(r.urunKod) : null,
     urunAd:          r.urunAd != null ? toStr(r.urunAd) : null,
     musteriOzet:     r.musteriOzet != null ? toStr(r.musteriOzet) : null,
+    operasyonOzet:   r.operasyonOzet != null ? toStr(r.operasyonOzet) : null,
     montaj:          toBool(r.montaj),
     baslangicTarihi: r.baslangicTarihi != null ? toStr(r.baslangicTarihi) : null,
     bitisTarihi:     r.bitisTarihi != null ? toStr(r.bitisTarihi) : null,

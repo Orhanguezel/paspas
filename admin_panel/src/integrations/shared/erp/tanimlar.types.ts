@@ -211,3 +211,52 @@ export function normalizeDurusNedeniList(res: unknown): DurusNedeniListResponse 
   const rawItems = Array.isArray(r.items) ? r.items : Array.isArray(res) ? res : [];
   return { items: (rawItems as unknown[]).map(normalizeDurusNedeni), total: toNum(r.total, rawItems.length) };
 }
+
+// ── Hafta Sonu Planları ───────────────────────────────────────
+
+export interface HaftaSonuPlanDto {
+  id: string;
+  haftaBaslangic: string;   // Pazartesi günü (YYYY-MM-DD)
+  makineId: string | null;  // null = tüm makineler
+  makineAd: string | null;  // Makine adı (joined)
+  cumartesiCalisir: boolean;
+  pazarCalisir: boolean;
+  aciklama: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HaftaSonuPlanListResponse {
+  items: HaftaSonuPlanDto[];
+  total: number;
+}
+
+export interface HaftaSonuPlanCreatePayload {
+  haftaBaslangic: string;
+  makineId?: string | null;
+  cumartesiCalisir?: boolean;
+  pazarCalisir?: boolean;
+  aciklama?: string | null;
+}
+export type HaftaSonuPlanPatchPayload = Partial<HaftaSonuPlanCreatePayload>;
+
+export function normalizeHaftaSonuPlan(raw: unknown): HaftaSonuPlanDto {
+  const r = isRecord(raw) ? raw : {};
+  return {
+    id: toStr(r.id),
+    haftaBaslangic: toStr(r.haftaBaslangic),
+    makineId: r.makineId != null ? toStr(r.makineId) : null,
+    makineAd: r.makineAd != null ? toStr(r.makineAd) : null,
+    cumartesiCalisir: toBool(r.cumartesiCalisir, false),
+    pazarCalisir: toBool(r.pazarCalisir, false),
+    aciklama: r.aciklama != null ? toStr(r.aciklama) : null,
+    createdAt: toStr(r.createdAt),
+    updatedAt: toStr(r.updatedAt),
+  };
+}
+
+export function normalizeHaftaSonuPlanList(res: unknown): HaftaSonuPlanListResponse {
+  const r = isRecord(res) ? res : {};
+  const rawItems = Array.isArray(r.items) ? r.items : Array.isArray(res) ? res : [];
+  return { items: (rawItems as unknown[]).map(normalizeHaftaSonuPlan), total: toNum(r.total, rawItems.length) };
+}

@@ -247,7 +247,29 @@ const CompanyStructuredRenderer: React.FC<StructuredRenderProps> = ({
   }, [value]);
 
   const seed = React.useMemo(
-    () => ({ company_name: 'guezelwebdesign', slogan: '', about: '' }) as any,
+    () =>
+      ({
+        company_name: 'Paspas',
+        legal_name: '',
+        slogan: '',
+        tax_office: '',
+        tax_number: '',
+        mersis_number: '',
+        trade_registry_number: '',
+        phone: '',
+        email: '',
+        website: '',
+        address: '',
+        district: '',
+        city: '',
+        postal_code: '',
+        production_address: '',
+        shipment_contact_name: '',
+        shipment_contact_phone: '',
+        finance_contact_name: '',
+        finance_contact_email: '',
+        about: '',
+      }) as any,
     [],
   );
 

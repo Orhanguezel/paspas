@@ -93,7 +93,7 @@ export const siteSettingsAdminApi = extendedApi.injectEndpoints({
       }),
       transformResponse: (res: unknown): AdminSiteSetting =>
         normalizeAdminSiteSettingRow(res as SiteSettingRow) as AdminSiteSetting,
-      invalidatesTags: [{ type: 'SiteSettings', id: 'LIST' }],
+      invalidatesTags: [{ type: 'SiteSettings', id: 'LIST' }, { type: 'SiteSettings', id: 'PUBLIC_LIST' }],
     }),
 
     updateSiteSettingAdmin: b.mutation<
@@ -112,6 +112,7 @@ export const siteSettingsAdminApi = extendedApi.injectEndpoints({
         const tags: Array<{ type: 'SiteSettings'; id: string }> = [
           { type: 'SiteSettings', id: key || 'UNKNOWN' },
           { type: 'SiteSettings', id: 'LIST' },
+          { type: 'SiteSettings', id: 'PUBLIC_LIST' },
         ];
 
         if (key === 'default_locale') tags.push({ type: 'SiteSettings', id: 'DEFAULT_LOCALE' });
@@ -130,6 +131,7 @@ export const siteSettingsAdminApi = extendedApi.injectEndpoints({
       transformResponse: (): { ok: true } => ({ ok: true }),
       invalidatesTags: [
         { type: 'SiteSettings', id: 'LIST' },
+        { type: 'SiteSettings', id: 'PUBLIC_LIST' },
         { type: 'SiteSettings', id: 'DEFAULT_LOCALE' },
         { type: 'SiteSettings', id: 'APP_LOCALES' },
       ],
@@ -163,7 +165,7 @@ export const siteSettingsAdminApi = extendedApi.injectEndpoints({
         return { url: ADMIN_BASE, method: 'DELETE', params };
       },
       transformResponse: (): { ok: true } => ({ ok: true }),
-      invalidatesTags: [{ type: 'SiteSettings', id: 'LIST' }],
+      invalidatesTags: [{ type: 'SiteSettings', id: 'LIST' }, { type: 'SiteSettings', id: 'PUBLIC_LIST' }],
     }),
   }),
   overrideExisting: true,

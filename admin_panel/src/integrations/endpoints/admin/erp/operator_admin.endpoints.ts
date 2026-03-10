@@ -118,7 +118,7 @@ export const operatorAdminApi = baseApi.injectEndpoints({
     // -- Gunluk Girisler --
     listGunlukGirislerAdmin: b.query<
       { items: OperatorGunlukGirisDto[]; total: number },
-      { limit?: number; offset?: number } | void
+      { limit?: number; offset?: number; dateFrom?: string; dateTo?: string } | void
     >({
       query: (params) => ({ url: `${BASE}/gunluk-girisler`, params: params ?? {} }),
       transformResponse: (res: unknown) => {

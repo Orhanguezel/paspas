@@ -22,6 +22,10 @@ import type {
   DurusNedeniListResponse,
   DurusNedeniCreatePayload,
   DurusNedeniPatchPayload,
+  HaftaSonuPlanDto,
+  HaftaSonuPlanListResponse,
+  HaftaSonuPlanCreatePayload,
+  HaftaSonuPlanPatchPayload,
 } from "@/integrations/shared/erp/tanimlar.types";
 import {
   normalizeKalip,
@@ -32,6 +36,8 @@ import {
   normalizeVardiyaList,
   normalizeDurusNedeni,
   normalizeDurusNedeniList,
+  normalizeHaftaSonuPlan,
+  normalizeHaftaSonuPlanList,
 } from "@/integrations/shared/erp/tanimlar.types";
 
 const BASE = "/admin/tanimlar";
@@ -204,6 +210,42 @@ export const tanimlarAdminApi = baseApi.injectEndpoints({
         { type: "DurusNedenleri", id: "LIST" },
       ],
     }),
+
+    // ── Hafta Sonu Planları ─────────────────────────────────────
+    listHaftaSonuPlanlariAdmin: b.query<HaftaSonuPlanListResponse, void>({
+      query: () => ({ url: `${BASE}/hafta-sonu-planlari` }),
+      transformResponse: (res: unknown) => normalizeHaftaSonuPlanList(res),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.items.map((p) => ({ type: "HaftaSonuPlan" as const, id: p.id })),
+              { type: "HaftaSonuPlanlar" as const, id: "LIST" },
+            ]
+          : [{ type: "HaftaSonuPlanlar" as const, id: "LIST" }],
+    }),
+
+    createHaftaSonuPlanAdmin: b.mutation<HaftaSonuPlanDto, HaftaSonuPlanCreatePayload>({
+      query: (body) => ({ url: `${BASE}/hafta-sonu-planlari`, method: "POST", body }),
+      transformResponse: (res: unknown) => normalizeHaftaSonuPlan(res),
+      invalidatesTags: [{ type: "HaftaSonuPlanlar", id: "LIST" }],
+    }),
+
+    updateHaftaSonuPlanAdmin: b.mutation<HaftaSonuPlanDto, { id: string; body: HaftaSonuPlanPatchPayload }>({
+      query: ({ id, body }) => ({ url: `${BASE}/hafta-sonu-planlari/${id}`, method: "PATCH", body }),
+      transformResponse: (res: unknown) => normalizeHaftaSonuPlan(res),
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "HaftaSonuPlan", id },
+        { type: "HaftaSonuPlanlar", id: "LIST" },
+      ],
+    }),
+
+    deleteHaftaSonuPlanAdmin: b.mutation<void, string>({
+      query: (id) => ({ url: `${BASE}/hafta-sonu-planlari/${id}`, method: "DELETE" }),
+      invalidatesTags: (_r, _e, id) => [
+        { type: "HaftaSonuPlan", id },
+        { type: "HaftaSonuPlanlar", id: "LIST" },
+      ],
+    }),
   }),
   overrideExisting: true,
 });
@@ -227,4 +269,8 @@ export const {
   useCreateDurusNedeniAdminMutation,
   useUpdateDurusNedeniAdminMutation,
   useDeleteDurusNedeniAdminMutation,
+  useListHaftaSonuPlanlariAdminQuery,
+  useCreateHaftaSonuPlanAdminMutation,
+  useUpdateHaftaSonuPlanAdminMutation,
+  useDeleteHaftaSonuPlanAdminMutation,
 } = tanimlarAdminApi;

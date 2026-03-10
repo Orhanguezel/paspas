@@ -28,6 +28,7 @@ import {
   useCreateTedarikciAdminMutation,
   useUpdateTedarikciAdminMutation,
 } from '@/integrations/endpoints/admin/erp/tedarikci_admin.endpoints';
+import { useGetNextMusteriKodAdminQuery } from '@/integrations/endpoints/admin/erp/musteriler_admin.endpoints';
 import type { TedarikciDto } from '@/integrations/shared/erp/tedarikci.types';
 
 const schema = z.object({
@@ -64,6 +65,12 @@ export default function TedarikciForm({ open, onClose, tedarikci }: TedarikciFor
     defaultValues: { kod: '', ad: '', ilgiliKisi: '', telefon: '', email: '', adres: '', iskonto: 0, isActive: true },
   });
 
+  // Sıradaki tedarikçi kodunu çek
+  const { data: nextKodData } = useGetNextMusteriKodAdminQuery(
+    { tur: 'tedarikci' },
+    { skip: isEdit },
+  );
+
   useEffect(() => {
     if (open) {
       if (tedarikci) {
@@ -82,6 +89,16 @@ export default function TedarikciForm({ open, onClose, tedarikci }: TedarikciFor
       }
     }
   }, [tedarikci, open, reset]);
+
+  // Yeni eklemede nextKodData geldiğinde kod alanını güncelle
+  useEffect(() => {
+    if (!isEdit && nextKodData?.kod && open) {
+      const currentKod = watch('kod');
+      if (!currentKod || currentKod.startsWith('TED-')) {
+        setValue('kod', nextKodData.kod);
+      }
+    }
+  }, [nextKodData, isEdit, open, setValue, watch]);
 
   async function onSubmit(values: FormValues) {
     const payload = {
@@ -117,7 +134,12 @@ export default function TedarikciForm({ open, onClose, tedarikci }: TedarikciFor
           <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
             <div className="space-y-1">
               <Label>{t('admin.erp.tedarikci.form.kod')} *</Label>
-              <Input {...register('kod')} placeholder={t('admin.erp.tedarikci.form.kodPlaceholder')} />
+              <Input {...register('kod')} placeholder={nextKodData?.kod || t('admin.erp.tedarikci.form.kodPlaceholder')} />
+              {!isEdit && (
+                <p className="text-xs text-muted-foreground">
+                  Önerilen: {nextKodData?.kod || '...'}
+                </p>
+              )}
               {errors.kod && (
                 <p className="text-xs text-destructive">{errors.kod.message}</p>
               )}

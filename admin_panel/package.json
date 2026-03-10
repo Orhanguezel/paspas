@@ -6,7 +6,7 @@
     "locales:generate": "node scripts/generate-locales-manifest.mjs",
     "predev": "npm run locales:generate",
     "prebuild": "npm run locales:generate",
-    "dev": "NODE_OPTIONS='--max-old-space-size=4096' next dev --webpack",
+    "dev": "node scripts/dev.mjs",
     "dev:turbo": "NODE_OPTIONS='--max-old-space-size=4096' next dev --turbopack",
     "build": "next build",
     "start": "next start",

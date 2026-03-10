@@ -1,6 +1,9 @@
-import type { FastifyReply, RouteHandler } from 'fastify';
+import { randomUUID } from 'node:crypto';
 
-import { rowToDto, operasyonRowToDto, birimDonusumRowToDto } from './schema';
+import type { FastifyReply, RouteHandler } from 'fastify';
+import { and, eq, inArray } from 'drizzle-orm';
+
+import { rowToDto, operasyonRowToDto, birimDonusumRowToDto, medyaRowToDto } from './schema';
 import { receteRowToDto, receteKalemRowToDto } from '@/modules/receteler/schema';
 import {
   repoCreate,
@@ -12,6 +15,9 @@ import {
   repoListOperasyonMakineleri,
   repoPatchOperasyon,
   repoListBirimDonusumleri,
+  repoListMedya,
+  repoSaveMedya,
+  repoGetNextCode,
 } from './repository';
 import {
   repoGetByUrunId as repoGetReceteByUrunId,
@@ -19,8 +25,13 @@ import {
   repoUpdate as repoUpdateRecete,
   repoDelete as repoDeleteRecete,
 } from '@/modules/receteler/repository';
-import { createSchema, listQuerySchema, patchSchema, operasyonPatchSchema } from './validation';
+import { createSchema, listQuerySchema, patchSchema, operasyonPatchSchema, medyaSaveSchema } from './validation';
+import type { PatchBody } from './validation';
 import { z } from 'zod';
+import { db } from '@/db/client';
+import { categories } from '@/modules/categories/schema';
+import { subCategories } from '@/modules/subCategories/schema';
+import { urunler, urunOperasyonlari } from './schema';
 
 function sendInternalError(reply: FastifyReply) {
   return reply.code(500).send({ error: { message: 'sunucu_hatasi' } });
@@ -33,6 +44,119 @@ async function enrichOperasyonlar(rows: UrunOperasyonRow[]) {
   const makineMap = await repoListOperasyonMakineleri(opIds);
   return rows.map((r) => operasyonRowToDto(r, makineMap.get(r.id) ?? []));
 }
+
+async function normalizeUrunGrubuForKategori(kategoriKod: string, urunGrubu?: string | null) {
+  const trimmedGroup = urunGrubu?.trim();
+  const categoryRow = await db
+    .select({ id: categories.id })
+    .from(categories)
+    .where(eq(categories.kod, kategoriKod))
+    .limit(1);
+
+  const categoryId = categoryRow[0]?.id;
+  if (!categoryId) {
+    return { error: 'gecersiz_kategori' as const };
+  }
+
+  if (!trimmedGroup) {
+    return { normalized: undefined as string | undefined };
+  }
+
+  const groupRows = await db
+    .select({ name: subCategories.name })
+    .from(subCategories)
+    .where(and(eq(subCategories.category_id, categoryId), eq(subCategories.is_active, true)));
+
+  if (groupRows.length === 0) {
+    return { normalized: undefined as string | undefined };
+  }
+
+  const matched = groupRows.find((row) => row.name.trim() === trimmedGroup);
+  if (!matched) {
+    return { error: 'gecersiz_urun_grubu' as const };
+  }
+
+  return { normalized: matched.name.trim() };
+}
+
+async function normalizeOperasyonTipiForKategori(
+  kategoriKod: string,
+  tedarikTipi: string,
+  operasyonTipi?: string | null,
+) {
+  const categoryRows = await db
+    .select({
+      id: categories.id,
+      productionFieldsEnabled: categories.uretim_alanlari_aktif,
+      operationTypeRequired: categories.operasyon_tipi_gerekli,
+      defaultOperationType: categories.varsayilan_operasyon_tipi,
+    })
+    .from(categories)
+    .where(eq(categories.kod, kategoriKod))
+    .limit(1);
+
+  const categoryRow = categoryRows[0];
+  if (!categoryRow?.id) {
+    return { error: 'gecersiz_kategori' as const };
+  }
+
+  const showProductionFields = Boolean(categoryRow.productionFieldsEnabled) && tedarikTipi === 'uretim';
+  if (!showProductionFields || !categoryRow.operationTypeRequired) {
+    return { normalized: null as string | null };
+  }
+
+  if (operasyonTipi === 'tek_tarafli' || operasyonTipi === 'cift_tarafli') {
+    return { normalized: operasyonTipi };
+  }
+
+  return {
+    normalized:
+      categoryRow.defaultOperationType === 'tek_tarafli' || categoryRow.defaultOperationType === 'cift_tarafli'
+        ? categoryRow.defaultOperationType
+        : 'tek_tarafli',
+  };
+}
+
+async function validateReceteItems(items: Array<{ urunId: string }>, currentUrunId: string) {
+  const itemIds = Array.from(new Set(items.map((item) => item.urunId).filter(Boolean)));
+  if (itemIds.length === 0) return null;
+
+  const rows = await db
+    .select({
+      id: urunler.id,
+      kategori: urunler.kategori,
+      recetedeKullanilabilir: categories.recetede_kullanilabilir,
+    })
+    .from(urunler)
+    .leftJoin(categories, eq(categories.kod, urunler.kategori))
+    .where(inArray(urunler.id, itemIds));
+
+  if (rows.length !== itemIds.length) {
+    return 'gecersiz_recete_malzeme';
+  }
+
+  const invalidItem = rows.find(
+    (row) => row.id === currentUrunId || !row.recetedeKullanilabilir,
+  );
+  return invalidItem ? 'gecersiz_recete_malzeme' : null;
+}
+
+function isRecipeAndOperationEnabledCategory(kategoriKod: string) {
+  return kategoriKod === 'urun';
+}
+
+/** GET /admin/urunler/next-code?kategori=hammadde */
+export const getNextCode: RouteHandler = async (req, reply) => {
+  try {
+    const query = req.query as { kategori?: string };
+    const kategori = query.kategori ?? 'urun';
+    const kod = await repoGetNextCode(kategori);
+    return reply.send({ kod });
+  } catch (error) {
+    req.log.error({ error }, 'get_next_code_failed');
+    return sendInternalError(reply);
+  }
+};
 
 export const listUrunler: RouteHandler = async (req, reply) => {
   try {
@@ -85,7 +209,33 @@ export const createUrun: RouteHandler = async (req, reply) => {
       });
     }
 
-    const row = await repoCreate(parsed.data);
+    const groupCheck = await normalizeUrunGrubuForKategori(parsed.data.kategori, parsed.data.urunGrubu);
+    if (groupCheck.error) {
+      return reply.code(400).send({ error: { message: groupCheck.error } });
+    }
+
+    const operationTypeCheck = await normalizeOperasyonTipiForKategori(
+      parsed.data.kategori,
+      parsed.data.tedarikTipi,
+      parsed.data.operasyonTipi,
+    );
+    if (operationTypeCheck.error) {
+      return reply.code(400).send({ error: { message: operationTypeCheck.error } });
+    }
+
+    if (
+      !isRecipeAndOperationEnabledCategory(parsed.data.kategori) &&
+      parsed.data.operasyonlar &&
+      parsed.data.operasyonlar.length > 0
+    ) {
+      return reply.code(400).send({ error: { message: 'urun_kategorisi_operasyon_desteklemiyor' } });
+    }
+
+    const row = await repoCreate({
+      ...parsed.data,
+      urunGrubu: groupCheck.normalized,
+      operasyonTipi: operationTypeCheck.normalized as "tek_tarafli" | "cift_tarafli" | null | undefined,
+    });
 
     const [operasyonlar, birimDonusumleri] = await Promise.all([
       repoListOperasyonlar(row.id),
@@ -117,7 +267,47 @@ export const updateUrun: RouteHandler = async (req, reply) => {
       });
     }
 
-    const row = await repoUpdate(id, parsed.data);
+    const existing = await repoGetById(id);
+    if (!existing) {
+      return reply.code(404).send({ error: { message: 'urun_bulunamadi' } });
+    }
+
+    const effectiveKategori = parsed.data.kategori ?? existing.kategori;
+    const effectiveGroup =
+      parsed.data.urunGrubu !== undefined ? parsed.data.urunGrubu : existing.urun_grubu ?? undefined;
+
+    const groupCheck = await normalizeUrunGrubuForKategori(effectiveKategori, effectiveGroup);
+    if (groupCheck.error) {
+      return reply.code(400).send({ error: { message: groupCheck.error } });
+    }
+
+    const effectiveTedarikTipi = parsed.data.tedarikTipi ?? existing.tedarik_tipi;
+    const effectiveOperasyonTipi =
+      parsed.data.operasyonTipi !== undefined ? parsed.data.operasyonTipi : existing.operasyon_tipi;
+    const operationTypeCheck = await normalizeOperasyonTipiForKategori(
+      effectiveKategori,
+      effectiveTedarikTipi,
+      effectiveOperasyonTipi,
+    );
+    if (operationTypeCheck.error) {
+      return reply.code(400).send({ error: { message: operationTypeCheck.error } });
+    }
+
+    if (
+      !isRecipeAndOperationEnabledCategory(effectiveKategori) &&
+      parsed.data.operasyonlar &&
+      parsed.data.operasyonlar.length > 0
+    ) {
+      return reply.code(400).send({ error: { message: 'urun_kategorisi_operasyon_desteklemiyor' } });
+    }
+
+    const patchBody: PatchBody = {
+      ...parsed.data,
+      urunGrubu: groupCheck.normalized,
+      operasyonTipi: operationTypeCheck.normalized as "tek_tarafli" | "cift_tarafli" | null | undefined,
+    };
+
+    const row = await repoUpdate(id, patchBody);
     if (!row) {
       return reply.code(404).send({ error: { message: 'urun_bulunamadi' } });
     }
@@ -158,6 +348,13 @@ export const deleteUrun: RouteHandler = async (req, reply) => {
 export const listOperasyonlar: RouteHandler = async (req, reply) => {
   try {
     const { id } = req.params as { id: string };
+    const urun = await repoGetById(id);
+    if (!urun) {
+      return reply.code(404).send({ error: { message: 'urun_bulunamadi' } });
+    }
+    if (!isRecipeAndOperationEnabledCategory(urun.kategori)) {
+      return reply.send([]);
+    }
     const rows = await repoListOperasyonlar(id);
     return reply.send(await enrichOperasyonlar(rows));
   } catch (error) {
@@ -174,6 +371,23 @@ export const patchOperasyon: RouteHandler = async (req, reply) => {
       return reply.code(400).send({
         error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() },
       });
+    }
+
+    const opRows = await db
+      .select({
+        urunKategori: urunler.kategori,
+      })
+      .from(urunOperasyonlari)
+      .innerJoin(urunler, eq(urunler.id, urunOperasyonlari.urun_id))
+      .where(eq(urunOperasyonlari.id, opId))
+      .limit(1);
+
+    const opRow = opRows[0];
+    if (!opRow) {
+      return reply.code(404).send({ error: { message: 'operasyon_bulunamadi' } });
+    }
+    if (!isRecipeAndOperationEnabledCategory(opRow.urunKategori)) {
+      return reply.code(400).send({ error: { message: 'urun_kategorisi_operasyon_desteklemiyor' } });
     }
 
     const row = await repoPatchOperasyon(opId, parsed.data);
@@ -204,6 +418,13 @@ const saveReceteSchema = z.object({
 export const getUrunRecete: RouteHandler = async (req, reply) => {
   try {
     const { id } = req.params as { id: string };
+    const urun = await repoGetById(id);
+    if (!urun) {
+      return reply.code(404).send({ error: { message: 'urun_bulunamadi' } });
+    }
+    if (!isRecipeAndOperationEnabledCategory(urun.kategori)) {
+      return reply.send({ recete: null, items: [] });
+    }
     const detail = await repoGetReceteByUrunId(id);
     if (!detail) {
       return reply.send({ recete: null, items: [] });
@@ -227,12 +448,20 @@ export const saveUrunRecete: RouteHandler = async (req, reply) => {
     if (!urun) {
       return reply.code(404).send({ error: { message: 'urun_bulunamadi' } });
     }
+    if (!isRecipeAndOperationEnabledCategory(urun.kategori)) {
+      return reply.code(400).send({ error: { message: 'urun_kategorisi_recete_desteklemiyor' } });
+    }
 
     const parsed = saveReceteSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({
         error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() },
       });
+    }
+
+    const receteValidationError = await validateReceteItems(parsed.data.items, id);
+    if (receteValidationError) {
+      return reply.code(400).send({ error: { message: receteValidationError } });
     }
 
     // Check if recete already exists for this product
@@ -275,6 +504,13 @@ export const saveUrunRecete: RouteHandler = async (req, reply) => {
 export const deleteUrunRecete: RouteHandler = async (req, reply) => {
   try {
     const { id } = req.params as { id: string };
+    const urun = await repoGetById(id);
+    if (!urun) {
+      return reply.code(404).send({ error: { message: 'urun_bulunamadi' } });
+    }
+    if (!isRecipeAndOperationEnabledCategory(urun.kategori)) {
+      return reply.code(400).send({ error: { message: 'urun_kategorisi_recete_desteklemiyor' } });
+    }
     const existing = await repoGetReceteByUrunId(id);
     if (!existing) {
       return reply.code(404).send({ error: { message: 'recete_bulunamadi' } });
@@ -283,6 +519,71 @@ export const deleteUrunRecete: RouteHandler = async (req, reply) => {
     return reply.code(204).send();
   } catch (error) {
     req.log.error({ error }, 'delete_urun_recete_failed');
+    return sendInternalError(reply);
+  }
+};
+
+// ── Medya ────────────────────────────────────────────────────
+
+/** GET /admin/urunler/:id/medya */
+export const listUrunMedya: RouteHandler = async (req, reply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const rows = await repoListMedya(id);
+
+    // Fallback: if no medya rows but product has legacy image_url, return it as a virtual medya item
+    if (rows.length === 0) {
+      const urun = await repoGetById(id);
+      if (urun?.image_url) {
+        return [{
+          id: randomUUID(),
+          urunId: id,
+          tip: 'image',
+          url: urun.image_url,
+          storageAssetId: urun.storage_asset_id ?? null,
+          baslik: urun.image_alt ?? null,
+          sira: 1,
+          isCover: true,
+          createdAt: urun.created_at,
+        }];
+      }
+    }
+
+    return rows.map(medyaRowToDto);
+  } catch (error) {
+    req.log.error({ error }, 'list_urun_medya_failed');
+    return sendInternalError(reply);
+  }
+};
+
+/** PUT /admin/urunler/:id/medya */
+export const saveUrunMedya: RouteHandler = async (req, reply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const urun = await repoGetById(id);
+    if (!urun) return reply.code(404).send({ error: { message: 'not_found' } });
+
+    const parsed = medyaSaveSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: { message: 'invalid_body', issues: parsed.error.flatten() } });
+    }
+
+    const rows = await repoSaveMedya(id, parsed.data.items);
+
+    // Sync legacy image_url field with the cover image (keeps product list consistent)
+    const cover = parsed.data.items.find((i) => i.isCover) ?? parsed.data.items[0];
+    const newImageUrl = cover?.url ?? null;
+    const newAssetId = cover?.storageAssetId ?? null;
+    if (urun.image_url !== newImageUrl || urun.storage_asset_id !== newAssetId) {
+      await repoUpdate(id, {
+        imageUrl: newImageUrl ?? undefined,
+        storageAssetId: newAssetId ?? undefined,
+      } as PatchBody);
+    }
+
+    return rows.map(medyaRowToDto);
+  } catch (error) {
+    req.log.error({ error }, 'save_urun_medya_failed');
     return sendInternalError(reply);
   }
 };

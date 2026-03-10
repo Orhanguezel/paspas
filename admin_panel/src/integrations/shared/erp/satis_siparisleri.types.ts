@@ -4,6 +4,8 @@
 // =============================================================
 
 export type SiparisDurum = 'taslak' | 'planlandi' | 'onaylandi' | 'uretimde' | 'kismen_sevk' | 'tamamlandi' | 'kapali' | 'iptal';
+export type UretimDurumu = 'beklemede' | 'planlandi' | 'uretimde' | 'tamamlandi';
+export type SevkDurumu = 'sevk_edilmedi' | 'kismen_sevk' | 'tamamlandi';
 
 export interface SiparisKalemDto {
   id: string;
@@ -13,6 +15,7 @@ export interface SiparisKalemDto {
   kdvOrani: number;
   miktar: number;
   birimFiyat: number;
+  uretilenMiktar: number;
   sevkEdilenMiktar: number;
   sira: number;
 }
@@ -26,6 +29,8 @@ export interface SatisSiparisDto {
   siparisTarihi: string;
   terminTarihi: string | null;
   durum: SiparisDurum;
+  uretimDurumu: UretimDurumu;
+  sevkDurumu: SevkDurumu;
   aciklama: string | null;
   isActive: boolean;
   kalemSayisi: number;
@@ -96,6 +101,32 @@ export const SIPARIS_DURUM_COLORS: Record<SiparisDurum, string> = {
   iptal:        'destructive',
 };
 
+export const URETIM_DURUMU_LABELS: Record<UretimDurumu, string> = {
+  beklemede:  'Beklemede',
+  planlandi:  'Üretim Planlandı',
+  uretimde:   'Üretiliyor',
+  tamamlandi: 'Üretim Tamamlandı',
+};
+
+export const URETIM_DURUMU_BADGE: Record<UretimDurumu, 'default' | 'secondary' | 'destructive'> = {
+  beklemede:  'secondary',
+  planlandi:  'secondary',
+  uretimde:   'default',
+  tamamlandi: 'default',
+};
+
+export const SEVK_DURUMU_LABELS: Record<SevkDurumu, string> = {
+  sevk_edilmedi: 'Sevk Edilmedi',
+  kismen_sevk:   'Kısmen Sevk',
+  tamamlandi:    'Tamamı Sevk Edildi',
+};
+
+export const SEVK_DURUMU_BADGE: Record<SevkDurumu, 'default' | 'secondary' | 'destructive'> = {
+  sevk_edilmedi: 'secondary',
+  kismen_sevk:   'secondary',
+  tamamlandi:    'default',
+};
+
 function toStr(v: unknown, d = ''): string { return typeof v === 'string' ? v.trim() : d; }
 function toNum(v: unknown, d = 0): number { const n = Number(v); return Number.isFinite(n) ? n : d; }
 function toBool(v: unknown, d = true): boolean {
@@ -118,6 +149,7 @@ export function normalizeSiparisKalem(raw: unknown): SiparisKalemDto {
     kdvOrani:   toNum(r.kdvOrani, 20),
     miktar:     toNum(r.miktar),
     birimFiyat: toNum(r.birimFiyat),
+    uretilenMiktar: toNum(r.uretilenMiktar),
     sevkEdilenMiktar: toNum(r.sevkEdilenMiktar),
     sira:       toNum(r.sira),
   };
@@ -134,6 +166,8 @@ export function normalizeSatisSiparis(raw: unknown): SatisSiparisDto {
     siparisTarihi: toStr(r.siparisTarihi),
     terminTarihi:  r.terminTarihi != null ? toStr(r.terminTarihi) : null,
     durum:         (toStr(r.durum, 'taslak')) as SiparisDurum,
+    uretimDurumu:  (toStr(r.uretimDurumu, 'beklemede')) as UretimDurumu,
+    sevkDurumu:    (toStr(r.sevkDurumu, 'sevk_edilmedi')) as SevkDurumu,
     aciklama:      r.aciklama != null ? toStr(r.aciklama) : null,
     isActive:      toBool(r.isActive),
     kalemSayisi:   toNum(r.kalemSayisi),

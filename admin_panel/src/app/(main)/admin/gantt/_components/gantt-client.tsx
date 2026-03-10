@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -30,26 +31,26 @@ import type { GanttItemDto } from '@/integrations/shared/erp/gantt.types';
 // ─── Sabitler ───────────────────────────────────────────────
 const DAY_MS = 86_400_000;
 const COL_W = 40; // piksel / gün
-const ROW_H = 44; // piksel / satır
-const LABEL_W = 220; // sol etiket sütunu genişliği
+const ROW_H = 56; // piksel / satır
+const LABEL_W = 260; // sol etiket sütunu genişliği
 
 const DURUM_COLORS: Record<string, string> = {
+  atanmamis:    'bg-gray-400',
   planlandi:    'bg-slate-400',
-  hazirlaniyor: 'bg-amber-500',
   uretimde:     'bg-blue-500',
   tamamlandi:   'bg-emerald-500',
   iptal:        'bg-red-400',
 };
 
 const DURUM_BAR_FILL: Record<string, string> = {
+  atanmamis:    'bg-gray-300',
   planlandi:    'bg-slate-300',
-  hazirlaniyor: 'bg-amber-300',
   uretimde:     'bg-blue-300',
   tamamlandi:   'bg-emerald-200',
   iptal:        'bg-red-200',
 };
 
-const ALL_DURUMLAR = ['planlandi', 'hazirlaniyor', 'uretimde', 'tamamlandi', 'iptal'] as const;
+const ALL_DURUMLAR = ['atanmamis', 'planlandi', 'uretimde', 'tamamlandi', 'iptal'] as const;
 
 // ─── Yardımcılar ────────────────────────────────────────────
 function toDate(s: string | null): Date | null {
@@ -108,6 +109,17 @@ export default function GanttClient() {
   const { data: makinelerData } = useListMakinelerAdminQuery({});
   const items = data?.items ?? [];
   const makineler = makinelerData?.items ?? [];
+  const summary = useMemo(() => {
+    const aktif = items.filter((item) => item.durum === 'planlandi' || item.durum === 'uretimde').length;
+    const tamamlandi = items.filter((item) => item.durum === 'tamamlandi').length;
+    const montajli = items.filter((item) => item.montaj).length;
+    return {
+      total: data?.total ?? 0,
+      aktif,
+      tamamlandi,
+      montajli,
+    };
+  }, [data?.total, items]);
 
   // Zaman aralığını hesapla
   const { timelineStart, totalDays, columns } = useMemo(() => {
@@ -179,6 +191,14 @@ export default function GanttClient() {
     }
   }
 
+  function resetFilters() {
+    setBaslangic(isoStr(addDays(today, -7)));
+    setBitis(isoStr(addDays(today, 30)));
+    setQ('');
+    setDurumFilter('');
+    setMakineIdFilter('');
+  }
+
   return (
     <TooltipProvider delayDuration={200}>
       <div className="space-y-4">
@@ -204,6 +224,33 @@ export default function GanttClient() {
               <RefreshCcw className={`size-4${isFetching ? ' animate-spin' : ''}`} />
             </Button>
           </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-muted-foreground text-xs">{t('admin.erp.gantt.summary.total')}</div>
+              <div className="mt-1 font-semibold text-2xl tabular-nums">{summary.total}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-muted-foreground text-xs">{t('admin.erp.gantt.summary.active')}</div>
+              <div className="mt-1 font-semibold text-2xl tabular-nums">{summary.aktif}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-muted-foreground text-xs">{t('admin.erp.gantt.summary.completed')}</div>
+              <div className="mt-1 font-semibold text-2xl tabular-nums text-emerald-600">{summary.tamamlandi}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-muted-foreground text-xs">{t('admin.erp.gantt.summary.montajli')}</div>
+              <div className="mt-1 font-semibold text-2xl tabular-nums text-amber-600">{summary.montajli}</div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* ─── Filtreler ─── */}
@@ -273,6 +320,10 @@ export default function GanttClient() {
             </div>
           )}
 
+          <Button variant="ghost" size="sm" onClick={resetFilters}>
+            {t('admin.erp.gantt.filters.reset')}
+          </Button>
+
           {/* Durum renk açıklaması */}
           <div className="flex items-center gap-3 pb-1 ml-auto">
             {ALL_DURUMLAR.map((d) => (
@@ -332,6 +383,11 @@ export default function GanttClient() {
                         <div className="text-[10px] text-muted-foreground truncate">
                           {item.urunAd ?? item.urunId}
                         </div>
+                        {item.operasyonOzet && (
+                          <div className="text-[10px] text-blue-600 dark:text-blue-400 truncate">
+                            {item.operasyonOzet}
+                          </div>
+                        )}
                         {item.musteriOzet && (
                           <div className="text-[10px] text-muted-foreground truncate">
                             {item.musteriOzet}
@@ -503,6 +559,9 @@ function GanttRow({
                 </div>
               ) : (
                 <div className="text-xs text-muted-foreground">{item.urunId}</div>
+              )}
+              {item.operasyonOzet && (
+                <div className="text-xs text-blue-600 dark:text-blue-400">{item.operasyonOzet}</div>
               )}
               {item.musteriOzet && (
                 <div className="text-xs text-muted-foreground">{item.musteriOzet}</div>

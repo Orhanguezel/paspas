@@ -4,9 +4,9 @@
 // Paspas ERP — Operatör Ekranı (makine-merkezli V2, 2 sekmeli)
 // =============================================================
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
-import { Pause, Play, Plus, RefreshCcw, RotateCcw, Square, Trash2, Truck } from "lucide-react";
+import { Check, Pause, Play, RefreshCcw, RotateCcw, Square, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -23,19 +23,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useLocaleContext } from "@/i18n/LocaleProvider";
 import { useListMakinelerAdminQuery } from "@/integrations/endpoints/admin/erp/makine_havuzu_admin.endpoints";
-import { useListMusterilerAdminQuery } from "@/integrations/endpoints/admin/erp/musteriler_admin.endpoints";
 import {
   useDevamEtAdminMutation,
   useDuraklatAdminMutation,
   useListMakineKuyruguAdminQuery,
-  useSevkiyatOlusturAdminMutation,
   useUretimBaslatAdminMutation,
   useUretimBitirAdminMutation,
   useVardiyaBasiAdminMutation,
   useVardiyaSonuAdminMutation,
 } from "@/integrations/endpoints/admin/erp/operator_admin.endpoints";
-import { useListUrunlerAdminQuery } from "@/integrations/endpoints/admin/erp/urunler_admin.endpoints";
+import {
+  useListSevkEmirleriAdminQuery,
+  useUpdateSevkEmriAdminMutation,
+} from "@/integrations/endpoints/admin/erp/sevkiyat_admin.endpoints";
 import type { MakineKuyruguDetayDto } from "@/integrations/shared/erp/operator.types";
+import { SEVK_DURUM_BADGE, SEVK_DURUM_LABELS } from "@/integrations/shared/erp/sevkiyat.types";
 
 const DURUM_BADGE: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   bekliyor: "outline",
@@ -517,61 +519,31 @@ function VardiyaPanel() {
 
 function SevkiyatTab() {
   const { t } = useLocaleContext();
-  const [sevkiyatOlustur, { isLoading }] = useSevkiyatOlusturAdminMutation();
-  const { data: musterilerData } = useListMusterilerAdminQuery({ tur: "musteri" });
-  const { data: urunlerData } = useListUrunlerAdminQuery({ limit: 500 });
+  const [q, setQ] = useState("");
+  const [durumFilter, setDurumFilter] = useState<"_acik" | "_all" | "bekliyor" | "onaylandi" | "sevk_edildi" | "iptal">("_acik");
+  const [updateEmri] = useUpdateSevkEmriAdminMutation();
+  const { data, isLoading, isFetching, refetch } = useListSevkEmirleriAdminQuery({
+    q: q.trim() || undefined,
+    durum: durumFilter === "_acik" || durumFilter === "_all" ? undefined : durumFilter,
+    limit: 100,
+  });
 
-  const [kalemler, setKalemler] = useState([{ id: crypto.randomUUID(), musteriId: "", urunId: "", miktar: "" }]);
-  const [notlar, setNotlar] = useState("");
+  const allItems = data?.items ?? [];
+  const items =
+    durumFilter === "_acik"
+      ? allItems.filter((item) => item.durum === "bekliyor" || item.durum === "onaylandi")
+      : allItems;
 
-  const musteriler = musterilerData?.items ?? [];
-  const urunler = urunlerData?.items ?? [];
-
-  const selectedMusteriler = useMemo(
-    () =>
-      Array.from(new Set(kalemler.map((kalem) => kalem.musteriId).filter(Boolean)))
-        .map((musteriId) => musteriler.find((musteri) => musteri.id === musteriId) ?? null)
-        .filter((musteri): musteri is NonNullable<typeof musteri> => !!musteri),
-    [kalemler, musteriler],
-  );
-
-  function updateKalem(id: string, field: "musteriId" | "urunId" | "miktar", value: string) {
-    setKalemler((current) =>
-      current.map((kalem) => (kalem.id === id ? { ...kalem, [field]: value } : kalem)),
-    );
-  }
-
-  function addKalem() {
-    setKalemler((current) => [...current, { id: crypto.randomUUID(), musteriId: "", urunId: "", miktar: "" }]);
-  }
-
-  function removeKalem(id: string) {
-    setKalemler((current) => (current.length === 1 ? current : current.filter((kalem) => kalem.id !== id)));
-  }
-
-  async function handleSubmit() {
-    const preparedKalemler = kalemler
-      .map((kalem) => ({
-        musteriId: kalem.musteriId.trim(),
-        urunId: kalem.urunId.trim(),
-        miktar: Number.parseFloat(kalem.miktar || "0"),
-      }))
-      .filter((kalem) => kalem.musteriId && kalem.urunId && kalem.miktar > 0);
-
-    if (preparedKalemler.length !== kalemler.length) {
-      toast.error(t("admin.erp.operator.fillRequired"));
-      return;
-    }
+  async function handleDurumChange(id: string, durum: "sevk_edildi" | "iptal") {
     try {
-      const result = await sevkiyatOlustur({
-        kalemler: preparedKalemler,
-        notlar: notlar.trim() || undefined,
-      }).unwrap();
-      toast.success(`${t("admin.erp.operator.shipmentCreated")}: ${result.sevkiyat.sevkNo}`);
-      setKalemler([{ id: crypto.randomUUID(), musteriId: "", urunId: "", miktar: "" }]);
-      setNotlar("");
+      await updateEmri({ id, body: { durum } }).unwrap();
+      toast.success(
+        t("admin.erp.sevkiyat.messages.durumGuncellendi", {
+          durum: SEVK_DURUM_LABELS[durum]?.toLowerCase() ?? durum,
+        }),
+      );
     } catch {
-      toast.error(t("admin.erp.common.operationFailed"));
+      toast.error(t("admin.erp.sevkiyat.messages.durumHata"));
     }
   }
 
@@ -580,104 +552,118 @@ function SevkiyatTab() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Truck className="size-4" />
-          {t("admin.erp.operator.shipmentTitle")}
+          {t("admin.erp.operator.shipmentQueueTitle")}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-3">
-          {kalemler.map((kalem, index) => (
-            <div key={kalem.id} className="rounded-lg border p-3 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-medium">
-                  {t("admin.erp.operator.shipmentLine")} {index + 1}
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeKalem(kalem.id)}
-                  disabled={kalemler.length === 1}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
+        <p className="text-sm text-muted-foreground">{t("admin.erp.operator.shipmentQueueDescription")}</p>
 
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="space-y-1">
-                  <Label>{t("admin.erp.operator.customer")}</Label>
-                  <Select value={kalem.musteriId} onValueChange={(value) => updateKalem(kalem.id, "musteriId", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("admin.erp.operator.customerPlaceholder")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {musteriler.map((musteri) => (
-                        <SelectItem key={musteri.id} value={musteri.id}>
-                          {musteri.ad}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label>{t("admin.erp.operator.product")}</Label>
-                  <Select value={kalem.urunId} onValueChange={(value) => updateKalem(kalem.id, "urunId", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("admin.erp.operator.productPlaceholder")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {urunler.map((urun) => (
-                        <SelectItem key={urun.id} value={urun.id}>
-                          {urun.kod} - {urun.ad}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label>{t("admin.erp.operator.quantity")}</Label>
-                  <Input
-                    type="number"
-                    step="0.0001"
-                    value={kalem.miktar}
-                    onChange={(event) => updateKalem(kalem.id, "miktar", event.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {selectedMusteriler.map((musteri) =>
-          musteri.sevkiyatNotu ? (
-            <div key={musteri.id} className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              <div className="font-medium">
-                {t("admin.erp.operator.customerShippingNote")}: {musteri.ad}
-              </div>
-              <div>{musteri.sevkiyatNotu}</div>
-            </div>
-          ) : null,
-        )}
-
-        <div className="flex justify-between gap-3 flex-wrap">
-          <Button type="button" variant="outline" onClick={addKalem}>
-            <Plus className="mr-1.5 size-4" />
-            {t("admin.erp.operator.addShipmentLine")}
-          </Button>
-          <div className="min-w-72 flex-1 space-y-1">
-            <Label>{t("admin.erp.operator.notes")}</Label>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">{t("admin.erp.sevkiyat.filters.ara")}</Label>
             <Input
-              value={notlar}
-              onChange={(e) => setNotlar(e.target.value)}
-              placeholder={t("admin.erp.operator.additionalOperatorNote")}
+              value={q}
+              onChange={(event) => setQ(event.target.value)}
+              placeholder={t("admin.erp.sevkiyat.filters.araPlaceholder")}
+              className="h-8 w-64"
             />
           </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">{t("admin.erp.sevkiyat.filters.durum")}</Label>
+            <Select value={durumFilter} onValueChange={(value) => setDurumFilter(value as typeof durumFilter)}>
+              <SelectTrigger className="h-8 w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_acik">{t("admin.erp.operator.openShipmentOrders")}</SelectItem>
+                <SelectItem value="_all">{t("admin.erp.sevkiyat.filters.tumDurumlar")}</SelectItem>
+                <SelectItem value="bekliyor">{t("admin.erp.sevkiyat.durumlar.bekliyor")}</SelectItem>
+                <SelectItem value="onaylandi">{t("admin.erp.sevkiyat.durumlar.onaylandi")}</SelectItem>
+                <SelectItem value="sevk_edildi">{t("admin.erp.sevkiyat.durumlar.sevk_edildi")}</SelectItem>
+                <SelectItem value="iptal">{t("admin.erp.sevkiyat.durumlar.iptal")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCcw className={`size-4${isFetching ? " animate-spin" : ""}`} />
+          </Button>
+          <div className="ml-auto text-sm text-muted-foreground">
+            {items.length} {t("admin.erp.operator.shipmentQueueCount")}
+          </div>
         </div>
+
+        {isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={`shipment-order-skeleton-${index}`} className="h-12 w-full" />
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="rounded-md border py-12 text-center text-sm text-muted-foreground">
+            {t("admin.erp.operator.noShipmentQueue")}
+          </div>
+        ) : (
+          <div className="overflow-auto rounded-md border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40">
+                <tr className="border-b text-left">
+                  <th className="px-3 py-2 font-medium">{t("admin.erp.sevkiyat.columns.sevkEmriNo")}</th>
+                  <th className="px-3 py-2 font-medium">{t("admin.erp.sevkiyat.columns.musteri")}</th>
+                  <th className="px-3 py-2 font-medium">{t("admin.erp.sevkiyat.columns.urunKod")}</th>
+                  <th className="px-3 py-2 font-medium">{t("admin.erp.sevkiyat.columns.urunAd")}</th>
+                  <th className="px-3 py-2 text-right font-medium">{t("admin.erp.sevkiyat.columns.miktar")}</th>
+                  <th className="px-3 py-2 text-right font-medium">{t("admin.erp.sevkiyat.columns.stok")}</th>
+                  <th className="px-3 py-2 font-medium">{t("admin.erp.sevkiyat.columns.tarih")}</th>
+                  <th className="px-3 py-2 font-medium">{t("admin.erp.sevkiyat.columns.durum")}</th>
+                  <th className="px-3 py-2 font-medium">{t("admin.erp.sevkiyat.columns.islem")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((row) => (
+                  <tr key={row.id} className="border-b last:border-b-0">
+                    <td className="px-3 py-2 font-mono text-xs">{row.sevkEmriNo}</td>
+                    <td className="px-3 py-2">{row.musteriAd ?? "—"}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{row.urunKod ?? "—"}</td>
+                    <td className="px-3 py-2">{row.urunAd ?? "—"}</td>
+                    <td className="px-3 py-2 text-right">{row.miktar}</td>
+                    <td className="px-3 py-2 text-right">{row.stokMiktar}</td>
+                    <td className="px-3 py-2">{row.tarih}</td>
+                    <td className="px-3 py-2">
+                      <Badge variant={SEVK_DURUM_BADGE[row.durum] ?? "outline"} className="text-[10px]">
+                        {SEVK_DURUM_LABELS[row.durum] ?? row.durum}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-2">
+                      {(row.durum === "bekliyor" || row.durum === "onaylandi") && (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => handleDurumChange(row.id, "sevk_edildi")}
+                          >
+                            <Check className="mr-1 size-3.5" />
+                            {t("admin.erp.sevkiyat.actions.sevkEt")}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-destructive hover:text-destructive"
+                            onClick={() => handleDurumChange(row.id, "iptal")}
+                          >
+                            <X className="size-3.5" />
+                          </Button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </CardContent>
-      <CardFooter className="justify-end">
-        <Button onClick={handleSubmit} disabled={isLoading}>
-          <Truck className="mr-1.5 size-4" />
-          {t("admin.erp.operator.createShipment")}
-        </Button>
+      <CardFooter className="justify-end text-xs text-muted-foreground">
+        {t("admin.erp.operator.shipmentQueueFooter")}
       </CardFooter>
     </Card>
   );

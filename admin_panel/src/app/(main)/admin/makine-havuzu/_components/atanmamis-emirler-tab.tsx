@@ -1,19 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Plus, AlertCircle } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 
 import { useListAtanmamisAdminQuery } from '@/integrations/endpoints/admin/erp/makine_havuzu_admin.endpoints';
-import type { AtanmamisOperasyonDto } from '@/integrations/shared/erp/makine_havuzu.types';
+import type { AtanmamisEmirDto } from '@/integrations/shared/erp/makine_havuzu.types';
+import { groupByEmirId } from '@/integrations/shared/erp/makine_havuzu.types';
 
-import MakineAtamaDialog from './makine-atama-dialog';
+import EmirAtamaDialog from './emir-atama-dialog';
 
 interface AtanmamisEmirlerTabProps {
   t: (key: string, params?: Record<string, string>) => string;
@@ -21,7 +23,18 @@ interface AtanmamisEmirlerTabProps {
 
 export default function AtanmamisEmirlerTab({ t }: AtanmamisEmirlerTabProps) {
   const { data: items, isLoading } = useListAtanmamisAdminQuery();
-  const [atamaTarget, setAtamaTarget] = useState<AtanmamisOperasyonDto | null>(null);
+  const [atamaTarget, setAtamaTarget] = useState<AtanmamisEmirDto | null>(null);
+
+  const emirler = useMemo(() => groupByEmirId(items ?? []), [items]);
+  const ozet = useMemo(() => {
+    const toplamOperasyon = emirler.reduce((sum, emir) => sum + emir.operasyonlar.length, 0);
+    const terminli = emirler.filter((emir) => Boolean(emir.terminTarihi)).length;
+    return {
+      toplamEmir: emirler.length,
+      toplamOperasyon,
+      terminli,
+    };
+  }, [emirler]);
 
   if (isLoading) {
     return (
@@ -33,7 +46,7 @@ export default function AtanmamisEmirlerTab({ t }: AtanmamisEmirlerTabProps) {
     );
   }
 
-  if (!items || items.length === 0) {
+  if (emirler.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
         <AlertCircle className="size-8 mb-2" />
@@ -44,6 +57,27 @@ export default function AtanmamisEmirlerTab({ t }: AtanmamisEmirlerTabProps) {
 
   return (
     <>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-muted-foreground text-xs">{t('kuyrukYonetimi.atanmamis.ozet.toplamEmir')}</div>
+            <div className="mt-1 font-semibold text-2xl tabular-nums">{ozet.toplamEmir}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-muted-foreground text-xs">{t('kuyrukYonetimi.atanmamis.ozet.toplamOperasyon')}</div>
+            <div className="mt-1 font-semibold text-2xl tabular-nums">{ozet.toplamOperasyon}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-muted-foreground text-xs">{t('kuyrukYonetimi.atanmamis.ozet.terminli')}</div>
+            <div className="mt-1 font-semibold text-2xl tabular-nums">{ozet.terminli}</div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -53,43 +87,38 @@ export default function AtanmamisEmirlerTab({ t }: AtanmamisEmirlerTabProps) {
               <TableHead>{t('kuyrukYonetimi.atanmamis.operasyon')}</TableHead>
               <TableHead>{t('kuyrukYonetimi.atanmamis.miktar')}</TableHead>
               <TableHead>{t('kuyrukYonetimi.atanmamis.terminTarihi')}</TableHead>
-              <TableHead>{t('kuyrukYonetimi.atanmamis.onerilenMakineler')}</TableHead>
               <TableHead className="w-28" />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((op) => (
-              <TableRow key={op.id}>
-                <TableCell className="font-mono font-medium">{op.emirNo}</TableCell>
+            {emirler.map((emir) => (
+              <TableRow key={emir.uretimEmriId}>
+                <TableCell className="font-mono font-medium">{emir.emirNo}</TableCell>
                 <TableCell>
-                  <span className="font-mono text-xs text-muted-foreground">{op.urunKod}</span>
+                  <span className="font-mono text-xs text-muted-foreground">{emir.urunKod}</span>
                   {' '}
-                  <span className="text-sm">{op.urunAd}</span>
+                  <span className="text-sm">{emir.urunAd}</span>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-1.5">
-                    <Badge variant="outline" className="text-xs">{op.sira}</Badge>
-                    <span className="text-sm">{op.operasyonAdi}</span>
-                    {op.montaj && <Badge variant="secondary" className="text-xs">M</Badge>}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {emir.operasyonlar.map((op) => (
+                      <Badge key={op.id} variant="outline" className="text-xs">
+                        {op.sira}. {op.operasyonAdi}
+                        {op.montaj ? ' (M)' : ''}
+                      </Badge>
+                    ))}
                   </div>
                 </TableCell>
-                <TableCell className="font-mono text-sm">{op.planlananMiktar.toLocaleString('tr-TR')}</TableCell>
-                <TableCell className="text-sm">{op.terminTarihi ?? '—'}</TableCell>
-                <TableCell>
-                  {op.onerilenMakineler.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {op.onerilenMakineler.map((m) => (
-                        <Badge key={m.makineId} variant="outline" className="text-xs">
-                          {m.oncelikSira}. {m.makineKod}
-                        </Badge>
-                      ))}
-                    </div>
+                <TableCell className="font-mono text-sm">{emir.planlananMiktar.toLocaleString('tr-TR')}</TableCell>
+                <TableCell className="text-sm">
+                  {emir.terminTarihi ? (
+                    <span className="font-medium">{emir.terminTarihi}</span>
                   ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
+                    <span className="text-muted-foreground">—</span>
                   )}
                 </TableCell>
                 <TableCell>
-                  <Button size="sm" variant="default" onClick={() => setAtamaTarget(op)}>
+                  <Button size="sm" variant="default" onClick={() => setAtamaTarget(emir)}>
                     <Plus className="mr-1 size-3" />
                     {t('kuyrukYonetimi.atanmamis.makineAta')}
                   </Button>
@@ -100,8 +129,8 @@ export default function AtanmamisEmirlerTab({ t }: AtanmamisEmirlerTabProps) {
         </Table>
       </div>
 
-      <MakineAtamaDialog
-        operasyon={atamaTarget}
+      <EmirAtamaDialog
+        emir={atamaTarget}
         onClose={() => setAtamaTarget(null)}
         t={t}
       />

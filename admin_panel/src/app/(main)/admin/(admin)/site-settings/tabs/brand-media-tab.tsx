@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { useAdminT } from '@/app/(main)/admin/_components/common/useAdminT';
 
 import {
+  useGetSiteSettingAdminByKeyQuery,
   useListSiteSettingsAdminQuery,
   useUpdateSiteSettingAdminMutation,
   useDeleteSiteSettingAdminMutation,
@@ -39,6 +40,15 @@ export const SITE_MEDIA_KEYS = [
 ] as const;
 
 type MediaKey = (typeof SITE_MEDIA_KEYS)[number];
+
+const BRANDING_MEDIA_FIELD_BY_KEY: Partial<Record<MediaKey, string>> = {
+  site_logo: 'logo_url',
+  site_logo_light: 'logo_url',
+  site_logo_dark: 'login_logo_url',
+  site_favicon: 'favicon_32',
+  site_apple_touch_icon: 'apple_touch_icon',
+  site_og_default_image: 'og_image',
+};
 
 function isMediaKey(k: string): k is MediaKey {
   return (SITE_MEDIA_KEYS as readonly string[]).includes(k);
@@ -120,6 +130,34 @@ function toMediaValue(url: string): SettingValue {
   return { url: u };
 }
 
+function parseJsonObject(value: unknown): Record<string, any> {
+  if (!value) return {};
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+  return typeof value === 'object' && value !== null ? (value as Record<string, any>) : {};
+}
+
+function getBrandingFallbackUrl(configValue: unknown, key: MediaKey): string {
+  const config = parseJsonObject(configValue);
+  const branding = parseJsonObject(config.branding);
+  const meta = parseJsonObject(branding.meta);
+
+  if (key === 'site_og_default_image') {
+    return safeStr(meta.og_image);
+  }
+
+  const field = BRANDING_MEDIA_FIELD_BY_KEY[key];
+  if (!field) return '';
+
+  return safeStr(branding[field]);
+}
+
 /* ----------------------------- component ----------------------------- */
 
 export type BrandMediaTabProps = {
@@ -128,6 +166,10 @@ export type BrandMediaTabProps = {
 
 export const BrandMediaTab: React.FC<BrandMediaTabProps> = ({ locale }) => {
   const t = useAdminT();
+  const { data: brandingConfigRow } = useGetSiteSettingAdminByKeyQuery(
+    { key: 'ui_admin_config', locale: '*' },
+    { refetchOnMountOrArgChange: true },
+  );
 
   // We fetch BOTH global '*' and the selected locale to handle overrides
   const listArgsGlobal = useMemo(() => ({
@@ -209,7 +251,30 @@ export const BrandMediaTab: React.FC<BrandMediaTabProps> = ({ locale }) => {
 
       try {
         const label = t(`admin.siteSettings.brandMedia.labels.${key}` as any);
-        await updateSetting({ key, locale, value: toMediaValue(u) }).unwrap();
+        if (BRANDING_MEDIA_FIELD_BY_KEY[key]) {
+          const config = parseJsonObject(brandingConfigRow?.value);
+          const branding = parseJsonObject(config.branding);
+          const meta = parseJsonObject(branding.meta);
+          const field = BRANDING_MEDIA_FIELD_BY_KEY[key] as string;
+
+          const nextBranding = {
+            ...branding,
+            ...(key === 'site_og_default_image'
+              ? { meta: { ...meta, og_image: u } }
+              : { [field]: u }),
+          };
+
+          await updateSetting({
+            key: 'ui_admin_config',
+            locale: '*',
+            value: {
+              ...config,
+              branding: nextBranding,
+            },
+          }).unwrap();
+        } else {
+          await updateSetting({ key, locale, value: toMediaValue(u) }).unwrap();
+        }
         toast.success(t('admin.siteSettings.brandMedia.updated', { label }));
         await refetchAll();
       } catch (err: any) {
@@ -221,7 +286,7 @@ export const BrandMediaTab: React.FC<BrandMediaTabProps> = ({ locale }) => {
         );
       }
     },
-    [updateSetting, refetchAll, t, locale],
+    [updateSetting, refetchAll, t, locale, brandingConfigRow?.value],
   );
 
   const deleteRow = useCallback(
@@ -232,14 +297,35 @@ export const BrandMediaTab: React.FC<BrandMediaTabProps> = ({ locale }) => {
       if (!ok) return;
 
       try {
-        await deleteSetting({ key, locale: targetLocale }).unwrap();
+        if (BRANDING_MEDIA_FIELD_BY_KEY[key]) {
+          const config = parseJsonObject(brandingConfigRow?.value);
+          const branding = parseJsonObject(config.branding);
+          const meta = parseJsonObject(branding.meta);
+          const field = BRANDING_MEDIA_FIELD_BY_KEY[key] as string;
+
+          const nextBranding =
+            key === 'site_og_default_image'
+              ? { ...branding, meta: { ...meta, og_image: '' } }
+              : { ...branding, [field]: '' };
+
+          await updateSetting({
+            key: 'ui_admin_config',
+            locale: '*',
+            value: {
+              ...config,
+              branding: nextBranding,
+            },
+          }).unwrap();
+        } else {
+          await deleteSetting({ key, locale: targetLocale }).unwrap();
+        }
         toast.success(t('admin.common.deleted', { item: key }));
         await refetchAll();
       } catch (err: any) {
         toast.error(err?.data?.error?.message || err?.message || t('admin.siteSettings.brandMedia.deleteError'));
       }
     },
-    [deleteSetting, refetchAll, t, byKey, locale],
+    [deleteSetting, refetchAll, t, byKey, locale, brandingConfigRow?.value, updateSetting],
   );
 
   return (
@@ -291,7 +377,10 @@ export const BrandMediaTab: React.FC<BrandMediaTabProps> = ({ locale }) => {
             const isOverride = rowLocale !== '' && rowLocale !== '*';
 
             const rowValue = (row?.value ?? null) as SettingValue;
-            const rawUrl = resolveMediaUrl(extractUrlFromSettingValue(rowValue));
+            const brandingFallbackUrl = getBrandingFallbackUrl(brandingConfigRow?.value, k);
+            const rawUrl = resolveMediaUrl(
+              extractUrlFromSettingValue(rowValue) || brandingFallbackUrl,
+            );
 
             const cfg = previewConfig[k];
 

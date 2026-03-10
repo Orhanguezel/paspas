@@ -1,29 +1,17 @@
-'use client';
+"use client";
 
 // =============================================================
 // FILE: src/app/(main)/admin/urunler/_components/urunler-client.tsx
 // Paspas ERP — Ürünler liste sayfası
 // =============================================================
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { Plus, RefreshCcw, Pencil, Trash2, Search, ChevronRight } from 'lucide-react';
-import { toast } from 'sonner';
-import { useLocaleContext } from '@/i18n/LocaleProvider';
-import { resolveMediaUrl } from '@/lib/media-url';
+import { useEffect, useMemo, useState } from "react";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import Link from "next/link";
+
+import { ChevronRight, Pencil, Plus, RefreshCcw, Search, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,43 +21,127 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Skeleton } from '@/components/ui/skeleton';
-
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useLocaleContext } from "@/i18n/LocaleProvider";
+import { useListCategoriesAdminQuery } from "@/integrations/endpoints/admin/categories_admin.endpoints";
 import {
-  useListUrunlerAdminQuery,
   useDeleteUrunAdminMutation,
   useGetUrunAdminQuery,
   useGetUrunReceteAdminQuery,
-} from '@/integrations/endpoints/admin/erp/urunler_admin.endpoints';
-import type { UrunDto, UrunKategori, TedarikTipi } from '@/integrations/shared/erp/urunler.types';
-import UrunForm from './urun-form';
+  useListUrunlerAdminQuery,
+} from "@/integrations/endpoints/admin/erp/urunler_admin.endpoints";
+import { useListSubCategoriesAdminQuery } from "@/integrations/endpoints/admin/subcategories_admin.endpoints";
+import type { CategoryDto } from "@/integrations/shared/category.types";
+import type { TedarikTipi, UrunDto } from "@/integrations/shared/erp/urunler.types";
+import type { SubCategoryDto } from "@/integrations/shared/subcategory.types";
+import { resolveMediaUrl } from "@/lib/media-url";
 
-const KATEGORI_OPTIONS: UrunKategori[] = ['urun', 'yarimamul', 'hammadde'];
-const TEDARIK_OPTIONS: TedarikTipi[] = ['uretim', 'satin_alma', 'fason'];
+import UrunForm from "./urun-form";
+
+type UrunListQueryParams = {
+  search?: string;
+  kategori?: string;
+  tedarikTipi?: TedarikTipi;
+  urunGrubu?: string;
+};
+
+const SKELETON_ROW_KEYS = ["row-1", "row-2", "row-3", "row-4", "row-5"] as const;
+const SKELETON_CELL_KEYS = [
+  "cell-1",
+  "cell-2",
+  "cell-3",
+  "cell-4",
+  "cell-5",
+  "cell-6",
+  "cell-7",
+  "cell-8",
+  "cell-9",
+  "cell-10",
+  "cell-11",
+  "cell-12",
+] as const;
+
+function getApiErrorMessage(error: unknown): string | undefined {
+  if (!error || typeof error !== "object") return undefined;
+  const data = (error as { data?: unknown }).data;
+  if (!data || typeof data !== "object") return undefined;
+  const apiError = (data as { error?: unknown }).error;
+  if (!apiError || typeof apiError !== "object") return undefined;
+  const message = (apiError as { message?: unknown }).message;
+  return typeof message === "string" ? message : undefined;
+}
 
 export default function UrunlerClient() {
   const { t } = useLocaleContext();
-  const [search, setSearch] = useState('');
-  const [kategoriFilter, setKategoriFilter] = useState('');
-  const [tedarikFilter, setTedarikFilter] = useState('');
+  const [search, setSearch] = useState("");
+  const [kategoriFilter, setKategoriFilter] = useState("");
+  const [tedarikFilter, setTedarikFilter] = useState("");
+  const [urunGrubuFilter, setUrunGrubuFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<UrunDto | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UrunDto | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const queryParams: Record<string, string | number> = {};
+  // Fetch categories & subcategories for filter
+  const { data: categoriesRaw } = useListCategoriesAdminQuery({ limit: 50, sort: "display_order", order: "asc" });
+  const { data: subCategoriesRaw } = useListSubCategoriesAdminQuery({
+    is_active: true,
+    sort: "display_order",
+    order: "asc",
+    limit: 200,
+  });
+  const categories = (categoriesRaw ?? []) as CategoryDto[];
+  const subCategories = (subCategoriesRaw ?? []) as SubCategoryDto[];
+  const selectedCategory = categories.find((category) => category.kod === kategoriFilter);
+
+  const allowedTedarikOptions = useMemo<TedarikTipi[]>(() => {
+    if (selectedCategory) {
+      return [selectedCategory.varsayilan_tedarik_tipi];
+    }
+
+    return Array.from(new Set(categories.map((category) => category.varsayilan_tedarik_tipi)));
+  }, [categories, selectedCategory]);
+
+  // Filtered subcategories based on selected category
+  const filteredSubCategories = useMemo(
+    () =>
+      selectedCategory
+        ? subCategories.filter((subCategory) => subCategory.category_id === selectedCategory.id)
+        : [],
+    [selectedCategory, subCategories],
+  );
+
+  useEffect(() => {
+    if (!tedarikFilter) return;
+    if (allowedTedarikOptions.includes(tedarikFilter as TedarikTipi)) return;
+    setTedarikFilter("");
+  }, [allowedTedarikOptions, tedarikFilter]);
+
+  useEffect(() => {
+    if (!urunGrubuFilter) return;
+    if (filteredSubCategories.some((subCategory) => subCategory.name === urunGrubuFilter)) return;
+    setUrunGrubuFilter("");
+  }, [filteredSubCategories, urunGrubuFilter]);
+
+  const queryParams: UrunListQueryParams = {};
   if (search) queryParams.search = search;
   if (kategoriFilter) queryParams.kategori = kategoriFilter;
   if (tedarikFilter) queryParams.tedarikTipi = tedarikFilter;
+  if (urunGrubuFilter) queryParams.urunGrubu = urunGrubuFilter;
 
   const { data, isLoading, isFetching, refetch } = useListUrunlerAdminQuery(
-    Object.keys(queryParams).length > 0 ? queryParams as any : undefined,
+    Object.keys(queryParams).length > 0 ? queryParams : undefined,
   );
 
   // Fetch full product with operasyonlar when editing
-  const { data: fullUrun } = useGetUrunAdminQuery(editingId!, { skip: !editingId });
+  const { data: fullUrun } = useGetUrunAdminQuery(editingId ?? "", { skip: !editingId });
 
   const [deleteUrun, deleteState] = useDeleteUrunAdminMutation();
 
@@ -97,36 +169,55 @@ export default function UrunlerClient() {
     if (!deleteTarget) return;
     try {
       await deleteUrun(deleteTarget.id).unwrap();
-      toast.success(t('admin.erp.common.deleted', { item: t('admin.erp.urunler.singular') }));
-    } catch (err: any) {
-      toast.error(err?.data?.error?.message ?? t('admin.erp.common.deleteFailed'));
+      toast.success(t("admin.erp.common.deleted", { item: t("admin.erp.urunler.singular") }));
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err) ?? t("admin.erp.common.deleteFailed"));
     } finally {
       setDeleteTarget(null);
     }
   }
 
-  const tKategori = (k: string) => t(`admin.erp.urunler.kategoriLabel.${k}`);
+  const tKategori = (k: string) => {
+    const categoryName = categories.find((item) => item.kod === k)?.name?.trim();
+    const fallback =
+      categoryName ||
+      k
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+    return t(`admin.erp.urunler.kategoriLabel.${k}`, undefined, fallback);
+  };
   const tTedarik = (k: string) => t(`admin.erp.urunler.tedarikTipiLabel.${k}`);
+  const resetFilters = () => {
+    setSearch("");
+    setKategoriFilter("");
+    setTedarikFilter("");
+    setUrunGrubuFilter("");
+  };
 
   return (
     <div className="space-y-4">
       {/* Başlık */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold">{t('admin.erp.urunler.title')}</h1>
-          <p className="text-sm text-muted-foreground">
-            {t('admin.erp.common.totalCount', { count: String(data?.total ?? 0), item: t('admin.erp.urunler.singular').toLowerCase() })}
+          <h1 className="font-semibold text-lg">{t("admin.erp.urunler.title")}</h1>
+          <p className="text-muted-foreground text-sm">
+            {t("admin.erp.common.totalCount", {
+              count: String(data?.total ?? 0),
+              item: t("admin.erp.urunler.singular").toLowerCase(),
+            })}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" size="sm">
-            <Link href="/admin/db?module=categories">Kategori Yonetimi</Link>
+            <Link href="/admin/tanimlar?tab=kategoriler">{t("admin.erp.urunler.categoryManagement")}</Link>
           </Button>
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCcw className={`size-4${isFetching ? ' animate-spin' : ''}`} />
+            <RefreshCcw className={`size-4${isFetching ? "animate-spin" : ""}`} />
           </Button>
           <Button size="sm" onClick={openCreate}>
-            <Plus className="mr-1 size-4" /> {t('admin.erp.urunler.newItem')}
+            <Plus className="mr-1 size-4" /> {t("admin.erp.urunler.newItem")}
           </Button>
         </div>
       </div>
@@ -134,125 +225,156 @@ export default function UrunlerClient() {
       {/* Filtreler */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
           <Input
             className="pl-9"
-            placeholder={t('admin.erp.urunler.searchPlaceholder')}
+            placeholder={t("admin.erp.urunler.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <Select
-          value={kategoriFilter || 'all'}
-          onValueChange={(v) => setKategoriFilter(v === 'all' ? '' : v)}
+          value={kategoriFilter || "all"}
+          onValueChange={(v) => {
+            const nextKategori = v === "all" ? "" : v;
+            const nextCategory = categories.find((category) => category.kod === nextKategori);
+            setKategoriFilter(nextKategori);
+            setUrunGrubuFilter("");
+            setTedarikFilter(nextCategory?.varsayilan_tedarik_tipi ?? "");
+          }}
         >
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{t('admin.erp.urunler.allCategories')}</SelectItem>
-            {KATEGORI_OPTIONS.map((k) => (
-              <SelectItem key={k} value={k}>{tKategori(k)}</SelectItem>
+            <SelectItem value="all">{t("admin.erp.urunler.allCategories")}</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat.kod} value={cat.kod}>
+                {tKategori(cat.kod)}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select
-          value={tedarikFilter || 'all'}
-          onValueChange={(v) => setTedarikFilter(v === 'all' ? '' : v)}
+          value={tedarikFilter || "all"}
+          onValueChange={(v) => setTedarikFilter(v === "all" ? "" : v)}
+          disabled={allowedTedarikOptions.length === 0}
         >
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{t('admin.erp.urunler.allTedarikTipi')}</SelectItem>
-            {TEDARIK_OPTIONS.map((k) => (
-              <SelectItem key={k} value={k}>{tTedarik(k)}</SelectItem>
+            <SelectItem value="all">{t("admin.erp.urunler.allTedarikTipi")}</SelectItem>
+            {allowedTedarikOptions.map((k) => (
+              <SelectItem key={k} value={k}>
+                {tTedarik(k)}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        {filteredSubCategories.length > 0 && (
+          <Select value={urunGrubuFilter || "all"} onValueChange={(v) => setUrunGrubuFilter(v === "all" ? "" : v)}>
+            <SelectTrigger className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("admin.erp.urunler.allProductGroups")}</SelectItem>
+              {filteredSubCategories.map((sc) => (
+                <SelectItem key={sc.id} value={sc.name}>
+                  {sc.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        <Button variant="outline" size="sm" onClick={resetFilters}>
+          {t("admin.erp.urunler.resetFilters")}
+        </Button>
       </div>
 
       {/* Tablo */}
-      <div className="rounded-lg border bg-background overflow-hidden">
+      <div className="overflow-hidden rounded-lg border bg-background">
         <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8" />
-              <TableHead>{t('admin.erp.urunler.columns.kod')}</TableHead>
-              <TableHead>{t('admin.erp.urunler.columns.gorsel')}</TableHead>
-              <TableHead>{t('admin.erp.urunler.columns.ad')}</TableHead>
-              <TableHead>{t('admin.erp.urunler.columns.kategori')}</TableHead>
-              <TableHead>{t('admin.erp.urunler.columns.tedarikTipi')}</TableHead>
-              <TableHead>{t('admin.erp.urunler.columns.birim')}</TableHead>
-              <TableHead className="text-right">{t('admin.erp.urunler.columns.stok')}</TableHead>
-              <TableHead className="text-right">{t('admin.erp.urunler.columns.kritikStok')}</TableHead>
-              <TableHead className="text-right">{t('admin.erp.urunler.columns.birimFiyat')}</TableHead>
-              <TableHead>{t('admin.erp.urunler.columns.durum')}</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading && (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  {Array.from({ length: 12 }).map((__, j) => (
-                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-
-            {!isLoading && items.length === 0 && (
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={12} className="py-10 text-center text-sm text-muted-foreground">
-                  {t('admin.erp.urunler.notFound')}
-                </TableCell>
+                <TableHead className="w-8" />
+                <TableHead>{t("admin.erp.urunler.columns.kod")}</TableHead>
+                <TableHead>{t("admin.erp.urunler.columns.gorsel")}</TableHead>
+                <TableHead>{t("admin.erp.urunler.columns.ad")}</TableHead>
+                <TableHead>{t("admin.erp.urunler.columns.kategori")}</TableHead>
+                <TableHead>{t("admin.erp.urunler.columns.tedarikTipi")}</TableHead>
+                <TableHead>{t("admin.erp.urunler.columns.birim")}</TableHead>
+                <TableHead className="text-right">{t("admin.erp.urunler.columns.stok")}</TableHead>
+                <TableHead className="text-right">{t("admin.erp.urunler.columns.kritikStok")}</TableHead>
+                <TableHead className="text-right">{t("admin.erp.urunler.columns.birimFiyat")}</TableHead>
+                <TableHead>{t("admin.erp.urunler.columns.durum")}</TableHead>
+                <TableHead className="w-20" />
               </TableRow>
-            )}
+            </TableHeader>
+            <TableBody>
+              {isLoading &&
+                SKELETON_ROW_KEYS.map((rowKey) => (
+                  <TableRow key={rowKey}>
+                    {SKELETON_CELL_KEYS.map((cellKey) => (
+                      <TableCell key={`${rowKey}-${cellKey}`}>
+                        <Skeleton className="h-4 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
 
-            {!isLoading && items.map((u) => {
-              const isExpanded = expandedId === u.id;
-              return (
-                <ExpandableProductRow
-                  key={u.id}
-                  urun={u}
-                  isExpanded={isExpanded}
-                  onToggle={() => setExpandedId(isExpanded ? null : u.id)}
-                  onEdit={() => openEdit(u)}
-                  onDelete={() => setDeleteTarget(u)}
-                  tKategori={tKategori}
-                  tTedarik={tTedarik}
-                  t={t}
-                  allProducts={items}
-                />
-              );
-            })}
-          </TableBody>
-        </Table>
+              {!isLoading && items.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={12} className="py-10 text-center text-muted-foreground text-sm">
+                    {t("admin.erp.urunler.notFound")}
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {!isLoading &&
+                items.map((u) => {
+                  const isExpanded = expandedId === u.id;
+                  return (
+                    <ExpandableProductRow
+                      key={u.id}
+                      urun={u}
+                      isExpanded={isExpanded}
+                      onToggle={() => setExpandedId(isExpanded ? null : u.id)}
+                      onEdit={() => openEdit(u)}
+                      onDelete={() => setDeleteTarget(u)}
+                      tKategori={tKategori}
+                      tTedarik={tTedarik}
+                      t={t}
+                      allProducts={items}
+                    />
+                  );
+                })}
+            </TableBody>
+          </Table>
         </div>
       </div>
 
       {/* Form Sheet — use full product data when editing */}
-      <UrunForm
-        open={formOpen}
-        onClose={handleFormClose}
-        urun={editingId && fullUrun ? fullUrun : editing}
-      />
+      <UrunForm open={formOpen} onClose={handleFormClose} urun={editingId && fullUrun ? fullUrun : editing} />
 
       {/* Silme onayı */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('admin.erp.urunler.deleteTitle')}</AlertDialogTitle>
+            <AlertDialogTitle>{t("admin.erp.urunler.deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('admin.erp.common.deleteDescriptionIrreversible', { name: deleteTarget?.ad ?? '' })}
+              {t("admin.erp.common.deleteDescriptionIrreversible", { name: deleteTarget?.ad ?? "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('admin.common.cancel')}</AlertDialogCancel>
+            <AlertDialogCancel>{t("admin.common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               disabled={deleteState.isLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteState.isLoading ? t('admin.erp.common.deleting') : t('admin.common.delete')}
+              {deleteState.isLoading ? t("admin.erp.common.deleting") : t("admin.common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -296,18 +418,17 @@ function ExpandableProductRow({
       <TableRow className="hover:bg-muted/40">
         <TableCell className="w-8 px-1">
           <Button variant="ghost" size="icon" className="size-6" onClick={onToggle}>
-            <ChevronRight
-              className={`size-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-            />
+            <ChevronRight className={`size-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
           </Button>
         </TableCell>
-        <TableCell className="font-mono text-xs whitespace-nowrap">{u.kod}</TableCell>
+        <TableCell className="whitespace-nowrap font-mono text-xs">{u.kod}</TableCell>
         <TableCell>
           {u.imageUrl ? (
+            // biome-ignore lint/performance/noImgElement: thumbnail source can be arbitrary media URLs from storage and legacy records.
             <img
               src={resolveMediaUrl(u.imageUrl)}
               alt={u.imageAlt || u.ad}
-              className="h-10 w-10 rounded object-cover border"
+              className="h-10 w-10 rounded border object-cover"
               loading="lazy"
             />
           ) : (
@@ -319,25 +440,21 @@ function ExpandableProductRow({
           <Badge variant="outline">{tKategori(u.kategori)}</Badge>
         </TableCell>
         <TableCell>
-          <Badge variant={u.tedarikTipi === 'uretim' ? 'default' : 'secondary'}>
-            {tTedarik(u.tedarikTipi)}
-          </Badge>
+          <Badge variant={u.tedarikTipi === "uretim" ? "default" : "secondary"}>{tTedarik(u.tedarikTipi)}</Badge>
         </TableCell>
         <TableCell className="whitespace-nowrap">{u.birim}</TableCell>
         <TableCell className="text-right tabular-nums">
-          {u.stok.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+          {u.stok.toLocaleString("tr-TR", { maximumFractionDigits: 2 })}
         </TableCell>
         <TableCell className="text-right tabular-nums">
-          {u.kritikStok.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+          {u.kritikStok.toLocaleString("tr-TR", { maximumFractionDigits: 2 })}
         </TableCell>
         <TableCell className="text-right tabular-nums">
-          {u.birimFiyat != null
-            ? u.birimFiyat.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })
-            : '—'}
+          {u.birimFiyat != null ? u.birimFiyat.toLocaleString("tr-TR", { style: "currency", currency: "TRY" }) : "—"}
         </TableCell>
         <TableCell>
-          <Badge variant={u.isActive ? 'default' : 'secondary'}>
-            {u.isActive ? t('admin.erp.common.active') : t('admin.erp.common.inactive')}
+          <Badge variant={u.isActive ? "default" : "secondary"}>
+            {u.isActive ? t("admin.erp.common.active") : t("admin.erp.common.inactive")}
           </Badge>
         </TableCell>
         <TableCell>
@@ -345,12 +462,7 @@ function ExpandableProductRow({
             <Button variant="ghost" size="icon" onClick={onEdit}>
               <Pencil className="size-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-destructive hover:text-destructive"
-              onClick={onDelete}
-            >
+            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={onDelete}>
               <Trash2 className="size-4" />
             </Button>
           </div>
@@ -360,10 +472,8 @@ function ExpandableProductRow({
       {isExpanded && (
         <TableRow className="bg-muted/20 hover:bg-muted/30">
           <TableCell colSpan={12} className="p-0">
-            <div className="px-6 py-3 space-y-2">
-              <p className="text-xs font-semibold text-muted-foreground">
-                {t('admin.erp.urunler.form.receteTitle')}
-              </p>
+            <div className="space-y-2 px-6 py-3">
+              <p className="font-semibold text-muted-foreground text-xs">{t("admin.erp.urunler.form.receteTitle")}</p>
               {receteLoading && (
                 <div className="flex gap-2">
                   <Skeleton className="h-4 w-32" />
@@ -372,20 +482,18 @@ function ExpandableProductRow({
                 </div>
               )}
               {!receteLoading && receteItems.length === 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {t('admin.erp.urunler.form.receteYok')}
-                </p>
+                <p className="text-muted-foreground text-xs">{t("admin.erp.urunler.form.receteYok")}</p>
               )}
               {!receteLoading && receteItems.length > 0 && (
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="text-muted-foreground border-b">
-                      <th className="text-left py-1 pr-4">{t('admin.erp.urunler.form.receteMalzeme')}</th>
-                      <th className="text-right py-1 pr-4">{t('admin.erp.urunler.form.receteMiktar')}</th>
-                      <th className="text-right py-1 pr-4">{t('admin.erp.urunler.form.receteBirim')}</th>
-                      <th className="text-right py-1 pr-4">{t('admin.erp.urunler.form.receteFire')}</th>
-                      <th className="text-right py-1 pr-4">{t('admin.erp.urunler.form.receteSonAlis')}</th>
-                      <th className="text-right py-1">{t('admin.erp.urunler.form.receteSatirMaliyet')}</th>
+                    <tr className="border-b text-muted-foreground">
+                      <th className="py-1 pr-4 text-left">{t("admin.erp.urunler.form.receteMalzeme")}</th>
+                      <th className="py-1 pr-4 text-right">{t("admin.erp.urunler.form.receteMiktar")}</th>
+                      <th className="py-1 pr-4 text-right">{t("admin.erp.urunler.form.receteBirim")}</th>
+                      <th className="py-1 pr-4 text-right">{t("admin.erp.urunler.form.receteFire")}</th>
+                      <th className="py-1 pr-4 text-right">{t("admin.erp.urunler.form.receteSonAlis")}</th>
+                      <th className="py-1 text-right">{t("admin.erp.urunler.form.receteSatirMaliyet")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -394,24 +502,22 @@ function ExpandableProductRow({
                       const birimFiyat = malzeme?.birimFiyat ?? 0;
                       const satirMaliyet = item.miktar * (1 + item.fireOrani / 100) * birimFiyat;
                       return (
-                        <tr key={item.id} className="border-b border-muted/50">
-                          <td className="py-1.5 pr-4">
-                            {malzeme ? `${malzeme.kod} — ${malzeme.ad}` : item.urunId}
+                        <tr key={item.id} className="border-muted/50 border-b">
+                          <td className="py-1.5 pr-4">{malzeme ? `${malzeme.kod} — ${malzeme.ad}` : item.urunId}</td>
+                          <td className="py-1.5 pr-4 text-right tabular-nums">
+                            {item.miktar.toLocaleString("tr-TR", { maximumFractionDigits: 4 })}
                           </td>
-                          <td className="text-right py-1.5 pr-4 tabular-nums">
-                            {item.miktar.toLocaleString('tr-TR', { maximumFractionDigits: 4 })}
+                          <td className="py-1.5 pr-4 text-right">{malzeme?.birim ?? "—"}</td>
+                          <td className="py-1.5 pr-4 text-right tabular-nums">
+                            %{item.fireOrani.toLocaleString("tr-TR", { maximumFractionDigits: 2 })}
                           </td>
-                          <td className="text-right py-1.5 pr-4">{malzeme?.birim ?? '—'}</td>
-                          <td className="text-right py-1.5 pr-4 tabular-nums">
-                            %{item.fireOrani.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="text-right py-1.5 pr-4 tabular-nums">
+                          <td className="py-1.5 pr-4 text-right tabular-nums">
                             {birimFiyat
-                              ? birimFiyat.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })
-                              : '—'}
+                              ? birimFiyat.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })
+                              : "—"}
                           </td>
-                          <td className="text-right py-1.5 tabular-nums font-medium">
-                            {satirMaliyet.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                          <td className="py-1.5 text-right font-medium tabular-nums">
+                            {satirMaliyet.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
                           </td>
                         </tr>
                       );
@@ -419,16 +525,16 @@ function ExpandableProductRow({
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td colSpan={5} className="text-right py-1.5 pr-4 font-medium">
-                        {t('admin.erp.urunler.form.receteToplamMaliyet')}:
+                      <td colSpan={5} className="py-1.5 pr-4 text-right font-medium">
+                        {t("admin.erp.urunler.form.receteToplamMaliyet")}:
                       </td>
-                      <td className="text-right py-1.5 tabular-nums font-semibold">
+                      <td className="py-1.5 text-right font-semibold tabular-nums">
                         {receteItems
                           .reduce((sum, item) => {
                             const m = allProducts.find((p) => p.id === item.urunId);
                             return sum + item.miktar * (1 + item.fireOrani / 100) * (m?.birimFiyat ?? 0);
                           }, 0)
-                          .toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                          .toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
                       </td>
                     </tr>
                   </tfoot>
