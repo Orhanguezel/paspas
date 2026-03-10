@@ -5,9 +5,9 @@
 // Paspas ERP — Satış Siparişleri liste sayfası
 // =============================================================
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Plus, RefreshCcw, Pencil, Trash2, Search, Eye } from 'lucide-react';
+import { Plus, RefreshCcw, Pencil, Trash2, Search, Eye, ShoppingCart, Factory, Truck, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
 
@@ -25,6 +25,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
 
 import {
   useListSatisSiparisleriAdminQuery,
@@ -78,6 +79,23 @@ export default function SatisSiparisleriClient() {
 
   const items = data?.items ?? [];
 
+  const summary = useMemo(() => {
+    const toplam = items.length;
+    const uretimde = items.filter((s) => s.uretimDurumu === 'uretimde').length;
+    const uretimTamamlandi = items.filter((s) => s.uretimDurumu === 'tamamlandi').length;
+    const sevkBekleyen = items.filter((s) => s.uretimDurumu === 'tamamlandi' && s.sevkDurumu !== 'tamamlandi').length;
+    const kismenSevk = items.filter((s) => s.sevkDurumu === 'kismen_sevk').length;
+    const tamamlandi = items.filter((s) => s.durum === 'tamamlandi' || s.durum === 'kapali').length;
+    const terminRiskli = items.filter((s) => {
+      if (!s.terminTarihi || s.durum === 'tamamlandi' || s.durum === 'kapali' || s.durum === 'iptal') return false;
+      const termin = new Date(s.terminTarihi);
+      const bugun = new Date();
+      const farkGun = Math.ceil((termin.getTime() - bugun.getTime()) / (1000 * 60 * 60 * 24));
+      return farkGun <= 3;
+    }).length;
+    return { toplam, uretimde, uretimTamamlandi, sevkBekleyen, kismenSevk, tamamlandi, terminRiskli };
+  }, [items]);
+
   function openCreate() { setEditing(null); setFormOpen(true); }
   function openEdit(s: SatisSiparisDto) { setEditing(s); setFormOpen(true); }
 
@@ -116,6 +134,66 @@ export default function SatisSiparisleriClient() {
           </Button>
         </div>
       </div>
+
+      {/* Ozet Kartlari */}
+      {!isLoading && items.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <ShoppingCart className="size-4" />
+                <span className="text-xs font-medium uppercase tracking-wide">Toplam</span>
+              </div>
+              <p className="mt-2 text-2xl font-semibold">{summary.toplam}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-blue-600">
+                <Factory className="size-4" />
+                <span className="text-xs font-medium uppercase tracking-wide">Uretimde</span>
+              </div>
+              <p className="mt-2 text-2xl font-semibold">{summary.uretimde}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-emerald-600">
+                <CheckCircle2 className="size-4" />
+                <span className="text-xs font-medium uppercase tracking-wide">Uretim Bitti</span>
+              </div>
+              <p className="mt-2 text-2xl font-semibold">{summary.uretimTamamlandi}</p>
+            </CardContent>
+          </Card>
+          <Card className={summary.sevkBekleyen > 0 ? 'border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950' : ''}>
+            <CardContent className="p-4">
+              <div className={`flex items-center gap-2 ${summary.sevkBekleyen > 0 ? 'text-orange-600' : 'text-muted-foreground'}`}>
+                <Truck className="size-4" />
+                <span className="text-xs font-medium uppercase tracking-wide">Sevk Bekleyen</span>
+              </div>
+              <p className="mt-2 text-2xl font-semibold">{summary.sevkBekleyen}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Truck className="size-4" />
+                <span className="text-xs font-medium uppercase tracking-wide">Kismen Sevk</span>
+              </div>
+              <p className="mt-2 text-2xl font-semibold">{summary.kismenSevk}</p>
+            </CardContent>
+          </Card>
+          <Card className={summary.terminRiskli > 0 ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950' : ''}>
+            <CardContent className="p-4">
+              <div className={`flex items-center gap-2 ${summary.terminRiskli > 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                <AlertTriangle className="size-4" />
+                <span className="text-xs font-medium uppercase tracking-wide">Termin Riski</span>
+              </div>
+              <p className="mt-2 text-2xl font-semibold">{summary.terminRiskli}</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Filtreler */}
       <div className="flex flex-wrap gap-3">
