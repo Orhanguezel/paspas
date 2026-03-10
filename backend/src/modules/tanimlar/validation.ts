@@ -1,6 +1,27 @@
 import { z } from 'zod';
 
 const saatSchema = z.string().regex(/^\d{2}:\d{2}$/, 'gecersiz_saat');
+const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+function normalizeDateOnlyInput(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  if (DATE_ONLY_REGEX.test(trimmed)) return trimmed;
+  if (trimmed.includes('T')) return trimmed.slice(0, 10);
+  return trimmed;
+}
+
+function isMondayDateOnly(value: string): boolean {
+  const [year, month, day] = value.split('-').map(Number);
+  const utcDay = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return utcDay === 1;
+}
+
+const haftaBaslangicSchema = z.preprocess(
+  normalizeDateOnlyInput,
+  z.string().regex(DATE_ONLY_REGEX, 'gecersiz_tarih').refine(isMondayDateOnly, 'hafta_baslangici_pazartesi_olmali'),
+);
 
 const tatilFieldsSchema = z.object({
   ad: z.string().trim().min(1).max(255),
@@ -94,11 +115,11 @@ export type PatchDurusNedeniBody = z.infer<typeof patchDurusNedeniSchema>;
 
 // ── Hafta Sonu Çalışma Planları ────────────────────────────
 const haftaSonuPlanFieldsSchema = z.object({
-  haftaBaslangic: z.string().date(), // YYYY-MM-DD formatında, Pazartesi olmalı
+  haftaBaslangic: haftaBaslangicSchema, // YYYY-MM-DD formatında, Pazartesi olmalı
   makineId: z.string().min(1).nullable().optional(), // null = tüm makineler
   cumartesiCalisir: z.boolean(),
   pazarCalisir: z.boolean(),
-  aciklama: z.string().trim().max(500).optional(),
+  aciklama: z.string().trim().max(500).nullable().optional(),
 });
 
 export const createHaftaSonuPlanSchema = haftaSonuPlanFieldsSchema;

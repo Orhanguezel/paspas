@@ -177,6 +177,13 @@ function MakineGrubuPanel({
   const { setNodeRef, isOver } = useDroppable({ id: `container:${group.makineId}` });
   const toplamSure = group.items.reduce((sum, item) => sum + item.hazirlikSuresiDk + item.planlananSureDk, 0);
   const calisanSayisi = group.items.filter((item) => item.durum === 'calisiyor').length;
+  const sonIsBitis = group.items.length > 0
+    ? group.items.reduce((latest, item) => {
+        if (!item.planlananBitis) return latest;
+        if (!latest) return item.planlananBitis;
+        return new Date(item.planlananBitis) > new Date(latest) ? item.planlananBitis : latest;
+      }, null as string | null)
+    : null;
 
   return (
     <div className="rounded-lg border">
@@ -185,7 +192,7 @@ function MakineGrubuPanel({
           <span className="font-mono text-sm font-semibold">{group.makineKod}</span>
           <span className="ml-2 text-sm text-muted-foreground">{group.makineAd}</span>
         </div>
-        <div className="ml-auto grid min-w-[220px] gap-2 sm:grid-cols-3">
+        <div className="ml-auto grid min-w-[300px] gap-2 sm:grid-cols-4">
           <div className="rounded-md border bg-background px-3 py-2">
             <div className="text-[11px] text-muted-foreground">{t('admin.erp.isYukler.summary.machineJobCount')}</div>
             <div className="font-semibold tabular-nums">{group.items.length}</div>
@@ -197,6 +204,17 @@ function MakineGrubuPanel({
           <div className="rounded-md border bg-background px-3 py-2">
             <div className="text-[11px] text-muted-foreground">{t('admin.erp.isYukler.summary.machineDuration')}</div>
             <div className="font-semibold tabular-nums">{formatDuration(toplamSure)}</div>
+          </div>
+          <div className="rounded-md border bg-background px-3 py-2">
+            <div className="text-[11px] text-muted-foreground">{t('admin.erp.isYukler.summary.lastJobEnd')}</div>
+            {sonIsBitis ? (
+              <>
+                <div className="font-semibold tabular-nums text-sm">{new Date(sonIsBitis).toLocaleDateString('tr-TR')}</div>
+                <div className="text-[11px] tabular-nums text-muted-foreground">{new Date(sonIsBitis).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>
+              </>
+            ) : (
+              <div className="font-semibold tabular-nums text-muted-foreground">—</div>
+            )}
           </div>
         </div>
       </div>

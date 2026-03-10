@@ -191,7 +191,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   const watchKategori = form.watch("kategori");
 
   // Auto-suggest next product code for new products
-  const { data: nextCodeData } = useGetNextCodeAdminQuery({ kategori: watchKategori }, { skip: isEdit });
+  const { data: nextCodeData, refetch: refetchNextCode } = useGetNextCodeAdminQuery({ kategori: watchKategori }, { skip: isEdit });
   const watchTedarikTipi = form.watch("tedarikTipi");
   const watchOperasyonTipi = form.watch("operasyonTipi");
   const watchAd = form.watch("ad");
@@ -476,6 +476,30 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
           }).unwrap();
         }
         toast.success(t("admin.erp.common.created", { item: t("admin.erp.urunler.singular") }));
+        // Reset form and draft states for next create
+        form.reset({
+          kategori: categories[0]?.kod ?? "urun",
+          tedarikTipi: (categories[0]?.varsayilan_tedarik_tipi as TedarikTipi | undefined) ?? "uretim",
+          urunGrubu: "",
+          kod: "",
+          ad: "",
+          aciklama: "",
+          birim: categories[0]?.varsayilan_birim ?? "takim",
+          renk: "",
+          stok: 0,
+          kritikStok: 0,
+          birimFiyat: undefined,
+          kdvOrani: 20,
+          operasyonTipi: (categories[0]?.varsayilan_operasyon_tipi as OperasyonTipi | null | undefined) ?? null,
+          isActive: true,
+          operasyonlar: [],
+          birimDonusumleri: [],
+        });
+        setDraftReceteRows([]);
+        setDraftMediaUrls([]);
+        setDraftCoverUrl("");
+        // Refetch next code so the new product gets a fresh code suggestion
+        refetchNextCode();
       }
       onClose();
     } catch (err: unknown) {

@@ -91,16 +91,6 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
     return map;
   }, [urunler]);
 
-  const applyDiscount = useCallback(
-    (urunId: string, musteriId: string) => {
-      const bazFiyat = urunFiyatMap.get(urunId);
-      if (bazFiyat == null) return null;
-      const iskonto = musteriIskontoMap.get(musteriId) ?? 0;
-      return Number((bazFiyat * (1 - iskonto / 100)).toFixed(2));
-    },
-    [musteriIskontoMap, urunFiyatMap],
-  );
-
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -120,12 +110,12 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
   const handleUrunChange = useCallback(
     (idx: number, urunId: string) => {
       form.setValue(`items.${idx}.urunId`, urunId);
-      const fiyat = applyDiscount(urunId, form.getValues("musteriId")) ?? urunFiyatMap.get(urunId);
+      const fiyat = urunFiyatMap.get(urunId);
       if (fiyat != null) {
         form.setValue(`items.${idx}.birimFiyat`, fiyat);
       }
     },
-    [applyDiscount, form, urunFiyatMap],
+    [form, urunFiyatMap],
   );
 
   useEffect(() => {
@@ -162,19 +152,17 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
   const selectedMusteriIskonto = musteriIskontoMap.get(selectedMusteriId) ?? 0;
 
   const totals = useMemo(() => {
-    const listeToplami = watchedItems.reduce((sum, item) => {
-      const bazFiyat = urunFiyatMap.get(item.urunId) ?? 0;
-      return sum + (Number(item.miktar) || 0) * bazFiyat;
-    }, 0);
     const araToplam = watchedItems.reduce(
       (sum, item) => sum + (Number(item.miktar) || 0) * (Number(item.birimFiyat) || 0),
       0,
     );
-    const iskontoTutar = Math.max(0, listeToplami - araToplam);
+    const iskontoOrani = selectedMusteriIskonto;
+    const iskontoTutar = iskontoOrani > 0 ? araToplam * (iskontoOrani / 100) : 0;
+    const iskontoluToplam = araToplam - iskontoTutar;
     const kdvToplam = watchedItems.reduce((sum, item) => {
       const urun = urunler.find((urunItem) => urunItem.id === item.urunId);
       const kdvOrani = urun?.kdvOrani ?? 20;
-      const satirNet = (Number(item.miktar) || 0) * (Number(item.birimFiyat) || 0);
+      const satirNet = (Number(item.miktar) || 0) * (Number(item.birimFiyat) || 0) * (1 - iskontoOrani / 100);
       return sum + satirNet * (kdvOrani / 100);
     }, 0);
 
@@ -182,22 +170,12 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
       araToplam,
       iskontoTutar,
       kdvToplam,
-      genelToplam: araToplam + kdvToplam,
+      genelToplam: iskontoluToplam + kdvToplam,
     };
-  }, [urunFiyatMap, urunler, watchedItems]);
+  }, [selectedMusteriIskonto, urunler, watchedItems]);
 
-  useEffect(() => {
-    const currentItems = form.getValues("items");
-    if (!selectedMusteriId || currentItems.length === 0) return;
-
-    currentItems.forEach((item, idx) => {
-      if (!item.urunId) return;
-      const fiyat = applyDiscount(item.urunId, selectedMusteriId);
-      if (fiyat != null) {
-        form.setValue(`items.${idx}.birimFiyat`, fiyat, { shouldDirty: true });
-      }
-    });
-  }, [applyDiscount, form, selectedMusteriId]);
+  // Müşteri değiştiğinde birim fiyat güncellenmez — fiyat her zaman indirimsiz baz fiyattır.
+  // İskonto, toplam hesaplamasında ayrıca gösterilir.
 
   async function onSubmit(values: FormValues) {
     const payload = {

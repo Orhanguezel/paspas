@@ -29,16 +29,21 @@ import type { HaftaSonuPlanDto } from '@/integrations/shared/erp/tanimlar.types'
 // Haftanın pazartesi gününü hesapla
 function getMonday(date: Date): string {
   const d = new Date(date);
+  d.setHours(12, 0, 0, 0);
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   d.setDate(diff);
-  return d.toISOString().slice(0, 10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const dayOfMonth = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${dayOfMonth}`;
 }
 
 // Bir tarihin pazartesi olup olmadığını kontrol et
 function isMonday(dateStr: string): boolean {
-  const d = new Date(dateStr);
-  return d.getDay() === 1;
+  const [year, month, day] = dateStr.split('-').map(Number);
+  if (!year || !month || !day) return false;
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay() === 1;
 }
 
 const schema = z.object({
@@ -114,7 +119,7 @@ export default function HaftaSonuPlanForm({ open, onClose, plan }: Props) {
       makineId: values.makineId || null,
       cumartesiCalisir: values.cumartesiCalisir,
       pazarCalisir: values.pazarCalisir,
-      aciklama: values.aciklama || null,
+      aciklama: values.aciklama || undefined,
     };
 
     try {
