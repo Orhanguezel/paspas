@@ -66,6 +66,9 @@ export default function Login() {
             <div className="mx-auto max-w-xl text-muted-foreground">
               {t('admin.auth.login.description')}
             </div>
+            <div className="rounded-md border border-dashed border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground">
+              Bu bir deneme
+            </div>
           </div>
 
           <div className="space-y-4">
