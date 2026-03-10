@@ -73,8 +73,10 @@ export const uretimBitir: RouteHandler = async (req, reply) => {
     const result = await repoUretimBitir(parsed.data, getOperatorUserId(req));
     return result;
   } catch (error) {
-    req.log.error({ error }, 'uretim_bitir_failed');
-    return sendError(reply, 500, 'sunucu_hatasi');
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errStack = error instanceof Error ? error.stack : undefined;
+    req.log.error({ error: errMsg, stack: errStack }, 'uretim_bitir_failed');
+    return sendError(reply, 500, errMsg || 'sunucu_hatasi');
   }
 };
 
