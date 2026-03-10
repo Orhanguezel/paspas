@@ -282,6 +282,7 @@ export async function repoGetHaftaSonuPlanById(id: string): Promise<(HaftaSonuPl
     .limit(1);
 
   if (!baseRow?.tarih) return null;
+  const tarih = toDateOnly(baseRow.tarih);
 
   const rows = await db
     .select({
@@ -298,7 +299,7 @@ export async function repoGetHaftaSonuPlanById(id: string): Promise<(HaftaSonuPl
     })
     .from(haftaSonuPlanlari)
     .leftJoin(makineler, eq(haftaSonuPlanlari.makine_id, makineler.id))
-    .where(eq(haftaSonuPlanlari.hafta_baslangic, baseRow.tarih))
+    .where(sql`date(${haftaSonuPlanlari.hafta_baslangic}) = ${tarih}`)
     .orderBy(asc(makineler.ad));
 
   const row = rows[0];
