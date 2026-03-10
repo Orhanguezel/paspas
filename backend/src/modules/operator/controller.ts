@@ -76,6 +76,7 @@ export const uretimBitir: RouteHandler = async (req, reply) => {
     const errMsg = error instanceof Error ? error.message : String(error);
     const errStack = error instanceof Error ? error.stack : undefined;
     req.log.error({ error: errMsg, stack: errStack }, 'uretim_bitir_failed');
+    if (errMsg === 'kuyruk_kaydi_bulunamadi') return sendError(reply, 404, 'kuyruk_kaydi_bulunamadi');
     return sendError(reply, 500, errMsg || 'sunucu_hatasi');
   }
 };
