@@ -256,9 +256,16 @@ export default function SatisSiparisleriClient() {
                 <TableCell>{s.siparisTarihi}</TableCell>
                 <TableCell>{s.terminTarihi ?? '—'}</TableCell>
                 <TableCell>
-                  <Badge variant={URETIM_DURUMU_BADGE[s.uretimDurumu]}>
-                    {URETIM_DURUMU_LABELS[s.uretimDurumu]}
-                  </Badge>
+                  <div className="space-y-1">
+                    <Badge variant={URETIM_DURUMU_BADGE[s.uretimDurumu]}>
+                      {URETIM_DURUMU_LABELS[s.uretimDurumu]}
+                    </Badge>
+                    {s.uretimPlanlananMiktar > 0 && (
+                      <div className="text-xs text-muted-foreground tabular-nums">
+                        {s.uretimTamamlananMiktar.toLocaleString('tr-TR')}/{s.uretimPlanlananMiktar.toLocaleString('tr-TR')}
+                      </div>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant={SEVK_DURUMU_BADGE[s.sevkDurumu]}>

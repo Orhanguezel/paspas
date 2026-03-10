@@ -208,6 +208,8 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
       baslangicTarihi: values.baslangicTarihi || undefined,
       bitisTarihi:     values.bitisTarihi     || undefined,
       terminTarihi:    values.terminTarihi    || undefined,
+      // New emri: don't send uretilenMiktar (server default 0)
+      ...(!isEdit ? { uretilenMiktar: undefined, baslangicTarihi: undefined, bitisTarihi: undefined } : {}),
     };
     try {
       if (isEdit && emri) {
@@ -409,33 +411,39 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
             </div>
 
             {/* Miktar */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className={`grid grid-cols-1 gap-4 ${isEdit ? 'sm:grid-cols-2' : ''}`}>
               <div className="space-y-1">
                 <Label>{t('admin.erp.uretimEmirleri.form.planlananMiktar')} *</Label>
                 <Input type="number" step="0.0001" {...register('planlananMiktar')} />
                 {errors.planlananMiktar && <p className="text-destructive text-xs">{errors.planlananMiktar.message}</p>}
               </div>
-              <div className="space-y-1">
-                <Label>{t('admin.erp.uretimEmirleri.form.uretilenMiktar')}</Label>
-                <Input type="number" step="0.0001" {...register('uretilenMiktar')} />
-              </div>
+              {isEdit && (
+                <div className="space-y-1">
+                  <Label>{t('admin.erp.uretimEmirleri.form.uretilenMiktar')}</Label>
+                  <Input type="number" step="0.0001" {...register('uretilenMiktar')} />
+                </div>
+              )}
             </div>
 
-            {/* Tarihler */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="space-y-1">
-                <Label>{t('admin.erp.uretimEmirleri.form.baslangicTarihi')}</Label>
-                <Input type="date" {...register('baslangicTarihi')} />
+            {/* Tarihler — only in edit mode */}
+            {isEdit ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <Label>{t('admin.erp.uretimEmirleri.form.baslangicTarihi')}</Label>
+                  <Input type="date" {...register('baslangicTarihi')} />
+                </div>
+                <div className="space-y-1">
+                  <Label>{t('admin.erp.uretimEmirleri.form.bitisTarihi')}</Label>
+                  <Input type="date" {...register('bitisTarihi')} />
+                </div>
+                <div className="space-y-1">
+                  <Label>{t('admin.erp.uretimEmirleri.form.terminTarihi')}</Label>
+                  <Input type="date" {...register('terminTarihi')} />
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label>{t('admin.erp.uretimEmirleri.form.bitisTarihi')}</Label>
-                <Input type="date" {...register('bitisTarihi')} />
-              </div>
-              <div className="space-y-1">
-                <Label>{t('admin.erp.uretimEmirleri.form.terminTarihi')}</Label>
-                <Input type="date" {...register('terminTarihi')} />
-              </div>
-            </div>
+            ) : (
+              <input type="hidden" {...register('terminTarihi')} />
+            )}
 
             {/* Termin riski uyarısı (edit modunda) */}
             {isEdit && emri?.terminRiski && (

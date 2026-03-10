@@ -140,15 +140,28 @@ export const haftaSonuPlanlari = mysqlTable('hafta_sonu_planlari', {
 });
 
 export type HaftaSonuPlanRow = typeof haftaSonuPlanlari.$inferSelect;
+export type HaftaSonuPlanDtoRow = HaftaSonuPlanRow & {
+  makine_ids?: string[];
+  makine_adlari?: string[];
+};
 
-export function haftaSonuPlanRowToDto(row: HaftaSonuPlanRow, makineAd?: string) {
+export function haftaSonuPlanRowToDto(row: HaftaSonuPlanDtoRow, makineAd?: string) {
+  const tarih =
+    row.hafta_baslangic instanceof Date
+      ? row.hafta_baslangic.toISOString().slice(0, 10)
+      : String(row.hafta_baslangic).slice(0, 10);
+  const day = new Date(`${tarih}T12:00:00Z`).getUTCDay();
+  const gunTipi = day === 6 ? 'cumartesi' : day === 0 ? 'pazar' : null;
   return {
     id: row.id,
-    haftaBaslangic: row.hafta_baslangic,
+    haftaBaslangic: tarih,
     makineId: row.makine_id ?? null,
+    makineIds: row.makine_ids ?? (row.makine_id ? [row.makine_id] : []),
     makineAd: makineAd ?? null,
-    cumartesiCalisir: row.cumartesi_calisir === 1,
-    pazarCalisir: row.pazar_calisir === 1,
+    makineAdlari: row.makine_adlari ?? (makineAd ? [makineAd] : []),
+    cumartesiCalisir: gunTipi === 'cumartesi',
+    pazarCalisir: gunTipi === 'pazar',
+    gunTipi,
     aciklama: row.aciklama ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

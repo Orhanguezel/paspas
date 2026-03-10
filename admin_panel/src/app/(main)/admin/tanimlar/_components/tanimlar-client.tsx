@@ -672,10 +672,9 @@ export default function TanimlarClient() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("admin.erp.tanimlar.haftaSonuPlanlari.columns.haftaBaslangic")}</TableHead>
+                  <TableHead>{t("admin.erp.tanimlar.haftaSonuPlanlari.columns.tarih")}</TableHead>
+                  <TableHead>{t("admin.erp.tanimlar.haftaSonuPlanlari.columns.gunTipi")}</TableHead>
                   <TableHead>{t("admin.erp.tanimlar.haftaSonuPlanlari.columns.makine")}</TableHead>
-                  <TableHead>{t("admin.erp.tanimlar.haftaSonuPlanlari.columns.cumartesi")}</TableHead>
-                  <TableHead>{t("admin.erp.tanimlar.haftaSonuPlanlari.columns.pazar")}</TableHead>
                   <TableHead className="w-24" />
                 </TableRow>
               </TableHeader>
@@ -683,14 +682,14 @@ export default function TanimlarClient() {
                 {haftaSonuLoading &&
                   Array.from({ length: 3 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 5 }).map((__, j) => (
+                      {Array.from({ length: 4 }).map((__, j) => (
                         <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                       ))}
                     </TableRow>
                   ))}
                 {!haftaSonuLoading && !haftaSonuPlanlari?.items.length && (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">
                       {t("admin.erp.tanimlar.haftaSonuPlanlari.notFound")}
                     </TableCell>
                   </TableRow>
@@ -700,17 +699,24 @@ export default function TanimlarClient() {
                     <TableRow key={p.id}>
                       <TableCell className="font-mono">{formatTatilDate(p.haftaBaslangic)}</TableCell>
                       <TableCell>
-                        {p.makineAd ?? t("admin.erp.tanimlar.haftaSonuPlanlari.allMachines")}
+                        <Badge variant="secondary">
+                          {p.gunTipi === "cumartesi"
+                            ? t("admin.erp.tanimlar.haftaSonuPlanlari.dayType.cumartesi")
+                            : t("admin.erp.tanimlar.haftaSonuPlanlari.dayType.pazar")}
+                        </Badge>
                       </TableCell>
                       <TableCell>
-                        {p.cumartesiCalisir
-                          ? <Badge variant="default">{t("admin.erp.tanimlar.haftaSonuPlanlari.works")}</Badge>
-                          : <Badge variant="secondary">{t("admin.erp.tanimlar.haftaSonuPlanlari.off")}</Badge>}
-                      </TableCell>
-                      <TableCell>
-                        {p.pazarCalisir
-                          ? <Badge variant="default">{t("admin.erp.tanimlar.haftaSonuPlanlari.works")}</Badge>
-                          : <Badge variant="secondary">{t("admin.erp.tanimlar.haftaSonuPlanlari.off")}</Badge>}
+                        <div className="flex flex-wrap gap-1">
+                          {p.makineAdlari.length > 0 ? (
+                            p.makineAdlari.map((makineAdi) => (
+                              <Badge key={`${p.id}-${makineAdi}`} variant="outline">{makineAdi}</Badge>
+                            ))
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              {t("admin.erp.tanimlar.haftaSonuPlanlari.noMachine")}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">

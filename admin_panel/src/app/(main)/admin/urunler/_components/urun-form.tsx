@@ -254,11 +254,11 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
     if (!isEdit || !showOperasyonTipi) return;
     // Skip initial load
     if (prevOpTipiRef.current === null) {
-      prevOpTipiRef.current = watchOperasyonTipi;
+      prevOpTipiRef.current = watchOperasyonTipi ?? null;
       return;
     }
     if (prevOpTipiRef.current === watchOperasyonTipi) return;
-    prevOpTipiRef.current = watchOperasyonTipi;
+    prevOpTipiRef.current = watchOperasyonTipi ?? null;
 
     const currentOps = form.getValues("operasyonlar") ?? [];
     const baseName = watchAd || tForm("defaultProductName");
@@ -509,6 +509,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   }
 
   const tForm = (key: string) => t(`admin.erp.urunler.form.${key}`);
+  const tValidation = (key: string) => t(`admin.erp.urunler.validation.${key}`);
   const formatKategoriFallback = (k: string) => {
     const categoryName = categories.find((item) => item.kod === k)?.name?.trim();
     if (categoryName) return categoryName;

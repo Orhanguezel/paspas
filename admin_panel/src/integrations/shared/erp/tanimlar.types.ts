@@ -216,9 +216,12 @@ export function normalizeDurusNedeniList(res: unknown): DurusNedeniListResponse 
 
 export interface HaftaSonuPlanDto {
   id: string;
-  haftaBaslangic: string;   // Pazartesi günü (YYYY-MM-DD)
-  makineId: string | null;  // null = tüm makineler
-  makineAd: string | null;  // Makine adı (joined)
+  haftaBaslangic: string;   // Seçilen Cumartesi/Pazar tarihi (YYYY-MM-DD)
+  makineId: string | null;  // Geriye dönük tekil alan
+  makineIds: string[];
+  makineAd: string | null;  // İlk makine adı / geriye dönük alan
+  makineAdlari: string[];
+  gunTipi: 'cumartesi' | 'pazar' | null;
   cumartesiCalisir: boolean;
   pazarCalisir: boolean;
   aciklama: string | null;
@@ -233,9 +236,7 @@ export interface HaftaSonuPlanListResponse {
 
 export interface HaftaSonuPlanCreatePayload {
   haftaBaslangic: string;
-  makineId?: string | null;
-  cumartesiCalisir?: boolean;
-  pazarCalisir?: boolean;
+  makineIds: string[];
   aciklama?: string | null;
 }
 export type HaftaSonuPlanPatchPayload = Partial<HaftaSonuPlanCreatePayload>;
@@ -246,7 +247,14 @@ export function normalizeHaftaSonuPlan(raw: unknown): HaftaSonuPlanDto {
     id: toStr(r.id),
     haftaBaslangic: toStr(r.haftaBaslangic),
     makineId: r.makineId != null ? toStr(r.makineId) : null,
+    makineIds: Array.isArray(r.makineIds)
+      ? r.makineIds.map((item) => toStr(item)).filter(Boolean)
+      : (r.makineId != null ? [toStr(r.makineId)] : []).filter(Boolean),
     makineAd: r.makineAd != null ? toStr(r.makineAd) : null,
+    makineAdlari: Array.isArray(r.makineAdlari)
+      ? r.makineAdlari.map((item) => toStr(item)).filter(Boolean)
+      : (r.makineAd != null ? [toStr(r.makineAd)] : []).filter(Boolean),
+    gunTipi: r.gunTipi === 'cumartesi' || r.gunTipi === 'pazar' ? r.gunTipi : null,
     cumartesiCalisir: toBool(r.cumartesiCalisir, false),
     pazarCalisir: toBool(r.pazarCalisir, false),
     aciklama: r.aciklama != null ? toStr(r.aciklama) : null,

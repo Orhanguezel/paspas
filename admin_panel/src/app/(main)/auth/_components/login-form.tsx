@@ -21,7 +21,6 @@ import { Input } from '@/components/ui/input';
 import { useAuthTokenMutation } from '@/integrations/hooks';
 import { useAdminTranslations } from '@/i18n';
 import { useLocaleShort } from '@/i18n/useLocaleShort';
-import type { UserRoleName } from '@/integrations/shared';
 import { ROLE_HOME } from '@/navigation/permissions';
 import type { PanelRole } from '@/navigation/permissions';
 
@@ -93,7 +92,7 @@ export function LoginForm({ mode = 'admin', fallbackNext }: LoginFormProps = {})
         password: values.password,
       }).unwrap();
 
-      const role = (res?.user?.role ?? 'user') as UserRoleName;
+      const role = String(res?.user?.role ?? 'user').trim().toLowerCase();
       const ERP_ROLES = new Set(['admin', 'sevkiyatci', 'operator', 'satin_almaci']);
       const isAdmin = role === 'admin';
       const isSeller = role === 'seller';

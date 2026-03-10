@@ -5,7 +5,7 @@ import { asc, desc, eq, inArray } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { makineler } from '@/modules/makine_havuzu/schema';
 
-import { kaliplar, kalipUyumluMakineler, tatilMakineler, tatiller, vardiyalar, durusNedenleri, haftaSonuPlanlari, type KalipRow, type TatilRow, type VardiyaRow, type DurusNedeniRow, type HaftaSonuPlanRow } from './schema';
+import { kaliplar, kalipUyumluMakineler, tatilMakineler, tatiller, vardiyalar, durusNedenleri, haftaSonuPlanlari, type KalipRow, type TatilRow, type VardiyaRow, type DurusNedeniRow, type HaftaSonuPlanDtoRow, type HaftaSonuPlanRow } from './schema';
 import type { CreateKalipBody, CreateTatilBody, PatchKalipBody, PatchTatilBody, SetKalipUyumluMakinelerBody, CreateVardiyaBody, PatchVardiyaBody, CreateDurusNedeniBody, PatchDurusNedeniBody, CreateHaftaSonuPlanBody, PatchHaftaSonuPlanBody } from './validation';
 
 export async function repoListMakineler() {
@@ -234,10 +234,43 @@ export async function repoListHaftaSonuPlanlari(): Promise<Array<HaftaSonuPlanRo
     .leftJoin(makineler, eq(haftaSonuPlanlari.makine_id, makineler.id))
     .orderBy(desc(haftaSonuPlanlari.hafta_baslangic), asc(makineler.ad));
 
-  return rows as (HaftaSonuPlanRow & { makine_ad?: string })[];
+  const grouped = new Map<string, HaftaSonuPlanDtoRow & { makine_ad?: string }>();
+
+  for (const row of rows as (HaftaSonuPlanRow & { makine_ad?: string })[]) {
+    const tarih = row.hafta_baslangic instanceof Date
+      ? row.hafta_baslangic.toISOString().slice(0, 10)
+      : String(row.hafta_baslangic).slice(0, 10);
+    const current = grouped.get(tarih);
+
+    if (!current) {
+      grouped.set(tarih, {
+        ...row,
+        makine_ids: row.makine_id ? [row.makine_id] : [],
+        makine_adlari: row.makine_ad ? [row.makine_ad] : [],
+      });
+      continue;
+    }
+
+    if (row.makine_id && !(current.makine_ids ?? []).includes(row.makine_id)) {
+      current.makine_ids = [...(current.makine_ids ?? []), row.makine_id];
+    }
+    if (row.makine_ad && !(current.makine_adlari ?? []).includes(row.makine_ad)) {
+      current.makine_adlari = [...(current.makine_adlari ?? []), row.makine_ad];
+    }
+  }
+
+  return [...grouped.values()] as (HaftaSonuPlanRow & { makine_ad?: string })[];
 }
 
 export async function repoGetHaftaSonuPlanById(id: string): Promise<(HaftaSonuPlanRow & { makine_ad?: string }) | null> {
+  const [baseRow] = await db
+    .select({ tarih: haftaSonuPlanlari.hafta_baslangic })
+    .from(haftaSonuPlanlari)
+    .where(eq(haftaSonuPlanlari.id, id))
+    .limit(1);
+
+  if (!baseRow?.tarih) return null;
+
   const rows = await db
     .select({
       id: haftaSonuPlanlari.id,
@@ -253,43 +286,88 @@ export async function repoGetHaftaSonuPlanById(id: string): Promise<(HaftaSonuPl
     })
     .from(haftaSonuPlanlari)
     .leftJoin(makineler, eq(haftaSonuPlanlari.makine_id, makineler.id))
-    .where(eq(haftaSonuPlanlari.id, id))
-    .limit(1);
+    .where(eq(haftaSonuPlanlari.hafta_baslangic, baseRow.tarih))
+    .orderBy(asc(makineler.ad));
 
   const row = rows[0];
   if (!row) return null;
-  return { ...row, makine_ad: row.makine_ad ?? undefined } as HaftaSonuPlanRow & { makine_ad?: string };
+  return {
+    ...row,
+    makine_ad: row.makine_ad ?? undefined,
+    makine_ids: rows.map((item) => item.makine_id).filter((value): value is string => Boolean(value)),
+    makine_adlari: rows.map((item) => item.makine_ad).filter((value): value is string => Boolean(value)),
+  } as HaftaSonuPlanRow & { makine_ad?: string };
 }
 
 export async function repoCreateHaftaSonuPlan(body: CreateHaftaSonuPlanBody, userId?: string): Promise<HaftaSonuPlanRow & { makine_ad?: string }> {
-  const id = randomUUID();
-  await db.insert(haftaSonuPlanlari).values({
-    id,
-    hafta_baslangic: new Date(body.haftaBaslangic),
-    makine_id: body.makineId ?? null,
-    cumartesi_calisir: body.cumartesiCalisir ? 1 : 0,
-    pazar_calisir: body.pazarCalisir ? 1 : 0,
-    aciklama: body.aciklama,
-    created_by: userId,
+  const hedefTarih = new Date(`${body.haftaBaslangic}T00:00:00.000Z`);
+  const isSaturday = new Date(`${body.haftaBaslangic}T12:00:00Z`).getUTCDay() === 6;
+
+  await db.transaction(async (tx) => {
+    await tx.delete(haftaSonuPlanlari).where(eq(haftaSonuPlanlari.hafta_baslangic, hedefTarih));
+    await tx.insert(haftaSonuPlanlari).values(
+      body.makineIds.map((makineId) => ({
+        id: randomUUID(),
+        hafta_baslangic: hedefTarih,
+        makine_id: makineId,
+        cumartesi_calisir: isSaturday ? 1 : 0,
+        pazar_calisir: isSaturday ? 0 : 1,
+        aciklama: body.aciklama,
+        created_by: userId,
+      })),
+    );
   });
-  const row = await repoGetHaftaSonuPlanById(id);
+
+  const [inserted] = await db
+    .select({ id: haftaSonuPlanlari.id })
+    .from(haftaSonuPlanlari)
+    .where(eq(haftaSonuPlanlari.hafta_baslangic, hedefTarih))
+    .limit(1);
+  const row = inserted ? await repoGetHaftaSonuPlanById(inserted.id) : null;
   if (!row) throw new Error('insert_failed');
   return row;
 }
 
 export async function repoUpdateHaftaSonuPlan(id: string, body: PatchHaftaSonuPlanBody): Promise<(HaftaSonuPlanRow & { makine_ad?: string }) | null> {
-  const payload: Partial<typeof haftaSonuPlanlari.$inferInsert> = {};
-  if (body.haftaBaslangic !== undefined) payload.hafta_baslangic = new Date(body.haftaBaslangic);
-  if (body.makineId !== undefined) payload.makine_id = body.makineId ?? null;
-  if (body.cumartesiCalisir !== undefined) payload.cumartesi_calisir = body.cumartesiCalisir ? 1 : 0;
-  if (body.pazarCalisir !== undefined) payload.pazar_calisir = body.pazarCalisir ? 1 : 0;
-  if (body.aciklama !== undefined) payload.aciklama = body.aciklama;
-  await db.update(haftaSonuPlanlari).set(payload).where(eq(haftaSonuPlanlari.id, id));
-  return repoGetHaftaSonuPlanById(id);
+  const current = await repoGetHaftaSonuPlanById(id);
+  if (!current) return null;
+
+  const hedefTarihStr = body.haftaBaslangic ?? String(current.hafta_baslangic).slice(0, 10);
+  const hedefTarih = new Date(`${hedefTarihStr}T00:00:00.000Z`);
+  const eskiTarih = new Date(`${String(current.hafta_baslangic).slice(0, 10)}T00:00:00.000Z`);
+  const currentMakineIds = (current as unknown as HaftaSonuPlanDtoRow).makine_ids
+    ?? (current.makine_id ? [current.makine_id] : []);
+  const makineIds = body.makineIds ?? currentMakineIds;
+  const aciklama = body.aciklama !== undefined ? body.aciklama : current.aciklama;
+  const isSaturday = new Date(`${hedefTarihStr}T12:00:00Z`).getUTCDay() === 6;
+
+  await db.transaction(async (tx) => {
+    await tx.delete(haftaSonuPlanlari).where(eq(haftaSonuPlanlari.hafta_baslangic, eskiTarih));
+    await tx.insert(haftaSonuPlanlari).values(
+      makineIds.map((makineId) => ({
+        id: randomUUID(),
+        hafta_baslangic: hedefTarih,
+        makine_id: makineId,
+        cumartesi_calisir: isSaturday ? 1 : 0,
+        pazar_calisir: isSaturday ? 0 : 1,
+        aciklama,
+        created_by: current.created_by ?? null,
+      })),
+    );
+  });
+
+  const [updated] = await db
+    .select({ id: haftaSonuPlanlari.id })
+    .from(haftaSonuPlanlari)
+    .where(eq(haftaSonuPlanlari.hafta_baslangic, hedefTarih))
+    .limit(1);
+  return updated ? repoGetHaftaSonuPlanById(updated.id) : null;
 }
 
 export async function repoDeleteHaftaSonuPlan(id: string): Promise<void> {
-  await db.delete(haftaSonuPlanlari).where(eq(haftaSonuPlanlari.id, id));
+  const current = await repoGetHaftaSonuPlanById(id);
+  if (!current) return;
+  await db.delete(haftaSonuPlanlari).where(eq(haftaSonuPlanlari.hafta_baslangic, new Date(`${String(current.hafta_baslangic).slice(0, 10)}T00:00:00.000Z`)));
 }
 
 /**
@@ -299,46 +377,16 @@ export async function repoDeleteHaftaSonuPlan(id: string): Promise<void> {
 export async function repoGetHaftaSonuPlanByDate(
   tarih: Date,
   makineId?: string | null,
-): Promise<{ cumartesiCalisir: boolean; pazarCalisir: boolean } | null> {
-  // Haftanın Pazartesi gününü hesapla
-  const gun = tarih.getDay(); // 0=Pazar, 1=Pazartesi, ..., 6=Cumartesi
-  const pazartesiFarki = gun === 0 ? -6 : 1 - gun;
-  const pazartesi = new Date(tarih);
-  pazartesi.setDate(pazartesi.getDate() + pazartesiFarki);
-  const pazartesiStr = pazartesi.toISOString().slice(0, 10);
+): Promise<{ calisiyor: boolean } | null> {
+  if (!makineId) return null;
 
-  // Önce makine-özel plan kontrol
-  if (makineId) {
-    const makineOzelRows = await db
-      .select()
-      .from(haftaSonuPlanlari)
-      .where(eq(haftaSonuPlanlari.hafta_baslangic, new Date(pazartesiStr)))
-      .limit(100);
-
-    const makineOzel = makineOzelRows.find((r) => r.makine_id === makineId);
-    if (makineOzel) {
-      return {
-        cumartesiCalisir: makineOzel.cumartesi_calisir === 1,
-        pazarCalisir: makineOzel.pazar_calisir === 1,
-      };
-    }
-  }
-
-  // Genel plan kontrol (makine_id = NULL)
-  const genelRows = await db
-    .select()
+  const tarihStr = tarih.toISOString().slice(0, 10);
+  const rows = await db
+    .select({ makine_id: haftaSonuPlanlari.makine_id })
     .from(haftaSonuPlanlari)
-    .where(eq(haftaSonuPlanlari.hafta_baslangic, new Date(pazartesiStr)))
-    .limit(100);
+    .where(eq(haftaSonuPlanlari.hafta_baslangic, new Date(`${tarihStr}T00:00:00.000Z`)))
+    .limit(200);
 
-  const genel = genelRows.find((r) => r.makine_id === null);
-  if (genel) {
-    return {
-      cumartesiCalisir: genel.cumartesi_calisir === 1,
-      pazarCalisir: genel.pazar_calisir === 1,
-    };
-  }
-
-  // Varsayılan: Hafta sonu çalışılmaz
-  return null;
+  if (rows.length === 0) return null;
+  return { calisiyor: rows.some((row) => row.makine_id === makineId) };
 }

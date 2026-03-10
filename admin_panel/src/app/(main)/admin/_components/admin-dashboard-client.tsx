@@ -88,6 +88,9 @@ const ROLE_WIDGETS: Record<UserRoleName, WidgetKey[]> = {
     'actionCenter', 'todayActivity', 'generalStatus', 'trendChart', 'stockChart',
     'openTasks', 'myTasks', 'recentMovements', 'lowStockAlerts', 'moduleSummary', 'weeklyComparison',
   ],
+  seller: [
+    'todayActivity', 'myTasks', 'recentMovements',
+  ],
   operator: [
     'todayActivity', 'myTasks', 'openTasks', 'actionCenter',
   ],
@@ -170,6 +173,7 @@ const ACTION_TYPE_LABELS: Record<ActionItem['type'], string> = {
 
 const ROLE_LABELS: Record<UserRoleName, string> = {
   admin: 'Yönetici',
+  seller: 'Satıcı',
   operator: 'Operatör',
   satin_almaci: 'Satın Almacı',
   sevkiyatci: 'Sevkiyatçı',

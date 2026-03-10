@@ -5663,17 +5663,27 @@
           "works": "Çalışır",
           "off": "Kapalı",
           "columns": {
+            "tarih": "Tarih",
+            "gunTipi": "Gün Tipi",
             "haftaBaslangic": "Hafta Başlangıcı",
             "makine": "Makine",
             "cumartesi": "Cumartesi",
             "pazar": "Pazar"
           },
+          "dayType": {
+            "cumartesi": "Cumartesi",
+            "pazar": "Pazar"
+          },
+          "noMachine": "Makine seçilmedi",
           "form": {
-            "haftaBaslangic": "Hafta Başlangıcı (Pazartesi) *",
-            "haftaBaslangicHelp": "Pazartesi günü seçiniz",
+            "haftaBaslangic": "Hafta Sonu Tarihi *",
+            "haftaBaslangicHelp": "Cumartesi veya Pazar günü seçiniz",
             "makine": "Makine",
             "makineAll": "Tüm Makineler",
             "makineHelp": "Boş bırakılırsa tüm makineler için geçerli olur",
+            "makineler": "Çalışacak Makineler",
+            "makinelerHelp": "Seçilen hafta sonu gününde çalışacak makineleri işaretleyiniz",
+            "seciliMakine": "makine seçildi",
             "cumartesiCalisir": "Cumartesi çalışır",
             "pazarCalisir": "Pazar çalışır",
             "aciklama": "Açıklama"

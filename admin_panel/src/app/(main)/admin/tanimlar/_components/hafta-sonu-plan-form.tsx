@@ -17,7 +17,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import {
   useCreateHaftaSonuPlanAdminMutation,
@@ -26,31 +25,35 @@ import {
 import { useListMakinelerAdminQuery } from '@/integrations/endpoints/admin/erp/makine_havuzu_admin.endpoints';
 import type { HaftaSonuPlanDto } from '@/integrations/shared/erp/tanimlar.types';
 
-// Haftanın pazartesi gününü hesapla
-function getMonday(date: Date): string {
+function toDateOnly(date: Date): string {
   const d = new Date(date);
   d.setHours(12, 0, 0, 0);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const dayOfMonth = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${dayOfMonth}`;
 }
 
-// Bir tarihin pazartesi olup olmadığını kontrol et
-function isMonday(dateStr: string): boolean {
+function getNextWeekendDate(day: 0 | 6): string {
+  const base = new Date();
+  base.setHours(12, 0, 0, 0);
+  const current = base.getDay();
+  let diff = day - current;
+  if (diff < 0) diff += 7;
+  base.setDate(base.getDate() + diff);
+  return toDateOnly(base);
+}
+
+function isWeekend(dateStr: string): boolean {
   const [year, month, day] = dateStr.split('-').map(Number);
   if (!year || !month || !day) return false;
-  return new Date(Date.UTC(year, month - 1, day)).getUTCDay() === 1;
+  const weekDay = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return weekDay === 0 || weekDay === 6;
 }
 
 const schema = z.object({
-  haftaBaslangic: z.string().min(1, 'Zorunlu').refine(isMonday, 'Pazartesi günü seçiniz'),
-  makineId: z.string().nullable(),
-  cumartesiCalisir: z.boolean(),
-  pazarCalisir: z.boolean(),
+  haftaBaslangic: z.string().min(1, 'Zorunlu').refine(isWeekend, 'Cumartesi veya Pazar günü seçiniz'),
+  makineIds: z.array(z.string()).min(1, 'En az bir makine seçiniz'),
   aciklama: z.string().optional(),
 });
 
@@ -63,7 +66,7 @@ interface Props {
 }
 
 function toDateInputValue(value: string | null | undefined): string {
-  if (!value) return getMonday(new Date());
+  if (!value) return getNextWeekendDate(6);
   return String(value).slice(0, 10);
 }
 
@@ -83,10 +86,8 @@ export default function HaftaSonuPlanForm({ open, onClose, plan }: Props) {
   const { register, handleSubmit, reset, control, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      haftaBaslangic: getMonday(new Date()),
-      makineId: null,
-      cumartesiCalisir: false,
-      pazarCalisir: false,
+      haftaBaslangic: getNextWeekendDate(6),
+      makineIds: [],
       aciklama: '',
     },
   });
@@ -97,16 +98,12 @@ export default function HaftaSonuPlanForm({ open, onClose, plan }: Props) {
         plan
           ? {
               haftaBaslangic: toDateInputValue(plan.haftaBaslangic),
-              makineId: plan.makineId,
-              cumartesiCalisir: plan.cumartesiCalisir,
-              pazarCalisir: plan.pazarCalisir,
+              makineIds: plan.makineIds,
               aciklama: plan.aciklama ?? '',
             }
           : {
-              haftaBaslangic: getMonday(new Date()),
-              makineId: null,
-              cumartesiCalisir: false,
-              pazarCalisir: false,
+              haftaBaslangic: getNextWeekendDate(6),
+              makineIds: [],
               aciklama: '',
             }
       );
@@ -116,9 +113,7 @@ export default function HaftaSonuPlanForm({ open, onClose, plan }: Props) {
   async function onSubmit(values: FormValues) {
     const payload = {
       haftaBaslangic: values.haftaBaslangic,
-      makineId: values.makineId || null,
-      cumartesiCalisir: values.cumartesiCalisir,
-      pazarCalisir: values.pazarCalisir,
+      makineIds: values.makineIds,
       aciklama: values.aciklama || undefined,
     };
 
@@ -136,6 +131,8 @@ export default function HaftaSonuPlanForm({ open, onClose, plan }: Props) {
     }
   }
 
+  const selectedMakineIds = watch('makineIds');
+
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent side="right" className="w-full p-0 sm:max-w-lg">
@@ -148,7 +145,7 @@ export default function HaftaSonuPlanForm({ open, onClose, plan }: Props) {
         </SheetHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
           <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
-            {/* Hafta Başlangıç (Pazartesi) */}
+            {/* Hafta Sonu Tarihi */}
             <div className="space-y-1">
               <Label>{t('admin.erp.tanimlar.haftaSonuPlanlari.form.haftaBaslangic')} *</Label>
               <input
@@ -166,71 +163,44 @@ export default function HaftaSonuPlanForm({ open, onClose, plan }: Props) {
 
             {/* Makine Seçimi */}
             <div className="space-y-1">
-              <Label>{t('admin.erp.tanimlar.haftaSonuPlanlari.form.makine')}</Label>
+              <Label>{t('admin.erp.tanimlar.haftaSonuPlanlari.form.makineler')} *</Label>
               <Controller
-                name="makineId"
+                name="makineIds"
                 control={control}
                 render={({ field }) => (
-                  <Select
-                    value={field.value ?? '__all__'}
-                    onValueChange={(v) => field.onChange(v === '__all__' ? null : v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('admin.erp.tanimlar.haftaSonuPlanlari.form.makineAll')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__all__">
-                        {t('admin.erp.tanimlar.haftaSonuPlanlari.form.makineAll')}
-                      </SelectItem>
-                      {makineler.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
-                          {m.kod} — {m.ad}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="max-h-64 space-y-2 overflow-y-auto rounded-md border p-3">
+                    {makineler.map((m) => {
+                      const checked = field.value.includes(m.id);
+                      return (
+                        <label key={m.id} className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(nextChecked) => {
+                              if (nextChecked) {
+                                field.onChange([...field.value, m.id]);
+                                return;
+                              }
+                              field.onChange(field.value.filter((value) => value !== m.id));
+                            }}
+                          />
+                          <span>{m.kod} — {m.ad}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 )}
               />
+              {errors.makineIds && (
+                <p className="text-xs text-destructive">{errors.makineIds.message}</p>
+              )}
               <p className="text-xs text-muted-foreground">
-                {t('admin.erp.tanimlar.haftaSonuPlanlari.form.makineHelp')}
+                {t('admin.erp.tanimlar.haftaSonuPlanlari.form.makinelerHelp')}
               </p>
             </div>
 
-            {/* Cumartesi Çalışır */}
-            <div className="flex items-center space-x-2">
-              <Controller
-                name="cumartesiCalisir"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="cumartesiCalisir"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-              <Label htmlFor="cumartesiCalisir" className="cursor-pointer">
-                {t('admin.erp.tanimlar.haftaSonuPlanlari.form.cumartesiCalisir')}
-              </Label>
-            </div>
-
-            {/* Pazar Çalışır */}
-            <div className="flex items-center space-x-2">
-              <Controller
-                name="pazarCalisir"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="pazarCalisir"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-              <Label htmlFor="pazarCalisir" className="cursor-pointer">
-                {t('admin.erp.tanimlar.haftaSonuPlanlari.form.pazarCalisir')}
-              </Label>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              {selectedMakineIds.length} {t('admin.erp.tanimlar.haftaSonuPlanlari.form.seciliMakine')}
+            </p>
 
             {/* Açıklama */}
             <div className="space-y-1">

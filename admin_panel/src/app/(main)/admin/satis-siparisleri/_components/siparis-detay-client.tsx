@@ -157,7 +157,14 @@ export default function SiparisDetayClient({ id }: { id: string }) {
           <Badge variant={URETIM_DURUMU_BADGE[data.uretimDurumu]} className="mt-1">
             {URETIM_DURUMU_LABELS[data.uretimDurumu]}
           </Badge>
-          <p className="mt-1 text-xs text-muted-foreground">%{uretimYuzde} tamamlandı</p>
+          {data.uretimPlanlananMiktar > 0 && (
+            <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+              {NUM(data.uretimTamamlananMiktar, 2)} / {NUM(data.uretimPlanlananMiktar, 2)} (%{uretimYuzde})
+            </p>
+          )}
+          {data.uretimPlanlananMiktar === 0 && (
+            <p className="mt-1 text-xs text-muted-foreground">%{uretimYuzde} tamamlandı</p>
+          )}
           {data.kilitli && <p className="text-xs text-amber-600">Kalemler kilitli</p>}
         </Card>
         <Card className="p-3">

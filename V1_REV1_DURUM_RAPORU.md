@@ -366,6 +366,15 @@ Bu is paketi V1 kapsami icindedir; cunku yeni modul eklemiyor, mevcut `Sevkiyat 
 | Sonraki emir no | `GET /next-no`                      | ✅ Otomatik       | ✅    |
 | Aday listesi    | `GET /adaylar`                      | ✅ Form icinde    | ✅    |
 
+### Rev1.1 — Musteri Ek Talepleri (2026-03-10)
+
+Musteri toplantisi sonrasi gelen yeni talepler:
+
+- [X] ✅ **Yeni emir formunda uretilen miktar gizlensin** — Yeni emir olusturulurken `uretilenMiktar` alani gosterilmez. Sadece duzenleme modunda gorunur
+- [X] ✅ **Yeni emir formunda tarih alanlari gizlensin** — `baslangicTarihi`, `bitisTarihi`, `terminTarihi` input alanlari yeni emirdayken gizli. Duzenleme modunda gorunur. `terminTarihi` siparisten otomatik doldurulur (hidden field)
+- [X] ✅ **Planlanan miktar serbest girilsin** — Siparis secildiginde toplam miktar otomatik yazilir ama kullanici degistirebilir (az, cok veya ayni olabilir)
+- [X] ✅ **Satis siparislerinde planlanan uretim miktari gorulsun** — Liste tablosunda uretim sutununda planlanan/toplam miktar gosterilir. `uretimPlanlananMiktar` zaten backend DTO'da mevcut
+
 ---
 
 ## 5. Makine Havuzu
@@ -591,6 +600,33 @@ Bu is paketi V1 kapsami icindedir; cunku yeni modul eklemiyor, mevcut `Sevkiyat 
 - [X] ✅ **Tatil gunleri genisletmesi** — `hafta_sonu_planlari` tablosu + CRUD API + frontend tab + planlama motoru entegrasyonu tamamlandi
 - [X] ✅ **Dropdown'larda arama** — Combobox bileseni olusturuldu (Popover + Command + arama). Tum ekranlarda kullanima hazir
 - [X] ✅ **Menu birlestirme onerileri** — Kaliplar + Makineler "Uretim Tanimlari" altinda, Tatiller + Vardiyalar + Durus Nedenleri "Calisma Planlari" altinda gruplanmis durumda
+
+### Yeni Is Kuralı Notu (2026-03-10)
+
+Mevcut hafta sonu plani modeli haftalik / `hafta_baslangic = pazartesi` mantigiyla calisir ve kayit icinde `cumartesi_calisir` + `pazar_calisir` flag'leri tasir. Kullanici geri bildirimi sonrasi bir sonraki revizyonda haftalik pazartesi bazli modelin kaldirilip, **hafta sonu odakli ama dogrudan Cumartesi/Pazar tarihi secilen** yapiya gecilmesi kararlastirildi.
+
+**Yeni hedef model:**
+
+- Admin artik "hafta baslangici" degil, dogrudan **ilgili hafta sonu tarihini** secer
+- Secilen tarih sadece **Cumartesi veya Pazar** olabilir; yani plan mantigi yine hafta sonu icin gecerlidir
+- O gun calisacak makineler **coklu secim** ile isaretlenir
+- Cumartesi ve Pazar icin planlar yine **ayri ayri** tutulur; fakat secim tarih uzerinden yapilir
+- "Tum makineler calisir" veya haftalik tek kayit mantigi kullanilmaz
+
+**Ornek akış:**
+
+1. Hafta sonu icindeki ilgili tarih secilir (`2026-03-14` Cumartesi veya `2026-03-15` Pazar gibi)
+2. O gun calisacak makineler secilir
+3. Kayit sadece secilen hafta sonu gunu icin gecerli olur
+4. Diger hafta sonu gunu gerekiyorsa ayri kayit olarak tanimlanir
+
+**Beklenen teknik etkiler:**
+
+- `hafta_sonu_planlari` veri modeli haftalik flag yapisindan cikacak; kayit artik fiilen `tarih + makine` seviyesinde ele alinacak
+- Backend validation Pazartesi kontrolu yerine **hafta sonu tarihi** (Cumartesi/Pazar) kontrolu yapacak
+- Frontend formundan `cumartesiCalisir` / `pazarCalisir` checkbox'lari kalkacak
+- Liste ekrani "hafta baslangici / cumartesi / pazar" kolonlari yerine **tarih / gun tipi / secili makineler** odakli gosterilecek
+- Planlama motoru belirli tarih icin "bu makine bu tarihte hafta sonu override listesinde var mi?" diye bakacak
 
 ### CRUD Operasyonlari
 
@@ -970,6 +1006,13 @@ ALTER TABLE `mal_kabul_kayitlari`
 - Planlama motoru: `isMakineWorkingDay()` ve `skipToNextWorkingDay()` yardimci fonksiyonlari eklendi
 - Varsayilan davranis: Hafta sonu calisma yok, plan varsa override edilir
 
+**Planlanan Refactor Notu (2026-03-10):**
+
+- Bu faz tamamlanmis olsa da hafta sonu plan modulu icin yeni bir operasyon karari alinmistir
+- Haftalik / Pazartesi tabanli model kaldirilacak
+- Yeni model: **tek tarih + o gun calisacak makineler**
+- Cumartesi ve Pazar kayitlari ayri tutulacak, haftalik cift-flag kaydi olmayacak
+
 ### Faz 7 — Urun Medya Sistemi
 
 | # | Is                             | Modul          | Durum |
@@ -1000,4 +1043,3 @@ ALTER TABLE `mal_kabul_kayitlari`
 | 8  | Satin alma: Otomatik siparis badge + kritik stok detayi     | Satin Alma           | ⏳    |
 | 9  | Dashboard: Mal kabul KPI iyilestirme                        | Dashboard            | ⏳    |
 | 10 | Sidebar + i18n + seed data                                  | Mal Kabul            | ⏳    |
-

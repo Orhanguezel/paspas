@@ -16,7 +16,7 @@ const BASE = '/admin/satin-alma';
 
 export const satinAlmaAdminApi = baseApi.injectEndpoints({
   endpoints: (b) => ({
-    listSatinAlmaAdmin: b.query<SatinAlmaListResponse, { q?: string; durum?: string } | void>({
+    listSatinAlmaAdmin: b.query<SatinAlmaListResponse, { q?: string; durum?: string; tedarikciId?: string } | void>({
       query: (params) => ({ url: BASE, params: params ?? undefined }),
       transformResponse: (res: unknown) => normalizeSatinAlmaList(res),
       providesTags: (result) =>

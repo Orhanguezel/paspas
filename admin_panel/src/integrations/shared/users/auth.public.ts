@@ -66,7 +66,7 @@ export interface AuthSignupBody {
   phone?: string;
   options?: {
     data?: {
-      role?: 'sevkiyatci' | 'operator' | 'satin_almaci';
+      role?: 'seller' | 'sevkiyatci' | 'operator' | 'satin_almaci';
       [key: string]: unknown;
     };
   };
@@ -93,7 +93,7 @@ export interface PasswordResetConfirmBody {
 }
 
 const roleList: UserRoleName[] = [
-  'admin', 'sevkiyatci', 'operator', 'satin_almaci',
+  'admin', 'seller', 'sevkiyatci', 'operator', 'satin_almaci',
 ];
 
 const coerceRole = (v: unknown): UserRoleName => {

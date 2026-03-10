@@ -79,7 +79,7 @@ function CategoryForm({ open, onClose, category }: CategoryFormProps) {
   const [create, createState] = useCreateCategoryAdminMutation();
   const [update, updateState] = useUpdateCategoryAdminMutation();
   const busy = createState.isLoading || updateState.isLoading;
-  const tK = (key: string) => t(`admin.erp.tanimlar.kategoriler.${key}`);
+  const tK = (key: string, params?: Record<string, string>) => t(`admin.erp.tanimlar.kategoriler.${key}`, params);
 
   const handleNameChange = (v: string) => {
     setName(v);
@@ -281,7 +281,7 @@ function SubCategoryForm({ open, onClose, categoryId, categoryName, subCategory 
   const [create, createState] = useCreateSubCategoryAdminMutation();
   const [update, updateState] = useUpdateSubCategoryAdminMutation();
   const busy = createState.isLoading || updateState.isLoading;
-  const tK = (key: string) => t(`admin.erp.tanimlar.kategoriler.${key}`);
+  const tK = (key: string, params?: Record<string, string>) => t(`admin.erp.tanimlar.kategoriler.${key}`, params);
 
   const handleNameChange = (v: string) => {
     setName(v);

@@ -4,6 +4,7 @@ import type { BoolLike } from '@/integrations/shared';
 
 export type UserRoleName =
   | 'admin'
+  | 'seller'
   | 'sevkiyatci'
   | 'operator'
   | 'satin_almaci'

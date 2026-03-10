@@ -18,9 +18,20 @@ function isMondayDateOnly(value: string): boolean {
   return utcDay === 1;
 }
 
+function isWeekendDateOnly(value: string): boolean {
+  const [year, month, day] = value.split('-').map(Number);
+  const utcDay = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return utcDay === 0 || utcDay === 6;
+}
+
 const haftaBaslangicSchema = z.preprocess(
   normalizeDateOnlyInput,
   z.string().regex(DATE_ONLY_REGEX, 'gecersiz_tarih').refine(isMondayDateOnly, 'hafta_baslangici_pazartesi_olmali'),
+);
+
+const haftaSonuTarihSchema = z.preprocess(
+  normalizeDateOnlyInput,
+  z.string().regex(DATE_ONLY_REGEX, 'gecersiz_tarih').refine(isWeekendDateOnly, 'hafta_sonu_tarihi_olmali'),
 );
 
 const tatilFieldsSchema = z.object({
@@ -115,10 +126,8 @@ export type PatchDurusNedeniBody = z.infer<typeof patchDurusNedeniSchema>;
 
 // ── Hafta Sonu Çalışma Planları ────────────────────────────
 const haftaSonuPlanFieldsSchema = z.object({
-  haftaBaslangic: haftaBaslangicSchema, // YYYY-MM-DD formatında, Pazartesi olmalı
-  makineId: z.string().min(1).nullable().optional(), // null = tüm makineler
-  cumartesiCalisir: z.boolean(),
-  pazarCalisir: z.boolean(),
+  haftaBaslangic: haftaSonuTarihSchema, // YYYY-MM-DD formatında, Cumartesi veya Pazar olmalı
+  makineIds: z.array(z.string().trim().min(1)).min(1, 'en_az_bir_makine_secilmeli'),
   aciklama: z.string().trim().max(500).nullable().optional(),
 });
 

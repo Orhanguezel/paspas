@@ -222,7 +222,7 @@ function BekleyenlerTab() {
       ) : gruplama === 'urun' && grouped ? (
         <div className="space-y-2">
           {grouped.map((group) => (
-            <GroupSection key={group.label} title={`${(group as { kod: string }).kod} — ${group.label}`} count={group.items.length}>
+            <GroupSection key={group.label} title={`${'kod' in group ? group.kod : ''} — ${group.label}`} count={group.items.length}>
               <UrunGrupTable items={group.items} onSevkEt={setDialogSatir} />
             </GroupSection>
           ))}

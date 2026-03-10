@@ -81,7 +81,7 @@ export default function UrunlerClient() {
   const { t } = useLocaleContext();
   const [search, setSearch] = useState("");
   const [kategoriFilter, setKategoriFilter] = useState("");
-  const [tedarikFilter, setTedarikFilter] = useState("");
+  const [tedarikFilter, setTedarikFilter] = useState<TedarikTipi | "">("");
   const [urunGrubuFilter, setUrunGrubuFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<UrunDto | null>(null);
@@ -257,7 +257,7 @@ export default function UrunlerClient() {
         </Select>
         <Select
           value={tedarikFilter || "all"}
-          onValueChange={(v) => setTedarikFilter(v === "all" ? "" : v)}
+          onValueChange={(v) => setTedarikFilter(v === "all" ? "" : (v as TedarikTipi))}
           disabled={allowedTedarikOptions.length === 0}
         >
           <SelectTrigger className="w-40">

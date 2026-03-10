@@ -349,13 +349,7 @@ async function isMakineWorkingDay(makineId: string, date: Date): Promise<boolean
   // Hafta sonu: hafta_sonu_planlari tablosuna bak
   // Once makine bazli plan var mi kontrol et, yoksa genel plan (makine_id=NULL)
   const plan = await repoGetHaftaSonuPlanByDate(date, makineId);
-
-  if (plan) {
-    // Cumartesi
-    if (dayOfWeek === 6) return plan.cumartesiCalisir;
-    // Pazar
-    if (dayOfWeek === 0) return plan.pazarCalisir;
-  }
+  if (plan) return plan.calisiyor;
 
   // Plan yoksa varsayilan: hafta sonu calisma yok
   return false;
