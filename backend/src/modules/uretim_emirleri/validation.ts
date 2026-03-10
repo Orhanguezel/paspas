@@ -40,9 +40,15 @@ export const createSchema = z.object({
 });
 
 export const patchSchema = createSchema
+  .omit({ durum: true, uretilenMiktar: true })
   .partial()
+  .extend({
+    durum: durumEnum.optional(),
+    uretilenMiktar: z.coerce.number().min(0).optional(),
+  })
   .superRefine((value, ctx) => {
-    if (Object.keys(value).length === 0) {
+    const keys = Object.keys(value).filter((k) => (value as Record<string, unknown>)[k] !== undefined);
+    if (keys.length === 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'en_az_bir_alan_gonderilmeli',
