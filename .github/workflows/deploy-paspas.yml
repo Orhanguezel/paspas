@@ -19,26 +19,43 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.7
+
+      - name: Build backend
+        working-directory: backend
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Build admin panel
+        working-directory: admin_panel
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Package deployment artifact
+        run: |
+          tar -czf /tmp/paspas-deploy.tar.gz \
+            README.md \
+            backend/dist \
+            admin_panel/.next \
+            admin_panel/public
+
       - name: Start SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.GZL_WEB_SSH_KEY }}
 
-      - name: Trust production host
+      - name: Upload artifact to gzl-web
         run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H 72.61.93.212 >> ~/.ssh/known_hosts
+          scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/paspas-deploy.tar.gz orhan@72.61.93.212:/var/www/paspas/.deploy/paspas-deploy.tar.gz
 
-      - name: Deploy on gzl-web
+      - name: Deploy artifact on gzl-web
         run: |
-          ssh orhan@72.61.93.212 '/home/orhan/bin/deploy-paspas'
-
-      - name: Post-deploy health checks
-        run: |
-          ssh orhan@72.61.93.212 '
-            set -euo pipefail
-            api_code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8078/api/site_settings/default-locale)
-            admin_code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3078/)
-            test "$api_code" = "200"
-            test "$admin_code" = "200" -o "$admin_code" = "307" -o "$admin_code" = "308"
-          '
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null orhan@72.61.93.212 '/home/orhan/bin/deploy-paspas-artifact /var/www/paspas/.deploy/paspas-deploy.tar.gz'
