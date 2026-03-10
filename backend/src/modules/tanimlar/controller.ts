@@ -382,7 +382,8 @@ export const updateHaftaSonuPlan: RouteHandler = async (req, reply) => {
 export const deleteHaftaSonuPlan: RouteHandler = async (req, reply) => {
   try {
     const { id } = req.params as { id: string };
-    await repoDeleteHaftaSonuPlan(id);
+    const deleted = await repoDeleteHaftaSonuPlan(id);
+    if (!deleted) return reply.code(404).send({ error: { message: 'hafta_sonu_plan_bulunamadi' } });
     return reply.code(204).send();
   } catch (error) {
     req.log.error({ error }, 'delete_hafta_sonu_plan_failed');

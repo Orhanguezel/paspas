@@ -317,7 +317,7 @@ export async function repoCreateHaftaSonuPlan(body: CreateHaftaSonuPlanBody, use
   const isSaturday = new Date(`${body.haftaBaslangic}T12:00:00Z`).getUTCDay() === 6;
 
   await db.transaction(async (tx) => {
-    await tx.delete(haftaSonuPlanlari).where(sql`date(${haftaSonuPlanlari.hafta_baslangic}) = ${hedefTarihStr}`);
+    await tx.execute(sql`delete from hafta_sonu_planlari where date(${haftaSonuPlanlari.hafta_baslangic}) = ${hedefTarihStr}`);
     await tx.insert(haftaSonuPlanlari).values(
       body.makineIds.map((makineId) => ({
         id: randomUUID(),
@@ -355,7 +355,7 @@ export async function repoUpdateHaftaSonuPlan(id: string, body: PatchHaftaSonuPl
   const isSaturday = new Date(`${hedefTarihStr}T12:00:00Z`).getUTCDay() === 6;
 
   await db.transaction(async (tx) => {
-    await tx.delete(haftaSonuPlanlari).where(sql`date(${haftaSonuPlanlari.hafta_baslangic}) = ${eskiTarih}`);
+    await tx.execute(sql`delete from hafta_sonu_planlari where date(${haftaSonuPlanlari.hafta_baslangic}) = ${eskiTarih}`);
     await tx.insert(haftaSonuPlanlari).values(
       makineIds.map((makineId) => ({
         id: randomUUID(),
@@ -377,10 +377,16 @@ export async function repoUpdateHaftaSonuPlan(id: string, body: PatchHaftaSonuPl
   return updated ? repoGetHaftaSonuPlanById(updated.id) : null;
 }
 
-export async function repoDeleteHaftaSonuPlan(id: string): Promise<void> {
+export async function repoDeleteHaftaSonuPlan(id: string): Promise<boolean> {
   const current = await repoGetHaftaSonuPlanById(id);
-  if (!current) return;
-  await db.delete(haftaSonuPlanlari).where(sql`date(${haftaSonuPlanlari.hafta_baslangic}) = ${toDateOnly(current.hafta_baslangic)}`);
+  if (!current) return false;
+  await db.execute(sql`delete from hafta_sonu_planlari where date(${haftaSonuPlanlari.hafta_baslangic}) = ${toDateOnly(current.hafta_baslangic)}`);
+  const [remaining] = await db
+    .select({ id: haftaSonuPlanlari.id })
+    .from(haftaSonuPlanlari)
+    .where(sql`date(${haftaSonuPlanlari.hafta_baslangic}) = ${toDateOnly(current.hafta_baslangic)}`)
+    .limit(1);
+  return !remaining;
 }
 
 /**

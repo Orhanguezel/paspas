@@ -1043,3 +1043,8 @@ ALTER TABLE `mal_kabul_kayitlari`
 | 8  | Satin alma: Otomatik siparis badge + kritik stok detayi     | Satin Alma           | ⏳    |
 | 9  | Dashboard: Mal kabul KPI iyilestirme                        | Dashboard            | ⏳    |
 | 10 | Sidebar + i18n + seed data                                  | Mal Kabul            | ⏳    |
+
+
+
+
+:8078/api/admin/uretim-emirleri:1  Failed to load resource: the server responded with a status of 400 (Bad Request)
