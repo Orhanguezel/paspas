@@ -1,12 +1,20 @@
 import { randomUUID } from 'node:crypto';
 
-import { asc, desc, eq, inArray } from 'drizzle-orm';
+import { asc, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { makineler } from '@/modules/makine_havuzu/schema';
 
 import { kaliplar, kalipUyumluMakineler, tatilMakineler, tatiller, vardiyalar, durusNedenleri, haftaSonuPlanlari, type KalipRow, type TatilRow, type VardiyaRow, type DurusNedeniRow, type HaftaSonuPlanDtoRow, type HaftaSonuPlanRow } from './schema';
 import type { CreateKalipBody, CreateTatilBody, PatchKalipBody, PatchTatilBody, SetKalipUyumluMakinelerBody, CreateVardiyaBody, PatchVardiyaBody, CreateDurusNedeniBody, PatchDurusNedeniBody, CreateHaftaSonuPlanBody, PatchHaftaSonuPlanBody } from './validation';
+
+function toDateOnly(value: Date | string): string {
+  return value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+}
+
+function toDbDate(value: Date | string): Date {
+  return new Date(`${toDateOnly(value)}T12:00:00.000Z`);
+}
 
 export async function repoListMakineler() {
   return db.select().from(makineler).orderBy(desc(makineler.created_at));
@@ -237,9 +245,7 @@ export async function repoListHaftaSonuPlanlari(): Promise<Array<HaftaSonuPlanRo
   const grouped = new Map<string, HaftaSonuPlanDtoRow & { makine_ad?: string }>();
 
   for (const row of rows as (HaftaSonuPlanRow & { makine_ad?: string })[]) {
-    const tarih = row.hafta_baslangic instanceof Date
-      ? row.hafta_baslangic.toISOString().slice(0, 10)
-      : String(row.hafta_baslangic).slice(0, 10);
+    const tarih = toDateOnly(row.hafta_baslangic);
     const current = grouped.get(tarih);
 
     if (!current) {
@@ -300,11 +306,12 @@ export async function repoGetHaftaSonuPlanById(id: string): Promise<(HaftaSonuPl
 }
 
 export async function repoCreateHaftaSonuPlan(body: CreateHaftaSonuPlanBody, userId?: string): Promise<HaftaSonuPlanRow & { makine_ad?: string }> {
-  const hedefTarih = new Date(`${body.haftaBaslangic}T00:00:00.000Z`);
+  const hedefTarih = toDbDate(body.haftaBaslangic);
+  const hedefTarihStr = toDateOnly(body.haftaBaslangic);
   const isSaturday = new Date(`${body.haftaBaslangic}T12:00:00Z`).getUTCDay() === 6;
 
   await db.transaction(async (tx) => {
-    await tx.delete(haftaSonuPlanlari).where(eq(haftaSonuPlanlari.hafta_baslangic, hedefTarih));
+    await tx.delete(haftaSonuPlanlari).where(sql`date(${haftaSonuPlanlari.hafta_baslangic}) = ${hedefTarihStr}`);
     await tx.insert(haftaSonuPlanlari).values(
       body.makineIds.map((makineId) => ({
         id: randomUUID(),
@@ -321,7 +328,7 @@ export async function repoCreateHaftaSonuPlan(body: CreateHaftaSonuPlanBody, use
   const [inserted] = await db
     .select({ id: haftaSonuPlanlari.id })
     .from(haftaSonuPlanlari)
-    .where(eq(haftaSonuPlanlari.hafta_baslangic, hedefTarih))
+    .where(sql`date(${haftaSonuPlanlari.hafta_baslangic}) = ${hedefTarihStr}`)
     .limit(1);
   const row = inserted ? await repoGetHaftaSonuPlanById(inserted.id) : null;
   if (!row) throw new Error('insert_failed');
@@ -332,9 +339,9 @@ export async function repoUpdateHaftaSonuPlan(id: string, body: PatchHaftaSonuPl
   const current = await repoGetHaftaSonuPlanById(id);
   if (!current) return null;
 
-  const hedefTarihStr = body.haftaBaslangic ?? String(current.hafta_baslangic).slice(0, 10);
-  const hedefTarih = new Date(`${hedefTarihStr}T00:00:00.000Z`);
-  const eskiTarih = new Date(`${String(current.hafta_baslangic).slice(0, 10)}T00:00:00.000Z`);
+  const hedefTarihStr = body.haftaBaslangic ?? toDateOnly(current.hafta_baslangic);
+  const hedefTarih = toDbDate(hedefTarihStr);
+  const eskiTarih = toDateOnly(current.hafta_baslangic);
   const currentMakineIds = (current as unknown as HaftaSonuPlanDtoRow).makine_ids
     ?? (current.makine_id ? [current.makine_id] : []);
   const makineIds = body.makineIds ?? currentMakineIds;
@@ -342,7 +349,7 @@ export async function repoUpdateHaftaSonuPlan(id: string, body: PatchHaftaSonuPl
   const isSaturday = new Date(`${hedefTarihStr}T12:00:00Z`).getUTCDay() === 6;
 
   await db.transaction(async (tx) => {
-    await tx.delete(haftaSonuPlanlari).where(eq(haftaSonuPlanlari.hafta_baslangic, eskiTarih));
+    await tx.delete(haftaSonuPlanlari).where(sql`date(${haftaSonuPlanlari.hafta_baslangic}) = ${eskiTarih}`);
     await tx.insert(haftaSonuPlanlari).values(
       makineIds.map((makineId) => ({
         id: randomUUID(),
@@ -359,7 +366,7 @@ export async function repoUpdateHaftaSonuPlan(id: string, body: PatchHaftaSonuPl
   const [updated] = await db
     .select({ id: haftaSonuPlanlari.id })
     .from(haftaSonuPlanlari)
-    .where(eq(haftaSonuPlanlari.hafta_baslangic, hedefTarih))
+    .where(sql`date(${haftaSonuPlanlari.hafta_baslangic}) = ${hedefTarihStr}`)
     .limit(1);
   return updated ? repoGetHaftaSonuPlanById(updated.id) : null;
 }
@@ -367,7 +374,7 @@ export async function repoUpdateHaftaSonuPlan(id: string, body: PatchHaftaSonuPl
 export async function repoDeleteHaftaSonuPlan(id: string): Promise<void> {
   const current = await repoGetHaftaSonuPlanById(id);
   if (!current) return;
-  await db.delete(haftaSonuPlanlari).where(eq(haftaSonuPlanlari.hafta_baslangic, new Date(`${String(current.hafta_baslangic).slice(0, 10)}T00:00:00.000Z`)));
+  await db.delete(haftaSonuPlanlari).where(sql`date(${haftaSonuPlanlari.hafta_baslangic}) = ${toDateOnly(current.hafta_baslangic)}`);
 }
 
 /**
@@ -380,11 +387,11 @@ export async function repoGetHaftaSonuPlanByDate(
 ): Promise<{ calisiyor: boolean } | null> {
   if (!makineId) return null;
 
-  const tarihStr = tarih.toISOString().slice(0, 10);
+  const tarihStr = toDateOnly(tarih);
   const rows = await db
     .select({ makine_id: haftaSonuPlanlari.makine_id })
     .from(haftaSonuPlanlari)
-    .where(eq(haftaSonuPlanlari.hafta_baslangic, new Date(`${tarihStr}T00:00:00.000Z`)))
+    .where(sql`date(${haftaSonuPlanlari.hafta_baslangic}) = ${tarihStr}`)
     .limit(200);
 
   if (rows.length === 0) return null;
