@@ -73,7 +73,7 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
   const [update, updateState] = useUpdateUretimEmriAdminMutation();
   const loading = createState.isLoading || updateState.isLoading;
 
-  const { data: urunlerData } = useListUrunlerAdminQuery({ limit: 1000, kategori: 'urun' });
+  const { data: urunlerData } = useListUrunlerAdminQuery({ limit: 500, kategori: 'urun' });
   const { data: adaylar = [] } = useListUretimEmriAdaylariAdminQuery();
   const { data: nextNoData } = useGetNextEmirNoAdminQuery(undefined, { skip: isEdit });
 
@@ -217,6 +217,10 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
       // New emri: don't send uretilenMiktar (server default 0)
       ...(!isEdit ? { uretilenMiktar: undefined, baslangicTarihi: undefined, bitisTarihi: undefined } : {}),
     };
+    // Debug: log what we send to backend
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[UretimEmriForm] payload:', JSON.parse(JSON.stringify(payload)));
+    }
     try {
       if (isEdit && emri) {
         await update({ id: emri.id, body: payload }).unwrap();
@@ -227,10 +231,18 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
       }
       onClose();
     } catch (err: unknown) {
-      const message =
-        typeof err === 'object' && err && 'data' in err
-          ? (err as { data?: { error?: { message?: string } } }).data?.error?.message
-          : undefined;
+      const errData = typeof err === 'object' && err && 'data' in err
+        ? (err as { data?: { error?: { message?: string; issues?: { fieldErrors?: Record<string, string[]> } } } }).data?.error
+        : undefined;
+      let message = errData?.message;
+      // Show field-level validation errors from backend
+      if (errData?.issues?.fieldErrors) {
+        const fields = Object.entries(errData.issues.fieldErrors)
+          .filter(([, msgs]) => msgs && msgs.length > 0)
+          .map(([field, msgs]) => `${field}: ${msgs!.join(', ')}`)
+          .join('\n');
+        if (fields) message = `${message ?? 'Hata'}\n${fields}`;
+      }
       toast.error(message ?? t('admin.erp.common.operationFailed'));
     }
   }
@@ -405,7 +417,7 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
                 disabled={kaynakTipi === 'siparis' && selectedAdaylar.length > 0}
                 placeholder={t('admin.erp.uretimEmirleri.form.urunPlaceholder')}
                 searchPlaceholder={t('admin.erp.uretimEmirleri.form.urunPlaceholder')}
-                emptyText={t('admin.erp.common.noData')}
+                emptyText={t('admin.common.noData')}
               />
               {errors.urunId && <p className="text-destructive text-xs">{errors.urunId.message}</p>}
             </div>

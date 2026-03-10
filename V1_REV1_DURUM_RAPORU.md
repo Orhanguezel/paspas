@@ -1045,4 +1045,4 @@ ALTER TABLE `mal_kabul_kayitlari`
 | 10 | Sidebar + i18n + seed data                                  | Mal Kabul            | ⏳    |
 
 
-ürün de operasyon tap i var. burda eger ürün cift tarafli ise yani isag sol 
+ürün de operasyon tap i var. burda eger ürün cift tarafli ise yani isag sol ayri kaliplarda üretiliyorsa ayri makineler secilebilmeli. suan bu var. ilave olarak montaj da isaretli. üründeki operasyon tabindan mondaj dugmesini kaldir. bu montaj dugmesi 

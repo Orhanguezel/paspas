@@ -56,7 +56,10 @@ export const getUretimEmri: RouteHandler = async (req, reply) => {
 export const createUretimEmri: RouteHandler = async (req, reply) => {
   try {
     const parsed = createSchema.safeParse(req.body);
-    if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
+    if (!parsed.success) {
+      req.log.warn({ body: req.body, issues: parsed.error.flatten() }, 'create_uretim_emri_validation_failed');
+      return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
+    }
     const row = await repoCreate(parsed.data);
     return reply.code(201).send(rowToDto(row));
   } catch (error: unknown) {
@@ -71,7 +74,10 @@ export const updateUretimEmri: RouteHandler = async (req, reply) => {
   try {
     const { id } = req.params as { id: string };
     const parsed = patchSchema.safeParse(req.body);
-    if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
+    if (!parsed.success) {
+      req.log.warn({ body: req.body, issues: parsed.error.flatten() }, 'update_uretim_emri_validation_failed');
+      return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
+    }
     const row = await repoUpdate(id, parsed.data);
     if (!row) return reply.code(404).send({ error: { message: 'uretim_emri_bulunamadi' } });
     return reply.send(rowToDto(row));
