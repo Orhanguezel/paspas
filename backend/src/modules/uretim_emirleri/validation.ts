@@ -5,6 +5,12 @@ const orderEnum = z.enum(['asc', 'desc']);
 const durumEnum = z.enum(['atanmamis', 'planlandi', 'uretimde', 'tamamlandi', 'iptal']);
 const uuidSchema = z.string().uuid();
 
+// Accepts a date string (YYYY-MM-DD) or empty string → undefined
+const optionalDateSchema = z.preprocess(
+  (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+  z.string().date().optional(),
+);
+
 const isActiveQuerySchema = z.preprocess((value) => {
   if (value === 'true' || value === '1') return true;
   if (value === 'false' || value === '0') return false;
@@ -32,9 +38,9 @@ export const createSchema = z.object({
   musteriDetay: z.string().trim().max(1000).optional(),
   planlananMiktar: z.coerce.number().positive(),
   uretilenMiktar: z.coerce.number().min(0).default(0),
-  baslangicTarihi: z.string().date().optional(),
-  bitisTarihi: z.string().date().optional(),
-  terminTarihi: z.string().date().optional(),
+  baslangicTarihi: optionalDateSchema,
+  bitisTarihi: optionalDateSchema,
+  terminTarihi: optionalDateSchema,
   durum: durumEnum.default('atanmamis'),
   isActive: z.boolean().optional(),
 });

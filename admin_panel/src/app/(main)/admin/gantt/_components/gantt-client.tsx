@@ -34,20 +34,37 @@ const COL_W = 40; // piksel / gün
 const ROW_H = 56; // piksel / satır
 const LABEL_W = 260; // sol etiket sütunu genişliği
 
-const DURUM_COLORS: Record<string, string> = {
-  atanmamis:    'bg-gray-400',
-  planlandi:    'bg-slate-400',
-  uretimde:     'bg-blue-500',
-  tamamlandi:   'bg-emerald-500',
-  iptal:        'bg-red-400',
-};
-
-const DURUM_BAR_FILL: Record<string, string> = {
-  atanmamis:    'bg-gray-300',
-  planlandi:    'bg-slate-300',
-  uretimde:     'bg-blue-300',
-  tamamlandi:   'bg-emerald-200',
-  iptal:        'bg-red-200',
+const DURUM_STYLES: Record<string, { dot: string; track: string; fill: string; icon: string }> = {
+  atanmamis: {
+    dot: 'bg-zinc-700',
+    track: 'bg-zinc-200 ring-1 ring-zinc-300',
+    fill: 'bg-zinc-600',
+    icon: 'text-zinc-700',
+  },
+  planlandi: {
+    dot: 'bg-amber-600',
+    track: 'bg-amber-100 ring-1 ring-amber-300',
+    fill: 'bg-amber-500',
+    icon: 'text-amber-700',
+  },
+  uretimde: {
+    dot: 'bg-indigo-600',
+    track: 'bg-indigo-100 ring-1 ring-indigo-300',
+    fill: 'bg-indigo-600',
+    icon: 'text-indigo-700',
+  },
+  tamamlandi: {
+    dot: 'bg-emerald-600',
+    track: 'bg-emerald-100 ring-1 ring-emerald-300',
+    fill: 'bg-emerald-500',
+    icon: 'text-emerald-700',
+  },
+  iptal: {
+    dot: 'bg-rose-600',
+    track: 'bg-rose-100 ring-1 ring-rose-300',
+    fill: 'bg-rose-500',
+    icon: 'text-rose-700',
+  },
 };
 
 const ALL_DURUMLAR = ['atanmamis', 'planlandi', 'uretimde', 'tamamlandi', 'iptal'] as const;
@@ -291,7 +308,7 @@ export default function GanttClient() {
                 {ALL_DURUMLAR.map((d) => (
                   <SelectItem key={d} value={d}>
                     <span className="flex items-center gap-2">
-                      <span className={`inline-block size-2 rounded-full ${DURUM_COLORS[d]}`} />
+                      <span className={`inline-block size-2 rounded-full ${DURUM_STYLES[d].dot}`} />
                       {EMIR_DURUM_LABELS[d]}
                     </span>
                   </SelectItem>
@@ -328,7 +345,7 @@ export default function GanttClient() {
           <div className="flex items-center gap-3 pb-1 ml-auto">
             {ALL_DURUMLAR.map((d) => (
               <div key={d} className="flex items-center gap-1.5">
-                <span className={`inline-block size-3 rounded-sm ${DURUM_COLORS[d]}`} />
+                <span className={`inline-block size-3 rounded-sm ${DURUM_STYLES[d].dot}`} />
                 <span className="text-xs text-muted-foreground">{EMIR_DURUM_LABELS[d]}</span>
               </div>
             ))}
@@ -492,8 +509,7 @@ function GanttRow({
     barWidth = COL_W; // tek gün
   }
 
-  const barColor = DURUM_BAR_FILL[durum] ?? 'bg-slate-300';
-  const fillColor = DURUM_COLORS[durum] ?? 'bg-slate-400';
+  const statusStyle = DURUM_STYLES[durum] ?? DURUM_STYLES.planlandi;
 
   return (
     <div className={`relative border-b ${isTamamlandi ? 'opacity-60' : ''}`} style={{ height: ROW_H }}>
@@ -520,30 +536,30 @@ function GanttRow({
               style={{ left: barLeft + 2, width: Math.max(barWidth - 4, 8) }}
             >
               {/* Arka plan bar */}
-              <div className={`h-7 rounded-md ${barColor} relative overflow-hidden shadow-sm ${isIptal ? 'opacity-50' : ''}`}>
+              <div className={`h-7 rounded-md ${statusStyle.track} relative overflow-hidden shadow-sm ${isIptal ? 'opacity-50' : ''}`}>
                 {/* İlerleme dolgu */}
                 {pct > 0 && !isIptal && (
                   <div
-                    className={`absolute inset-y-0 left-0 rounded-l-md ${fillColor} transition-all`}
+                    className={`absolute inset-y-0 left-0 rounded-l-md ${statusStyle.fill} transition-all`}
                     style={{ width: `${pct}%` }}
                   />
                 )}
                 {/* Tamamlandı checkmark */}
                 {isTamamlandi && barWidth > 30 && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <CheckCircle2 className="size-4 text-emerald-700 drop-shadow-sm" />
+                    <CheckCircle2 className={`size-4 drop-shadow-sm ${statusStyle.icon}`} />
                   </div>
                 )}
                 {/* Bar içi yüzde — tamamlanmış/iptal değilse */}
                 {!isTamamlandi && !isIptal && barWidth > 60 && (
-                  <div className="absolute inset-0 flex items-center justify-center text-[10px] font-medium text-white drop-shadow-sm">
+                  <div className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-white drop-shadow-sm">
                     {pct}%
                   </div>
                 )}
                 {/* Montaj ikonu */}
                 {item.montaj && barWidth > 20 && (
                   <div className="absolute right-1 top-1/2 -translate-y-1/2">
-                    <Wrench className="size-3 text-amber-600 drop-shadow-sm" />
+                    <Wrench className="size-3 text-amber-800 drop-shadow-sm" />
                   </div>
                 )}
               </div>
