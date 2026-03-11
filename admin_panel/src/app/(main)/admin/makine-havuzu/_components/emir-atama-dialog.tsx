@@ -14,7 +14,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   useAtaOperasyonAdminMutation,
@@ -138,54 +137,42 @@ export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogPro
                         </>
                       )}
                   </Label>
-                  <Select
-                    value={selections[op.id] ?? 'none'}
-                    onValueChange={(v) => setSelections((prev) => ({ ...prev, [op.id]: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('kuyrukYonetimi.atama.makineSecin')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">{t('kuyrukYonetimi.atama.makineSecin')}</SelectItem>
-                      {makineler.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
-                          {m.kod} — {m.ad}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={selections[op.id] ?? 'none'}
+                      onValueChange={(v) => setSelections((prev) => ({ ...prev, [op.id]: v }))}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder={t('kuyrukYonetimi.atama.makineSecin')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">{t('kuyrukYonetimi.atama.makineSecin')}</SelectItem>
+                        {makineler.map((m) => (
+                          <SelectItem key={m.id} value={m.id}>
+                            {m.kod} — {m.ad}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {/* Montaj radio — sadece çift taraflı emirlerde göster */}
+                    {!isSingleOp && (
+                      <div
+                        className={`flex items-center gap-1.5 cursor-pointer rounded-md border px-2.5 py-2 text-xs transition-colors ${montajOpId === op.id ? 'border-primary bg-primary/10 text-primary' : 'border-muted bg-muted/20 text-muted-foreground'}`}
+                        onClick={() => setMontajOpId(op.id)}
+                      >
+                        <span className={`size-3.5 rounded-full border-2 flex items-center justify-center ${montajOpId === op.id ? 'border-primary' : 'border-muted-foreground/40'}`}>
+                          {montajOpId === op.id && <span className="size-2 rounded-full bg-primary" />}
+                        </span>
+                        <span className="whitespace-nowrap">Montaj</span>
+                      </div>
+                    )}
+                  </div>
                   {op.kalipId && makineler.length === 0 && (
                     <p className="mt-1 text-destructive text-xs">{t('kuyrukYonetimi.atama.uyumluMakineYok')}</p>
                   )}
                 </div>
               );
             })}
-
-            {/* Montaj seçimi — sadece çift taraflı (multi-op) emirlerde */}
-            {!isSingleOp && emir.operasyonlar.length > 1 && (
-              <div className="rounded-md border bg-muted/10 p-3 space-y-2">
-                <Label className="text-xs font-medium">Montaj Makinesi</Label>
-                <RadioGroup
-                  value={montajOpId ?? ''}
-                  onValueChange={(v) => setMontajOpId(v)}
-                  className="flex flex-col gap-2"
-                >
-                  {emir.operasyonlar.map((op) => (
-                    <div key={op.id} className="flex items-center gap-2">
-                      <RadioGroupItem value={op.id} id={`montaj-${op.id}`} />
-                      <Label htmlFor={`montaj-${op.id}`} className="text-xs cursor-pointer">
-                        {op.operasyonAdi}
-                        {selections[op.id] && selections[op.id] !== 'none' && (
-                          <span className="ml-1 text-muted-foreground">
-                            ({allMakineler.find((m) => m.id === selections[op.id])?.kod ?? '—'})
-                          </span>
-                        )}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
-            )}
           </div>
         )}
 
