@@ -60,6 +60,11 @@ export const satinAlmaAdminApi = baseApi.injectEndpoints({
         { type: 'SatinAlmalar', id: 'LIST' },
       ],
     }),
+
+    checkCriticalStockAdmin: b.mutation<{ ok: boolean }, void>({
+      query: () => ({ url: `${BASE}/kritik-stok-kontrol`, method: 'POST' }),
+      invalidatesTags: [{ type: 'SatinAlmalar', id: 'LIST' }],
+    }),
   }),
   overrideExisting: true,
 });
@@ -71,4 +76,5 @@ export const {
   useCreateSatinAlmaAdminMutation,
   useUpdateSatinAlmaAdminMutation,
   useDeleteSatinAlmaAdminMutation,
+  useCheckCriticalStockAdminMutation,
 } = satinAlmaAdminApi;

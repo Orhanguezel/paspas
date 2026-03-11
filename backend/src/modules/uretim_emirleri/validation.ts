@@ -5,10 +5,26 @@ const orderEnum = z.enum(['asc', 'desc']);
 const durumEnum = z.enum(['atanmamis', 'planlandi', 'uretimde', 'tamamlandi', 'iptal']);
 const uuidSchema = z.string().uuid();
 
+// Accepts a UUID string or empty string → undefined
+const optionalUuidSchema = z.preprocess(
+  (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+  uuidSchema.optional(),
+);
+
 // Accepts a date string (YYYY-MM-DD) or empty string → undefined
 const optionalDateSchema = z.preprocess(
   (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
   z.string().date().optional(),
+);
+
+// Filters out empty strings from UUID arrays
+const optionalUuidArraySchema = z.preprocess(
+  (v) => {
+    if (!Array.isArray(v)) return v;
+    const filtered = v.filter((item) => typeof item === 'string' && item.trim() !== '');
+    return filtered.length > 0 ? filtered : undefined;
+  },
+  z.array(uuidSchema).optional(),
 );
 
 const isActiveQuerySchema = z.preprocess((value) => {
@@ -31,9 +47,9 @@ export const listQuerySchema = z.object({
 
 export const createSchema = z.object({
   emirNo: z.string().trim().min(1).max(64),
-  siparisKalemIds: z.array(uuidSchema).optional(),
+  siparisKalemIds: optionalUuidArraySchema,
   urunId: uuidSchema,
-  receteId: uuidSchema.optional(),
+  receteId: optionalUuidSchema,
   musteriOzet: z.string().trim().max(255).optional(),
   musteriDetay: z.string().trim().max(1000).optional(),
   planlananMiktar: z.coerce.number().positive(),

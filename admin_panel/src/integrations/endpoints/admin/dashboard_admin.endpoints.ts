@@ -36,7 +36,7 @@ export interface DashboardTrend {
 
 export interface ActionItem {
   id: string;
-  type: 'overdue_production' | 'overdue_sales' | 'overdue_purchase' | 'overdue_task' | 'critical_stock' | 'pending_purchase' | 'shipment_approval' | 'physical_shipment';
+  type: 'overdue_production' | 'overdue_sales' | 'overdue_purchase' | 'overdue_task' | 'critical_stock' | 'pending_purchase' | 'shipment_approval' | 'physical_shipment' | 'unassigned_production' | 'machine_fault' | 'quality_reject' | 'production_completed' | 'new_sales_order' | 'goods_received' | 'shipment_completed' | 'machine_status_change';
   severity: 'critical' | 'warning';
   title: string;
   subtitle: string;

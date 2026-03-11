@@ -87,8 +87,8 @@ Bu bolum, son kullanici geri bildirimi uzerine bir sonraki implementasyon dalgas
 - [X] ✅ **Admin gorevi: sevk onay bekleyen kayit**`sevk_emri` olusturuldugunda ve/veya `bekliyor` durumunda admin gorevlerine "Sevk onayini ver" gorevi otomatik dusuyor
 - [X] ✅ **Admin gorevi: fiziksel sevk bekleyen kayit**`sevk_emri` `onaylandi` oldugunda, ilgili kayit "Fiziksel sevki tamamla" gorevi olarak admin ve sevkiyat rolunun is listesine dusuyor
 - [X] ✅ **Gorev auto-close / auto-update**Kayit `sevk_edildi` veya `iptal` oldugunda ilgili gorevler otomatik kapanıyor; `bekliyor -> onaylandi` gecisinde admin onay gorevi tamamlanip fiziksel sevk gorevleri aciliyor
-- [ ] 🔧 **Modul bazli derin link**
-  Gorev kartindan tiklayinca ilgili `Sevkiyat` kaydina/filtreli ekrana gitmeli
+- [X] ✅ **Modul bazli derin link**
+  Gorev kartindan tiklayinca ilgili kayda/filtreli ekrana gidiyor (MODUL_ROUTE_MAP + buildDeepLink)
 
 #### B. Sevkiyatci Ekrani ve Yetki Akisi
 
@@ -513,9 +513,9 @@ Musteri toplantisi sonrasi gelen yeni talepler:
 **Beklenen:**
 
 - [X] ✅ Otomatik olusan siparislerde "Otomatik" badge'i gosteriliyor
-- [ ] 🔧 Siparis aciklamasinda kritik stok detayi olmali (urun kodu, mevcut stok, kritik seviye, eksik miktar)
-- [ ] 🔧 Siparis detay sayfasinda kalem bazli "kritik stok durumu" gosterilmeli
-- [ ] 🔧 Kritik stok tetiklemesi liste isteginden ayrilmali (ayri endpoint veya scheduled job)
+- [X] ✅ Siparis aciklamasinda kritik stok detayi (urun kodu, mevcut stok, kritik seviye, eksik miktar) buildAutoDraftNote ile
+- [X] ✅ Siparis detay sayfasinda kalem bazli "kritik stok durumu" gosteriliyor (Kritik/Yeterli badge)
+- [X] ✅ Kritik stok tetiklemesi liste isteginden ayrildi (POST /satin-alma/kritik-stok-kontrol endpoint + buton)
 
 #### E2. Mal Kabul Akisi Sadece Satin Almaya Bagli
 
@@ -545,7 +545,7 @@ Musteri toplantisi sonrasi gelen yeni talepler:
 
 **Beklenen:**
 
-- [ ] 🔧 Mal Kabul modulu ile birlikte cozulecek
+- [X] ✅ Mal Kabul modulu tamamlandi (backend + frontend, coklu kaynak tipi destegi, filtreleme)
 
 ---
 

@@ -1,7 +1,7 @@
 import type { FastifyReply, RouteHandler } from 'fastify';
 
 import { kalemRowToDto, siparisRowToDto } from './schema';
-import { repoCreate, repoDelete, repoGetById, repoList, repoNextSiparisNo, repoUpdate } from './repository';
+import { ensureCriticalStockDrafts, repoCreate, repoDelete, repoGetById, repoList, repoNextSiparisNo, repoUpdate } from './repository';
 import { createSchema, listQuerySchema, patchSchema } from './validation';
 
 function sendInternalError(reply: FastifyReply) {
@@ -80,6 +80,16 @@ export const deleteSatinAlmaSiparisi: RouteHandler = async (req, reply) => {
     return reply.code(204).send();
   } catch (error) {
     req.log.error({ error }, 'delete_satin_alma_siparisi_failed');
+    return sendInternalError(reply);
+  }
+};
+
+export const checkCriticalStock: RouteHandler = async (req, reply) => {
+  try {
+    await ensureCriticalStockDrafts();
+    return reply.send({ ok: true });
+  } catch (error) {
+    req.log.error({ error }, 'check_critical_stock_failed');
     return sendInternalError(reply);
   }
 };

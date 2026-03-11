@@ -133,7 +133,7 @@ function buildAutoDraftNote(
   return `${AUTO_DRAFT_NOTE} ${detaylar.join(' ; ')}`;
 }
 
-async function ensureCriticalStockDrafts(): Promise<void> {
+export async function ensureCriticalStockDrafts(): Promise<void> {
   const [kritikUrunler, tedarikciler, acikSiparisKalemleri] = await Promise.all([
     db
       .select({
@@ -272,8 +272,6 @@ async function ensureCriticalStockDrafts(): Promise<void> {
 }
 
 export async function repoList(query: ListQuery): Promise<ListResult> {
-  await ensureCriticalStockDrafts();
-
   const where = buildWhere(query);
   const orderBy = getOrderBy(query);
   const [items, countResult] = await Promise.all([

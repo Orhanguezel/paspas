@@ -7,7 +7,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Plus, RefreshCcw, Pencil, Trash2, Search, Eye } from 'lucide-react';
+import { AlertCircle, Plus, RefreshCcw, Pencil, Trash2, Search, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
 
@@ -28,6 +28,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 
 import {
+  useCheckCriticalStockAdminMutation,
   useGetSatinAlmaAdminQuery,
   useListSatinAlmaAdminQuery,
   useDeleteSatinAlmaAdminMutation,
@@ -78,6 +79,7 @@ export default function SatinAlmaClient({ initialTedarikciId }: SatinAlmaClientP
     skip: !editing?.id,
   });
   const [deleteSiparis, deleteState] = useDeleteSatinAlmaAdminMutation();
+  const [checkCriticalStock, checkState] = useCheckCriticalStockAdminMutation();
 
   const items = data?.items ?? [];
   const summary = useMemo(() => {
@@ -137,6 +139,22 @@ export default function SatinAlmaClient({ initialTedarikciId }: SatinAlmaClientP
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                await checkCriticalStock().unwrap();
+                toast.success('Kritik stok kontrolü tamamlandı');
+              } catch {
+                toast.error('Kritik stok kontrolü başarısız');
+              }
+            }}
+            disabled={checkState.isLoading}
+          >
+            <AlertCircle className={`mr-1 size-4${checkState.isLoading ? ' animate-spin' : ''}`} />
+            Kritik Stok Kontrol
+          </Button>
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCcw className={`size-4${isFetching ? ' animate-spin' : ''}`} />
           </Button>

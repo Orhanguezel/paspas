@@ -169,6 +169,14 @@ const ACTION_TYPE_LABELS: Record<ActionItem['type'], string> = {
   pending_purchase: 'Onay',
   shipment_approval: 'Sevkiyat',
   physical_shipment: 'Fiziksel Sevk',
+  unassigned_production: 'Atanmamış Emir',
+  machine_fault: 'Makine Arıza',
+  quality_reject: 'Kalite Red',
+  production_completed: 'Üretim Tamamlandı',
+  new_sales_order: 'Yeni Sipariş',
+  goods_received: 'Mal Kabul',
+  shipment_completed: 'Sevkiyat Tamamlandı',
+  machine_status_change: 'Makine Durumu',
 };
 
 const ROLE_LABELS: Record<UserRoleName, string> = {

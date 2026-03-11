@@ -34,7 +34,7 @@ import type { UretimEmriAdayDto, UretimEmriDto } from '@/integrations/shared/erp
 
 const schema = z.object({
   emirNo:          z.string().min(1, 'Zorunlu'),
-  urunId:          z.string().min(1, 'Ürün seçiniz'),
+  urunId:          z.string().uuid('Ürün seçiniz'),
   planlananMiktar: z.coerce.number().positive('0\'dan büyük olmalı'),
   uretilenMiktar:  z.coerce.number().min(0).default(0),
   baslangicTarihi: z.string().optional(),
@@ -204,7 +204,7 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
   const lockedUrunId = selectedAdaylar.length > 0 ? selectedAdaylar[0].urunId : null;
 
   async function onSubmit(values: FormValues) {
-    const kalemIds = Array.from(selectedKalemIds);
+    const kalemIds = Array.from(selectedKalemIds).filter((id) => id.trim() !== '');
     const payload = {
       emirNo: values.emirNo,
       urunId: values.urunId,
