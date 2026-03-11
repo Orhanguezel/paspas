@@ -11,7 +11,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { AlertTriangle } from 'lucide-react';
 
 import { useLocaleContext } from '@/i18n/LocaleProvider';
 
@@ -207,15 +206,13 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
   async function onSubmit(values: FormValues) {
     const kalemIds = Array.from(selectedKalemIds);
     const payload = {
-      ...values,
+      emirNo: values.emirNo,
+      urunId: values.urunId,
+      planlananMiktar: values.planlananMiktar,
       siparisKalemIds: kaynakTipi === 'siparis' && kalemIds.length > 0 ? kalemIds : undefined,
       musteriOzet: values.musteriOzet || undefined,
       musteriDetay: values.musteriDetay || undefined,
-      baslangicTarihi: values.baslangicTarihi || undefined,
-      bitisTarihi:     values.bitisTarihi     || undefined,
-      terminTarihi:    values.terminTarihi    || undefined,
-      // New emri: don't send uretilenMiktar (server default 0)
-      ...(!isEdit ? { uretilenMiktar: undefined, baslangicTarihi: undefined, bitisTarihi: undefined } : {}),
+      terminTarihi: values.terminTarihi || undefined,
     };
     // Debug: log what we send to backend
     if (process.env.NODE_ENV === 'development') {
@@ -423,47 +420,15 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
             </div>
 
             {/* Miktar */}
-            <div className={`grid grid-cols-1 gap-4 ${isEdit ? 'sm:grid-cols-2' : ''}`}>
-              <div className="space-y-1">
-                <Label>{t('admin.erp.uretimEmirleri.form.planlananMiktar')} *</Label>
-                <Input type="number" step="0.0001" {...register('planlananMiktar')} />
-                {errors.planlananMiktar && <p className="text-destructive text-xs">{errors.planlananMiktar.message}</p>}
-              </div>
-              {isEdit && (
-                <div className="space-y-1">
-                  <Label>{t('admin.erp.uretimEmirleri.form.uretilenMiktar')}</Label>
-                  <Input type="number" step="0.0001" {...register('uretilenMiktar')} />
-                </div>
-              )}
+            <div className="space-y-1">
+              <Label>{t('admin.erp.uretimEmirleri.form.planlananMiktar')} *</Label>
+              <Input type="number" step="0.0001" {...register('planlananMiktar')} />
+              {errors.planlananMiktar && <p className="text-destructive text-xs">{errors.planlananMiktar.message}</p>}
             </div>
 
-            {/* Tarihler — only in edit mode */}
-            {isEdit ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div className="space-y-1">
-                  <Label>{t('admin.erp.uretimEmirleri.form.baslangicTarihi')}</Label>
-                  <Input type="date" {...register('baslangicTarihi')} />
-                </div>
-                <div className="space-y-1">
-                  <Label>{t('admin.erp.uretimEmirleri.form.bitisTarihi')}</Label>
-                  <Input type="date" {...register('bitisTarihi')} />
-                </div>
-                <div className="space-y-1">
-                  <Label>{t('admin.erp.uretimEmirleri.form.terminTarihi')}</Label>
-                  <Input type="date" {...register('terminTarihi')} />
-                </div>
-              </div>
-            ) : (
-              <input type="hidden" {...register('terminTarihi')} />
-            )}
-
-            {/* Termin riski uyarısı (edit modunda) */}
-            {isEdit && emri?.terminRiski && (
-              <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-                <AlertTriangle className="size-4 shrink-0" />
-                <span>{t('admin.erp.uretimEmirleri.form.terminRiskiUyari')}</span>
-              </div>
-            )}
+            {/* Hidden fields — tarihler ve üretilen miktar başka yerden yönetilecek */}
+            <input type="hidden" {...register('terminTarihi')} />
+            <input type="hidden" {...register('uretilenMiktar')} />
           </div>
 
           <SheetFooter className="border-t px-4 py-4 sm:flex-row sm:justify-end sm:px-6">
