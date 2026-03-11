@@ -898,15 +898,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                             <Label className="text-xs">{tForm("cevrimSuresi")}</Label>
                             <Input type="number" step="0.01" {...form.register(`operasyonlar.${idx}.cevrimSuresiSn`)} />
                           </div>
-                          <div className="flex items-end gap-2 pb-0.5">
-                            <Switch
-                              checked={form.watch(`operasyonlar.${idx}.montaj`)}
-                              onCheckedChange={(v) =>
-                                form.setValue(`operasyonlar.${idx}.montaj`, v, { shouldDirty: true })
-                              }
-                            />
-                            <Label className="text-xs">{tForm("montaj")}</Label>
-                          </div>
+
                         </div>
                       </div>
                     ))}

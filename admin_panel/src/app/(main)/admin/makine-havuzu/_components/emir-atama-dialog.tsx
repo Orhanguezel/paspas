@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   useAtaOperasyonAdminMutation,
@@ -35,6 +36,9 @@ export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogPro
   // Per-operation machine selections: { operasyonId: makineId }
   const [selections, setSelections] = useState<Record<string, string>>({});
 
+  // Which operation carries the montaj (only relevant for multi-op / çift taraflı)
+  const [montajOpId, setMontajOpId] = useState<string | null>(null);
+
   // Collect unique kalipIds from all operations
   const kalipIds = emir?.operasyonlar
     .map((op) => op.kalipId)
@@ -45,7 +49,7 @@ export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogPro
     skip: !firstKalipId,
   });
 
-  // Reset selections when emir changes
+  // Reset selections & montaj when emir changes
   useEffect(() => {
     if (emir) {
       const init: Record<string, string> = {};
@@ -53,6 +57,8 @@ export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogPro
         init[op.id] = 'none';
       }
       setSelections(init);
+      // Default montaj to first operation (only meaningful for multi-op)
+      setMontajOpId(emir.operasyonlar.length > 1 ? emir.operasyonlar[0].id : null);
     }
   }, [emir]);
 
@@ -68,12 +74,16 @@ export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogPro
 
   async function handleAta() {
     if (!emir || !allSelected) return;
+    const isMultiOp = emir.operasyonlar.length > 1;
+    // For multi-op, find the machine assigned to the montaj operation
+    const montajMakineId = isMultiOp && montajOpId ? selections[montajOpId] : undefined;
     try {
       // Assign each operation sequentially
       for (const op of emir.operasyonlar) {
         await ata({
           emirOperasyonId: op.id,
           makineId: selections[op.id],
+          ...(montajMakineId ? { montajMakineId } : {}),
         }).unwrap();
       }
       toast.success(t('kuyrukYonetimi.atama.basarili'));
@@ -125,7 +135,6 @@ export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogPro
                         <>
                           <Badge variant="outline" className="text-xs">{op.sira}</Badge>
                           {op.operasyonAdi}
-                          {op.montaj && <Badge variant="secondary" className="text-xs">M</Badge>}
                         </>
                       )}
                   </Label>
@@ -151,6 +160,32 @@ export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogPro
                 </div>
               );
             })}
+
+            {/* Montaj seçimi — sadece çift taraflı (multi-op) emirlerde */}
+            {!isSingleOp && emir.operasyonlar.length > 1 && (
+              <div className="rounded-md border bg-muted/10 p-3 space-y-2">
+                <Label className="text-xs font-medium">Montaj Makinesi</Label>
+                <RadioGroup
+                  value={montajOpId ?? ''}
+                  onValueChange={(v) => setMontajOpId(v)}
+                  className="flex flex-col gap-2"
+                >
+                  {emir.operasyonlar.map((op) => (
+                    <div key={op.id} className="flex items-center gap-2">
+                      <RadioGroupItem value={op.id} id={`montaj-${op.id}`} />
+                      <Label htmlFor={`montaj-${op.id}`} className="text-xs cursor-pointer">
+                        {op.operasyonAdi}
+                        {selections[op.id] && selections[op.id] !== 'none' && (
+                          <span className="ml-1 text-muted-foreground">
+                            ({allMakineler.find((m) => m.id === selections[op.id])?.kod ?? '—'})
+                          </span>
+                        )}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+            )}
           </div>
         )}
 
