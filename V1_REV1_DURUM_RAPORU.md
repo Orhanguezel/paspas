@@ -1256,6 +1256,68 @@ Bitis tarihi asagidaki olaylarda **otomatik yeniden hesaplanmali:**
 - [ ] Is emri miktar guncellemesi sonrasi kuyruk bitis tarihini tetikle
 - [ ] Gantt'ta bitis tarihi hafta sonu / tatil'e denk gelen barlari gorsel uyariyla isaretle
 
+### Veri Modeli — Her Sey Zaten Birbiriyle Bagli (2026-03-12)
+
+> Asagidaki iliskiler sistemde **mevcut olarak** tanimlidir. Dinamik bitis hesaplamasi bu iliskileri bir araya getirerek calisacak.
+
+#### Urun → Operasyon → Kalip → Makine zinciri
+
+```
+urunler
+  └── urun_operasyonlari          (hangi operasyonlarla uretildigini tanimlar)
+        ├── operasyon_id          → tanimlar.operasyonlar (tornalama, enjeksiyon, montaj...)
+        ├── hazirlik_suresi_dk    (setup suresi)
+        └── sure_dk_birim         (birim basi operasyon suresi — miktar ile carpilir)
+
+kaliplar
+  └── kalip_uyumlu_makineler      (bu kalibin calisabilecegi makineler)
+        └── makine_id             → makineler
+
+makineler
+  └── saatlik_kapasite            (global fallback kapasite)
+
+uretim_emirleri
+  ├── urun_id                     → urunler
+  ├── kalip_id                    → kaliplar
+  └── planlanan_miktar
+
+makine_kuyrugu
+  ├── makine_id                   → makineler
+  ├── uretim_emri_id              → uretim_emirleri
+  ├── hazirlik_suresi_dk
+  ├── planlanan_baslangic
+  └── planlanan_bitis             ← bu alan otomatik hesaplanacak
+```
+
+#### Hesaplama Mantigi
+
+Bir is emri makineye atandiginda:
+
+1. `uretim_emri.urun_id` → `urun_operasyonlari.sure_dk_birim` bulunur
+2. `toplam_operasyon_suresi_dk = sure_dk_birim × planlanan_miktar + hazirlik_suresi_dk`
+3. Bu sure **takvim uzerinde** ilerletilir:
+   - Makine calisma saatleri disindaki dakikalar atlanir (orn. 08:00–17:00)
+   - `hafta_sonu_planlari`'nda `cumartesi_calisir=0` olan gunler atlanir
+   - `tatiller` tablosundaki gunler atlanir
+4. Kalan net calisma suresinden `planlanan_bitis` tarihi hesaplanir
+5. Bir sonraki is emirinin `planlanan_baslangic` = onceki `planlanan_bitis`
+
+#### Neden Onemli
+
+Simdi bitis tarihi **elle girilmekte** ya da sabit kalmaktadir. Bu su hatalara yol acar:
+
+- Hafta sonu tatil varsa makine o gun calismaz ama bitis tarihi uzamaz → planlama yanlis
+- Makine sirasindaki is emirleri birbiriyle catisabilir → kuyruk tutarsiz
+- Gantt cubugu hafta sonu'na sarkabilir → gorsel yaniltici, gercegi yansitmaz
+- Kapasite doluluk hesaplari (dashboard, is yukleri) yanlis cikabilir
+
+#### Mevcut Eksiklik
+
+`makine_kalip_kapasitesi` tablosu henuz yok. Bu nedenle:
+- Simdilik `urun_operasyonlari.sure_dk_birim` kullanilacak
+- V2'de her `(makine_id, kalip_id)` cifti icin ayri kapasite tanimlanacak
+  (ayni kalip farkli makinelerde farkli hizda calisabilir)
+
 ---
 
 ### Faz 5 — Sevkiyat Modulu
