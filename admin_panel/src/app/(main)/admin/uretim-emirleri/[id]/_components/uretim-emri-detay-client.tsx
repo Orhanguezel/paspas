@@ -5,7 +5,7 @@
 // Paspas ERP — Üretim Emri Detay: ilerleme + makine kuyruğu + durum güncelleme
 // =============================================================
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Link from "next/link";
 
@@ -20,7 +20,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useListIsYukleriAdminQuery } from "@/integrations/endpoints/admin/erp/is_yukler_admin.endpoints";
 import { useCheckYeterlilikAdminQuery } from "@/integrations/endpoints/admin/erp/stoklar_admin.endpoints";
-import { useGetUretimEmriAdminQuery } from "@/integrations/endpoints/admin/erp/uretim_emirleri_admin.endpoints";
+import { useGetUretimEmriAdminQuery, useLazyGetUretimKarsilastirmaAdminQuery } from "@/integrations/endpoints/admin/erp/uretim_emirleri_admin.endpoints";
+import type { UretimKarsilastirma } from "@/integrations/shared/erp/uretim_emirleri.types";
 import { IS_YUKU_DURUM_BADGE, IS_YUKU_DURUM_LABELS } from "@/integrations/shared/erp/is_yukler.types";
 import { EMIR_DURUM_BADGE, EMIR_DURUM_LABELS } from "@/integrations/shared/erp/uretim_emirleri.types";
 
@@ -32,13 +33,24 @@ interface Props {
 
 export default function UretimEmriDetayClient({ id }: Props) {
   const [formOpen, setFormOpen] = useState(false);
+  const [karsilastirma, setKarsilastirma] = useState<UretimKarsilastirma | null>(null);
 
   const { data: emri, isLoading, refetch } = useGetUretimEmriAdminQuery(id);
+  const [fetchKarsilastirma] = useLazyGetUretimKarsilastirmaAdminQuery();
   const { data: isYukleri } = useListIsYukleriAdminQuery({});
   const { data: yeterlilik, isLoading: yeterlilikLoading } = useCheckYeterlilikAdminQuery(
     { urunId: emri?.urunId ?? "", miktar: emri?.planlananMiktar ?? 0 },
     { skip: !emri?.receteId },
   );
+
+  // Üretim karşılaştırması: üretimde veya tamamlandi iken getir
+  useEffect(() => {
+    if (emri && (emri.durum === 'uretimde' || emri.durum === 'tamamlandi')) {
+      fetchKarsilastirma(id).unwrap().then(setKarsilastirma).catch(() => setKarsilastirma(null));
+    } else {
+      setKarsilastirma(null);
+    }
+  }, [emri?.durum, id, fetchKarsilastirma]);
 
   const makineMapped = (isYukleri?.items ?? []).filter((y) => y.uretimEmriId === id);
   const yeterlilikKalemleri = yeterlilik?.kalemler ?? [];
@@ -402,7 +414,7 @@ export default function UretimEmriDetayClient({ id }: Props) {
                             {k.gerekliMiktarFireli.toFixed(1)} {k.birim}
                           </div>
                           {k.fireOrani > 0 && (
-                            <div className="text-[11px] text-muted-foreground">%{(k.fireOrani * 100).toFixed(0)} fire dahil</div>
+                            <div className="text-[11px] text-muted-foreground">%{k.fireOrani.toFixed(0)} fire dahil</div>
                           )}
                         </div>
                         <div className="rounded-md border bg-muted/30 px-3 py-2">
@@ -432,6 +444,54 @@ export default function UretimEmriDetayClient({ id }: Props) {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Üretim Karşılaştırması — vardiya kayıtlarından toplanan gerçek üretim vs planlanan */}
+      {karsilastirma && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              Üretim Karşılaştırması
+              {karsilastirma.fark >= 0 ? (
+                <Badge variant="default" className="text-xs">Hedefe Ulaşıldı</Badge>
+              ) : (
+                <Badge variant="destructive" className="text-xs">Eksik Üretim</Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-4">
+              <div className="rounded-md border bg-muted/30 px-3 py-2">
+                <div className="text-[11px] text-muted-foreground">Planlanan</div>
+                <div className="font-semibold tabular-nums text-lg">{karsilastirma.planlananMiktar.toLocaleString("tr-TR")}</div>
+              </div>
+              <div className="rounded-md border bg-muted/30 px-3 py-2">
+                <div className="text-[11px] text-muted-foreground">Toplam Üretilen</div>
+                <div className="font-semibold tabular-nums text-lg">{karsilastirma.toplamUretilen.toLocaleString("tr-TR")}</div>
+              </div>
+              <div className="rounded-md border bg-muted/30 px-3 py-2">
+                <div className="text-[11px] text-muted-foreground">Fire</div>
+                <div className="font-semibold tabular-nums text-lg text-amber-600">{karsilastirma.toplamFire.toLocaleString("tr-TR")}</div>
+              </div>
+              <div className="rounded-md border bg-muted/30 px-3 py-2">
+                <div className="text-[11px] text-muted-foreground">Net Fark</div>
+                <div className={`font-semibold tabular-nums text-lg ${karsilastirma.fark >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                  {karsilastirma.fark >= 0 ? "+" : ""}{karsilastirma.fark.toLocaleString("tr-TR")}
+                </div>
+              </div>
+            </div>
+            {karsilastirma.fark < 0 && (
+              <div className="mt-3 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                <span>
+                  Vardiya kayıtlarında toplam <strong>{karsilastirma.netUretilen.toLocaleString("tr-TR")}</strong> net üretim girilmiş,
+                  planlanan miktar <strong>{karsilastirma.planlananMiktar.toLocaleString("tr-TR")}</strong>.
+                  {" "}<strong>{Math.abs(karsilastirma.fark).toLocaleString("tr-TR")}</strong> adet eksik.
+                </span>
               </div>
             )}
           </CardContent>

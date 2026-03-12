@@ -31,57 +31,57 @@ ON DUPLICATE KEY UPDATE `ad` = VALUES(`ad`);
 -- ============================================================================
 INSERT INTO `urunler` (`id`, `kategori`, `tedarik_tipi`, `kod`, `ad`, `aciklama`, `birim`, `renk`, `stok`, `birim_fiyat`, `is_active`) VALUES
 -- ═══ HAMMADDELER ═══
-('u0000001-0000-4000-8000-000000000001', 'hammadde', 'satin_alma', 'HM-PVC-001',  'PVC Granül (Sert)',               'Ana PVC hammaddesi — paspas gövdesi',           'kg',   NULL,       5000.0000,  12.50, 1),
-('u0000001-0000-4000-8000-000000000002', 'hammadde', 'satin_alma', 'HM-PVC-002',  'PVC Granül (Yumuşak)',            'Esnek PVC — havuz kenarları',                   'kg',   NULL,       3200.0000,  14.00, 1),
-('u0000001-0000-4000-8000-000000000003', 'hammadde', 'satin_alma', 'HM-TPE-001',  'TPE Granül',                       'Termoplastik elastomer — premium seriler',      'kg',   NULL,       1500.0000,  28.00, 1),
-('u0000001-0000-4000-8000-000000000004', 'hammadde', 'satin_alma', 'HM-KEC-001',  'Halı Keçe (Gri)',                 'Tufting halı keçe — 2m genişlik',               'mt',   'Gri',      800.0000,   22.00, 1),
-('u0000001-0000-4000-8000-000000000005', 'hammadde', 'satin_alma', 'HM-KEC-002',  'Halı Keçe (Siyah)',               'Tufting halı keçe — 2m genişlik',               'mt',   'Siyah',    650.0000,   22.00, 1),
-('u0000001-0000-4000-8000-000000000006', 'hammadde', 'satin_alma', 'HM-KEC-003',  'Halı Keçe (Bej)',                  'Tufting halı keçe — 2m genişlik',               'mt',   'Bej',      550.0000,   23.00, 1),
-('u0000001-0000-4000-8000-000000000007', 'hammadde', 'satin_alma', 'HM-MB-001',   'Masterbatch Siyah',                'Renk masterbatch — siyah PVC',                  'kg',   'Siyah',    200.0000,   45.00, 1),
-('u0000001-0000-4000-8000-000000000008', 'hammadde', 'satin_alma', 'HM-MB-002',   'Masterbatch Gri',                  'Renk masterbatch — gri PVC',                    'kg',   'Gri',      180.0000,   48.00, 1),
-('u0000001-0000-4000-8000-000000000009', 'hammadde', 'satin_alma', 'HM-MB-003',   'Masterbatch Bej',                  'Renk masterbatch — bej PVC',                    'kg',   'Bej',      150.0000,   50.00, 1),
-('u0000001-0000-4000-8000-000000000010', 'hammadde', 'satin_alma', 'HM-MB-004',   'Masterbatch Kahve',                'Renk masterbatch — kahverengi',                 'kg',   'Kahve',    120.0000,   48.00, 1),
-('u0000001-0000-4000-8000-000000000011', 'hammadde', 'satin_alma', 'HM-PLZ-001',  'Plastifiyan (DOP)',                'PVC yumuşatıcı — DOP',                          'lt',   NULL,       800.0000,   32.00, 1),
-('u0000001-0000-4000-8000-000000000012', 'hammadde', 'satin_alma', 'HM-STB-001',  'Stabilizatör (Ca-Zn)',            'Isı stabilizatörü',                             'kg',   NULL,       300.0000,   55.00, 1),
-('u0000001-0000-4000-8000-000000000013', 'hammadde', 'satin_alma', 'HM-AMB-001',  'Karton Kutu (Paspas Seti)',       'Baskılı ambalaj kutusu — 5 parça set',          'adet', NULL,      2000.0000,    6.50, 1),
-('u0000001-0000-4000-8000-000000000014', 'hammadde', 'satin_alma', 'HM-AMB-002',  'Streç Film',                       'Palet sarma streç film',                        'rulo', NULL,        60.0000,   42.00, 1),
-('u0000001-0000-4000-8000-000000000015', 'hammadde', 'satin_alma', 'HM-AMB-003',  'Barkod Etiket',                    'Ürün barkod etiketi',                           'rulo', NULL,        40.0000,   35.00, 1),
+('u0000001-0000-4000-8000-000000000001', 'hammadde', 'satin_alma', 'HM-PVC-001',  'PVC Granül (Sert)',               'Ana PVC hammaddesi — paspas gövdesi',           'kg',   NULL,     500000.0000,  12.50, 1),
+('u0000001-0000-4000-8000-000000000002', 'hammadde', 'satin_alma', 'HM-PVC-002',  'PVC Granül (Yumuşak)',            'Esnek PVC — havuz kenarları',                   'kg',   NULL,     320000.0000,  14.00, 1),
+('u0000001-0000-4000-8000-000000000003', 'hammadde', 'satin_alma', 'HM-TPE-001',  'TPE Granül',                       'Termoplastik elastomer — premium seriler',      'kg',   NULL,     150000.0000,  28.00, 1),
+('u0000001-0000-4000-8000-000000000004', 'hammadde', 'satin_alma', 'HM-KEC-001',  'Halı Keçe (Gri)',                 'Tufting halı keçe — 2m genişlik',               'mt',   'Gri',     80000.0000,   22.00, 1),
+('u0000001-0000-4000-8000-000000000005', 'hammadde', 'satin_alma', 'HM-KEC-002',  'Halı Keçe (Siyah)',               'Tufting halı keçe — 2m genişlik',               'mt',   'Siyah',   65000.0000,   22.00, 1),
+('u0000001-0000-4000-8000-000000000006', 'hammadde', 'satin_alma', 'HM-KEC-003',  'Halı Keçe (Bej)',                  'Tufting halı keçe — 2m genişlik',               'mt',   'Bej',     55000.0000,   23.00, 1),
+('u0000001-0000-4000-8000-000000000007', 'hammadde', 'satin_alma', 'HM-MB-001',   'Masterbatch Siyah',                'Renk masterbatch — siyah PVC',                  'kg',   'Siyah',   20000.0000,   45.00, 1),
+('u0000001-0000-4000-8000-000000000008', 'hammadde', 'satin_alma', 'HM-MB-002',   'Masterbatch Gri',                  'Renk masterbatch — gri PVC',                    'kg',   'Gri',     18000.0000,   48.00, 1),
+('u0000001-0000-4000-8000-000000000009', 'hammadde', 'satin_alma', 'HM-MB-003',   'Masterbatch Bej',                  'Renk masterbatch — bej PVC',                    'kg',   'Bej',     15000.0000,   50.00, 1),
+('u0000001-0000-4000-8000-000000000010', 'hammadde', 'satin_alma', 'HM-MB-004',   'Masterbatch Kahve',                'Renk masterbatch — kahverengi',                 'kg',   'Kahve',   12000.0000,   48.00, 1),
+('u0000001-0000-4000-8000-000000000011', 'hammadde', 'satin_alma', 'HM-PLZ-001',  'Plastifiyan (DOP)',                'PVC yumuşatıcı — DOP',                          'lt',   NULL,      80000.0000,   32.00, 1),
+('u0000001-0000-4000-8000-000000000012', 'hammadde', 'satin_alma', 'HM-STB-001',  'Stabilizatör (Ca-Zn)',            'Isı stabilizatörü',                             'kg',   NULL,      30000.0000,   55.00, 1),
+('u0000001-0000-4000-8000-000000000013', 'hammadde', 'satin_alma', 'HM-AMB-001',  'Karton Kutu (Paspas Seti)',       'Baskılı ambalaj kutusu — 5 parça set',          'adet', NULL,     200000.0000,    6.50, 1),
+('u0000001-0000-4000-8000-000000000014', 'hammadde', 'satin_alma', 'HM-AMB-002',  'Streç Film',                       'Palet sarma streç film',                        'rulo', NULL,       6000.0000,   42.00, 1),
+('u0000001-0000-4000-8000-000000000015', 'hammadde', 'satin_alma', 'HM-AMB-003',  'Barkod Etiket',                    'Ürün barkod etiketi',                           'rulo', NULL,       4000.0000,   35.00, 1),
 
 -- ═══ MAMUL ÜRÜNLER — BAŞAK PLUS SERİSİ (3D) ═══
-('u0000001-0000-4000-8000-000000000020', 'urun', 'uretim', 'BP-3D-SYH',   'Başak Plus 3D Siyah',             '3D derin havuzlu oto paspas seti — 5 parça',   'takim','Siyah',    350.0000,  189.00, 1),
-('u0000001-0000-4000-8000-000000000021', 'urun', 'uretim', 'BP-3D-GRI',   'Başak Plus 3D Gri',               '3D derin havuzlu oto paspas seti — 5 parça',   'takim','Gri',      280.0000,  189.00, 1),
-('u0000001-0000-4000-8000-000000000022', 'urun', 'uretim', 'BP-3D-BEJ',   'Başak Plus 3D Bej',                '3D derin havuzlu oto paspas seti — 5 parça',   'takim','Bej',      200.0000,  199.00, 1),
-('u0000001-0000-4000-8000-000000000023', 'urun', 'uretim', 'BP-3D-KHV',   'Başak Plus 3D Kahve',              '3D derin havuzlu oto paspas seti — 5 parça',   'takim','Kahve',    150.0000,  199.00, 1),
+('u0000001-0000-4000-8000-000000000020', 'urun', 'uretim', 'BP-3D-SYH',   'Başak Plus 3D Siyah',             '3D derin havuzlu oto paspas seti — 5 parça',   'takim','Siyah',   35000.0000,  189.00, 1),
+('u0000001-0000-4000-8000-000000000021', 'urun', 'uretim', 'BP-3D-GRI',   'Başak Plus 3D Gri',               '3D derin havuzlu oto paspas seti — 5 parça',   'takim','Gri',     28000.0000,  189.00, 1),
+('u0000001-0000-4000-8000-000000000022', 'urun', 'uretim', 'BP-3D-BEJ',   'Başak Plus 3D Bej',                '3D derin havuzlu oto paspas seti — 5 parça',   'takim','Bej',     20000.0000,  199.00, 1),
+('u0000001-0000-4000-8000-000000000023', 'urun', 'uretim', 'BP-3D-KHV',   'Başak Plus 3D Kahve',              '3D derin havuzlu oto paspas seti — 5 parça',   'takim','Kahve',   15000.0000,  199.00, 1),
 
 -- ═══ ORBİTAL SERİSİ (4D) ═══
-('u0000001-0000-4000-8000-000000000030', 'urun', 'uretim', 'ORB-4D-SYH',  'Orbital 4D Siyah',                '4D premium derin havuzlu oto paspas — 5 parça', 'takim','Siyah',    220.0000,  249.00, 1),
-('u0000001-0000-4000-8000-000000000031', 'urun', 'uretim', 'ORB-4D-GRI',  'Orbital 4D Gri',                  '4D premium derin havuzlu oto paspas — 5 parça', 'takim','Gri',      180.0000,  249.00, 1),
-('u0000001-0000-4000-8000-000000000032', 'urun', 'uretim', 'ORB-4D-BEJ',  'Orbital 4D Bej',                   '4D premium derin havuzlu oto paspas — 5 parça', 'takim','Bej',      130.0000,  259.00, 1),
+('u0000001-0000-4000-8000-000000000030', 'urun', 'uretim', 'ORB-4D-SYH',  'Orbital 4D Siyah',                '4D premium derin havuzlu oto paspas — 5 parça', 'takim','Siyah',   22000.0000,  249.00, 1),
+('u0000001-0000-4000-8000-000000000031', 'urun', 'uretim', 'ORB-4D-GRI',  'Orbital 4D Gri',                  '4D premium derin havuzlu oto paspas — 5 parça', 'takim','Gri',     18000.0000,  249.00, 1),
+('u0000001-0000-4000-8000-000000000032', 'urun', 'uretim', 'ORB-4D-BEJ',  'Orbital 4D Bej',                   '4D premium derin havuzlu oto paspas — 5 parça', 'takim','Bej',     13000.0000,  259.00, 1),
 
 -- ═══ PARS SERİSİ (Özel PVC Desen) ═══
-('u0000001-0000-4000-8000-000000000040', 'urun', 'uretim', 'PRS-SYH',     'Pars Siyah',                       'Özel kalıplanmış PVC desenli oto paspas — 5 parça', 'takim','Siyah', 300.0000, 219.00, 1),
-('u0000001-0000-4000-8000-000000000041', 'urun', 'uretim', 'PRS-GRI',     'Pars Gri',                         'Özel kalıplanmış PVC desenli oto paspas — 5 parça', 'takim','Gri',   250.0000, 219.00, 1),
+('u0000001-0000-4000-8000-000000000040', 'urun', 'uretim', 'PRS-SYH',     'Pars Siyah',                       'Özel kalıplanmış PVC desenli oto paspas — 5 parça', 'takim','Siyah',30000.0000, 219.00, 1),
+('u0000001-0000-4000-8000-000000000041', 'urun', 'uretim', 'PRS-GRI',     'Pars Gri',                         'Özel kalıplanmış PVC desenli oto paspas — 5 parça', 'takim','Gri',  25000.0000, 219.00, 1),
 
 -- ═══ ICON SERİSİ ═══
-('u0000001-0000-4000-8000-000000000050', 'urun', 'uretim', 'ICN-SYH',     'Icon Siyah',                       'Icon serisi oto paspas seti — 5 parça',        'takim','Siyah',    180.0000, 269.00, 1),
-('u0000001-0000-4000-8000-000000000051', 'urun', 'uretim', 'ICN-GRI',     'Icon Gri',                         'Icon serisi oto paspas seti — 5 parça',        'takim','Gri',      140.0000, 269.00, 1),
+('u0000001-0000-4000-8000-000000000050', 'urun', 'uretim', 'ICN-SYH',     'Icon Siyah',                       'Icon serisi oto paspas seti — 5 parça',        'takim','Siyah',   18000.0000, 269.00, 1),
+('u0000001-0000-4000-8000-000000000051', 'urun', 'uretim', 'ICN-GRI',     'Icon Gri',                         'Icon serisi oto paspas seti — 5 parça',        'takim','Gri',     14000.0000, 269.00, 1),
 
 -- ═══ STAR PLUS SERİSİ ═══
-('u0000001-0000-4000-8000-000000000060', 'urun', 'uretim', 'STP-SYH',     'Star Plus Siyah',                  'Star Plus oto paspas seti — 5 parça',          'takim','Siyah',    260.0000, 159.00, 1),
-('u0000001-0000-4000-8000-000000000061', 'urun', 'uretim', 'STP-GRI',     'Star Plus Gri',                    'Star Plus oto paspas seti — 5 parça',          'takim','Gri',      210.0000, 159.00, 1),
+('u0000001-0000-4000-8000-000000000060', 'urun', 'uretim', 'STP-SYH',     'Star Plus Siyah',                  'Star Plus oto paspas seti — 5 parça',          'takim','Siyah',   26000.0000, 159.00, 1),
+('u0000001-0000-4000-8000-000000000061', 'urun', 'uretim', 'STP-GRI',     'Star Plus Gri',                    'Star Plus oto paspas seti — 5 parça',          'takim','Gri',     21000.0000, 159.00, 1),
 
 -- ═══ MAXIMUM SERİSİ (5D) ═══
-('u0000001-0000-4000-8000-000000000070', 'urun', 'uretim', 'MAX-5D-SYH',  'Maximum 5D Siyah',                '5D en derin havuzlu premium — 5 parça',        'takim','Siyah',    120.0000, 329.00, 1),
-('u0000001-0000-4000-8000-000000000071', 'urun', 'uretim', 'MAX-5D-GRI',  'Maximum 5D Gri',                  '5D en derin havuzlu premium — 5 parça',        'takim','Gri',       90.0000, 329.00, 1),
+('u0000001-0000-4000-8000-000000000070', 'urun', 'uretim', 'MAX-5D-SYH',  'Maximum 5D Siyah',                '5D en derin havuzlu premium — 5 parça',        'takim','Siyah',   12000.0000, 329.00, 1),
+('u0000001-0000-4000-8000-000000000071', 'urun', 'uretim', 'MAX-5D-GRI',  'Maximum 5D Gri',                  '5D en derin havuzlu premium — 5 parça',        'takim','Gri',      9000.0000, 329.00, 1),
 
 -- ═══ PROFESYONEL SERİSİ ═══
-('u0000001-0000-4000-8000-000000000080', 'urun', 'uretim', 'PRO-SYH',     'Profesyonel Siyah',                'Profesyonel seri oto paspas — 5 parça',        'takim','Siyah',    190.0000, 279.00, 1),
-('u0000001-0000-4000-8000-000000000081', 'urun', 'uretim', 'PRO-GRI',     'Profesyonel Gri',                  'Profesyonel seri oto paspas — 5 parça',        'takim','Gri',      160.0000, 279.00, 1),
+('u0000001-0000-4000-8000-000000000080', 'urun', 'uretim', 'PRO-SYH',     'Profesyonel Siyah',                'Profesyonel seri oto paspas — 5 parça',        'takim','Siyah',   19000.0000, 279.00, 1),
+('u0000001-0000-4000-8000-000000000081', 'urun', 'uretim', 'PRO-GRI',     'Profesyonel Gri',                  'Profesyonel seri oto paspas — 5 parça',        'takim','Gri',     16000.0000, 279.00, 1),
 
 -- ═══ TUNA SERİSİ (Ekonomik) ═══
-('u0000001-0000-4000-8000-000000000090', 'urun', 'uretim', 'TUN-SYH',     'Tuna Siyah',                       'Ekonomik seri oto paspas — 5 parça',           'takim','Siyah',    400.0000, 119.00, 1),
-('u0000001-0000-4000-8000-000000000091', 'urun', 'uretim', 'TUN-GRI',     'Tuna Gri',                         'Ekonomik seri oto paspas — 5 parça',           'takim','Gri',      350.0000, 119.00, 1),
-('u0000001-0000-4000-8000-000000000092', 'urun', 'uretim', 'TUN-BEJ',     'Tuna Bej',                          'Ekonomik seri oto paspas — 5 parça',           'takim','Bej',      200.0000, 129.00, 1)
+('u0000001-0000-4000-8000-000000000090', 'urun', 'uretim', 'TUN-SYH',     'Tuna Siyah',                       'Ekonomik seri oto paspas — 5 parça',           'takim','Siyah',   40000.0000, 119.00, 1),
+('u0000001-0000-4000-8000-000000000091', 'urun', 'uretim', 'TUN-GRI',     'Tuna Gri',                         'Ekonomik seri oto paspas — 5 parça',           'takim','Gri',     35000.0000, 119.00, 1),
+('u0000001-0000-4000-8000-000000000092', 'urun', 'uretim', 'TUN-BEJ',     'Tuna Bej',                          'Ekonomik seri oto paspas — 5 parça',           'takim','Bej',     20000.0000, 129.00, 1)
 ON DUPLICATE KEY UPDATE `ad` = VALUES(`ad`), `kategori` = VALUES(`kategori`), `tedarik_tipi` = VALUES(`tedarik_tipi`);
 
 -- Örnek ürün görselleri (storage_assets)
@@ -406,54 +406,42 @@ ON DUPLICATE KEY UPDATE `miktar` = VALUES(`miktar`), `fire_orani` = VALUES(`fire
 -- 4) SATIŞ SİPARİŞLERİ
 -- ============================================================================
 INSERT INTO `satis_siparisleri` (`id`, `siparis_no`, `musteri_id`, `siparis_tarihi`, `termin_tarihi`, `durum`, `aciklama`, `is_active`) VALUES
-('s0000001-0000-4000-8000-000000000001', 'SS-2026-0001', 'c0000001-0000-4000-8000-000000000001', '2026-02-10', '2026-03-10', 'onaylandi',  'İstanbul Oto — Başak Plus + Pars serileri toplu sipariş',    1),
-('s0000001-0000-4000-8000-000000000002', 'SS-2026-0002', 'c0000001-0000-4000-8000-000000000002', '2026-02-15', '2026-03-15', 'uretimde',   'Ankara bayisi — karma seri sipariş',                         1),
-('s0000001-0000-4000-8000-000000000003', 'SS-2026-0003', 'c0000001-0000-4000-8000-000000000006', '2026-02-20', '2026-03-25', 'onaylandi',  'Suudi Arabistan ihracat — Maximum + Orbital',                1),
-('s0000001-0000-4000-8000-000000000004', 'SS-2026-0004', 'c0000001-0000-4000-8000-000000000003', '2026-03-01', '2026-04-01', 'taslak',     'İzmir bayisi — Tuna ekonomik seri talep',                    1),
-('s0000001-0000-4000-8000-000000000005', 'SS-2026-0005', 'c0000001-0000-4000-8000-000000000007', '2026-03-02', '2026-03-30', 'onaylandi',  'Almanya ihracat — Icon + Profesyonel serileri',              1)
+('s0000001-0000-4000-8000-000000000001', 'SS-2026-0001', 'c0000001-0000-4000-8000-000000000001', '2026-02-10', '2026-03-10', 'taslak',  'İstanbul Oto — Başak Plus + Pars serileri toplu sipariş',    1),
+('s0000001-0000-4000-8000-000000000002', 'SS-2026-0002', 'c0000001-0000-4000-8000-000000000002', '2026-02-15', '2026-03-15', 'taslak',  'Ankara bayisi — karma seri sipariş',                         1),
+('s0000001-0000-4000-8000-000000000003', 'SS-2026-0003', 'c0000001-0000-4000-8000-000000000006', '2026-02-20', '2026-03-25', 'taslak',  'Suudi Arabistan ihracat — Maximum + Orbital',                1),
+('s0000001-0000-4000-8000-000000000004', 'SS-2026-0004', 'c0000001-0000-4000-8000-000000000003', '2026-03-01', '2026-04-01', 'taslak',  'İzmir bayisi — Tuna ekonomik seri talep',                    1),
+('s0000001-0000-4000-8000-000000000005', 'SS-2026-0005', 'c0000001-0000-4000-8000-000000000007', '2026-03-02', '2026-03-30', 'taslak',  'Almanya ihracat — Icon + Profesyonel serileri',              1)
 ON DUPLICATE KEY UPDATE `durum` = VALUES(`durum`);
 
 -- Sipariş kalemleri
 INSERT INTO `siparis_kalemleri` (`id`, `siparis_id`, `urun_id`, `miktar`, `birim_fiyat`, `sira`) VALUES
 -- SS-2026-0001: İstanbul Oto (-%5 iskonto)
-('sk000001-0000-4000-8000-000000000001', 's0000001-0000-4000-8000-000000000001', 'u0000001-0000-4000-8000-000000000020', 200.0000, 179.55, 1),  -- Başak Plus 3D Siyah
-('sk000001-0000-4000-8000-000000000002', 's0000001-0000-4000-8000-000000000001', 'u0000001-0000-4000-8000-000000000021', 150.0000, 179.55, 2),  -- Başak Plus 3D Gri
-('sk000001-0000-4000-8000-000000000003', 's0000001-0000-4000-8000-000000000001', 'u0000001-0000-4000-8000-000000000040', 100.0000, 208.05, 3),  -- Pars Siyah
+('sk000001-0000-4000-8000-000000000001', 's0000001-0000-4000-8000-000000000001', 'u0000001-0000-4000-8000-000000000020', 20000.0000, 179.55, 1),  -- Başak Plus 3D Siyah
+('sk000001-0000-4000-8000-000000000002', 's0000001-0000-4000-8000-000000000001', 'u0000001-0000-4000-8000-000000000021', 15000.0000, 179.55, 2),  -- Başak Plus 3D Gri
+('sk000001-0000-4000-8000-000000000003', 's0000001-0000-4000-8000-000000000001', 'u0000001-0000-4000-8000-000000000040', 10000.0000, 208.05, 3),  -- Pars Siyah
 
 -- SS-2026-0002: Ankara (-%3 iskonto)
-('sk000001-0000-4000-8000-000000000004', 's0000001-0000-4000-8000-000000000002', 'u0000001-0000-4000-8000-000000000060', 100.0000, 154.23, 1),  -- Star Plus Siyah
-('sk000001-0000-4000-8000-000000000005', 's0000001-0000-4000-8000-000000000002', 'u0000001-0000-4000-8000-000000000090', 200.0000, 115.43, 2),  -- Tuna Siyah
-('sk000001-0000-4000-8000-000000000006', 's0000001-0000-4000-8000-000000000002', 'u0000001-0000-4000-8000-000000000030',  50.0000, 241.53, 3),  -- Orbital 4D Siyah
+('sk000001-0000-4000-8000-000000000004', 's0000001-0000-4000-8000-000000000002', 'u0000001-0000-4000-8000-000000000060', 10000.0000, 154.23, 1),  -- Star Plus Siyah
+('sk000001-0000-4000-8000-000000000005', 's0000001-0000-4000-8000-000000000002', 'u0000001-0000-4000-8000-000000000090', 20000.0000, 115.43, 2),  -- Tuna Siyah
+('sk000001-0000-4000-8000-000000000006', 's0000001-0000-4000-8000-000000000002', 'u0000001-0000-4000-8000-000000000030',  5000.0000, 241.53, 3),  -- Orbital 4D Siyah
 
 -- SS-2026-0003: Suudi Arabistan ihracat (-%7 iskonto)
-('sk000001-0000-4000-8000-000000000007', 's0000001-0000-4000-8000-000000000003', 'u0000001-0000-4000-8000-000000000070',  80.0000, 305.97, 1),  -- Maximum 5D Siyah
-('sk000001-0000-4000-8000-000000000008', 's0000001-0000-4000-8000-000000000003', 'u0000001-0000-4000-8000-000000000030', 120.0000, 231.57, 2),  -- Orbital 4D Siyah
+('sk000001-0000-4000-8000-000000000007', 's0000001-0000-4000-8000-000000000003', 'u0000001-0000-4000-8000-000000000070',  8000.0000, 305.97, 1),  -- Maximum 5D Siyah
+('sk000001-0000-4000-8000-000000000008', 's0000001-0000-4000-8000-000000000003', 'u0000001-0000-4000-8000-000000000030', 12000.0000, 231.57, 2),  -- Orbital 4D Siyah
 
 -- SS-2026-0004: İzmir Tuna seri (-%4 iskonto)
-('sk000001-0000-4000-8000-000000000009', 's0000001-0000-4000-8000-000000000004', 'u0000001-0000-4000-8000-000000000090', 500.0000, 114.24, 1),  -- Tuna Siyah
-('sk000001-0000-4000-8000-000000000010', 's0000001-0000-4000-8000-000000000004', 'u0000001-0000-4000-8000-000000000091', 300.0000, 114.24, 2),  -- Tuna Gri
-('sk000001-0000-4000-8000-000000000011', 's0000001-0000-4000-8000-000000000004', 'u0000001-0000-4000-8000-000000000092', 200.0000, 123.84, 3),  -- Tuna Bej
+('sk000001-0000-4000-8000-000000000009', 's0000001-0000-4000-8000-000000000004', 'u0000001-0000-4000-8000-000000000090', 50000.0000, 114.24, 1),  -- Tuna Siyah
+('sk000001-0000-4000-8000-000000000010', 's0000001-0000-4000-8000-000000000004', 'u0000001-0000-4000-8000-000000000091', 30000.0000, 114.24, 2),  -- Tuna Gri
+('sk000001-0000-4000-8000-000000000011', 's0000001-0000-4000-8000-000000000004', 'u0000001-0000-4000-8000-000000000092', 20000.0000, 123.84, 3),  -- Tuna Bej
 
 -- SS-2026-0005: Almanya ihracat (-%6 iskonto)
-('sk000001-0000-4000-8000-000000000012', 's0000001-0000-4000-8000-000000000005', 'u0000001-0000-4000-8000-000000000050',  60.0000, 252.86, 1),  -- Icon Siyah
-('sk000001-0000-4000-8000-000000000013', 's0000001-0000-4000-8000-000000000005', 'u0000001-0000-4000-8000-000000000080',  40.0000, 262.26, 2)   -- Profesyonel Siyah
+('sk000001-0000-4000-8000-000000000012', 's0000001-0000-4000-8000-000000000005', 'u0000001-0000-4000-8000-000000000050',  6000.0000, 252.86, 1),  -- Icon Siyah
+('sk000001-0000-4000-8000-000000000013', 's0000001-0000-4000-8000-000000000005', 'u0000001-0000-4000-8000-000000000080',  4000.0000, 262.26, 2)   -- Profesyonel Siyah
 ON DUPLICATE KEY UPDATE `miktar` = VALUES(`miktar`);
 
 -- ============================================================================
--- 5) ÜRETİM EMİRLERİ
+-- 5) ÜRETİM EMİRLERİ — Seed'de oluşturulmaz; UI'dan oluşturulur
 -- ============================================================================
-INSERT INTO `uretim_emirleri` (`id`, `emir_no`, `siparis_id`, `urun_id`, `recete_id`, `planlanan_miktar`, `uretilen_miktar`, `baslangic_tarihi`, `bitis_tarihi`, `durum`, `is_active`) VALUES
--- İstanbul siparişi
-('e0000001-0000-4000-8000-000000000001', 'UE-2026-0001', 's0000001-0000-4000-8000-000000000001', 'u0000001-0000-4000-8000-000000000020', 'r0000001-0000-4000-8000-000000000001', 200.0000, 130.0000, '2026-02-12', '2026-03-05', 'uretimde',     1),
-('e0000001-0000-4000-8000-000000000002', 'UE-2026-0002', 's0000001-0000-4000-8000-000000000001', 'u0000001-0000-4000-8000-000000000021', 'r0000001-0000-4000-8000-000000000002', 150.0000,   0.0000, '2026-03-01', '2026-03-08', 'planlandi',    1),
-('e0000001-0000-4000-8000-000000000003', 'UE-2026-0003', 's0000001-0000-4000-8000-000000000001', 'u0000001-0000-4000-8000-000000000040', 'r0000001-0000-4000-8000-000000000008', 100.0000,  60.0000, '2026-02-15', '2026-03-03', 'uretimde',     1),
--- Ankara siparişi
-('e0000001-0000-4000-8000-000000000004', 'UE-2026-0004', 's0000001-0000-4000-8000-000000000002', 'u0000001-0000-4000-8000-000000000090', 'r0000001-0000-4000-8000-000000000018', 200.0000, 200.0000, '2026-02-18', '2026-02-28', 'tamamlandi',   1),
-('e0000001-0000-4000-8000-000000000005', 'UE-2026-0005', 's0000001-0000-4000-8000-000000000002', 'u0000001-0000-4000-8000-000000000030', 'r0000001-0000-4000-8000-000000000005',  50.0000,  20.0000, '2026-02-25', '2026-03-10', 'uretimde',     1),
--- İhracat — Maximum 5D
-('e0000001-0000-4000-8000-000000000006', 'UE-2026-0006', 's0000001-0000-4000-8000-000000000003', 'u0000001-0000-4000-8000-000000000070', 'r0000001-0000-4000-8000-000000000014',  80.0000,   0.0000, '2026-03-05', '2026-03-20', 'hazirlaniyor', 1),
-('e0000001-0000-4000-8000-000000000007', 'UE-2026-0007', 's0000001-0000-4000-8000-000000000003', 'u0000001-0000-4000-8000-000000000030', NULL,                                   120.0000,   0.0000, '2026-03-08', '2026-03-22', 'planlandi',    1)
-ON DUPLICATE KEY UPDATE `uretilen_miktar` = VALUES(`uretilen_miktar`);
 
 -- ============================================================================
 -- 6) MAKİNELER — Oto paspas üretim hattı
@@ -471,28 +459,7 @@ INSERT INTO `makineler` (`id`, `kod`, `ad`, `tonaj`, `saatlik_kapasite`, `calisi
 ('m0000001-0000-4000-8000-000000000010', 'FRN-01',  'Soğutma / Kurutma Fırını',       NULL,      90.00, 1, 'aktif',   1)
 ON DUPLICATE KEY UPDATE `ad` = VALUES(`ad`), `calisir_24_saat` = VALUES(`calisir_24_saat`);
 
--- Makine kuyruğu
-INSERT INTO `makine_kuyrugu` (`id`, `makine_id`, `uretim_emri_id`, `sira`, `planlanan_sure_dk`, `durum`) VALUES
--- UE-2026-0001: Başak Plus 3D Siyah → Ekstrüzyon → Pres → Keçe → Kesim → KK → Paket
-('mk000001-0000-4000-8000-000000000001', 'm0000001-0000-4000-8000-000000000001', 'e0000001-0000-4000-8000-000000000001', 1, 240, 'tamamlandi'),  -- Ekstrüzyon
-('mk000001-0000-4000-8000-000000000002', 'm0000001-0000-4000-8000-000000000003', 'e0000001-0000-4000-8000-000000000001', 1, 180, 'calisiyor'),    -- Termoform Pres
-('mk000001-0000-4000-8000-000000000003', 'm0000001-0000-4000-8000-000000000010', 'e0000001-0000-4000-8000-000000000001', 1,  60, 'bekliyor'),     -- Soğutma
-('mk000001-0000-4000-8000-000000000004', 'm0000001-0000-4000-8000-000000000007', 'e0000001-0000-4000-8000-000000000001', 1, 120, 'bekliyor'),     -- Keçe yapıştırma
-('mk000001-0000-4000-8000-000000000005', 'm0000001-0000-4000-8000-000000000006', 'e0000001-0000-4000-8000-000000000001', 1,  90, 'bekliyor'),     -- CNC Kesim
-('mk000001-0000-4000-8000-000000000006', 'm0000001-0000-4000-8000-000000000008', 'e0000001-0000-4000-8000-000000000001', 1,  60, 'bekliyor'),     -- Kalite kontrol
-('mk000001-0000-4000-8000-000000000007', 'm0000001-0000-4000-8000-000000000009', 'e0000001-0000-4000-8000-000000000001', 1,  45, 'bekliyor'),     -- Paketleme
-
--- UE-2026-0003: Pars Siyah
-('mk000001-0000-4000-8000-000000000011', 'm0000001-0000-4000-8000-000000000001', 'e0000001-0000-4000-8000-000000000003', 2, 200, 'tamamlandi'),
-('mk000001-0000-4000-8000-000000000012', 'm0000001-0000-4000-8000-000000000004', 'e0000001-0000-4000-8000-000000000003', 1, 160, 'calisiyor'),
-('mk000001-0000-4000-8000-000000000013', 'm0000001-0000-4000-8000-000000000007', 'e0000001-0000-4000-8000-000000000003', 2, 100, 'bekliyor'),
-('mk000001-0000-4000-8000-000000000014', 'm0000001-0000-4000-8000-000000000006', 'e0000001-0000-4000-8000-000000000003', 2,  80, 'bekliyor'),
-
--- UE-2026-0005: Orbital 4D Siyah (TPE — Ekstrüzyon 2)
-('mk000001-0000-4000-8000-000000000021', 'm0000001-0000-4000-8000-000000000002', 'e0000001-0000-4000-8000-000000000005', 1, 150, 'calisiyor'),
-('mk000001-0000-4000-8000-000000000022', 'm0000001-0000-4000-8000-000000000004', 'e0000001-0000-4000-8000-000000000005', 2, 120, 'bekliyor'),
-('mk000001-0000-4000-8000-000000000023', 'm0000001-0000-4000-8000-000000000007', 'e0000001-0000-4000-8000-000000000005', 3,  80, 'bekliyor')
-ON DUPLICATE KEY UPDATE `durum` = VALUES(`durum`);
+-- Makine kuyruğu — Seed'de oluşturulmaz; makine ataması UI'dan yapılır
 
 -- ============================================================================
 -- 7) SATIN ALMA SİPARİŞLERİ

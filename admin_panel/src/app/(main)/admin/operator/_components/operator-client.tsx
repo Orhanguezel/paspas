@@ -4,9 +4,9 @@
 // Paspas ERP — Operatör Ekranı (makine-merkezli V2, 2 sekmeli)
 // =============================================================
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Check, Pause, Play, RefreshCcw, RotateCcw, Square, Truck, X } from "lucide-react";
+import { Check, Clock, Pause, Play, RefreshCcw, RotateCcw, Square, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -18,20 +18,20 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useLocaleContext } from "@/i18n/LocaleProvider";
-import { useListMakinelerAdminQuery } from "@/integrations/endpoints/admin/erp/makine_havuzu_admin.endpoints";
 import {
   useDevamEtAdminMutation,
   useDuraklatAdminMutation,
+  useGetAcikVardiyalarAdminQuery,
   useListMakineKuyruguAdminQuery,
   useUretimBaslatAdminMutation,
   useUretimBitirAdminMutation,
   useVardiyaBasiAdminMutation,
   useVardiyaSonuAdminMutation,
 } from "@/integrations/endpoints/admin/erp/operator_admin.endpoints";
+import { useListDurusNedenleriAdminQuery } from "@/integrations/endpoints/admin/erp/tanimlar_admin.endpoints";
 import {
   useListSevkEmirleriAdminQuery,
   useUpdateSevkEmriAdminMutation,
@@ -55,15 +55,37 @@ const DURUM_LABEL: Record<string, string> = {
   iptal: "İptal",
 };
 
+function useRealtimeClock() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
 export default function OperatorClient() {
   const { t } = useLocaleContext();
   const [activeTab, setActiveTab] = useState("kuyruk");
+  const now = useRealtimeClock();
+
+  const dateStr = now.toLocaleDateString("tr-TR", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const timeStr = now.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-lg font-semibold">{t("admin.erp.operator.title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("admin.erp.operator.description")}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold">{t("admin.erp.operator.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("admin.erp.operator.description")}</p>
+        </div>
+        <div className="flex items-center gap-3 rounded-lg border bg-muted/30 px-4 py-2">
+          <Clock className="size-5 text-muted-foreground" />
+          <div className="text-right">
+            <div className="text-2xl font-bold tabular-nums tracking-tight">{timeStr}</div>
+            <div className="text-xs text-muted-foreground">{dateStr}</div>
+          </div>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -100,9 +122,18 @@ function MakineKuyruguTab() {
   const [fireMiktar, setFireMiktar] = useState("0");
   const [notlar, setNotlar] = useState("");
 
+  const [resuming, setResuming] = useState<MakineKuyruguDetayDto | null>(null);
+  const [resumeUretim, setResumeUretim] = useState("0");
+  const [resumeFire, setResumeFire] = useState("0");
+  const [resumeNotlar, setResumeNotlar] = useState("");
+
   const [pausing, setPausing] = useState<MakineKuyruguDetayDto | null>(null);
+  const [pauseNedenId, setPauseNedenId] = useState("");
   const [pauseNeden, setPauseNeden] = useState("");
-  const [makineArizasi, setMakineArizasi] = useState(false);
+  const [pauseUretimMiktari, setPauseUretimMiktari] = useState("");
+
+  const { data: durusNedenleriData } = useListDurusNedenleriAdminQuery();
+  const durusNedenleri = (durusNedenleriData?.items ?? []).filter((d) => d.isActive);
 
   const items = data?.items ?? [];
 
@@ -128,17 +159,39 @@ function MakineKuyruguTab() {
     }
   }
 
-  async function handleDevamEt(item: MakineKuyruguDetayDto) {
+  function openResume(item: MakineKuyruguDetayDto) {
+    setResumeUretim("0");
+    setResumeFire("0");
+    setResumeNotlar("");
+    setResuming(item);
+  }
+
+  async function confirmResume() {
+    if (!resuming) return;
+    const u = Number.parseFloat(resumeUretim || "0");
+    const f = Number.parseFloat(resumeFire || "0");
+    if (Number.isNaN(u) || u < 0 || Number.isNaN(f) || f < 0) {
+      toast.error(t("admin.erp.operator.invalidQuantity"));
+      return;
+    }
     try {
-      await devamEt({ makineKuyrukId: item.id }).unwrap();
+      await devamEt({
+        makineKuyrukId: resuming.id,
+        uretilenMiktar: u > 0 ? u : undefined,
+        fireMiktar: f,
+        birimTipi: resuming.montaj ? "takim" : "adet",
+        notlar: resumeNotlar.trim() || undefined,
+      }).unwrap();
       toast.success(t("admin.erp.operator.resumed"));
+      setResuming(null);
     } catch {
       toast.error(t("admin.erp.common.operationFailed"));
     }
   }
 
   function openFinish(item: MakineKuyruguDetayDto) {
-    setUretilenMiktar(String(item.planlananMiktar - item.uretilenMiktar));
+    // Default to planned quantity as the actual total (operator adjusts if needed)
+    setUretilenMiktar(String(item.planlananMiktar));
     setFireMiktar("0");
     setNotlar("");
     setFinishing(item);
@@ -153,7 +206,7 @@ function MakineKuyruguTab() {
       return;
     }
     try {
-      await bitir({
+      const result = await bitir({
         makineKuyrukId: finishing.id,
         uretilenMiktar: u,
         fireMiktar: f,
@@ -161,6 +214,12 @@ function MakineKuyruguTab() {
         notlar: notlar.trim() || undefined,
       }).unwrap();
       toast.success(t("admin.erp.operator.finished"));
+      if (result.stokFarki !== undefined && result.stokFarki !== 0) {
+        const farkStr = result.stokFarki > 0
+          ? `+${result.stokFarki.toFixed(0)}`
+          : `${result.stokFarki.toFixed(0)}`;
+        toast.info(`Stok düzeltmesi uygulandı: ${farkStr} adet (ölçüm farkı giderildi)`);
+      }
       setFinishing(null);
     } catch {
       toast.error(t("admin.erp.common.operationFailed"));
@@ -168,21 +227,24 @@ function MakineKuyruguTab() {
   }
 
   function openPause(item: MakineKuyruguDetayDto) {
+    setPauseNedenId("");
     setPauseNeden("");
-    setMakineArizasi(false);
+    setPauseUretimMiktari(String(item.uretilenMiktar));
     setPausing(item);
   }
 
   async function confirmPause() {
-    if (!pausing || !pauseNeden.trim()) {
+    if (!pausing || !pauseNedenId) {
       toast.error(t("admin.erp.operator.pauseReasonRequired"));
       return;
     }
+    const uretim = parseFloat(pauseUretimMiktari || "0");
     try {
       await duraklat({
         makineKuyrukId: pausing.id,
-        neden: pauseNeden.trim(),
-        makineArizasi,
+        durusNedeniId: pauseNedenId,
+        neden: pauseNeden.trim() || durusNedenleri.find((d) => d.id === pauseNedenId)?.ad || "",
+        anlikUretimMiktari: uretim > 0 ? uretim : undefined,
       }).unwrap();
       toast.success(t("admin.erp.operator.paused"));
       setPausing(null);
@@ -226,6 +288,8 @@ function MakineKuyruguTab() {
         <div className="space-y-6">
           {Array.from(grouped.entries()).map(([makineId, jobs]) => {
             const first = jobs[0];
+            const hasActiveJob = jobs.some((j) => j.durum === "calisiyor" || j.durum === "duraklatildi");
+            const firstBekleyenId = jobs.filter((j) => j.durum === "bekliyor").sort((a, b) => a.sira - b.sira)[0]?.id ?? null;
             return (
               <div key={makineId}>
                 <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
@@ -234,6 +298,7 @@ function MakineKuyruguTab() {
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {jobs.map((job) => {
                     const progress = pct(job.planlananMiktar, job.uretilenMiktar);
+                    const canStart = job.durum === "bekliyor" && !hasActiveJob && job.id === firstBekleyenId;
                     return (
                       <Card key={job.id} className="flex flex-col">
                         <CardHeader className="pb-2">
@@ -278,7 +343,7 @@ function MakineKuyruguTab() {
                         </CardContent>
                         <CardFooter className="gap-1 pt-0 flex-wrap">
                           {job.durum === "bekliyor" && (
-                            <Button size="sm" className="flex-1" onClick={() => handleBaslat(job)}>
+                            <Button size="sm" className="flex-1" onClick={() => handleBaslat(job)} disabled={!canStart}>
                               <Play className="mr-1 size-3.5" />
                               {t("admin.erp.operator.start")}
                             </Button>
@@ -295,7 +360,7 @@ function MakineKuyruguTab() {
                             </>
                           )}
                           {job.durum === "duraklatildi" && (
-                            <Button size="sm" className="flex-1" onClick={() => handleDevamEt(job)}>
+                            <Button size="sm" className="flex-1" onClick={() => openResume(job)}>
                               <RotateCcw className="mr-1 size-3.5" />
                               {t("admin.erp.operator.resume")}
                             </Button>
@@ -321,6 +386,16 @@ function MakineKuyruguTab() {
             <p className="text-sm text-muted-foreground">
               <strong className="font-mono">{finishing?.emirNo}</strong> — {finishing?.urunAd}
             </p>
+            {finishing && finishing.oncekiUretimToplam > 0 && (
+              <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
+                <div className="font-medium">{t("admin.erp.operator.previousMeasurements")}</div>
+                <div className="grid grid-cols-2 gap-2 text-muted-foreground">
+                  <div>{t("admin.erp.operator.producedQuantity")}: <span className="font-medium text-foreground">{finishing.oncekiUretimToplam}</span></div>
+                  <div>{t("admin.erp.operator.scrapQuantity")}: <span className="font-medium text-foreground">{finishing.oncekiFireToplam}</span></div>
+                </div>
+                <p className="text-xs text-muted-foreground">{t("admin.erp.operator.finishTotalHint")}</p>
+              </div>
+            )}
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label>
@@ -360,20 +435,93 @@ function MakineKuyruguTab() {
             <SheetTitle>{t("admin.erp.operator.pauseTitle")}</SheetTitle>
           </SheetHeader>
           <div className="space-y-4 px-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              <strong className="font-mono">{pausing?.emirNo}</strong> — {pausing?.urunAd}
+            </p>
             <div className="space-y-1">
-              <Label>{t("admin.erp.operator.pauseReason")}</Label>
-              <Input value={pauseNeden} onChange={(e) => setPauseNeden(e.target.value)} autoFocus />
+              <Label>{t("admin.erp.operator.pauseReason")} *</Label>
+              <Select value={pauseNedenId || "none"} onValueChange={(v) => {
+                const id = v === "none" ? "" : v;
+                setPauseNedenId(id);
+                const found = durusNedenleri.find((d) => d.id === id);
+                if (found) setPauseNeden(found.ad);
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t("admin.erp.operator.selectPauseReason")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t("admin.erp.operator.selectPauseReason")}</SelectItem>
+                  {durusNedenleri.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.kod} — {d.ad}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="flex items-center gap-3 rounded-md border px-3 py-2">
-              <Switch checked={makineArizasi} onCheckedChange={setMakineArizasi} />
-              <Label className="cursor-pointer">{t("admin.erp.operator.machineBreakdown")}</Label>
+            <div className="space-y-1">
+              <Label>{t("admin.erp.operator.pauseNote")}</Label>
+              <Input value={pauseNeden} onChange={(e) => setPauseNeden(e.target.value)} placeholder={t("admin.erp.operator.pauseNotePlaceholder")} />
+            </div>
+            <div className="space-y-1">
+              <Label>{t("admin.erp.operator.currentProduction")}</Label>
+              <Input type="number" step="0.0001" value={pauseUretimMiktari} onChange={(e) => setPauseUretimMiktari(e.target.value)} />
             </div>
           </div>
           <SheetFooter className="border-t px-4 py-4 sm:flex-row sm:justify-end">
             <Button variant="outline" onClick={() => setPausing(null)}>
               {t("admin.common.cancel")}
             </Button>
-            <Button onClick={confirmPause}>{t("admin.erp.operator.pauseConfirm")}</Button>
+            <Button onClick={confirmPause} disabled={!pauseNedenId}>{t("admin.erp.operator.pauseConfirm")}</Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      {/* Resume (DevamEt) Sheet */}
+      <Sheet open={!!resuming} onOpenChange={(v) => !v && setResuming(null)}>
+        <SheetContent side="right" className="w-full p-0 sm:max-w-md">
+          <SheetHeader className="border-b px-4 py-4">
+            <SheetTitle>{t("admin.erp.operator.resumeTitle")}</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-4 px-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              <strong className="font-mono">{resuming?.emirNo}</strong> — {resuming?.urunAd}
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label>{t("admin.erp.operator.producedQuantity")}</Label>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  min={0}
+                  value={resumeUretim}
+                  onChange={(e) => setResumeUretim(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>{t("admin.erp.operator.scrapQuantity")}</Label>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  min={0}
+                  value={resumeFire}
+                  onChange={(e) => setResumeFire(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>{t("admin.erp.operator.notes")}</Label>
+              <Textarea rows={2} value={resumeNotlar} onChange={(e) => setResumeNotlar(e.target.value)} />
+            </div>
+          </div>
+          <SheetFooter className="border-t px-4 py-4 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => setResuming(null)}>
+              {t("admin.common.cancel")}
+            </Button>
+            <Button onClick={confirmResume}>
+              <RotateCcw className="mr-1 size-4" />
+              {t("admin.erp.operator.resumeConfirm")}
+            </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
@@ -383,133 +531,202 @@ function MakineKuyruguTab() {
 
 function VardiyaPanel() {
   const { t } = useLocaleContext();
-  const { data: makineData, isLoading } = useListMakinelerAdminQuery({ durum: "aktif" });
+  const { data: vardiyaData, isLoading } = useGetAcikVardiyalarAdminQuery();
   const [vardiyaBasi, { isLoading: isStarting }] = useVardiyaBasiAdminMutation();
   const [vardiyaSonu, { isLoading: isEnding }] = useVardiyaSonuAdminMutation();
 
-  const [makineId, setMakineId] = useState("");
-  const [vardiyaTipi, setVardiyaTipi] = useState<"gunduz" | "gece">("gunduz");
-  const [notlar, setNotlar] = useState("");
+  // Per-machine shift type selection
+  const [vardiyaTipleri, setVardiyaTipleri] = useState<Record<string, "gunduz" | "gece">>({});
 
-  const makineler = (makineData?.items ?? []).filter((makine) => makine.isActive && makine.durum === "aktif");
+  // Sheet state for closing a shift
+  const [closingMakineId, setClosingMakineId] = useState<string | null>(null);
+  const [shiftEndUretim, setShiftEndUretim] = useState("0");
+  const [shiftEndFire, setShiftEndFire] = useState("0");
+  const [shiftEndNotlar, setShiftEndNotlar] = useState("");
+
+  const makineler = vardiyaData ?? [];
+  const closingMakine = makineler.find((m) => m.makineId === closingMakineId) ?? null;
+
+  function getVardiyaTipi(makineId: string): "gunduz" | "gece" {
+    return vardiyaTipleri[makineId] ?? "gunduz";
+  }
 
   function getErrorMessage(error: unknown): string {
     const message =
       typeof error === "object" && error && "data" in error
         ? (error as { data?: { error?: { message?: string } } }).data?.error?.message
         : undefined;
-
-    if (message === "vardiya_saati_gecersiz") {
-      return t("admin.erp.operator.shiftTimeInvalid");
-    }
-    if (message === "acik_vardiya_zaten_var") {
-      return t("admin.erp.operator.shiftAlreadyOpen");
-    }
-    if (message === "acik_vardiya_bulunamadi") {
-      return t("admin.erp.operator.shiftNotFound");
-    }
+    if (message === "vardiya_saati_gecersiz") return t("admin.erp.operator.shiftTimeInvalid");
+    if (message === "acik_vardiya_zaten_var") return t("admin.erp.operator.shiftAlreadyOpen");
+    if (message === "acik_vardiya_bulunamadi") return t("admin.erp.operator.shiftNotFound");
     return t("admin.erp.common.operationFailed");
   }
 
-  async function handleShiftStart() {
-    if (!makineId) {
-      toast.error(t("admin.erp.operator.shiftMachineRequired"));
-      return;
-    }
-
+  async function handleShiftStart(makineId: string) {
     try {
-      await vardiyaBasi({
-        makineId,
-        vardiyaTipi,
-        notlar: notlar.trim() || undefined,
-      }).unwrap();
+      await vardiyaBasi({ makineId, vardiyaTipi: getVardiyaTipi(makineId) }).unwrap();
       toast.success(t("admin.erp.operator.shiftStarted"));
-      setNotlar("");
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
   }
 
-  async function handleShiftEnd() {
-    if (!makineId) {
-      toast.error(t("admin.erp.operator.shiftMachineRequired"));
+  function openShiftEnd(makineId: string) {
+    setClosingMakineId(makineId);
+    setShiftEndUretim("0");
+    setShiftEndFire("0");
+    setShiftEndNotlar("");
+  }
+
+  async function confirmShiftEnd() {
+    if (!closingMakineId) return;
+    const u = Number.parseFloat(shiftEndUretim || "0");
+    const f = Number.parseFloat(shiftEndFire || "0");
+    if (Number.isNaN(u) || u < 0 || Number.isNaN(f) || f < 0) {
+      toast.error(t("admin.erp.operator.invalidQuantity"));
       return;
     }
-
     try {
       await vardiyaSonu({
-        makineId,
-        notlar: notlar.trim() || undefined,
+        makineId: closingMakineId,
+        uretilenMiktar: u > 0 ? u : undefined,
+        fireMiktar: f,
+        notlar: shiftEndNotlar.trim() || undefined,
       }).unwrap();
       toast.success(t("admin.erp.operator.shiftEnded"));
-      setNotlar("");
+      setClosingMakineId(null);
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">{t("admin.erp.operator.shiftTitle")}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_220px_minmax(0,1fr)]">
-          <div className="space-y-1">
-            <Label>{t("admin.erp.operator.shiftMachine")}</Label>
-            <Select value={makineId} onValueChange={setMakineId} disabled={isLoading}>
-              <SelectTrigger>
-                <SelectValue placeholder={t("admin.erp.operator.shiftMachinePlaceholder")} />
-              </SelectTrigger>
-              <SelectContent>
-                {makineler.map((makine) => (
-                  <SelectItem key={makine.id} value={makine.id}>
-                    {makine.kod} - {makine.ad}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">{t("admin.erp.operator.shiftTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="space-y-2 px-6 pb-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : makineler.length === 0 ? (
+            <p className="px-6 pb-4 text-sm text-muted-foreground">Aktif makine bulunamadı.</p>
+          ) : (
+            <div className="divide-y">
+              {makineler.map((makine) => {
+                const isAcik = makine.acikVardiyaId !== null;
+                const baslangicStr = makine.baslangic
+                  ? new Date(makine.baslangic).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
+                  : null;
+                const vardiyaTipiLabel = makine.vardiyaTipi === "gece" ? "Gece" : "Gündüz";
 
-          <div className="space-y-1">
-            <Label>{t("admin.erp.operator.shiftType")}</Label>
-            <Select value={vardiyaTipi} onValueChange={(v) => setVardiyaTipi(v as "gunduz" | "gece")}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gunduz">{t("admin.erp.operator.dayShift")}</SelectItem>
-                <SelectItem value="gece">{t("admin.erp.operator.nightShift")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+                return (
+                  <div key={makine.makineId} className="flex items-center gap-3 px-6 py-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium">{makine.makineKod}</div>
+                      <div className="truncate text-xs text-muted-foreground">{makine.makineAd}</div>
+                    </div>
 
-          <div className="space-y-1">
-            <Label>{t("admin.erp.operator.notes")}</Label>
-            <Input value={notlar} onChange={(event) => setNotlar(event.target.value)} />
-          </div>
-        </div>
+                    {isAcik ? (
+                      <>
+                        <Badge className="shrink-0 bg-green-600 text-white">
+                          {vardiyaTipiLabel} {baslangicStr && `· ${baslangicStr}`}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openShiftEnd(makine.makineId)}
+                          disabled={isEnding}
+                        >
+                          <Square className="mr-1 size-3" />
+                          Kapat
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Select
+                          value={getVardiyaTipi(makine.makineId)}
+                          onValueChange={(v) =>
+                            setVardiyaTipleri((prev) => ({ ...prev, [makine.makineId]: v as "gunduz" | "gece" }))
+                          }
+                        >
+                          <SelectTrigger className="h-8 w-28">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="gunduz">{t("admin.erp.operator.dayShift")}</SelectItem>
+                            <SelectItem value="gece">{t("admin.erp.operator.nightShift")}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button size="sm" onClick={() => handleShiftStart(makine.makineId)} disabled={isStarting}>
+                          <Play className="mr-1 size-3" />
+                          Aç
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-lg border bg-muted/30 px-3 py-3 text-sm">
-            <div className="font-medium">{t("admin.erp.operator.dayShift")}</div>
-            <div className="text-muted-foreground">{t("admin.erp.operator.dayShiftHours")}</div>
+      {/* Vardiya Kapat Sheet */}
+      <Sheet open={closingMakineId !== null} onOpenChange={(open) => !open && setClosingMakineId(null)}>
+        <SheetContent side="right" className="w-full p-0 sm:max-w-md">
+          <SheetHeader className="border-b px-4 py-4">
+            <SheetTitle>
+              {closingMakine
+                ? `${closingMakine.makineKod} — ${t("admin.erp.operator.endShift")}`
+                : t("admin.erp.operator.endShift")}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="space-y-4 px-4 py-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label>{t("admin.erp.operator.producedQuantity")}</Label>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  min={0}
+                  value={shiftEndUretim}
+                  onChange={(e) => setShiftEndUretim(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>{t("admin.erp.operator.scrapQuantity")}</Label>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  min={0}
+                  value={shiftEndFire}
+                  onChange={(e) => setShiftEndFire(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>{t("admin.erp.operator.notes")}</Label>
+              <Textarea value={shiftEndNotlar} onChange={(e) => setShiftEndNotlar(e.target.value)} rows={2} />
+            </div>
           </div>
-          <div className="rounded-lg border bg-muted/30 px-3 py-3 text-sm">
-            <div className="font-medium">{t("admin.erp.operator.nightShift")}</div>
-            <div className="text-muted-foreground">{t("admin.erp.operator.nightShiftHours")}</div>
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter className="flex flex-wrap justify-end gap-2">
-        <Button variant="outline" onClick={handleShiftEnd} disabled={isEnding || isStarting}>
-          {t("admin.erp.operator.endShift")}
-        </Button>
-        <Button onClick={handleShiftStart} disabled={isStarting || isEnding}>
-          {t("admin.erp.operator.startShift")}
-        </Button>
-      </CardFooter>
-    </Card>
+          <SheetFooter className="border-t px-4 py-4 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => setClosingMakineId(null)}>
+              {t("admin.common.cancel")}
+            </Button>
+            <Button onClick={confirmShiftEnd} disabled={isEnding}>
+              <Check className="mr-1 size-4" />
+              {t("admin.erp.operator.endShift")}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
 

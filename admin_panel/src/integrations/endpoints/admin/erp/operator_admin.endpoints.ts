@@ -5,6 +5,7 @@
 
 import { baseApi } from '@/integrations/baseApi';
 import type {
+  AcikVardiyaDto,
   DevamEtPayload,
   DuraklatPayload,
   MakineKuyruguDetayDto,
@@ -115,6 +116,13 @@ export const operatorAdminApi = baseApi.injectEndpoints({
       ],
     }),
 
+    // -- Acik Vardiyalar --
+    getAcikVardiyalarAdmin: b.query<AcikVardiyaDto[], void>({
+      query: () => ({ url: `${BASE}/acik-vardiyalar` }),
+      transformResponse: (res: unknown) => (Array.isArray(res) ? (res as AcikVardiyaDto[]) : []),
+      providesTags: [{ type: 'MakineKuyrugu' as const, id: 'LIST' }],
+    }),
+
     // -- Gunluk Girisler --
     listGunlukGirislerAdmin: b.query<
       { items: OperatorGunlukGirisDto[]; total: number },
@@ -139,6 +147,7 @@ export const {
   useDevamEtAdminMutation,
   useVardiyaBasiAdminMutation,
   useVardiyaSonuAdminMutation,
+  useGetAcikVardiyalarAdminQuery,
   useSevkiyatOlusturAdminMutation,
   useMalKabulAdminMutation,
   useListGunlukGirislerAdminQuery,

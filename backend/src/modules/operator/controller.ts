@@ -20,6 +20,7 @@ import {
   repoDevamEt,
   repoVardiyaBasi,
   repoVardiyaSonu,
+  repoGetAcikVardiyalar,
   repoSevkiyatOlustur,
   repoMalKabul,
   repoListGunlukGirisler,
@@ -70,6 +71,8 @@ export const uretimBaslat: RouteHandler = async (req, reply) => {
     req.log.error({ error: msg, stack }, 'uretim_baslat_failed');
     if (msg === 'kuyruk_kaydi_bulunamadi') return sendError(reply, 404, 'kuyruk_kaydi_bulunamadi');
     if (msg === 'kuyruk_zaten_baslatilmis') return sendError(reply, 409, 'kuyruk_zaten_baslatilmis');
+    if (msg === 'sadece_bekliyor_baslatilabilir') return sendError(reply, 409, msg);
+    if (msg === 'makinede_aktif_is_var') return sendError(reply, 409, msg);
     return sendError(reply, 500, msg || 'sunucu_hatasi');
   }
 };
@@ -134,6 +137,19 @@ export const vardiyaBasi: RouteHandler = async (req, reply) => {
     if (msg === 'acik_vardiya_zaten_var') return sendError(reply, 409, 'acik_vardiya_zaten_var');
     req.log.error({ error: msg, stack }, 'vardiya_basi_failed');
     return sendError(reply, 500, msg || 'sunucu_hatasi');
+  }
+};
+
+// -- Acik Vardiyalar --
+
+export const getAcikVardiyalar: RouteHandler = async (req, reply) => {
+  try {
+    const items = await repoGetAcikVardiyalar();
+    return items;
+  } catch (error) {
+    const { msg, stack } = extractError(error);
+    req.log.error({ error: msg, stack }, 'get_acik_vardiyalar_failed');
+    return sendError(reply, 500, 'sunucu_hatasi');
   }
 };
 

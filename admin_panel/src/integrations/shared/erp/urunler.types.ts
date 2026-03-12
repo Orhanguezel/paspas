@@ -49,6 +49,8 @@ export interface UrunDto {
   imageAlt: string | null;
   stok: number;
   kritikStok: number;
+  rezerveStok: number;
+  kullanilabilirStok: number;
   birimFiyat: number | null;
   kdvOrani: number;
   operasyonTipi: OperasyonTipi | null;
@@ -180,6 +182,8 @@ export function normalizeUrun(raw: unknown): UrunDto {
     imageAlt: r.imageAlt != null ? toStr(r.imageAlt) : null,
     stok: toNum(r.stok),
     kritikStok: toNum(r.kritikStok),
+    rezerveStok: toNum(r.rezerveStok),
+    kullanilabilirStok: toNum(r.kullanilabilirStok),
     birimFiyat: r.birimFiyat != null ? toNum(r.birimFiyat) : null,
     kdvOrani: toNum(r.kdvOrani, 20),
     operasyonTipi: r.operasyonTipi != null ? (toStr(r.operasyonTipi) as OperasyonTipi) : null,

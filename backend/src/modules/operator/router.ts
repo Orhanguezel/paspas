@@ -10,6 +10,7 @@ import {
   devamEt,
   vardiyaBasi,
   vardiyaSonu,
+  getAcikVardiyalar,
   sevkiyatOlustur,
   malKabul,
   listGunlukGirisler,
@@ -28,6 +29,7 @@ export async function registerOperator(app: FastifyInstance) {
   app.post(`${BASE}/devam-et`, { preHandler: guard }, devamEt);
 
   // Vardiya
+  app.get(`${BASE}/acik-vardiyalar`, { preHandler: guard }, getAcikVardiyalar);
   app.post(`${BASE}/vardiya-basi`, { preHandler: guard }, vardiyaBasi);
   app.post(`${BASE}/vardiya-sonu`, { preHandler: guard }, vardiyaSonu);
 

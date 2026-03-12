@@ -18,6 +18,7 @@ export interface StokDto {
   birimDonusumleri: BirimDonusumItem[];
   stok: number;
   kritikStok: number;
+  rezerveStok: number;
   acikUretimIhtiyaci: number;
   serbestStok: number;
   durum: "yeterli" | "kritik" | "yetersiz";
@@ -73,6 +74,7 @@ export function normalizeStok(raw: unknown): StokDto {
     birimDonusumleri: (rawDonusumler as unknown[]).map(normalizeBirimDonusumItem),
     stok: toNum(r.stok),
     kritikStok: toNum(r.kritikStok),
+    rezerveStok: toNum(r.rezerveStok),
     acikUretimIhtiyaci: toNum(r.acikUretimIhtiyaci),
     serbestStok: toNum(r.serbestStok),
     durum: toStr(r.durum, "yeterli") as StokDto["durum"],

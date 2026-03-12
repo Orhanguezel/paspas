@@ -38,8 +38,10 @@ export const durusKayitlari = mysqlTable('durus_kayitlari', {
   makine_id: char('makine_id', { length: 36 }).notNull(),
   makine_kuyruk_id: char('makine_kuyruk_id', { length: 36 }),
   operator_user_id: char('operator_user_id', { length: 36 }),
+  durus_nedeni_id: char('durus_nedeni_id', { length: 36 }),
   durus_tipi: varchar('durus_tipi', { length: 32 }).notNull().default('ariza'),
   neden: varchar('neden', { length: 255 }).notNull(),
+  anlik_uretim_miktari: decimal('anlik_uretim_miktari', { precision: 12, scale: 4 }),
   baslangic: datetime('baslangic').notNull(),
   bitis: datetime('bitis'),
   sure_dk: int('sure_dk', { unsigned: true }),
@@ -184,8 +186,10 @@ export type DurusKayitDto = {
   makineId: string;
   makineKuyrukId: string | null;
   operatorUserId: string | null;
+  durusNedeniId: string | null;
   durusTipi: string;
   neden: string;
+  anlikUretimMiktari: number | null;
   baslangic: string;
   bitis: string | null;
   sureDk: number | null;
@@ -197,8 +201,10 @@ export function durusRowToDto(row: DurusKayitRow): DurusKayitDto {
     makineId: row.makine_id,
     makineKuyrukId: row.makine_kuyruk_id ?? null,
     operatorUserId: row.operator_user_id ?? null,
+    durusNedeniId: row.durus_nedeni_id ?? null,
     durusTipi: row.durus_tipi,
     neden: row.neden,
+    anlikUretimMiktari: row.anlik_uretim_miktari ? Number(row.anlik_uretim_miktari) : null,
     baslangic: toStr(row.baslangic) ?? new Date().toISOString(),
     bitis: toStr(row.bitis),
     sureDk: row.sure_dk ?? null,

@@ -132,8 +132,8 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
       { key: 'uretim_emirleri',   url: '/admin/uretim-emirleri',   icon: Factory,     roles: ['admin'] },
       { key: 'makine_havuzu',     url: '/admin/makine-havuzu',     icon: Timer,       roles: ['admin'] },
       { key: 'is_yukler',         url: '/admin/is-yukler',         icon: Cpu,         roles: ['admin'] },
-      { key: 'gantt',             url: '/admin/gantt',             icon: Calendar,    roles: ['admin'] },
       { key: 'operator',          url: '/admin/operator',          icon: Play,        roles: ['admin', 'operator'] },
+      { key: 'gantt',             url: '/admin/gantt',             icon: Calendar,    roles: ['admin', 'operator', 'nakliyeci'] },
     ],
   },
   // ─── Lojistik & Stok ───

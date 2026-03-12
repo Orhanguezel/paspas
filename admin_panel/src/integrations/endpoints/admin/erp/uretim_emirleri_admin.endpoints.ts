@@ -9,9 +9,12 @@ import type {
   UretimEmriDto,
   UretimEmriListResponse,
   UretimEmriCreatePayload,
+  UretimEmriCreateResponse,
   UretimEmriPatchPayload,
+  HammaddeKontrolResponse,
+  UretimKarsilastirma,
 } from '@/integrations/shared/erp/uretim_emirleri.types';
-import { normalizeUretimEmri, normalizeUretimEmriAday, normalizeUretimEmriList } from '@/integrations/shared/erp/uretim_emirleri.types';
+import { normalizeUretimEmri, normalizeUretimEmriAday, normalizeUretimEmriCreateResponse, normalizeUretimEmriList } from '@/integrations/shared/erp/uretim_emirleri.types';
 
 const BASE = '/admin/uretim-emirleri';
 
@@ -44,14 +47,17 @@ export const uretimEmirleriAdminApi = baseApi.injectEndpoints({
 
     getNextEmirNoAdmin: b.query<{ emirNo: string }, void>({
       query: () => ({ url: `${BASE}/next-no` }),
+      providesTags: [{ type: 'UretimEmirleri', id: 'NEXT_NO' }],
     }),
 
-    createUretimEmriAdmin: b.mutation<UretimEmriDto, UretimEmriCreatePayload>({
+    createUretimEmriAdmin: b.mutation<UretimEmriCreateResponse, UretimEmriCreatePayload>({
       query: (body) => ({ url: BASE, method: 'POST', body }),
-      transformResponse: (res: unknown) => normalizeUretimEmri(res),
+      transformResponse: (res: unknown) => normalizeUretimEmriCreateResponse(res),
       invalidatesTags: [
         { type: 'UretimEmirleri', id: 'LIST' },
         { type: 'UretimEmirleri', id: 'ADAYLAR' },
+        { type: 'UretimEmirleri', id: 'NEXT_NO' },
+        { type: 'Stoklar', id: 'LIST' },
       ],
     }),
 
@@ -65,12 +71,22 @@ export const uretimEmirleriAdminApi = baseApi.injectEndpoints({
       ],
     }),
 
+    checkHammaddeAdmin: b.query<HammaddeKontrolResponse, string>({
+      query: (id) => ({ url: `${BASE}/${id}/hammadde-kontrol` }),
+    }),
+
+    getUretimKarsilastirmaAdmin: b.query<UretimKarsilastirma, string>({
+      query: (id) => ({ url: `${BASE}/${id}/uretim-karsilastirma` }),
+    }),
+
     deleteUretimEmriAdmin: b.mutation<void, string>({
       query: (id) => ({ url: `${BASE}/${id}`, method: 'DELETE' }),
       invalidatesTags: (_r, _e, id) => [
         { type: 'UretimEmri', id },
         { type: 'UretimEmirleri', id: 'LIST' },
         { type: 'UretimEmirleri', id: 'ADAYLAR' },
+        { type: 'UretimEmirleri', id: 'NEXT_NO' },
+        { type: 'Stoklar', id: 'LIST' },
       ],
     }),
   }),
@@ -85,4 +101,6 @@ export const {
   useCreateUretimEmriAdminMutation,
   useUpdateUretimEmriAdminMutation,
   useDeleteUretimEmriAdminMutation,
+  useLazyCheckHammaddeAdminQuery,
+  useLazyGetUretimKarsilastirmaAdminQuery,
 } = uretimEmirleriAdminApi;

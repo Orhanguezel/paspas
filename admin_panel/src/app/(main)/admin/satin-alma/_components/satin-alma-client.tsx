@@ -145,6 +145,7 @@ export default function SatinAlmaClient({ initialTedarikciId }: SatinAlmaClientP
             onClick={async () => {
               try {
                 await checkCriticalStock().unwrap();
+                refetch();
                 toast.success('Kritik stok kontrolü tamamlandı');
               } catch {
                 toast.error('Kritik stok kontrolü başarısız');

@@ -21,6 +21,7 @@ import {
   type UretimEmriAdayDto,
   type UretimEmriRow,
 } from './schema';
+import { iptalRezervasyon, rezerveHammaddeler, type HammaddeUyari } from './hammadde_service';
 import type { CreateBody, ListQuery, PatchBody } from './validation';
 
 type ListResult = {
@@ -206,9 +207,25 @@ function mapPatchInput(data: PatchBody): Partial<typeof uretimEmirleri.$inferIns
   return payload;
 }
 
-async function syncJunctionRows(uretimEmriId: string, kalemIds: string[]): Promise<void> {
+async function syncJunctionRows(uretimEmriId: string, kalemIds: string[], expectedUrunId?: string): Promise<void> {
   await db.delete(uretimEmriSiparisKalemleri).where(eq(uretimEmriSiparisKalemleri.uretim_emri_id, uretimEmriId));
   if (kalemIds.length === 0) return;
+
+  // Validate all kalemleri belong to the same product as the emir
+  if (expectedUrunId) {
+    const kalemleri = await db
+      .select({ id: siparisKalemleri.id, urunId: siparisKalemleri.urun_id })
+      .from(siparisKalemleri)
+      .where(inArray(siparisKalemleri.id, kalemIds));
+
+    const mismatch = kalemleri.find((k) => k.urunId !== expectedUrunId);
+    if (mismatch) {
+      throw Object.assign(new Error('urun_uyumsuzlugu'), {
+        detail: 'Siparis kalemleri ile uretim emrinin urunu ayni olmali.',
+      });
+    }
+  }
+
   const rows = kalemIds.map((kalemId) => ({
     id: randomUUID(),
     uretim_emri_id: uretimEmriId,
@@ -439,20 +456,37 @@ export async function repoGetById(id: string): Promise<EnrichedUretimEmriRow | n
   return enriched[0] ?? null;
 }
 
-export async function repoCreate(data: CreateBody): Promise<EnrichedUretimEmriRow> {
-  const payload = mapCreateInput(data);
+export type CreateResult = {
+  row: EnrichedUretimEmriRow;
+  hammaddeUyarilari: HammaddeUyari[];
+};
+
+export async function repoCreate(data: CreateBody): Promise<CreateResult> {
+  // receteId verilmemisse urunun aktif recetesini otomatik bul
+  let effectiveReceteId = data.receteId;
+  if (!effectiveReceteId) {
+    const [aktifRecete] = await db
+      .select({ id: receteler.id })
+      .from(receteler)
+      .where(and(eq(receteler.urun_id, data.urunId), eq(receteler.is_active, 1)))
+      .limit(1);
+    effectiveReceteId = aktifRecete?.id;
+  }
+  const payload = mapCreateInput({ ...data, receteId: effectiveReceteId });
   await db.insert(uretimEmirleri).values(payload);
   if (data.siparisKalemIds && data.siparisKalemIds.length > 0) {
-    await syncJunctionRows(payload.id, data.siparisKalemIds);
+    await syncJunctionRows(payload.id, data.siparisKalemIds, data.urunId);
   }
   // Urun operasyonlarindan emir operasyonlarini otomatik olustur
   await autoPopulateOperasyonlar(payload.id, data.urunId, data.planlananMiktar.toFixed(4));
+  // Hammadde rezervasyonu olustur (uyarilarla birlikte)
+  const hammaddeUyarilari = await rezerveHammaddeler(payload.id, effectiveReceteId, data.planlananMiktar);
   // Auto-refresh linked sipariş durum (taslak/onaylandi → planlandi)
   const siparisIds = await getSiparisIdsByUretimEmriId(payload.id);
   for (const sid of siparisIds) await refreshSiparisDurum(sid);
   const row = await repoGetById(payload.id);
   if (!row) throw new Error('insert_failed');
-  return row;
+  return { row, hammaddeUyarilari };
 }
 
 export async function repoUpdate(id: string, patch: PatchBody): Promise<EnrichedUretimEmriRow | null> {
@@ -461,7 +495,9 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<Enriched
     await db.update(uretimEmirleri).set(payload).where(eq(uretimEmirleri.id, id));
   }
   if (patch.siparisKalemIds !== undefined) {
-    await syncJunctionRows(id, patch.siparisKalemIds ?? []);
+    // Resolve urunId: from patch or from existing row
+    const urunId = patch.urunId ?? (await repoGetById(id))?.urun_id;
+    await syncJunctionRows(id, patch.siparisKalemIds ?? [], urunId ?? undefined);
   }
   return repoGetById(id);
 }
@@ -474,6 +510,8 @@ export async function repoDelete(id: string): Promise<void> {
     (error as Error & { detail?: string }).detail = row.silmeNedeni ?? DELETE_REASON.uretimBasladi;
     throw error;
   }
+  // Hammadde rezervasyonlarını geri al
+  await iptalRezervasyon(id);
   await db.delete(uretimEmriSiparisKalemleri).where(eq(uretimEmriSiparisKalemleri.uretim_emri_id, id));
   await db.delete(uretimEmriOperasyonlari).where(eq(uretimEmriOperasyonlari.uretim_emri_id, id));
   await db.delete(uretimEmirleri).where(eq(uretimEmirleri.id, id));
@@ -536,6 +574,50 @@ export async function repoListAdaylar(): Promise<UretimEmriAdayDto[]> {
     urunAd: row.urunAd ?? null,
     musteriAd: row.musteriAd,
     miktar: Number(row.miktar ?? 0),
-    terminTarihi: row.terminTarihi ? String(row.terminTarihi).slice(0, 10) : null,
+    terminTarihi: row.terminTarihi
+      ? (row.terminTarihi instanceof Date
+        ? row.terminTarihi.toISOString().slice(0, 10)
+        : String(row.terminTarihi).slice(0, 10))
+      : null,
   }));
+}
+
+export type UretimKarsilastirma = {
+  planlananMiktar: number;
+  toplamUretilen: number;
+  toplamFire: number;
+  netUretilen: number;
+  fark: number;
+};
+
+/**
+ * İş emri kapanışında planlanan miktar ile vardiya kayıtlarından
+ * toplanan gerçek üretim miktarını karşılaştırır.
+ */
+export async function repoGetUretimKarsilastirma(id: string): Promise<UretimKarsilastirma | null> {
+  const row = await repoGetById(id);
+  if (!row) return null;
+
+  const planlananMiktar = Number(row.planlanan_miktar ?? 0);
+
+  const [agg] = await db
+    .select({
+      toplamUretilen: sql<string>`COALESCE(SUM(${operatorGunlukKayitlari.ek_uretim_miktari}), 0)`,
+      toplamFire: sql<string>`COALESCE(SUM(${operatorGunlukKayitlari.fire_miktari}), 0)`,
+      netUretilen: sql<string>`COALESCE(SUM(${operatorGunlukKayitlari.net_miktar}), 0)`,
+    })
+    .from(operatorGunlukKayitlari)
+    .where(eq(operatorGunlukKayitlari.uretim_emri_id, id));
+
+  const toplamUretilen = Number(agg?.toplamUretilen ?? 0);
+  const toplamFire = Number(agg?.toplamFire ?? 0);
+  const netUretilen = Number(agg?.netUretilen ?? 0);
+
+  return {
+    planlananMiktar,
+    toplamUretilen,
+    toplamFire,
+    netUretilen,
+    fark: netUretilen - planlananMiktar,
+  };
 }

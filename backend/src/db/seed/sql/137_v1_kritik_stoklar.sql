@@ -1,23 +1,8 @@
 SET NAMES utf8mb4;
 SET time_zone = '+00:00';
 
-SET @kritik_stok_col_exists := (
-  SELECT COUNT(*)
-  FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE()
-    AND TABLE_NAME = 'urunler'
-    AND COLUMN_NAME = 'kritik_stok'
-);
-
-SET @kritik_stok_alter_sql := IF(
-  @kritik_stok_col_exists = 0,
-  'ALTER TABLE `urunler` ADD COLUMN `kritik_stok` decimal(12,4) NOT NULL DEFAULT 0.0000 AFTER `stok`;',
-  'SELECT 1;'
-);
-
-PREPARE stmt FROM @kritik_stok_alter_sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+-- kritik_stok kolonu artik 105_urunler_schema.sql'de tanimli
+-- Burada sadece data guncelleme yapilir
 
 UPDATE `urunler`
 SET `kritik_stok` = CASE

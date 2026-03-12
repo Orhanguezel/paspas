@@ -36,7 +36,8 @@ export interface DashboardTrend {
 
 export interface ActionItem {
   id: string;
-  type: 'overdue_production' | 'overdue_sales' | 'overdue_purchase' | 'overdue_task' | 'critical_stock' | 'pending_purchase' | 'shipment_approval' | 'physical_shipment' | 'unassigned_production' | 'machine_fault' | 'quality_reject' | 'production_completed' | 'new_sales_order' | 'goods_received' | 'shipment_completed' | 'machine_status_change';
+  type: 'overdue_production' | 'overdue_sales' | 'overdue_purchase' | 'overdue_task' | 'critical_stock' | 'pending_purchase' | 'shipment_approval' | 'physical_shipment' | 'unassigned_production' | 'machine_fault' | 'quality_reject' | 'production_completed' | 'new_sales_order' | 'goods_received' | 'shipment_completed' | 'machine_status_change' | 'shift_production' | 'stock_increased';
+  category: 'task' | 'info';
   severity: 'critical' | 'warning';
   title: string;
   subtitle: string;
@@ -46,7 +47,7 @@ export interface ActionItem {
 
 export interface ActionCenterResult {
   items: ActionItem[];
-  counts: { critical: number; warning: number };
+  counts: { critical: number; warning: number; task: number; info: number };
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -86,6 +87,7 @@ function normalizeActionCenter(res: unknown): ActionCenterResult {
       return {
         id: String(p.id ?? ''),
         type: String(p.type ?? 'overdue_production') as ActionItem['type'],
+        category: String(p.category ?? 'task') as ActionItem['category'],
         severity: String(p.severity ?? 'warning') as ActionItem['severity'],
         title: String(p.title ?? ''),
         subtitle: String(p.subtitle ?? ''),
@@ -96,6 +98,8 @@ function normalizeActionCenter(res: unknown): ActionCenterResult {
     counts: {
       critical: toNum(counts.critical),
       warning: toNum(counts.warning),
+      task: toNum(counts.task),
+      info: toNum(counts.info),
     },
   };
 }

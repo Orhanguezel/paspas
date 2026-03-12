@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { PackagePlus, RefreshCcw, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -175,10 +176,10 @@ export default function MalKabulClient() {
                   {row.kabulTarihi.slice(0, 16).replace('T', ' ')}
                 </TableCell>
                 <TableCell>
-                  <div className="space-y-0.5">
+                  <Link href={`/admin/mal-kabul/${row.id}`} className="space-y-0.5 hover:underline underline-offset-4">
                     <div className="font-medium">{row.urunAd ?? row.urunId}</div>
                     <div className="font-mono text-xs text-muted-foreground">{row.urunKod ?? '—'}</div>
-                  </div>
+                  </Link>
                 </TableCell>
                 <TableCell>
                   <Badge variant={KAYNAK_TIPI_BADGE[row.kaynakTipi] ?? 'outline'}>

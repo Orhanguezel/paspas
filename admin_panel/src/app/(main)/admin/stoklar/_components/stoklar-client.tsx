@@ -181,6 +181,7 @@ export default function StoklarClient() {
                 <TableHead>{t("admin.erp.stoklar.columns.kategori")}</TableHead>
                 <TableHead>{t("admin.erp.stoklar.columns.birim")}</TableHead>
                 <TableHead className="text-right">{t("admin.erp.stoklar.columns.stokMiktari")}</TableHead>
+                <TableHead className="text-right">Rezerve</TableHead>
                 <TableHead className="text-right">Açık İhtiyaç</TableHead>
                 <TableHead className="text-right">Serbest</TableHead>
                 <TableHead className="text-right">{t("admin.erp.stoklar.columns.kritikStok")}</TableHead>
@@ -193,7 +194,7 @@ export default function StoklarClient() {
               {isLoading &&
                 Array.from({ length: 6 }).map((_, index) => (
                   <TableRow key={`stok-skeleton-row-${index + 1}`}>
-                    {Array.from({ length: 11 }).map((__, cellIndex) => (
+                    {Array.from({ length: 12 }).map((__, cellIndex) => (
                       <TableCell key={`stok-skeleton-cell-${index + 1}-${cellIndex + 1}`}>
                         <Skeleton className="h-4 w-full" />
                       </TableCell>
@@ -203,7 +204,7 @@ export default function StoklarClient() {
 
               {!isLoading && items.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={11} className="py-10 text-center text-muted-foreground text-sm">
+                  <TableCell colSpan={12} className="py-10 text-center text-muted-foreground text-sm">
                     <div className="flex flex-col items-center gap-2">
                       <PackageSearch className="size-5" />
                       <span>{t("admin.erp.stoklar.notFound")}</span>
@@ -248,6 +249,9 @@ export default function StoklarClient() {
                           ))}
                         </div>
                       )}
+                    </TableCell>
+                    <TableCell className={`text-right tabular-nums ${item.rezerveStok > 0 ? "text-amber-600" : ""}`}>
+                      {item.rezerveStok > 0 ? formatAmount(item.rezerveStok) : "—"}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{formatAmount(item.acikUretimIhtiyaci)}</TableCell>
                     <TableCell

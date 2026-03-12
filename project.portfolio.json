@@ -1,0 +1,49 @@
+{
+  "title": "Paspas ERP",
+  "slug": "paspas-erp",
+  "summary": "Production planning and operations ERP workspace with Bun backend and Next.js admin panel.",
+  "category": "ERP",
+  "services": [
+    "Backend Development",
+    "Admin Panel",
+    "Architecture & Optimization"
+  ],
+  "techs": [
+    "Bun",
+    "TypeScript",
+    "Fastify",
+    "Drizzle ORM",
+    "MySQL",
+    "Next.js",
+    "React",
+    "React Query",
+    "Redux Toolkit"
+  ],
+  "features": [
+    "Production planning",
+    "Operations management",
+    "Admin dashboard",
+    "ERP workflows",
+    "Reporting"
+  ],
+  "designHighlights": [
+    "Operational data flows",
+    "Machine planning focus",
+    "Admin-first workflow design"
+  ],
+  "featured": true,
+  "displayOrder": 4,
+  "clientName": "Own Project",
+  "status": "active",
+  "startDate": "2026-01-01",
+  "completeDate": null,
+  "completionTimeLabel": "Ongoing",
+  "repoUrl": null,
+  "websiteUrl": null,
+  "demoUrl": null,
+  "featuredImage": "/assets/imgs/work/img-3.png",
+  "featuredImageAlt": "Paspas ERP cover image",
+  "resumeTitle": "Paspas ERP",
+  "resumeSubtitle": "Production Planning ERP",
+  "excludeFromPortfolio": false
+}

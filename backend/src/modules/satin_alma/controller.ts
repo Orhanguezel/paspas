@@ -84,6 +84,7 @@ export const deleteSatinAlmaSiparisi: RouteHandler = async (req, reply) => {
   }
 };
 
+/** POST /admin/satin-alma/kritik-stok-kontrol — Manuel kritik stok taslak tetiklemesi */
 export const checkCriticalStock: RouteHandler = async (req, reply) => {
   try {
     await ensureCriticalStockDrafts();

@@ -98,6 +98,7 @@ export const makineHavuzuAdminApi = baseApi.injectEndpoints({
         { type: 'MakineKuyrugu', id: 'KUYRUKLAR' },
         { type: 'UretimEmirleri', id: 'LIST' },
         { type: 'Gantt', id: 'LIST' },
+        { type: 'Stoklar', id: 'LIST' },
       ],
     }),
 
@@ -106,7 +107,9 @@ export const makineHavuzuAdminApi = baseApi.injectEndpoints({
       invalidatesTags: [
         { type: 'MakineKuyrugu', id: 'ATANMAMIS' },
         { type: 'MakineKuyrugu', id: 'KUYRUKLAR' },
+        { type: 'UretimEmirleri', id: 'LIST' },
         { type: 'Gantt', id: 'LIST' },
+        { type: 'Stoklar', id: 'LIST' },
       ],
     }),
 

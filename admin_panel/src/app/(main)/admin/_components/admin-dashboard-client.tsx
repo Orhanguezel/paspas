@@ -7,9 +7,11 @@ import {
   Bell,
   Boxes,
   CheckSquare2,
+  CircleAlert,
   Eye,
   EyeOff,
   Factory,
+  Info,
   PackageCheck,
   RefreshCcw,
   Settings2,
@@ -177,6 +179,8 @@ const ACTION_TYPE_LABELS: Record<ActionItem['type'], string> = {
   goods_received: 'Mal Kabul',
   shipment_completed: 'Sevkiyat Tamamlandı',
   machine_status_change: 'Makine Durumu',
+  shift_production: 'Vardiya Üretimi',
+  stock_increased: 'Stok Artışı',
 };
 
 const ROLE_LABELS: Record<UserRoleName, string> = {
@@ -275,7 +279,9 @@ export default function AdminDashboardClient() {
   }
 
   const actionItems = actionCenter.data?.items ?? [];
-  const actionCounts = actionCenter.data?.counts ?? { critical: 0, warning: 0 };
+  const actionCounts = actionCenter.data?.counts ?? { critical: 0, warning: 0, task: 0, info: 0 };
+  const [actionFilter, setActionFilter] = React.useState<'all' | 'task' | 'info'>('all');
+  const filteredActionItems = actionFilter === 'all' ? actionItems : actionItems.filter((i) => i.category === actionFilter);
 
   return (
     <div className="space-y-6">
@@ -333,20 +339,39 @@ export default function AdminDashboardClient() {
       {/* Action Center */}
       {isVisible('actionCenter') && (
         <section className="space-y-3">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Aksiyon Merkezi</h2>
-            {actionCounts.critical > 0 && (
-              <Badge variant="destructive" className="text-xs">{actionCounts.critical} kritik</Badge>
-            )}
-            {actionCounts.warning > 0 && (
-              <Badge variant="secondary" className="text-xs">{actionCounts.warning} uyarı</Badge>
-            )}
+            <div className="flex items-center gap-1 rounded-lg border p-0.5">
+              <button
+                type="button"
+                onClick={() => setActionFilter('all')}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${actionFilter === 'all' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                Tümü ({actionItems.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActionFilter('task')}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${actionFilter === 'task' ? 'bg-destructive text-white' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <CircleAlert className="mr-1 inline size-3" />
+                Görevler ({actionCounts.task})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActionFilter('info')}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${actionFilter === 'info' ? 'bg-blue-500 text-white' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <Info className="mr-1 inline size-3" />
+                Bilgilendirme ({actionCounts.info})
+              </button>
+            </div>
           </div>
           {actionCenter.isLoading ? (
             <div className="grid gap-3 md:grid-cols-2">
               {Array.from({ length: 4 }).map((_, i) => <Skeleton key={`ac-${i}`} className="h-20" />)}
             </div>
-          ) : actionItems.length === 0 ? (
+          ) : filteredActionItems.length === 0 ? (
             <Card className="border-dashed">
               <CardContent className="flex items-center justify-center gap-2 p-6 text-sm text-muted-foreground">
                 <Waves className="size-5 text-emerald-500" />
@@ -355,25 +380,37 @@ export default function AdminDashboardClient() {
             </Card>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
-              {actionItems.slice(0, 8).map((item) => (
-                <Link key={item.id} href={item.href} className="block">
-                  <Card className={`transition-colors hover:border-primary/50 ${item.severity === 'critical' ? 'border-red-200 bg-red-50/30 dark:border-red-900/50 dark:bg-red-950/20' : ''}`}>
-                    <CardContent className="flex items-start gap-3 p-4">
-                      <Bell className={`mt-0.5 size-4 shrink-0 ${item.severity === 'critical' ? 'text-destructive' : 'text-amber-500'}`} />
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="font-medium text-sm">{item.title}</div>
-                          <Badge variant={item.severity === 'critical' ? 'destructive' : 'outline'} className="shrink-0 text-xs">
-                            {ACTION_TYPE_LABELS[item.type]}
-                          </Badge>
+              {filteredActionItems.slice(0, 8).map((item) => {
+                const isTask = item.category === 'task';
+                const isCritical = item.severity === 'critical';
+                const cardBg = isTask
+                  ? (isCritical ? 'border-red-200 bg-red-50/30 dark:border-red-900/50 dark:bg-red-950/20' : 'border-amber-200 bg-amber-50/30 dark:border-amber-900/50 dark:bg-amber-950/20')
+                  : 'border-blue-200 bg-blue-50/30 dark:border-blue-900/50 dark:bg-blue-950/20';
+                const IconComp = isTask ? CircleAlert : Info;
+                const iconColor = isTask
+                  ? (isCritical ? 'text-destructive' : 'text-amber-500')
+                  : 'text-blue-500';
+
+                return (
+                  <Link key={item.id} href={item.href} className="block">
+                    <Card className={`transition-colors hover:border-primary/50 ${cardBg}`}>
+                      <CardContent className="flex items-start gap-3 p-4">
+                        <IconComp className={`mt-0.5 size-4 shrink-0 ${iconColor}`} />
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="font-medium text-sm">{item.title}</div>
+                            <Badge variant={isTask ? (isCritical ? 'destructive' : 'outline') : 'secondary'} className="shrink-0 text-xs">
+                              {ACTION_TYPE_LABELS[item.type]}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground">{item.subtitle}</div>
+                          {item.date && <div className="text-xs text-muted-foreground">Termin: {formatDate(item.date)}</div>}
                         </div>
-                        <div className="text-xs text-muted-foreground">{item.subtitle}</div>
-                        {item.date && <div className="text-xs text-muted-foreground">Termin: {formatDate(item.date)}</div>}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </section>

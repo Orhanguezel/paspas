@@ -13,7 +13,7 @@ export const listGantt: RouteHandler = async (req, reply) => {
     if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_sorgu_parametreleri', issues: parsed.error.flatten() } });
     const { items, total } = await repoList(parsed.data);
     reply.header('x-total-count', String(total));
-    return reply.send(items);
+    return reply.send({ items, total });
   } catch (error) {
     req.log.error({ error }, 'list_gantt_failed');
     return sendInternalError(reply);

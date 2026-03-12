@@ -4,7 +4,7 @@ SET time_zone = '+00:00';
 INSERT INTO `urunler`
 (`id`, `kategori`, `tedarik_tipi`, `urun_grubu`, `kod`, `ad`, `aciklama`, `birim`, `renk`, `image_url`, `storage_asset_id`, `image_alt`, `stok`, `kritik_stok`, `birim_fiyat`, `kdv_orani`, `operasyon_tipi`, `is_active`)
 VALUES
-('u0000001-0000-4000-8000-000000000024', 'urun', 'uretim', 'Başak Plus', 'BP-3D-KHV-PRO', 'Başak Plus 3D Kahve Pro', 'Kahve tonunda premium 3D derin havuzlu oto paspas seti - 5 parça, çift taraflı üretim akışı için örnek seed ürün.', 'takim', 'Kahve', 'https://promats.com.tr/userfiles/images/product/ba%C5%9Fak-tekli.png', 'sa000001-1000-4000-8000-000000000001', 'Başak Plus 3D Kahve Pro Oto Paspas', 96.0000, 24.0000, 229.00, 20.00, 'cift_tarafli', 1)
+('u0000001-0000-4000-8000-000000000024', 'urun', 'uretim', 'Başak Plus', 'BP-3D-KHV-PRO', 'Başak Plus 3D Kahve Pro', 'Kahve tonunda premium 3D derin havuzlu oto paspas seti - 5 parça, çift taraflı üretim akışı için örnek seed ürün.', 'takim', 'Kahve', 'https://promats.com.tr/userfiles/images/product/ba%C5%9Fak-tekli.png', 'sa000001-1000-4000-8000-000000000001', 'Başak Plus 3D Kahve Pro Oto Paspas', 9600.0000, 2400.0000, 229.00, 20.00, 'cift_tarafli', 1)
 ON DUPLICATE KEY UPDATE
   `kategori` = VALUES(`kategori`),
   `tedarik_tipi` = VALUES(`tedarik_tipi`),

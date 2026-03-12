@@ -10,36 +10,49 @@
 
 ## Ozet Tablo
 
-| #  | Modul              | Backend | Frontend | V1 Durum | Rev1 Durumu                                     |
-| -- | ------------------ | ------- | -------- | -------- | ----------------------------------------------- |
-| 1  | Urunler (+ Recete) | ✅ Tam  | ✅ Tam   | %100     | ✅ 7/7 Rev1 + metadata refactor tamamlandi      |
-| 2  | Musteriler         | ✅ Tam  | ✅ Tam   | %100     | ✅ Tedarikci ile birlestirildi                  |
-| 3  | Satis Siparisleri  | ✅ Tam  | ✅ Tam   | %100     | ✅ 8/8 Rev1 + ozet kartlar + fiyat fix          |
-| 4  | Uretim Emirleri    | ✅ Tam  | ✅ Tam   | %100     | ✅ 7/7 Rev1 tamamlandi                          |
-| 5  | Makine Havuzu      | ✅ Tam  | ✅ Tam   | %100     | ✅ 5/5 Rev1 + 2 bug tamamlandi                  |
-| 6  | Makine Is Yukleri  | ✅ Tam  | ✅ Tam   | %100     | ✅ 3/3 Rev1 + Son Bitis kutusu eklendi          |
-| 7  | Gantt              | ✅ Tam  | ✅ Tam   | %100     | ✅ 2/2 Rev1 tamamlandi                          |
-| 8  | Stoklar            | ✅ Tam  | ✅ Tam   | %100     | ✅ Musteri onayladi                             |
-| 9  | Satin Alma         | ✅ Tam  | ✅ Tam   | %100     | 🔧 Eksiklikler tespit edildi                    |
-| 10 | Hareketler         | ✅ Tam  | ✅ Tam   | %100     | ✅ Musteri onayladi                             |
-| 11 | Operator           | ✅ Tam  | ✅ Tam   | %100     | ✅ Vardiya fix + 500 hata + stok artisi fix     |
-| 12 | Tanimlar           | ✅ Tam  | ✅ Tam   | %100     | ✅ 4/4 Rev1 + hafta sonu plan fix               |
-| 13 | Tedarikci          | ✅ Tam  | ✅ Tam   | %100     | ✅ Musteri ile birlestirildi                    |
-| 14 | Sevkiyat (YENİ)   | ✅ Tam  | ✅ Tam   | %100     | ✅ Tum Rev1 tamamlandi                          |
-| 15 | Dashboard          | ✅ Tam  | ✅ Tam   | %100     | Musteri incelemedi henuz                       |
-| 16 | Medyalar           | ✅ Tam  | ✅ Tam   | %90      | —                                              |
-| 17 | Site Ayarlari      | ✅ Tam  | ✅ Tam   | %95      | ✅ ERP firma karti / branding dinamiklestirildi |
-| 18 | Veritabani         | ✅ Tam  | ✅ Tam   | %100     | —                                              |
-| 19 | Audit Loglari      | ✅ Tam  | ✅ Tam   | %100     | —                                              |
-| 20 | Kullanicilar       | ✅ Tam  | ✅ Tam   | %100     | —                                              |
-| 21 | Rol & Permission   | ✅ Tam  | ✅ Tam   | %100     | —                                              |
-| 22 | Gorevler           | ✅ Tam  | ✅ Tam   | %100     | —                                              |
-| 23 | Giris Ayarlari     | ✅ Tam  | ✅ Tam   | %90      | ✅ Sifre politikasi eklendi                     |
-| 24 | Mal Kabul (YENİ)  | —      | —       | %0       | ⏳ Planlandi, uygulama baslamadi                |
+| #  | Modul              | Backend | Frontend | V1 Durum | Rev1 Durumu                                                                                 |
+| -- | ------------------ | ------- | -------- | -------- | ------------------------------------------------------------------------------------------- |
+| 1  | Urunler (+ Recete) | ✅ Tam  | ✅ Tam   | %100     | ✅ 7/7 Rev1 + metadata refactor tamamlandi                                                  |
+| 2  | Musteriler         | ✅ Tam  | ✅ Tam   | %100     | ✅ Tedarikci ile birlestirildi                                                              |
+| 3  | Satis Siparisleri  | ✅ Tam  | ✅ Tam   | %100     | ✅ 8/8 Rev1 + ozet kartlar + fiyat fix                                                      |
+| 4  | Uretim Emirleri    | ✅ Tam  | ✅ Tam   | %100     | ✅ 7/7 Rev1 tamamlandi                                                                      |
+| 5  | Makine Havuzu      | ✅ Tam  | ✅ Tam   | %100     | ✅ 5/5 Rev1 + 2 bug tamamlandi                                                              |
+| 6  | Makine Is Yukleri  | ✅ Tam  | ✅ Tam   | %100     | ✅ 3/3 Rev1 + Son Bitis kutusu eklendi                                                      |
+| 7  | Gantt              | ✅ Tam  | ✅ Tam   | %100     | ✅ Makine bazli satirlar, coklu bar, tarih filtre, tooltip, durus/tatil bloklari tamamlandi |
+| 8  | Stoklar            | ✅ Tam  | ✅ Tam   | %100     | ✅ Musteri onayladi                                                                         |
+| 9  | Satin Alma         | ✅ Tam  | ✅ Tam   | %100     | ✅ Eksiklikler giderildi, Mal Kabul modulu tamamlandi                                       |
+| 10 | Hareketler         | ✅ Tam  | ✅ Tam   | %100     | ✅ Musteri onayladi                                                                         |
+| 11 | Operator           | ✅ Tam  | ✅ Tam   | %100     | ✅ Vardiya fix + 500 hata + stok artisi fix                                                 |
+| 12 | Tanimlar           | ✅ Tam  | ✅ Tam   | %100     | ✅ 4/4 Rev1 + hafta sonu plan fix                                                           |
+| 13 | Tedarikci          | ✅ Tam  | ✅ Tam   | %100     | ✅ Musteri ile birlestirildi                                                                |
+| 14 | Sevkiyat (YENİ)   | ✅ Tam  | ✅ Tam   | %100     | ✅ Tum Rev1 tamamlandi                                                                      |
+| 15 | Dashboard          | ✅ Tam  | ✅ Tam   | %100     | ✅ Aksiyon merkezi kategori ayirimi, filtre/badge tamamlandi                                |
+| 16 | Medyalar           | ✅ Tam  | ✅ Tam   | %90      | —                                                                                          |
+| 17 | Site Ayarlari      | ✅ Tam  | ✅ Tam   | %95      | ✅ ERP firma karti / branding dinamiklestirildi                                             |
+| 18 | Veritabani         | ✅ Tam  | ✅ Tam   | %100     | —                                                                                          |
+| 19 | Audit Loglari      | ✅ Tam  | ✅ Tam   | %100     | —                                                                                          |
+| 20 | Kullanicilar       | ✅ Tam  | ✅ Tam   | %100     | —                                                                                          |
+| 21 | Rol & Permission   | ✅ Tam  | ✅ Tam   | %100     | —                                                                                          |
+| 22 | Gorevler           | ✅ Tam  | ✅ Tam   | %100     | —                                                                                          |
+| 23 | Giris Ayarlari     | ✅ Tam  | ✅ Tam   | %90      | ✅ Sifre politikasi eklendi                                                                 |
+| 24 | Mal Kabul (YENİ)  | ✅ Tam  | ✅ Tam   | %100     | ✅ Bagimsiz modul: coklu kaynak tipi, SA opsiyonel, liste + form + detay tamamlandi         |
 
 ---
 
-## 0. Son Guncelleme Notlari (2026-03-10)
+## 0. Son Guncelleme Notlari (2026-03-12)
+
+### 2026-03-12 Mal Kabul Modulu Tamamlandi
+
+- [X] ✅ **DB migration** — `154_v1_mal_kabul_genisletme.sql`: `kaynak_tipi`, `tedarikci_id`, `parti_no`, `kalite_durumu`, `kalite_notu` alanlari eklendi; `satin_alma_siparis_id` ve `satin_alma_kalem_id` nullable yapildi
+- [X] ✅ **Backend mal_kabul modulu** — `schema.ts`, `validation.ts`, `repository.ts`, `controller.ts`, `router.ts` tamamlandi; `/admin/mal-kabul` endpoint'leri (GET liste+ozet, GET detay, POST olustur, PATCH guncelle, DELETE sil) calisiyor
+- [X] ✅ **Operator backward compat** — `POST /admin/operator/mal-kabul` hala calisiyor; artik yeni `malKabulRepoCreate` fonksiyonunu ciagiriyor (`kaynak_tipi='satin_alma'` olarak)
+- [X] ✅ **Frontend RTK Query** — `mal_kabul_admin.endpoints.ts`: 5 endpoint (list, get, create, update, delete), cache tag invalidation (MalKabul, Stoklar, Hareketler, SatinAlma)
+- [X] ✅ **Frontend liste sayfasi** — `/admin/mal-kabul`: ozet kartlar (toplam, satin alma, fason), filtreler (kaynak tipi, kalite, tarih aralik, arama), satir bazli detay link
+- [X] ✅ **Frontend olusturma formu** — `create-mal-kabul-sheet.tsx`: kaynak tipine gore dinamik alanlar (SA akisi: siparis+kalem+kalan miktar; serbest akis: urun arama), kalite durumu, parti no, notlar
+- [X] ✅ **Frontend detay sayfasi** — `/admin/mal-kabul/:id`: bilgi karti + guncelleme formu (kalite durumu degisimi stok etkisi uyarisi ile)
+- [X] ✅ **Sidebar + i18n** — `mal_kabul` sidebar grubuna eklendi (ClipboardCheck ikonu, `admin` + `satin_almaci` rolleri), permissions.ts guncellendi, `tr.json` anahtarlari var
+- [X] ✅ **Seed data** — `157_v1_mal_kabul_seed.sql`: 8 ornek kayit (SA bagli, hammadde direkt, kosullu kabul, red ornekleri)
+- [X] ✅ **Dashboard entegrasyonu** — Backend service zaten `malKabulKayitlari` uzerinden red ve son kabul sorgularini yapiyor
 
 ### 2026-03-10 Duzeltme ve Iyilestirmeler
 
@@ -52,6 +65,39 @@
 - [X] ✅ **Makine Is Yukleri "Son Bitis" kutusu eklendi** — her makinenin ozet alanina 4. kutu olarak son isin planlanan bitis tarihi (tarih uste, saat alta) eklendi
 - [X] ✅ **Urun formu reset sorunu duzeltildi** — yeni urun kaydettikten sonra form alanlari ve draft state'ler (recete, medya, cover) sifirlanmiyor, ikinci urunde eski bilgiler kaliyordu; artik reset + refetchNextCode calisiyor
 - [X] ✅ **Hafta sonu plani validation hatasi duzeltildi** — frontend `aciklama: null` gonderiyordu ama backend `z.string().optional()` null kabul etmiyordu; frontend `undefined`, backend `.nullable()` ile duzeltildi
+
+### 2026-03-11 Dashboard Aksiyon Merkezi Revizyonu
+
+- [X] ✅ **Bilgilendirme vs Gorev ayirimi** — Aksiyon merkezinde task/info kategori filtreleri eklendi (Tümü/Görevler/Bilgilendirme toggle), farklı renk (kırmızı/amber=görev, mavi=bilgi), ikon (CircleAlert vs Info) ve badge ile görsel ayrım sağlandı
+- [X] ✅ **Yeni bilgilendirme maddeleri** — shift_production (Vardiya Üretimi) ve stock_increased (Stok Artışı) action type'ları backend service + frontend type/label olarak eklendi; mevcut: production_completed, new_sales_order, goods_received, shipment_completed, machine_status_change
+- [X] ✅ **Yeni gorev maddeleri** — unassigned_production (Atanmamış Emir), machine_fault (Makine Arıza), quality_reject (Kalite Red) action type'ları zaten mevcut ve çalışıyor
+
+### 2026-03-11 Hammadde Stok Yonetimi (Yeni Ozellik)
+
+- [X] ✅ **Hammadde stok kontrolu ve otomatik dusumu** — hammadde_service.ts: rezerveHammaddeler, stokDus, stokGeriAl, iptalRezervasyon fonksiyonlari tamamlandi
+- [X] ✅ **Uretim emri olusturma: hammadde yeterlilik kontrolu** — uretim emri olusturulurken checkHammaddeYeterlilik kontrolu + toast.warning uyarisi eklendi
+- [X] ✅ **Uretim emri olusturma: hammadde rezervasyonu** — repoCreate icerisinde rezerveHammaddeler cagrisi ile rezerve_stok guncelleniyor
+- [X] ✅ **Makineye atama: gercek stoktan dusum** — repoKuyrukEkle icerisinde stokDus cagrisi ile stok dusumu + hareketler kaydi yapiliyor
+- [X] ✅ **Uretim tamamlanma: mamul stok artisi (mevcut)** — zaten calisiyor, korundu
+
+### 2026-03-11 Hammadde-Stok-Vardiya Entegrasyonu (Yeni Gereksinimler)
+
+- [X] ✅ **Makineye atarken hammadde eksik uyarisi** — emir-atama-dialog.tsx: checkHammadde lazy query + AlertDialog onay eklendi
+- [X] ✅ **Makineye atayinca stok aninda guncellenmeli** — RTK Query invalidatesTags: Stoklar + UretimEmirleri tag'leri ata/kuyrukCikar mutation'larina eklendi
+- [X] ✅ **Siparis→is emri cevrilince hammadde rezervasyonu** — createUretimEmriAdmin mutation'inda Stoklar tag invalidation + backend'de rezerveHammaddeler cagrisi
+- [X] ✅ **Negatif stok kabul edilebilir** — stokDus negatif stoka izin verir, emir-atama-dialog onay ile devam eder
+- [X] ✅ **Operator vardiya yonetimi dinamiklesmeli** — VardiyaPanel bileseninde makine secimi + vardiya tipi + baslat/bitir aksiyonlari mevcut
+- [X] ✅ **Vardiya kapatirken uretim miktari sorulmali** — vardiyaSonu Sheet dialog'unda uretilenMiktar + fireMiktar sorulmakta; netMiktar > 0 ise urunler.stok artiriliyor + hareketler kaydediliyor
+- [X] ✅ **Is emri kapanisinda gercek uretim miktari karsilastirmasi** — GET /uretim-emirleri/:id/uretim-karsilastirma endpoint + detay sayfasinda Uretim Karsilastirmasi karti (planlanan vs gerceklesen + fark uyarisi)
+- [X] ✅ **Vardiya uretim verileri analiz icin saklanmali** — operator_gunluk_kayitlari tablosunda ek_uretim_miktari, fire_miktari, net_miktar, birim_tipi, kayit_tarihi alanlari saklanmakta
+
+### 2026-03-11 Gantt Revizyon Notlari
+
+- [X] ✅ **Gantt tarih filtre kontrati duzeltilecek** — validation.ts transform ile hem baslangic/bitis hem dateFrom/dateTo destekleniyor
+- [X] ✅ **Gantt veri kaynagi makine kuyruğuna alinacak** — repository.ts zaten makine_kuyrugu tablosu uzerinden calisiyor
+- [X] ✅ **Makine satirinda coklu is barlari gosterilecek** — gantt-client.tsx items array ile her makine satirinda coklu bar render ediliyor
+- [X] ✅ **Hover detaylari genisletilecek** — tooltip: emirNo, siparis, urun, operasyon, musteri, sira, tarihler, ilerleme, durum bilgileri mevcut
+- [X] ✅ **Yetki ve navigasyon hizasi duzeltilecek** — permissions.ts NAV_ROLES gantt: ['admin','operator','nakliyeci'] + PATH_ROLE_MAP eklendi
 
 ### 2026-03-09 Duzeltmeler
 
@@ -84,17 +130,17 @@ Bu bolum, son kullanici geri bildirimi uzerine bir sonraki implementasyon dalgas
 
 #### A. Gorev Uretimi ve Gorev Kapatma Akisi
 
-- [X] ✅ **Admin gorevi: sevk onay bekleyen kayit**`sevk_emri` olusturuldugunda ve/veya `bekliyor` durumunda admin gorevlerine "Sevk onayini ver" gorevi otomatik dusuyor
-- [X] ✅ **Admin gorevi: fiziksel sevk bekleyen kayit**`sevk_emri` `onaylandi` oldugunda, ilgili kayit "Fiziksel sevki tamamla" gorevi olarak admin ve sevkiyat rolunun is listesine dusuyor
+- [X] ✅ **Admin gorevi: sevk onay bekleyen kayit** `sevk_emri` olusturuldugunda ve/veya `bekliyor` durumunda admin gorevlerine "Sevk onayini ver" gorevi otomatik dusuyor
+- [X] ✅ **Admin gorevi: fiziksel sevk bekleyen kayit** `sevk_emri` `onaylandi` oldugunda, ilgili kayit "Fiziksel sevki tamamla" gorevi olarak admin ve sevkiyat rolunun is listesine dusuyor
 - [X] ✅ **Gorev auto-close / auto-update**Kayit `sevk_edildi` veya `iptal` oldugunda ilgili gorevler otomatik kapanıyor; `bekliyor -> onaylandi` gecisinde admin onay gorevi tamamlanip fiziksel sevk gorevleri aciliyor
 - [X] ✅ **Modul bazli derin link**
   Gorev kartindan tiklayinca ilgili kayda/filtreli ekrana gidiyor (MODUL_ROUTE_MAP + buildDeepLink)
 
 #### B. Sevkiyatci Ekrani ve Yetki Akisi
 
-- [X] ✅ **Sevkiyat modulu sevkiyatci ana ekrani olmali**`sevkiyatci` login sonrasi varsayilan yonlendirme artik frontend ve backend login ayarlarinda `/admin/sevkiyat`
-- [X] ✅ **Admin + Sevkiyatci ortak fiziksel sevk aksiyonu**`onaylandi` durumundaki kayitlarda `Fiziksel Sevk Et` aksiyonunu admin ve sevkiyatci kullanabiliyor; `bekliyor` onayi ise sadece admin goruyor
-- [X] ✅ **Fiziksel sevk kaydi netlestirme**`sevk_edildi` aninda `sevkiyatlar` + `sevkiyat_kalemleri` + stok hareketi + stok dusumu transaction icinde kesinleniyor; siparis durum refresh transaction sonrasi tetikleniyor
+- [X] ✅ **Sevkiyat modulu sevkiyatci ana ekrani olmali** `sevkiyatci` login sonrasi varsayilan yonlendirme artik frontend ve backend login ayarlarinda `/admin/sevkiyat`
+- [X] ✅ **Admin + Sevkiyatci ortak fiziksel sevk aksiyonu** `onaylandi` durumundaki kayitlarda `Fiziksel Sevk Et` aksiyonunu admin ve sevkiyatci kullanabiliyor; `bekliyor` onayi ise sadece admin goruyor
+- [X] ✅ **Fiziksel sevk kaydi netlestirme** `sevk_edildi` aninda `sevkiyatlar` + `sevkiyat_kalemleri` + stok hareketi + stok dusumu transaction icinde kesinleniyor; siparis durum refresh transaction sonrasi tetikleniyor
 - [X] ✅ **UI ayrimi**
   `bekleyen` / `onayli` / `acik emir` / `sevk_edildi` anlamlari tablo kolonlarinda ayrildi; sevkiyatci ekranda admin onayi bekleyen emirleri pasif metinle goruyor
 
@@ -390,6 +436,12 @@ Musteri toplantisi sonrasi gelen yeni talepler:
 - [X] ✅ **Makine atamasinda kalip filtresi calismiyor** — Kalip uyumlu makine yoksa liste bos gosteriliyor (onceden tum makineler gosteriliyordu)
 - [X] ✅ **Makineler arasi taşıma icin oncelikle kuyruktan cikar** — kuyruktan cikar + yeniden ata akisi eklendi
 
+### Rev1.2 — Hammadde Stok Uyari Entegrasyonu (2026-03-11)
+
+- [X] ✅ **Atama dialogunda hammadde eksik uyarisi** — emir-atama-dialog.tsx: checkHammadde lazy query + AlertDialog malzeme listesi (kod, ad, eksik miktar) ile kullanici onay akisi mevcut
+- [X] ✅ **Atama aninda stok aninda guncellenmeli** — Backend repoAtaOperasyon transaction icinde stokDus + hareket kaydi; frontend ataOperasyonAdmin mutation Stoklar:LIST invalidation ile aninda yansiyor
+- [X] ✅ **Negatif stok durumunda satin alma tetiklenmeli** — repoAtaOperasyon icinde stokDus sonrasi ensureCriticalStockDrafts(emirNo) cagrisi eklendi; taslak aciklamasina "Uretim emri X icin hammadde eksikligi" referansi yaziliyor
+
 ### Veri Modeli
 
 | Alan             | V1 Gereksinim | Mevcut                                        | Durum |
@@ -446,17 +498,35 @@ Musteri toplantisi sonrasi gelen yeni talepler:
 **Tanim:** Makine bazli gorsel planlama takvimi.
 **Musteri Rev1:** "Cok deneyemedim ama dinamik calismiyor gibi."
 
+### Tespit Edilen Eksikler
+
+- [X] ✅ **Tarih filtresi kontrati bozuk** — validation.ts transform ile `baslangic/bitis` → `dateFrom/dateTo` donusumu yapiliyor; frontend ve backend parametre isimleri uyumlu
+- [X] ✅ **Makine gorunumu eksik** — makine bazli satirlar (1 makine = 1 satir) uygulandı; veri kaynagi `makine_kuyrugu` tablosu
+- [X] ✅ **Ardisik makine yukleri okunamiyor** — ayni makinedeki isler `sira` sirasina gore tek satirda art arda gosteriliyor
+- [X] ✅ **Siparis baglami zayif** — hover tooltip'te emirNo, siparisNo, urun, operasyon, musteri, termin, ilerleme ve durum gosteriliyor
+- [X] ✅ **Yetki/navigasyon uyumsuz** — permissions.ts guncellendi, sidebar ve backend erisim izni hizalandi
+
 ### Rev1 Talepleri
 
-- [X] ✅ **Dinamik calisma** — uretim emri ve makine kuyrugu ile senkronize, atama yapilinca gantt guncelleniyor
+- [X] ✅ **Makine bazli dinamik calisma** — gantt ekrani `makine_kuyrugu` ekseninde calisiyor; makine atamalari RTK Query tag invalidasyonu ile anlik yansitiliyor
 - [X] ✅ **Operasyon adi + musteri adi on planda** — operasyon adı ve müşteri adı goruntuleniyor
+- [X] ✅ **Makine satirinda coklu urun/posta** — ayni makinede arka arkaya yuklenen farkli urunler `sira` sirasina gore tek satirda art arda gorunuyor
+- [X] ✅ **Siparis baglamini hover'da koru** — her bar uzerinde siparis no / uretim emri / urun / operasyon / musteri bilgisi gosteriliyor
+
+### Planlanan Revizyon
+
+- [X] ✅ Backend Gantt listesi `makine_kuyrugu + uretim_emri_operasyonlari + uretim_emirleri` kaynagina alindi
+- [X] ✅ Frontend satir yapisi `makine = 1 satir` olacak sekilde yeniden kuruldu
+- [X] ✅ Tarih filtresi backend ile ayni parametre isimleri uzerinden calisiyor (validation.ts transform)
+- [X] ✅ Queue durumlari (`bekliyor/calisiyor/tamamlandi/duraklatildi/iptal`) ayrica renklendirildi (5 renk)
+- [X] ✅ Sidebar yetkileri backend izinleriyle hizalandi
 
 ### CRUD Operasyonlari
 
-| Islem                  | Backend                    | Frontend    | Durum |
-| ---------------------- | -------------------------- | ----------- | ----- |
-| Liste (tarih filtreli) | `GET /admin/gantt`       | ✅ Timeline | ✅    |
-| Tarih guncelleme       | `PATCH /admin/gantt/:id` | ✅          | ✅    |
+| Islem                                | Backend                    | Frontend                                            | Durum |
+| ------------------------------------ | -------------------------- | --------------------------------------------------- | ----- |
+| Liste (makine bazli, tarih filtreli) | `GET /admin/gantt`       | ✅ Makine bazli timeline, tatil/hafta sonu bloklari | ✅    |
+| Kuyruk is tarihi guncelleme          | `PATCH /admin/gantt/:id` | ✅ Tarih/siralama guncelleme                        | ✅    |
 
 ---
 
@@ -468,6 +538,13 @@ Musteri toplantisi sonrasi gelen yeni talepler:
 ### Rev1 Talepleri
 
 - [X] ✅ **Yeterlilik dialog→Sheet donusumu** — Dialog yerine sag tarafa Sheet olarak duzeltildi
+
+### Rev1.2 — Hammadde Stok Guncelleme Politikasi (2026-03-11)
+
+- [X] ✅ **Stok aninda guncellenmeli** — stokDus (makine ataması), repoVardiyaKapat (vardiya kapanışı), repoKapaDurus (duruş sonu) hepsi db.transaction içinde sync güncelleme yapıyor
+- [X] ✅ **Negatif stok kabul edilebilir** — stokDus GREATEST kullanmıyor (negatife düşebilir); stoklar-client.tsx: serbestStok < 0 ise text-destructive (kırmızı) gösteriliyor
+- [X] ✅ **Vardiya kapatma ile stok artisi** — repoVardiyaKapat (shift close) + repoKapaDurus (duruş sonu): netMiktar > 0 ise urunler.stok artırılıyor ve hareketler kaydı oluşturuluyor; stok kademeli yansıtılıyor
+- [X] ✅ **Is emri kapanisinda stok reconciliation** — Backend stokFarki hesaplayıp otomatik düzeltiyor; repoUretimBitir yanıtına `stokFarki` eklendi; operator-client'ta fark ≠ 0 ise `toast.info("Stok düzeltmesi uygulandı: ±X adet")` bildirimi gösteriliyor
 
 ### CRUD Operasyonlari
 
@@ -498,6 +575,12 @@ Musteri toplantisi sonrasi gelen yeni talepler:
 | Olusturma  | `POST /admin/satin-alma`       | ✅ Form + Kalemler | ✅    |
 | Guncelleme | `PATCH /admin/satin-alma/:id`  | ✅ Form            | ✅    |
 | Silme      | `DELETE /admin/satin-alma/:id` | ✅ Onay dialog     | ✅    |
+
+### Rev1.2 — Negatif Stok Tetikli Satin Alma (2026-03-11)
+
+- [X] ✅ **Negatif stok → otomatik satin alma siparisi** — repoAtaOperasyon: stokDus sonrasi ensureCriticalStockDrafts cagrisi eklendi; kritik_stok > stok olan tum hammaddeler icin taslak siparis olusturuluyor
+- [X] ✅ **Satin alma siparisinde uretim emri referansi** — ensureCriticalStockDrafts referansAciklama parametresi ile "Uretim emri UE-XXXX icin hammadde eksikligi" aciklamasi taslak siparis notuna yaziliyor
+- [X] ✅ **Mal kabul → stok guncelleme** — mal_kabul/repository.ts repoCreate: kaliteDurumu != 'red' ise urunler.stok artiriliyor + hareketler kaydi olusturuluyor (zaten tamamdi)
 
 ### Tespit Edilen Eksiklikler (2026-03-10)
 
@@ -573,19 +656,33 @@ Musteri toplantisi sonrasi gelen yeni talepler:
 - [X] ✅ **Vardiya basi/sonu 400 hatasi** — z.string().uuid() validation seed ID'leriyle uyumsuzdu, z.string().min(1) olarak duzeltildi
 - [X] ✅ **Tum modullerde UUID validation** — tum backend validation dosyalarindaki .uuid() kontrolu .min(1) ile degistirildi (seed data prefixed ID kullandigi icin)
 
+### Rev1.2 — Vardiya Yonetimi Revizyonu (2026-03-11)
+
+#### Vardiya Acma/Kapama Dinamikligi
+
+- [X] ✅ **Makine bazli vardiya gorunumu** — `GET /operator/acik-vardiyalar` eklendi; VardiyaPanel aktif tum makineleri satir olarak listeler; acik vardiyada yesil badge + "Kapat" butonu, kapali makinede vardiya tipi secici + "Ac" butonu gorunuyor
+- [X] ✅ **Vardiya kapatirken uretim miktari sorulmali** — "Kapat" butonuna basinca Sheet aciliyor: uretilen miktar + fire girisi, onay sonrasi `vardiyaSonu` cagrisi yapiliyor; stok aninda guncelleniyor
+- [X] ✅ **Vardiya uretim verileri analiz icin saklanmali** — Her vardiya kapanisinda `operator_gunluk_kayitlari`'na `gunluk_durum: 'devam_ediyor'` kaydediliyor; `hareketler` tablosuna `giris/vardiya_uretim` yaziliyor
+
+#### Is Emri Kapanisi ve Stok Reconciliation
+
+- [X] ✅ **Vardiya toplami vs gercek uretim karsilastirmasi** — `repoUretimBitir` stokFarki hesaplar; response'a eklendi; frontend'de fark != 0 ise `toast.info("Stok duzeltmesi uygulandi: ±X adet")` gosteriliyor
+- [X] ✅ **Kademeli stok artisi** — `repoVardiyaSonu` (shift close) + `repoKapaDurus` (durus sonu): netMiktar > 0 ise `urunler.stok` aninda artiriliyor; is emri sonunda final reconciliation yapiliyor
+
 ### CRUD + Islem Operasyonlari
 
-| Islem          | Backend                         | Frontend         | Durum |
-| -------------- | ------------------------------- | ---------------- | ----- |
-| Kuyruk listesi | `GET /operator/kuyruk`        | ✅ Tab           | ✅    |
-| Uretim baslat  | `POST /operator/baslat`       | ✅ Buton         | ✅    |
-| Uretim bitir   | `POST /operator/bitir`        | ✅ Modal         | ✅    |
-| Duraklat       | `POST /operator/duraklat`     | ✅ Buton + neden | ✅    |
-| Devam et       | `POST /operator/devam-et`     | ✅ Buton         | ✅    |
-| Vardiya basi   | `POST /operator/vardiya-basi` | ✅               | ✅    |
-| Vardiya sonu   | `POST /operator/vardiya-sonu` | ✅               | ✅    |
-| Sevkiyat       | `POST /operator/sevkiyat`     | ✅ Tab           | ✅    |
-| Mal kabul      | `POST /operator/mal-kabul`    | ✅ Tab           | ✅    |
+| Islem               | Backend                           | Frontend                       | Durum |
+| ------------------- | --------------------------------- | ------------------------------ | ----- |
+| Kuyruk listesi      | `GET /operator/kuyruk`          | ✅ Tab                         | ✅    |
+| Uretim baslat       | `POST /operator/baslat`         | ✅ Buton                       | ✅    |
+| Uretim bitir        | `POST /operator/bitir`          | ✅ Modal + stokFarki bildirimi | ✅    |
+| Duraklat            | `POST /operator/duraklat`       | ✅ Buton + neden               | ✅    |
+| Devam et            | `POST /operator/devam-et`       | ✅ Buton                       | ✅    |
+| Acik vardiya durumu | `GET /operator/acik-vardiyalar` | ✅ Makine satir listesi        | ✅    |
+| Vardiya basi        | `POST /operator/vardiya-basi`   | ✅ Per-makine "Ac" butonu      | ✅    |
+| Vardiya sonu        | `POST /operator/vardiya-sonu`   | ✅ Per-makine "Kapat" + Sheet  | ✅    |
+| Sevkiyat            | `POST /operator/sevkiyat`       | ✅ Tab                         | ✅    |
+| Mal kabul           | `POST /operator/mal-kabul`      | ✅ Tab                         | ✅    |
 
 ---
 
@@ -688,6 +785,100 @@ Mevcut hafta sonu plani modeli haftalik / `hafta_baslangic = pazartesi` mantigiy
 - Widget konfigurasyonu
 - Gorev atama blogu
 
+### Rev1.2 — Aksiyon Merkezi: Bilgilendirme vs Gorev Ayirimi (2026-03-11)
+
+Mevcut aksiyon merkezi tum maddeleri ayni gorsel stilde (kirmizi kart + AlertTriangle icon) gosteriyor. Bilgilendirme amacli maddeler ile birinin aksiyon almasi gereken gorevler ayirt edilemiyor.
+
+**Hedef:** Aksiyon merkezindeki her maddeyi iki kategoriye ayirmak — farkli renk, ikon ve badge ile gorsel ayrim saglamak.
+
+#### Kategori Tanimlari
+
+| Kategori                           | Tanim                                                               | Renk                                           | Ikon                                   | Badge   |
+| ---------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------- | -------------------------------------- | ------- |
+| **Gorev** (`task`)         | Birinin aksiyon almasi gereken maddeler (onay, sevk, mudahale)      | Kirmizi/turuncu (mevcut `destructive` stili) | `AlertTriangle` veya `CircleAlert` | "Gorev" |
+| **Bilgilendirme** (`info`) | Farkinda olunmasi gereken ama anlık aksiyon gerektirmeyen bilgiler | Mavi/gri (`info` stili)                      | `Info` veya `Bell`                 | "Bilgi" |
+
+#### Mevcut Maddelerin Kategorilenmesi
+
+| Mevcut Tip             | Mevcut Severity | Yeni Kategori           | Gerekce                                                           |
+| ---------------------- | --------------- | ----------------------- | ----------------------------------------------------------------- |
+| `overdue_production` | critical        | **gorev**         | Admin uretim planini revize etmeli veya hizlandirmali             |
+| `overdue_sales`      | critical        | **gorev**         | Admin siparis durumunu degerlendirmeli, musteriyi bilgilendirmeli |
+| `overdue_purchase`   | critical        | **gorev**         | Satin almaci tedarikciyi takip etmeli veya alternatif bulmali     |
+| `overdue_task`       | critical        | **gorev**         | Atanan kisi gorevi tamamlamali                                    |
+| `pending_purchase`   | warning         | **gorev**         | Admin taslak satin almayi onaylamali veya reddetmeli              |
+| `shipment_approval`  | warning         | **gorev**         | Admin sevk emrini onaylamali                                      |
+| `physical_shipment`  | critical        | **gorev**         | Sevkiyatci fiziksel sevki gerceklestirmeli                        |
+| `critical_stock`     | warning         | **bilgilendirme** | Stok durumu bilgi amacli; otomatik satin alma zaten tetikleniyor  |
+
+#### Eklenmesi Gereken Yeni Bilgilendirme Maddeleri
+
+Asagidaki maddeler yeni `bilgilendirme` kategorisinde eklenmeli:
+
+| Yeni Tip                    | Kategori      | Kaynak Modul      | Tetiklenme                               | Aciklama                                       |
+| --------------------------- | ------------- | ----------------- | ---------------------------------------- | ---------------------------------------------- |
+| `production_completed`    | bilgilendirme | Operator          | Uretim emri tamamlandiginda              | "UE-2026-0042 uretimi tamamlandi (1500 adet)"  |
+| `shift_production_logged` | bilgilendirme | Operator          | Vardiya sonu olcum kaydedildiginde       | "EKS-02 vardiya sonu: 450 adet uretildi"       |
+| `stock_increased`         | bilgilendirme | Operator/Stok     | Uretim tamamlanip stok arttiginda        | "Paspas A stok artisi: +1500 (yeni: 4200)"     |
+| `shipment_completed`      | bilgilendirme | Sevkiyat          | Fiziksel sevk tamamlandiginda            | "SVK-001 sevk edildi — Musteri X"             |
+| `purchase_received`       | bilgilendirme | Mal Kabul         | Mal kabul yapildiginda                   | "SA-2026-0015 teslim alindi — 500kg hammadde" |
+| `new_sales_order`         | bilgilendirme | Satis Siparisleri | Yeni siparis olusturuldugunda            | "SS-2026-0088 yeni siparis — Musteri Y"       |
+| `machine_status_change`   | bilgilendirme | Makine Havuzu     | Makine durumu degistiginde (bakim/ariza) | "EKS-03 bakim moduna alindi"                   |
+
+#### Eklenmesi Gereken Yeni Gorev Maddeleri
+
+| Yeni Tip              | Kategori | Kaynak Modul    | Tetiklenme                       | Aciklama                                                   |
+| --------------------- | -------- | --------------- | -------------------------------- | ---------------------------------------------------------- |
+| `unassigned_orders` | gorev    | Uretim Emirleri | Atanmamis uretim emri varsa      | "3 uretim emri makine ataması bekliyor"                   |
+| `machine_breakdown` | gorev    | Makine Havuzu   | Makine ariza durumuna gectiginde | "EKS-03 ariza — kuyrukta 5 is var"                        |
+| `quality_rejection` | gorev    | Mal Kabul       | Kalite red kaydedildiginde       | "Parti X kalite reddedildi — tedarikci bildirimi gerekli" |
+
+#### Teknik Degisiklikler
+
+**Backend (`service.ts`):**
+
+1. `ActionItem` tipine `category: 'task' | 'info'` alani eklenmeli
+2. Mevcut 8 tip icin category mapping eklenmeli
+3. Yeni bilgilendirme ve gorev tipleri sorgu olarak eklenmeli
+4. `ActionCenterResult.counts` genisletilmeli: `{ task: number; info: number; critical: number; warning: number }`
+
+**Frontend (`admin-dashboard-client.tsx`):**
+
+1. Gorev kartlari: mevcut kirmizi/turuncu stil korunur, `AlertTriangle` veya `CircleAlert` ikonu
+2. Bilgilendirme kartlari: mavi/gri arka plan, `Info` ikonu, `outline` badge
+3. Header badge'leri ayrilir: "X gorev" (kirmizi) + "Y bilgi" (mavi)
+4. Filtre/tab opsiyonu: "Tumu / Gorevler / Bilgilendirme" secimi
+
+**Frontend tipler (`dashboard_admin.endpoints.ts`):**
+
+1. `ActionItem` arayuzune `category: 'task' | 'info'` eklenmeli
+2. Normalizer guncellenmeli
+
+#### Uygulama Sirasi
+
+1. [X] ✅ Backend `ActionItem` tipine `category` alani ekle, mevcut tipler icin mapping yap
+2. [X] ✅ Frontend tip + normalizer + gorsel ayrim (renk, ikon, badge)
+3. [X] ✅ Yeni bilgilendirme maddelerini backend'e ekle (production_completed, shift_production_logged, vb.)
+4. [X] ✅ Yeni gorev maddelerini backend'e ekle (unassigned_orders, machine_breakdown, vb.)
+5. [X] ✅ Frontend filtre/tab (Tumu / Gorevler / Bilgilendirme)
+6. [X] ✅ Header badge sayaclari ayir (gorev + bilgi)
+
+#### Modul Bazli Acik Is / Bildirim Ozeti
+
+Asagida her modulun uretecegi bildirim/gorev maddeleri toplu olarak listelenmistir:
+
+| Modul                       | Gorev Maddeleri                                                                  | Bilgilendirme Maddeleri                                                             |
+| --------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Uretim Emirleri**   | `overdue_production` (termin asimi), `unassigned_orders` (atanmamis emirler) | `production_completed` (uretim tamamlandi)                                        |
+| **Satis Siparisleri** | `overdue_sales` (termin asimi)                                                 | `new_sales_order` (yeni siparis)                                                  |
+| **Satin Alma**        | `overdue_purchase` (termin asimi), `pending_purchase` (onay bekleyen)        | `purchase_received` (mal kabul tamamlandi)                                        |
+| **Sevkiyat**          | `shipment_approval` (onay bekleyen), `physical_shipment` (fiziksel sevk)     | `shipment_completed` (sevk tamamlandi)                                            |
+| **Operator**          | —                                                                               | `shift_production_logged` (vardiya sonu olcum), `stock_increased` (stok artisi) |
+| **Makine Havuzu**     | `machine_breakdown` (ariza)                                                    | `machine_status_change` (durum degisimi)                                          |
+| **Stoklar**           | —                                                                               | `critical_stock` (kritik stok bilgisi)                                            |
+| **Gorevler**          | `overdue_task` (geciken gorev)                                                 | —                                                                                  |
+| **Mal Kabul**         | `quality_rejection` (kalite red)                                               | `purchase_received` (teslim alindi)                                               |
+
 ---
 
 ## 16-23. Diger Moduller
@@ -761,7 +952,7 @@ Bu moduller musteri tarafindan dogrudan Rev1'de degerlendirilmedi. Mevcut duruml
 ## 24. Mal Kabul Modulu (YENİ MODUL)
 
 **Tanim:** Fabrikaya giren tum malzemelerin (hammadde, fason uretim, yari mamul, iade vb.) kaydini tutan bagimsiz modul. Mevcut mal kabul islevselligini operatör ekranindan ve satin alma bagimliliginden ayirarak genisletir.
-**Durum:** ⏳ Planlanma asamasinda
+**Durum:** ✅ Tamamlandi (2026-03-12)
 
 ### Mevcut Durum — Sorunlar
 
@@ -979,6 +1170,93 @@ ALTER TABLE `mal_kabul_kayitlari`
 | 3 | Is yukleri satir satir layout    | Is Yukleri    | ✅    |
 | 4 | Gantt dinamik guncelleme         | Gantt         | ✅    |
 | 5 | Gantt'ta operasyon + musteri adi | Gantt         | ✅    |
+| 6 | Gantt hafta sonu blok konumlama  | Gantt         | ✅ 2026-03-12 — Timestamp timezone duzeltmesi (Z suffix kaldirildi), demo seed temizlendi |
+
+---
+
+## ⚠️ KRITIK GELECEK REVIZYON — Dinamik Bitis Tarihi Hesaplama Motoru
+
+> **Tarih:** 2026-03-12
+> **Kapsam:** Planlama motoru, Makine Havuzu, Gantt, Uretim Emirleri
+
+### Sorun
+
+Mevcut sistem is emirlerinin bitis tarihini **sabit kabul eder**. Makine hafta sonu / tatil calismazsa, bitis tarihi bu kapasitesizligi yansitmaz. Sonucta Gantt'ta bitis tarihi hafta sonuna veya tatil gunune denk gelebilir ama bu gorselde gorulur, hesaplamaya yansimaz.
+
+### Dogru Hesaplama Modeli
+
+Is emrinin bitis tarihi her zaman asagidaki formule gore dinamik hesaplanmali:
+
+```
+toplam_sure_dk = hazirlik_suresi_dk + (adet / kapasite_adet_dk)
+```
+
+- `hazirlik_suresi_dk` → `makine_kuyrugu.hazirlik_suresi_dk` (sabit, atama sirasinda girilir)
+- `adet` → is emrindeki planlanan miktar (`uretim_emri.planlanan_miktar`)
+- `kapasite_adet_dk` → **kaliba gore belirlenir** (asagida aciklanmis)
+
+Hesaplanan `toplam_sure_dk`, sadece **calisma dakikalarina** uygulanir:
+- Hafta sonu calismazsa (plan yok) o gun atlanir
+- Tatil gunleri atlanir
+- Operasyon saatleri disinda (ornegin 08:00–17:00) sure birikmez
+- Sonucta `planlanan_bitis` takvimsel gunlere gore otomatik uzar
+
+### Kalip Bazli Kapasite
+
+Her kalip (mould) farkli bir cycle time / saatlik kapasite gerektirir:
+
+```
+kapasite_adet_saat = makine.saatlik_kapasite × kalip.verimlilik_katsayisi
+```
+
+Simdi `makineler.saatlik_kapasite` tek bir global deger. Gercekte:
+- Bir makine farkli kaliplarla farkli hizlarda calisir
+- Her `(makine_id, kalip_id)` cifti icin farkli kapasite olabilir
+
+**Yapilacak yeni tablo:**
+```sql
+CREATE TABLE makine_kalip_kapasitesi (
+  id            char(36) PRIMARY KEY,
+  makine_id     char(36) NOT NULL,
+  kalip_id      char(36) NOT NULL,
+  saatlik_adet  decimal(10,2) NOT NULL,  -- bu makine+kalip kombinasyonu icin kapasite
+  aciklama      varchar(255),
+  UNIQUE KEY uq_makine_kalip (makine_id, kalip_id)
+);
+```
+
+Kalip belirlenmemisse `makineler.saatlik_kapasite` fallback olarak kullanilir.
+
+### Tetiklenme Noktalari
+
+Bitis tarihi asagidaki olaylarda **otomatik yeniden hesaplanmali:**
+
+| Olay | Etkilenen kayitlar |
+|------|-------------------|
+| Makine kuyruguna is atandiginda | O makinenin tum kuyrugu (sira sirali) |
+| Is emri sirasinda yeniden siralama | O makinenin tum kuyrugu |
+| Hafta sonu plani eklendi / silindi | Etkilenen makine(lerin) tum aktif kuyrugu |
+| Tatil tanimlandi / silindi | Etkilenen makine(lerin) tum aktif kuyrugu |
+| Makine saatlik kapasitesi degistirildi | O makinenin tum aktif kuyrugu |
+| Kalip bazli kapasite guncellendi | Ilgili makinelerin aktif kuyrugu |
+| Is emri miktari guncellendi | O is emirinin makine kuyruk kaydi |
+
+### Tutarlilik Gereksinimleri
+
+- `makine_kuyrugu.planlanan_bitis` tek kaynak of truth
+- Gantt, Is Yukleri, Dashboard **hepsi bu alandan okur** — ayri hesaplama yapmaz
+- Bitis tarihi her zaman calisma saati sinirinda biter (ornegin 17:00, gece degil)
+- Kuyrukta siralanan is emirleri birbirinin ardindan baglaniyor: n. isin bitisi = (n+1). isin baslangici
+
+### Yapilacaklar (V2)
+
+- [ ] `makine_kalip_kapasitesi` tablosu + CRUD API + UI
+- [ ] `recalcMakineKuyrukTarihleri` fonksiyonunu kalip bazli kapasiteyi de destekleyecek sekilde guncelle
+- [ ] Hafta sonu / tatil CRUD endpoint'leri sonrasinda ilgili makinelerin kuyrugunu otomatik recalc et
+- [ ] Is emri miktar guncellemesi sonrasi kuyruk bitis tarihini tetikle
+- [ ] Gantt'ta bitis tarihi hafta sonu / tatil'e denk gelen barlari gorsel uyariyla isaretle
+
+---
 
 ### Faz 5 — Sevkiyat Modulu
 
@@ -1033,16 +1311,281 @@ ALTER TABLE `mal_kabul_kayitlari`
 
 | #  | Is                                                          | Modul                | Durum |
 | -- | ----------------------------------------------------------- | -------------------- | ----- |
-| 1  | DB migration: mal_kabul_kayitlari genisletme                | Mal Kabul            | ⏳    |
-| 2  | Backend: mal_kabul modulu (schema/validation/repo/ctrl/rtr) | Mal Kabul            | ⏳    |
-| 3  | Operator mal-kabul backward compat                          | Operator + Mal Kabul | ⏳    |
-| 4  | Frontend: RTK Query endpoint'leri                           | Mal Kabul            | ⏳    |
-| 5  | Frontend: Liste sayfasi + filtre + ozet kartlar             | Mal Kabul            | ⏳    |
-| 6  | Frontend: Yeni mal kabul formu (kaynak tipi bazli)          | Mal Kabul            | ⏳    |
-| 7  | Frontend: Detay sayfasi                                     | Mal Kabul            | ⏳    |
-| 8  | Satin alma: Otomatik siparis badge + kritik stok detayi     | Satin Alma           | ⏳    |
-| 9  | Dashboard: Mal kabul KPI iyilestirme                        | Dashboard            | ⏳    |
-| 10 | Sidebar + i18n + seed data                                  | Mal Kabul            | ⏳    |
+| 1  | DB migration: mal_kabul_kayitlari genisletme                | Mal Kabul            | ✅    |
+| 2  | Backend: mal_kabul modulu (schema/validation/repo/ctrl/rtr) | Mal Kabul            | ✅    |
+| 3  | Operator mal-kabul backward compat                          | Operator + Mal Kabul | ✅    |
+| 4  | Frontend: RTK Query endpoint'leri                           | Mal Kabul            | ✅    |
+| 5  | Frontend: Liste sayfasi + filtre + ozet kartlar             | Mal Kabul            | ✅    |
+| 6  | Frontend: Yeni mal kabul formu (kaynak tipi bazli)          | Mal Kabul            | ✅    |
+| 7  | Frontend: Detay sayfasi                                     | Mal Kabul            | ✅    |
+| 8  | Satin alma: Otomatik siparis badge + kritik stok detayi     | Satin Alma           | ✅    |
+| 9  | Dashboard: Mal kabul KPI iyilestirme                        | Dashboard            | ✅    |
+| 10 | Sidebar + i18n + seed data                                  | Mal Kabul            | ✅    |
 
+ürün de operasyon tap i var. burda eger ürün cift tarafli ise yani isag sol ayri kaliplarda üretiliyorsa ayri makineler secilebilmeli. suan bu var. ilave olarak montaj da isaretli. üründeki operasyon tabindan mondaj dugmesini kaldir. bu montaj dugmesi
 
-ürün de operasyon tap i var. burda eger ürün cift tarafli ise yani isag sol ayri kaliplarda üretiliyorsa ayri makineler secilebilmeli. suan bu var. ilave olarak montaj da isaretli. üründeki operasyon tabindan mondaj dugmesini kaldir. bu montaj dugmesi 
+---
+
+## Rev1.2 — Durus-Kapasite-Gantt Entegrasyonu (2026-03-11)
+
+### Yapilan Degisiklikler
+
+#### 1. Operator Durus Diyalogu — Makine Arizasi Kaldirildi
+
+- **Dosyalar:** `operator-client.tsx`, `operator.types.ts`, `operator/validation.ts`, `operator/repository.ts`
+- Operatör duraklat diyalogundan "Makine Arizasi" toggle'i (Switch) kaldirildi
+- `makineArizasi` alani frontend payload, backend Zod validation ve repository insert'ten cikarildi
+- `durus_tipi` artik her zaman `'durus'` olarak kaydedilir (durus nedeni kategorisi yeterli)
+
+#### 2. Makine Kapasite Hesabina Durus Verileri Eklendi
+
+- **Dosyalar:** `makine_havuzu/repository.ts`
+- `repoCalculateCapacity` fonksiyonu artik `durus_kayitlari` tablosunu sorguluyor
+- Her gun icin cakisan durus kayitlarinin toplam saatini hesapliyor (overlap hesabi)
+- Devam eden duruslar (bitis = NULL) icin suan zamani kullaniliyor
+- Yeni alanlar: `toplamDurusSaati`, `netCalismaSaati`, gunluk `durusSaati`
+
+#### 3. Kapasite Tipleri Guncellendi (Backend + Frontend)
+
+- **Dosyalar:** `makine_havuzu/repository.ts` (KapasiteHesabiDto), `makine_havuzu.types.ts` (KapasiteGunDto, KapasiteHesabiDto), normalizer
+- `KapasiteHesabiDto`'ya `toplamDurusSaati` ve `netCalismaSaati` eklendi
+- `KapasiteGunDto`'ya `durusSaati` eklendi
+- Frontend normalizer guncellendi
+
+#### 4. Makine Kapasite Ekrani (30 Gunluk Ozet) Guncellendi
+
+- **Dosyalar:** `makine-form.tsx` (KapasiteTab)
+- Ozet kartlarina "Durus Saati" (turuncu) ve "Net Calisma Saati" (yesil) eklendi
+- Verimlilik yuzdesine durus saatleri dahil edildi (net saat / potansiyel saat)
+- "Tahmini Uretim" artik net calismaya gore hesaplaniyor
+- Gunluk detay tablosuna "Durus" ve "Net" sutunlari eklendi
+- Durusu olan gunler turuncu, net saatler yesil renkte gosteriliyor
+
+#### 5. Gantt Entegrasyonu (Dogrulandi)
+
+- Gantt diyagrami zaten `durus_kayitlari`'ndan turuncu bloklar olarak durus gosteriyor (z-[15])
+- Hafta sonu planlari (`haftaSonuPlanlari`) zaten Gantt'a entegre — plan olan gunlerde gri blok gosterilmiyor
+- Tatiller (`tatiller`) kirmizi bloklar olarak gorunuyor
+
+#### 5.1 Gantt Hafta Sonu Dinamik Calisma Gosterimi (2026-03-11)
+
+- Hafta sonu cizgileri (diagonal stripe) tum hafta sonlarinda sabit gorunur (z-1 katmani)
+- Makine cubugu hafta sonu cizgisinin **ustunde** ise → o makine o gun **calisiyor**
+- Makine cubugu hafta sonu cizgisinin **altinda** (gorunmuyor) ise → o makine o gun **calismiyor**
+- Backend `hafta_sonu_planlari` tablosundan dinamik olarak hangi makinenin hangi gun calistigini okur
+- `makine_id = NULL` kayitlar tum makineler icin gecerli (global plan)
+- `hafta_baslangic` alani hem Pazartesi (seed) hem gercek hafta sonu tarihi (UI) formatini destekler
+- Timezone-safe tarih formatlama (`toLocalDateStr`) ile UTC kaymasi onlendi
+
+### Veri Akisi (Interconnected Systems)
+
+```
+Operator Ekrani (duraklat)
+    |
+    v
+durus_kayitlari (DB)
+    |
+    +---> Makine Kapasite (30 gun ozet) — durus saatleri dusuluyor
+    |         - toplamDurusSaati, netCalismaSaati
+    |         - gunluk durusSaati
+    |
+    +---> Gantt Diyagrami — turuncu durus bloklari
+    |
+    +---> hafta_sonu_planlari --> Kapasite (h.sonu calismasi) + Gantt (gri blok yok)
+    |
+    +---> tatiller --> Kapasite (tatil gunu) + Gantt (kirmizi blok)
+```
+
+### Ozet Tablo Guncellemesi
+
+| Modul         | Durum  | Aciklama                                      |
+| ------------- | ------ | --------------------------------------------- |
+| Operator      | ✅ Tam | Makine arizasi toggle kaldirildi              |
+| Makine Havuzu | ✅ Tam | Kapasite hesabi durus entegrasyonu tamamlandi |
+| Gantt         | ✅ Tam | Durus + hafta sonu + tatil bloklari calisiyor |
+| Tanimlar      | ✅ Tam | Durus nedenleri arama eklendi (onceki oturum) |
+
+---
+
+## 25. Hammadde Stok Yonetimi Plani (YENİ ÖZELLİK)
+
+**Tanim:** Uretim surecinde hammadde/yedek malzeme stoklarinin receteye gore otomatik kontrolu, rezervasyonu ve dusumu.
+**Durum:** ✅ Tamamlandi (2026-03-11)
+
+### Mevcut Durum — Sorunlar
+
+| Sorun                         | Aciklama                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Hammadde stoku azalmiyor      | Uretim tamamlaninca mamul stok artiyor (`repoUretimBitir`) ama recetedeki hammaddeler hic dusulmuyor |
+| Yeterlilik kontrolu yok       | Is emri girilirken recetedeki malzeme ihtiyaci mevcut stokla karsilastirilmiyor                        |
+| Rezervasyon yok               | Birden fazla uretim emri ayni hammaddeyi tuketmeye calissa bile stok catismasi algilanmiyor            |
+| Hareket kaydi yok             | Hammadde tuketimi `hareketler` tablosuna yazilmiyor, izlenemiyor                                     |
+| Dashboard/Stok gorunumu eksik | Stoklar ekraninda sadece mamul stok artisi gorunuyor, hammadde azalmasi yansimıyor                    |
+
+### Mevcut Veri Yapisi
+
+Recete sistemi hammadde ihtiyacini zaten tanimliyor:
+
+```
+receteler (ana recete)
+├── hedef_miktar (decimal 12,4)  -- bu recete kac birim urun icin gecerli
+└── recete_kalemleri (malzeme satirlari)
+    ├── urun_id (FK → urunler)  -- hammadde/yarimamul
+    ├── miktar (decimal 12,4)    -- hedef_miktar basina gereken miktar
+    └── fire_orani (decimal 5,2) -- fire yuzde (ornek: %3)
+```
+
+**Hesaplama formulu:**
+
+```
+gerekenMiktar = (planlananMiktar / hedefMiktar) × kalemMiktar × (1 + fireOrani/100)
+```
+
+Ornek: 1000 adet paspas uretilecek, recete 100 adet icin 5kg hammadde + %3 fire:
+
+```
+gerekenMiktar = (1000 / 100) × 5 × 1.03 = 51.5 kg
+```
+
+### Hedef Stok Akisi (3 Asamali)
+
+```
+                  IS EMRI OLUSTURMA              MAKINEYE ATAMA              URETIM TAMAMLANMA
+                  ─────────────────              ──────────────              ──────────────────
+Hammadde:         rezerve_stok += gerekli        stok -= gerekli            (degisiklik yok)
+                  (kontrol: stok >= gerekli?)    rezerve_stok -= gerekli
+                                                 hareketler += cikis/tuketim
+
+Mamul:            (degisiklik yok)               (degisiklik yok)           stok += uretilen
+                                                                            hareketler += giris/uretim
+                                                                            (mevcut — zaten calisiyor)
+```
+
+### Asama 1: Uretim Emri Olusturma — Yeterlilik Kontrolu + Rezervasyon
+
+**Tetiklenme:** `POST /admin/uretim-emirleri` (repoCreate)
+
+**Islem:**
+
+1. Uretim emrinin `recete_id` ve `planlanan_miktar` alinir
+2. `recete_kalemleri` sorgulanir, her kalem icin `gerekenMiktar` hesaplanir
+3. Her hammadde icin `urunler.stok - urunler.rezerve_stok >= gerekenMiktar` kontrolu yapilir
+4. Yetersiz hammadde varsa:
+   - Uretim emri yine de olusturulabilir (engellenmez)
+   - Uyari listesi response'a eklenir: `{ uyarilar: [{ urunId, ad, gerekli, mevcut, eksik }] }`
+   - Frontend uyari toast/dialog gosterir
+5. Yeterli ise: `urunler.rezerve_stok += gerekenMiktar` (her hammadde icin)
+6. Rezervasyon kayitlari tutulur: `hammadde_rezervasyonlari` tablosu
+
+**Iptal/silme durumu:** Uretim emri iptal edilir veya silinirse `rezerve_stok -= gerekenMiktar`
+
+### Asama 2: Makineye Atama — Gercek Stok Dusumu
+
+**Tetiklenme:** `POST /admin/makine-havuzu/ata` (repoAtaOperasyon)
+
+**Islem:**
+
+1. Atanan uretim emrinin recete bazli malzeme ihtiyaci hesaplanir
+2. Her hammadde icin:
+   - `urunler.stok -= gerekenMiktar` (gercek stoktan dusum)
+   - `urunler.rezerve_stok -= gerekenMiktar` (rezerveden cikar)
+   - `hareketler` tablosuna `cikis / uretim_tuketim` kaydi yazilir
+3. Stok yetersizse makineye atama engellenir veya uyari verilir (konfigurasyon)
+
+**Not:** Eger uretim emri coklu operasyonlu ise (cift taraf), hammadde dusumu **ilk operasyon atandiginda** yapilir (ikinci atamada tekrar dusulmez)
+
+### Asama 3: Uretim Tamamlanma — Mamul Stok Artisi (Mevcut)
+
+Bu asama zaten calisiyor (`repoUretimBitir`):
+
+- Mamul urunun stoku artiyor
+- `hareketler` tablosuna `giris / uretim` kaydi yaziliyor
+- Reconciliation mantigi korunur (onceki olcumlerle karsilastirma)
+
+### DB Degisiklikleri
+
+#### 1. `urunler` tablosuna `rezerve_stok` kolonu
+
+```sql
+ALTER TABLE `urunler`
+  ADD COLUMN `rezerve_stok` DECIMAL(12,4) NOT NULL DEFAULT 0
+  AFTER `stok`;
+```
+
+**Anlamlar:**
+
+- `stok` = fiziksel mevcut miktar
+- `rezerve_stok` = uretim emirleri icin ayrilmis ama henuz tuketilmemis miktar
+- `kullanilabilir_stok` = `stok - rezerve_stok` (computed, DB'de kolon olarak tutulmaz)
+
+#### 2. Yeni tablo: `hammadde_rezervasyonlari`
+
+```sql
+CREATE TABLE `hammadde_rezervasyonlari` (
+  `id` CHAR(36) NOT NULL PRIMARY KEY,
+  `uretim_emri_id` CHAR(36) NOT NULL,
+  `urun_id` CHAR(36) NOT NULL COMMENT 'hammadde/yarimamul',
+  `miktar` DECIMAL(12,4) NOT NULL COMMENT 'rezerve edilen miktar',
+  `durum` VARCHAR(32) NOT NULL DEFAULT 'rezerve' COMMENT 'rezerve|tuketildi|iptal',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`uretim_emri_id`) REFERENCES `uretim_emirleri`(`id`),
+  FOREIGN KEY (`urun_id`) REFERENCES `urunler`(`id`),
+  INDEX `idx_hmr_uretim_emri` (`uretim_emri_id`),
+  INDEX `idx_hmr_urun` (`urun_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+#### 3. `hareketler` tablosuna yeni hareket tipleri
+
+Mevcut `hareket_tipi` enum'a ek deger:
+
+- `uretim_tuketim` — hammadde tuketim kaydi (cikis yonlu)
+
+### Backend Degisiklikleri
+
+| Dosya                                       | Degisiklik                                                                        |
+| ------------------------------------------- | --------------------------------------------------------------------------------- |
+| `urunler/schema.ts`                       | `rezerve_stok` alani + DTO'ya `rezerveStok`, `kullanilabilirStok` eklenmeli |
+| `uretim_emirleri/repository.ts`           | `repoCreate` icinde recete bazli yeterlilik kontrolu + rezervasyon eklenmeli    |
+| `uretim_emirleri/repository.ts`           | `repoDelete` / iptal durumunda rezervasyon geri alinmali                        |
+| `makine_havuzu/repository.ts`             | `repoAtaOperasyon` icinde gercek stok dusumu + rezervasyon tuketimi             |
+| `makine_havuzu/repository.ts`             | `repoSilKuyrukItem` — kuyruktan cikarilinca stok geri alinmali (opsiyonel)     |
+| `stoklar/repository.ts`                   | Liste sorgusuna `rezerveStok` ve `kullanilabilirStok` eklenmeli               |
+| Yeni:`hammadde_rezervasyonlari/schema.ts` | Tablo tanimi + rowToDto                                                           |
+
+### Frontend Degisiklikleri
+
+| Dosya                      | Degisiklik                                                                         |
+| -------------------------- | ---------------------------------------------------------------------------------- |
+| Uretim Emirleri form       | Is emri olusturma sonrasi yetersiz hammadde uyarisi gostermeli                     |
+| Uretim Emirleri detay      | Malzeme yeterlilik tablosunda `kullanilabilirStok` (rezerve dusulmus) gostermeli |
+| Makine Havuzu atama dialog | Atama oncesi hammadde durumu kontrol edilmeli                                      |
+| Stoklar listesi            | `Mevcut / Rezerve / Kullanilabilir` sutunlari eklenmeli                          |
+| Dashboard                  | Hammadde tuketim hareketleri bilgilendirme olarak gosterilebilir                   |
+
+### Uygulama Sirasi
+
+1. [X] ✅ DB migration: `urunler.rezerve_stok` (105_urunler_schema.sql) + `hammadde_rezervasyonlari` tablosu (156_v1_hammadde_rezervasyon.sql)
+2. [X] ✅ Backend: receteden malzeme ihtiyaci hesaplama — `hammadde_service.ts`: `getReceteIhtiyaclari` + `rezerveHammaddeler`
+3. [X] ✅ Backend: `repoCreate` (uretim emirleri) — `rezerveHammaddeler` cagrisi ile rezervasyon yapiliyor
+4. [X] ✅ Backend: `repoAtaOperasyon` (makine havuzu) — `stokDus` cagrisi ile gercek stok dusumu + hareketler kaydi
+5. [X] ✅ Backend: iptal — `iptalRezervasyon`; kuyruktan cikarma — `stokGeriAl` ile geri alma
+6. [X] ✅ Frontend: uretim emri formunda hammadde uyari — toast.warning ile eksik hammaddeler gosteriliyor
+7. [X] ✅ Frontend: stoklar listesinde `rezerveStok` sutunu mevcut (amber renk, >0 ise aktif)
+8. [X] ✅ Frontend: makine atama dialogunda `checkHammadde` lazy query + AlertDialog onay mekanizmasi
+
+### Is Kurallari
+
+- Hammadde yetersizligi is emri olusturmayı **engellemez**, sadece uyari verir (admin karari)
+- Makineye atama sirasinda stok yetersizse atama **engellenmez** — onay dialog'u gosterilir ("Malzeme eksik, yine de atama yapmak istiyor musunuz?")
+- Negatif stok **kabul edilebilir** — uretim surerken hammadde tedariki saglanabilir, bu is sureci geregi normal bir risktir
+- Negatif stoka dusen hammadde icin otomatik satin alma siparisi taslagi olusturulur
+- Rezerve stok, is emri iptal/silindiginde otomatik geri alinir
+- Kuyruktan cikarma durumunda gercek stok geri alinir + hareket kaydi yazilir
+- Coklu operasyonlu emirlerde hammadde dusumu **ilk atamada** yapilir
+- `hareketler` tablosuna her stok degisimi icin izlenebilir kayit yazilir
+- Mevcut mamul stok artisi (`repoUretimBitir`) **kaldirilacak** — bunun yerine vardiya kapatirken girilen uretim miktari stok artisini saglayacak
+- Vardiya kapatilirken operatorden uretilen miktar sorulur → mamul stoku kademeli artar
+- Is emri tamamlandiginda vardiya toplami ile gercek uretim miktari karsilastirilir, fark varsa stok duzeltme yapilir
+- Vardiya bazli uretim verileri analiz/raporlama icin saklanir (gunluk, haftalik uretim raporlari)

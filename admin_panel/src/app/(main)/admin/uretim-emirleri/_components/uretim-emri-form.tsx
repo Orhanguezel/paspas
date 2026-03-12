@@ -34,7 +34,7 @@ import type { UretimEmriAdayDto, UretimEmriDto } from '@/integrations/shared/erp
 
 const schema = z.object({
   emirNo:          z.string().min(1, 'Zorunlu'),
-  urunId:          z.string().uuid('Ürün seçiniz'),
+  urunId:          z.string().min(1, 'Ürün seçiniz'),
   planlananMiktar: z.coerce.number().positive('0\'dan büyük olmalı'),
   uretilenMiktar:  z.coerce.number().min(0).default(0),
   baslangicTarihi: z.string().optional(),
@@ -74,7 +74,7 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
 
   const { data: urunlerData } = useListUrunlerAdminQuery({ limit: 500, kategori: 'urun' });
   const { data: adaylar = [] } = useListUretimEmriAdaylariAdminQuery();
-  const { data: nextNoData } = useGetNextEmirNoAdminQuery(undefined, { skip: isEdit });
+  const { data: nextNoData } = useGetNextEmirNoAdminQuery(undefined, { skip: isEdit, refetchOnMountOrArgChange: true });
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -223,8 +223,15 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
         await update({ id: emri.id, body: payload }).unwrap();
         toast.success(t('admin.erp.common.updated', { item: t('admin.erp.uretimEmirleri.singular') }));
       } else {
-        await create(payload).unwrap();
+        const result = await create(payload).unwrap();
         toast.success(t('admin.erp.common.created', { item: t('admin.erp.uretimEmirleri.singular') }));
+        // Hammadde yetersizlik uyarısı göster
+        if (result.hammaddeUyarilari?.length > 0) {
+          const eksikler = result.hammaddeUyarilari
+            .map((u) => `${u.urunKod} (${u.urunAd}): ${u.eksikMiktar.toLocaleString('tr-TR')} eksik`)
+            .join('\n');
+          toast.warning(`Hammadde stok yetersiz!\n${eksikler}`, { duration: 8000 });
+        }
       }
       onClose();
     } catch (err: unknown) {

@@ -68,16 +68,17 @@ function KapasiteTab({ makine, calisir24Saat }: { makine: MakineDto | null; cali
     const holidays = capacityData.gunler.filter((g) => g.tatilMi);
     const weekendNonWorking = capacityData.gunler.filter((g) => g.haftaSonuMu && !g.calisiyor);
     const weekendWorking = capacityData.gunler.filter((g) => g.haftaSonuMu && g.calisiyor);
-    
-    // Randıman hesabı: Çalışılan gün / Toplam gün (tatil hariç potansiyel çalışma günü)
+
+    // Randıman hesabı
     const potentialWorkDays = totalDays - holidays.length;
-    const efficiency = potentialWorkDays > 0 ? (workingDays.length / potentialWorkDays) * 100 : 0;
-    
-    // Saatlik verim
     const dailyHours = capacityData.gunlukCalismaSaati;
     const maxPossibleHours = potentialWorkDays * (calisir24Saat ? 24 : 8);
     const actualHours = capacityData.toplamCalismaSaati;
-    const hourlyEfficiency = maxPossibleHours > 0 ? (actualHours / maxPossibleHours) * 100 : 0;
+    const durusHours = capacityData.toplamDurusSaati;
+    const netHours = capacityData.netCalismaSaati;
+
+    // Net verimlilik (duruşlar düşüldükten sonra)
+    const hourlyEfficiency = maxPossibleHours > 0 ? (netHours / maxPossibleHours) * 100 : 0;
 
     return {
       totalDays,
@@ -85,9 +86,10 @@ function KapasiteTab({ makine, calisir24Saat }: { makine: MakineDto | null; cali
       holidays: holidays.length,
       weekendNonWorking: weekendNonWorking.length,
       weekendWorking: weekendWorking.length,
-      efficiency: Math.round(efficiency),
       hourlyEfficiency: Math.round(hourlyEfficiency),
       totalHours: actualHours,
+      durusHours,
+      netHours,
       dailyHours,
       potentialHours: maxPossibleHours,
     };
@@ -145,7 +147,7 @@ function KapasiteTab({ makine, calisir24Saat }: { makine: MakineDto | null; cali
               </div>
               <Progress value={stats.hourlyEfficiency} className="h-2" />
               <p className="text-xs text-muted-foreground">
-                {stats.totalHours} saat / {stats.potentialHours} saat potansiyel
+                {stats.netHours} saat net / {stats.potentialHours} saat potansiyel
               </p>
             </div>
           </CardContent>
@@ -205,24 +207,33 @@ function KapasiteTab({ makine, calisir24Saat }: { makine: MakineDto | null; cali
 
           <Separator className="my-4" />
 
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-lg bg-muted/50 p-3 text-center">
               <p className="text-xs text-muted-foreground">Toplam Çalışma Saati</p>
               <p className="mt-1 text-xl font-bold text-primary">{stats.totalHours}</p>
+            </div>
+            <div className="rounded-lg bg-orange-100 dark:bg-orange-950/30 p-3 text-center">
+              <p className="text-xs text-muted-foreground">Duruş Saati</p>
+              <p className="mt-1 text-xl font-bold text-orange-600">{stats.durusHours}</p>
+            </div>
+            <div className="rounded-lg bg-green-100 dark:bg-green-950/30 p-3 text-center">
+              <p className="text-xs text-muted-foreground">Net Çalışma Saati</p>
+              <p className="mt-1 text-xl font-bold text-green-600">{stats.netHours}</p>
             </div>
             <div className="rounded-lg bg-muted/50 p-3 text-center">
               <p className="text-xs text-muted-foreground">H.Sonu Çalışma</p>
               <p className="mt-1 text-xl font-bold">{stats.weekendWorking} gün</p>
             </div>
-            {capacityData.saatlikKapasite && (
-              <div className="rounded-lg bg-primary/10 p-3 text-center">
-                <p className="text-xs text-muted-foreground">Tahmini Üretim</p>
-                <p className="mt-1 text-xl font-bold text-primary">
-                  {(stats.totalHours * capacityData.saatlikKapasite).toLocaleString('tr-TR')}
-                </p>
-              </div>
-            )}
           </div>
+
+          {capacityData.saatlikKapasite ? (
+            <div className="mt-3 rounded-lg bg-primary/10 p-3 text-center">
+              <p className="text-xs text-muted-foreground">Tahmini Net Üretim</p>
+              <p className="mt-1 text-xl font-bold text-primary">
+                {(stats.netHours * capacityData.saatlikKapasite).toLocaleString('tr-TR')} adet
+              </p>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -242,30 +253,41 @@ function KapasiteTab({ makine, calisir24Saat }: { makine: MakineDto | null; cali
                   <TableHead className="text-xs">Tarih</TableHead>
                   <TableHead className="text-xs">Gün</TableHead>
                   <TableHead className="text-xs text-center">Durum</TableHead>
-                  <TableHead className="text-xs text-right">Çalışma Saati</TableHead>
+                  <TableHead className="text-xs text-right">Çalışma</TableHead>
+                  <TableHead className="text-xs text-right">Duruş</TableHead>
+                  <TableHead className="text-xs text-right">Net</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {capacityData.gunler.map((gun) => (
-                  <TableRow key={gun.tarih} className={gun.calisiyor ? '' : 'bg-muted/30'}>
-                    <TableCell className="text-xs font-mono">{gun.tarih}</TableCell>
-                    <TableCell className="text-xs">{gun.gunAdi}</TableCell>
-                    <TableCell className="text-center">
-                      {gun.tatilMi ? (
-                        <Badge variant="destructive" className="text-xs">Tatil</Badge>
-                      ) : gun.haftaSonuMu && !gun.calisiyor ? (
-                        <Badge variant="secondary" className="text-xs">Hafta Sonu</Badge>
-                      ) : gun.haftaSonuMu && gun.calisiyor ? (
-                        <Badge variant="default" className="text-xs">H.Sonu Çalışma</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-xs">Çalışma Günü</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right text-xs font-medium">
-                      {gun.calisiyor ? `${capacityData.gunlukCalismaSaati}s` : '—'}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {capacityData.gunler.map((gun) => {
+                  const net = gun.calisiyor ? Math.max(0, capacityData.gunlukCalismaSaati - gun.durusSaati) : 0;
+                  return (
+                    <TableRow key={gun.tarih} className={gun.calisiyor ? '' : 'bg-muted/30'}>
+                      <TableCell className="text-xs font-mono">{gun.tarih}</TableCell>
+                      <TableCell className="text-xs">{gun.gunAdi}</TableCell>
+                      <TableCell className="text-center">
+                        {gun.tatilMi ? (
+                          <Badge variant="destructive" className="text-xs">Tatil</Badge>
+                        ) : gun.haftaSonuMu && !gun.calisiyor ? (
+                          <Badge variant="secondary" className="text-xs">Hafta Sonu</Badge>
+                        ) : gun.haftaSonuMu && gun.calisiyor ? (
+                          <Badge variant="default" className="text-xs">H.Sonu Çalışma</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">Çalışma Günü</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right text-xs font-medium">
+                        {gun.calisiyor ? `${capacityData.gunlukCalismaSaati}s` : '—'}
+                      </TableCell>
+                      <TableCell className="text-right text-xs font-medium">
+                        {gun.durusSaati > 0 ? <span className="text-orange-600">{gun.durusSaati}s</span> : '—'}
+                      </TableCell>
+                      <TableCell className="text-right text-xs font-medium">
+                        {gun.calisiyor ? <span className="text-green-600">{net}s</span> : '—'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -273,7 +295,7 @@ function KapasiteTab({ makine, calisir24Saat }: { makine: MakineDto | null; cali
       </Card>
 
       <p className="text-xs text-muted-foreground text-center">
-        * Kapasite hesaplaması tatil tanımları ve hafta sonu planlarına göre dinamik olarak yapılır
+        * Kapasite hesaplaması tatil tanımları, hafta sonu planları ve operatör duruş kayıtlarına göre dinamik olarak yapılır
       </p>
     </div>
   );

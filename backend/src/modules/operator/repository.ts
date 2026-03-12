@@ -9,19 +9,17 @@ import { uretimEmirleri, uretimEmriOperasyonlari } from '@/modules/uretim_emirle
 import { urunler } from '@/modules/urunler/schema';
 import { hareketler } from '@/modules/hareketler/schema';
 import { musteriler } from '@/modules/musteriler/schema';
-import { satinAlmaKalemleri, satinAlmaSiparisleri } from '@/modules/satin_alma/schema';
 import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/schema';
 import { refreshSiparisDurum, getSiparisIdsByUretimEmriId } from '@/modules/satis_siparisleri/repository';
+import { repoCreate as malKabulRepoCreate } from '@/modules/mal_kabul/repository';
 
 import {
   durusKayitlari,
-  malKabulKayitlari,
   operatorGunlukKayitlari,
   sevkiyatKalemleri,
   sevkiyatlar,
   vardiyaKayitlari,
   durusRowToDto,
-  malKabulRowToDto,
   rowToGunlukGirisDto,
   sevkiyatRowToDto,
   sevkiyatKalemRowToDto,
@@ -241,6 +239,8 @@ export type MakineKuyruguDetayDto = {
   gercekBaslangic: string | null;
   gercekBitis: string | null;
   durum: string;
+  oncekiUretimToplam: number;
+  oncekiFireToplam: number;
 };
 
 const toStr = (v: Date | string | null | undefined): string | null => {
@@ -295,33 +295,88 @@ export async function repoListMakineKuyrugu(
       .where(where),
   ]);
 
-  const items: MakineKuyruguDetayDto[] = rows.map((r) => ({
-    id: r.kq.id,
-    makineId: r.kq.makine_id,
-    makineKod: r.m_kod ?? '',
-    makineAd: r.m_ad ?? '',
-    uretimEmriId: r.kq.uretim_emri_id,
-    emirNo: r.ue_emir_no ?? '',
-    emirOperasyonId: r.kq.emir_operasyon_id ?? null,
-    operasyonAdi: r.op_operasyon_adi ?? null,
-    operasyonSira: r.op_sira ?? null,
-    urunId: r.ue_urun_id ?? '',
-    urunKod: r.u_kod ?? '',
-    urunAd: r.u_ad ?? '',
-    planlananMiktar: Number(r.op_planlanan_miktar ?? 0),
-    uretilenMiktar: Number(r.op_uretilen_miktar ?? 0),
-    fireMiktar: Number(r.op_fire_miktar ?? 0),
-    montaj: (r.op_montaj ?? 0) === 1,
-    sira: r.kq.sira,
-    planlananSureDk: r.kq.planlanan_sure_dk,
-    hazirlikSuresiDk: r.kq.hazirlik_suresi_dk,
-    cevrimSuresiSn: Number(r.op_cevrim_suresi_sn ?? 0),
-    planlananBaslangic: toStr(r.kq.planlanan_baslangic),
-    planlananBitis: toStr(r.kq.planlanan_bitis),
-    gercekBaslangic: toStr(r.kq.gercek_baslangic),
-    gercekBitis: toStr(r.kq.gercek_bitis),
-    durum: r.kq.durum,
-  }));
+  // Batch query accumulated measurements for active/paused jobs
+  const activeOpIds = rows
+    .filter((r) => r.kq.durum === 'calisiyor' || r.kq.durum === 'duraklatildi')
+    .map((r) => r.kq.emir_operasyon_id ?? r.kq.uretim_emri_id)
+    .filter(Boolean) as string[];
+
+  const measurementMap = new Map<string, { uretim: number; fire: number }>();
+
+  if (activeOpIds.length > 0) {
+    // Query by emir_operasyon_id where available, else by uretim_emri_id
+    const opRows = rows.filter((r) => r.kq.durum === 'calisiyor' || r.kq.durum === 'duraklatildi');
+    const withOpId = opRows.filter((r) => r.kq.emir_operasyon_id);
+    const withoutOpId = opRows.filter((r) => !r.kq.emir_operasyon_id);
+
+    if (withOpId.length > 0) {
+      const opIds = withOpId.map((r) => r.kq.emir_operasyon_id!);
+      const totals = await db
+        .select({
+          key: operatorGunlukKayitlari.emir_operasyon_id,
+          uretim: sql<string>`COALESCE(SUM(${operatorGunlukKayitlari.ek_uretim_miktari}), 0)`,
+          fire: sql<string>`COALESCE(SUM(${operatorGunlukKayitlari.fire_miktari}), 0)`,
+        })
+        .from(operatorGunlukKayitlari)
+        .where(inArray(operatorGunlukKayitlari.emir_operasyon_id, opIds))
+        .groupBy(operatorGunlukKayitlari.emir_operasyon_id);
+
+      for (const t of totals) {
+        if (t.key) measurementMap.set(t.key, { uretim: Number(t.uretim), fire: Number(t.fire) });
+      }
+    }
+
+    if (withoutOpId.length > 0) {
+      const emirIds = withoutOpId.map((r) => r.kq.uretim_emri_id);
+      const totals = await db
+        .select({
+          key: operatorGunlukKayitlari.uretim_emri_id,
+          uretim: sql<string>`COALESCE(SUM(${operatorGunlukKayitlari.ek_uretim_miktari}), 0)`,
+          fire: sql<string>`COALESCE(SUM(${operatorGunlukKayitlari.fire_miktari}), 0)`,
+        })
+        .from(operatorGunlukKayitlari)
+        .where(inArray(operatorGunlukKayitlari.uretim_emri_id, emirIds))
+        .groupBy(operatorGunlukKayitlari.uretim_emri_id);
+
+      for (const t of totals) {
+        if (t.key) measurementMap.set(t.key, { uretim: Number(t.uretim), fire: Number(t.fire) });
+      }
+    }
+  }
+
+  const items: MakineKuyruguDetayDto[] = rows.map((r) => {
+    const lookupKey = r.kq.emir_operasyon_id ?? r.kq.uretim_emri_id;
+    const prev = measurementMap.get(lookupKey);
+    return {
+      id: r.kq.id,
+      makineId: r.kq.makine_id,
+      makineKod: r.m_kod ?? '',
+      makineAd: r.m_ad ?? '',
+      uretimEmriId: r.kq.uretim_emri_id,
+      emirNo: r.ue_emir_no ?? '',
+      emirOperasyonId: r.kq.emir_operasyon_id ?? null,
+      operasyonAdi: r.op_operasyon_adi ?? null,
+      operasyonSira: r.op_sira ?? null,
+      urunId: r.ue_urun_id ?? '',
+      urunKod: r.u_kod ?? '',
+      urunAd: r.u_ad ?? '',
+      planlananMiktar: Number(r.op_planlanan_miktar ?? 0),
+      uretilenMiktar: Number(r.op_uretilen_miktar ?? 0),
+      fireMiktar: Number(r.op_fire_miktar ?? 0),
+      montaj: (r.op_montaj ?? 0) === 1,
+      sira: r.kq.sira,
+      planlananSureDk: r.kq.planlanan_sure_dk,
+      hazirlikSuresiDk: r.kq.hazirlik_suresi_dk,
+      cevrimSuresiSn: Number(r.op_cevrim_suresi_sn ?? 0),
+      planlananBaslangic: toStr(r.kq.planlanan_baslangic),
+      planlananBitis: toStr(r.kq.planlanan_bitis),
+      gercekBaslangic: toStr(r.kq.gercek_baslangic),
+      gercekBitis: toStr(r.kq.gercek_bitis),
+      durum: r.kq.durum,
+      oncekiUretimToplam: prev?.uretim ?? 0,
+      oncekiFireToplam: prev?.fire ?? 0,
+    };
+  });
 
   return { items, total: Number(countResult[0]?.count ?? 0) };
 }
@@ -337,6 +392,28 @@ export async function repoUretimBaslat(
   const now = new Date();
 
   await db.transaction(async (tx) => {
+    // Hedef kuyruk kaydini bul
+    const [target] = await tx
+      .select({ makine_id: makineKuyrugu.makine_id, durum: makineKuyrugu.durum })
+      .from(makineKuyrugu)
+      .where(eq(makineKuyrugu.id, body.makineKuyrukId))
+      .limit(1);
+    if (!target) throw new Error('kuyruk_kaydi_bulunamadi');
+    if (target.durum !== 'bekliyor') throw new Error('sadece_bekliyor_baslatilabilir');
+
+    // Ayni makinede zaten calisan veya duraklatilmis is var mi?
+    const [activeJob] = await tx
+      .select({ id: makineKuyrugu.id })
+      .from(makineKuyrugu)
+      .where(
+        and(
+          eq(makineKuyrugu.makine_id, target.makine_id),
+          inArray(makineKuyrugu.durum, ['calisiyor', 'duraklatildi']),
+        ),
+      )
+      .limit(1);
+    if (activeJob) throw new Error('makinede_aktif_is_var');
+
     // Update kuyruk -> calisiyor
     await tx
       .update(makineKuyrugu)
@@ -401,7 +478,7 @@ export async function repoUretimBaslat(
   }
 
   // Return fresh data
-  const { items } = await repoListMakineKuyrugu({ limit: 1, offset: 0, makineId: undefined, durum: undefined });
+  const { items } = await repoListMakineKuyrugu({ limit: 500, offset: 0, makineId: undefined, durum: undefined });
   const found = items.find((i) => i.id === body.makineKuyrukId);
   if (!found) throw new Error('kuyruk_kaydi_bulunamadi');
   return found;
@@ -414,8 +491,9 @@ export async function repoUretimBaslat(
 export async function repoUretimBitir(
   body: UretimBitirBody,
   operatorUserId: string | null,
-): Promise<MakineKuyruguDetayDto> {
+): Promise<MakineKuyruguDetayDto & { stokFarki: number }> {
   const now = new Date();
+  let stokFarki = 0;
 
   await db.transaction(async (tx) => {
     // Get queue row
@@ -432,26 +510,89 @@ export async function repoUretimBitir(
       .set({ durum: 'tamamlandi', gercek_bitis: now })
       .where(eq(makineKuyrugu.id, body.makineKuyrukId));
 
-    // Update emir operasyonu
-    if (kqRow.emir_operasyon_id) {
-      const uretilenStr = body.uretilenMiktar.toFixed(4);
-      const fireStr = body.fireMiktar.toFixed(4);
+    // body.uretilenMiktar = gerçek toplam üretim (tüm iş emri boyunca)
+    // body.fireMiktar = gerçek toplam fire
+    const gercekNet = body.uretilenMiktar - body.fireMiktar;
 
+    // Sum previous incremental stock entries from measurements
+    const opFilter = kqRow.emir_operasyon_id
+      ? eq(operatorGunlukKayitlari.emir_operasyon_id, kqRow.emir_operasyon_id)
+      : eq(operatorGunlukKayitlari.uretim_emri_id, kqRow.uretim_emri_id);
+
+    const [prevTotals] = await tx
+      .select({
+        onceki_net: sql<string>`COALESCE(SUM(${operatorGunlukKayitlari.net_miktar}), 0)`,
+      })
+      .from(operatorGunlukKayitlari)
+      .where(opFilter);
+
+    const oncekiNet = Number(prevTotals?.onceki_net ?? 0);
+
+    // Difference = what still needs to be added/corrected in stock
+    // positive = measurements were short, need to add more
+    // negative = measurements were over, need correction
+    stokFarki = gercekNet - oncekiNet;
+
+    // Log final günlük kayıt with the correction amount
+    await tx.insert(operatorGunlukKayitlari).values({
+      id: randomUUID(),
+      uretim_emri_id: kqRow.uretim_emri_id,
+      makine_id: kqRow.makine_id,
+      emir_operasyon_id: kqRow.emir_operasyon_id ?? null,
+      operator_user_id: operatorUserId ?? null,
+      gunluk_durum: 'tamamlandi',
+      ek_uretim_miktari: (body.uretilenMiktar - oncekiNet).toFixed(4),
+      fire_miktari: body.fireMiktar.toFixed(4),
+      net_miktar: stokFarki.toFixed(4),
+      birim_tipi: body.birimTipi,
+      notlar: body.notlar ?? null,
+      kayit_tarihi: now,
+    });
+
+    // Apply stock correction (reconcile measurements vs actual)
+    if (stokFarki !== 0 && kqRow.uretim_emri_id) {
+      const [emirRow] = await tx
+        .select({ urun_id: uretimEmirleri.urun_id })
+        .from(uretimEmirleri)
+        .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id))
+        .limit(1);
+
+      if (emirRow?.urun_id) {
+        await tx
+          .update(urunler)
+          .set({ stok: sql`${urunler.stok} + ${stokFarki.toFixed(4)}` })
+          .where(eq(urunler.id, emirRow.urun_id));
+
+        await tx.insert(hareketler).values({
+          id: randomUUID(),
+          urun_id: emirRow.urun_id,
+          hareket_tipi: stokFarki > 0 ? 'giris' : 'cikis',
+          referans_tipi: 'uretim',
+          referans_id: kqRow.uretim_emri_id,
+          miktar: Math.abs(stokFarki).toFixed(4),
+          aciklama: stokFarki > 0
+            ? `Üretim tamamlandı — ek stok (fark: +${stokFarki.toFixed(0)})`
+            : `Üretim tamamlandı — stok düzeltme (fark: ${stokFarki.toFixed(0)})`,
+          created_by_user_id: operatorUserId ?? null,
+        });
+      }
+    }
+
+    // Update emir operasyonu with final actual totals
+    if (kqRow.emir_operasyon_id) {
       await tx
         .update(uretimEmriOperasyonlari)
         .set({
-          uretilen_miktar: uretilenStr,
-          fire_miktar: fireStr,
+          uretilen_miktar: body.uretilenMiktar.toFixed(4),
+          fire_miktar: body.fireMiktar.toFixed(4),
           durum: 'tamamlandi',
           gercek_bitis: now,
         })
         .where(eq(uretimEmriOperasyonlari.id, kqRow.emir_operasyon_id));
     }
 
-    // Update parent emir uretilen_miktar
-    // (siparis seviyesinde son operasyon tamamlandiysa emri tamamla)
+    // Update parent emir
     if (kqRow.uretim_emri_id) {
-      // Check if all operasyonlar for this emir are done
       const pendingOps = await tx
         .select({ count: sql<number>`count(*)` })
         .from(uretimEmriOperasyonlari)
@@ -462,7 +603,6 @@ export async function repoUretimBitir(
           ),
         );
 
-      // -1 because current op hasn't been committed yet in the same tx read
       const remaining = Number(pendingOps[0]?.count ?? 0);
 
       if (remaining <= 0) {
@@ -474,58 +614,13 @@ export async function repoUretimBitir(
             bitis_tarihi: now,
           })
           .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id));
-
-        // Üretim tamamlandı — mamul stok artır + hareket kaydı oluştur
-        const netMiktar = body.uretilenMiktar - body.fireMiktar;
-        if (netMiktar > 0) {
-          const [emirRow] = await tx
-            .select({ urun_id: uretimEmirleri.urun_id })
-            .from(uretimEmirleri)
-            .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id))
-            .limit(1);
-
-          if (emirRow?.urun_id) {
-            await tx
-              .update(urunler)
-              .set({ stok: sql`${urunler.stok} + ${netMiktar.toFixed(4)}` })
-              .where(eq(urunler.id, emirRow.urun_id));
-
-            await tx.insert(hareketler).values({
-              id: randomUUID(),
-              urun_id: emirRow.urun_id,
-              hareket_tipi: 'giris',
-              referans_tipi: 'uretim',
-              referans_id: kqRow.uretim_emri_id,
-              miktar: netMiktar.toFixed(4),
-              aciklama: `Üretim tamamlandı (emir: ${kqRow.uretim_emri_id})`,
-              created_by_user_id: operatorUserId ?? null,
-            });
-          }
-        }
       } else {
-        // Partially update emir uretilen
         await tx
           .update(uretimEmirleri)
           .set({ uretilen_miktar: body.uretilenMiktar.toFixed(4) })
           .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id));
       }
     }
-
-    // Log gunluk kayit
-    await tx.insert(operatorGunlukKayitlari).values({
-      id: randomUUID(),
-      uretim_emri_id: kqRow.uretim_emri_id,
-      makine_id: kqRow.makine_id,
-      emir_operasyon_id: kqRow.emir_operasyon_id ?? null,
-      operator_user_id: operatorUserId ?? null,
-      gunluk_durum: 'tamamlandi',
-      ek_uretim_miktari: body.uretilenMiktar.toFixed(4),
-      fire_miktari: body.fireMiktar.toFixed(4),
-      net_miktar: (body.uretilenMiktar - body.fireMiktar).toFixed(4),
-      birim_tipi: body.birimTipi,
-      notlar: body.notlar ?? null,
-      kayit_tarihi: now,
-    });
 
     // Shift following jobs on same machine
     await shiftFollowingJobs(tx, kqRow.makine_id, now);
@@ -543,10 +638,10 @@ export async function repoUretimBitir(
   }
 
   // Return fresh data
-  const result = await repoListMakineKuyrugu({ limit: 1, offset: 0 });
+  const result = await repoListMakineKuyrugu({ limit: 500, offset: 0 });
   const found = result.items.find((i) => i.id === body.makineKuyrukId);
   if (!found) throw new Error('kuyruk_kaydi_bulunamadi');
-  return found;
+  return { ...found, stokFarki };
 }
 
 /**
@@ -674,18 +769,12 @@ export async function repoDuraklat(
       makine_id: kqRow?.makine_id ?? '',
       makine_kuyruk_id: body.makineKuyrukId,
       operator_user_id: operatorUserId ?? null,
-      durus_tipi: body.makineArizasi ? 'ariza' : 'durus',
+      durus_nedeni_id: body.durusNedeniId,
+      durus_tipi: 'durus',
       neden: body.neden,
+      anlik_uretim_miktari: body.anlikUretimMiktari !== undefined ? body.anlikUretimMiktari.toFixed(4) : null,
       baslangic: now,
     });
-
-    // If machine failure, update machine status
-    if (body.makineArizasi && kqRow?.makine_id) {
-      await tx
-        .update(makineler)
-        .set({ durum: 'arizali' })
-        .where(eq(makineler.id, kqRow.makine_id));
-    }
   });
 
   return { success: true };
@@ -704,7 +793,11 @@ export async function repoDevamEt(
       .where(eq(makineKuyrugu.id, body.makineKuyrukId));
 
     const [kqRow] = await tx
-      .select({ makine_id: makineKuyrugu.makine_id, emir_operasyon_id: makineKuyrugu.emir_operasyon_id })
+      .select({
+        makine_id: makineKuyrugu.makine_id,
+        emir_operasyon_id: makineKuyrugu.emir_operasyon_id,
+        uretim_emri_id: makineKuyrugu.uretim_emri_id,
+      })
       .from(makineKuyrugu)
       .where(eq(makineKuyrugu.id, body.makineKuyrukId))
       .limit(1);
@@ -729,6 +822,51 @@ export async function repoDevamEt(
           sql`${durusKayitlari.bitis} IS NULL`,
         ),
       );
+
+    // Log incremental production during downtime + update stock
+    if (body.uretilenMiktar !== undefined && body.uretilenMiktar > 0 && kqRow) {
+      const netMiktar = body.uretilenMiktar - body.fireMiktar;
+
+      await tx.insert(operatorGunlukKayitlari).values({
+        id: randomUUID(),
+        uretim_emri_id: kqRow.uretim_emri_id,
+        makine_id: kqRow.makine_id,
+        emir_operasyon_id: kqRow.emir_operasyon_id ?? null,
+        operator_user_id: operatorUserId ?? null,
+        gunluk_durum: 'devam_ediyor',
+        ek_uretim_miktari: body.uretilenMiktar.toFixed(4),
+        fire_miktari: body.fireMiktar.toFixed(4),
+        net_miktar: netMiktar.toFixed(4),
+        birim_tipi: body.birimTipi,
+        notlar: body.notlar ?? null,
+        kayit_tarihi: now,
+      });
+
+      if (netMiktar > 0) {
+        const [emirRow] = await tx
+          .select({ urun_id: uretimEmirleri.urun_id })
+          .from(uretimEmirleri)
+          .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id))
+          .limit(1);
+
+        if (emirRow) {
+          await tx
+            .update(urunler)
+            .set({ stok: sql`${urunler.stok} + ${netMiktar.toFixed(4)}` })
+            .where(eq(urunler.id, emirRow.urun_id));
+
+          await tx.insert(hareketler).values({
+            id: randomUUID(),
+            urun_id: emirRow.urun_id,
+            hareket_tipi: 'giris',
+            referans_tipi: 'uretim',
+            referans_id: kqRow.uretim_emri_id,
+            miktar: netMiktar.toFixed(4),
+            aciklama: `Duruş sonu artımlı üretim kaydı`,
+          });
+        }
+      }
+    }
 
     // Restore machine status if it was arizali
     if (kqRow?.makine_id) {
@@ -819,7 +957,7 @@ export async function repoVardiyaSonu(
     .set({ bitis: now })
     .where(eq(vardiyaKayitlari.id, openVardiya.id));
 
-  // If production amounts provided, log them
+  // Log incremental production at shift end + update stock
   if (body.uretilenMiktar !== undefined && body.uretilenMiktar > 0) {
     // Find current running job on this machine
     const [runningJob] = await db
@@ -834,6 +972,8 @@ export async function repoVardiyaSonu(
       .limit(1);
 
     if (runningJob) {
+      const netMiktar = (body.uretilenMiktar ?? 0) - body.fireMiktar;
+
       await db.insert(operatorGunlukKayitlari).values({
         id: randomUUID(),
         uretim_emri_id: runningJob.uretim_emri_id,
@@ -843,16 +983,96 @@ export async function repoVardiyaSonu(
         gunluk_durum: 'devam_ediyor',
         ek_uretim_miktari: (body.uretilenMiktar ?? 0).toFixed(4),
         fire_miktari: body.fireMiktar.toFixed(4),
-        net_miktar: ((body.uretilenMiktar ?? 0) - body.fireMiktar).toFixed(4),
+        net_miktar: netMiktar.toFixed(4),
         birim_tipi: body.birimTipi,
         notlar: body.notlar ?? null,
         kayit_tarihi: now,
       });
+
+      if (netMiktar > 0) {
+        const [emirRow] = await db
+          .select({ urun_id: uretimEmirleri.urun_id })
+          .from(uretimEmirleri)
+          .where(eq(uretimEmirleri.id, runningJob.uretim_emri_id))
+          .limit(1);
+
+        if (emirRow) {
+          await db
+            .update(urunler)
+            .set({ stok: sql`${urunler.stok} + ${netMiktar.toFixed(4)}` })
+            .where(eq(urunler.id, emirRow.urun_id));
+
+          await db.insert(hareketler).values({
+            id: randomUUID(),
+            urun_id: emirRow.urun_id,
+            hareket_tipi: 'giris',
+            referans_tipi: 'uretim',
+            referans_id: runningJob.uretim_emri_id,
+            miktar: netMiktar.toFixed(4),
+            aciklama: `Vardiya sonu artımlı üretim kaydı`,
+          });
+        }
+      }
     }
   }
 
   const [updated] = await db.select().from(vardiyaKayitlari).where(eq(vardiyaKayitlari.id, openVardiya.id)).limit(1);
   return vardiyaRowToDto(updated);
+}
+
+// ============================================================
+// 5b) Acik Vardiya Durumu — makine bazli
+// ============================================================
+
+export type AcikVardiyaDto = {
+  makineId: string;
+  makineKod: string;
+  makineAd: string;
+  acikVardiyaId: string | null;
+  vardiyaTipi: string | null;
+  baslangic: Date | null;
+};
+
+export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
+  // Sadece kuyrukta bekliyor/devam_ediyor is emri olan makineleri getir
+  const rows = await db
+    .select({
+      makineId: makineler.id,
+      makineKod: makineler.kod,
+      makineAd: makineler.ad,
+      acikVardiyaId: vardiyaKayitlari.id,
+      vardiyaTipi: vardiyaKayitlari.vardiya_tipi,
+      baslangic: vardiyaKayitlari.baslangic,
+    })
+    .from(makineler)
+    .leftJoin(
+      vardiyaKayitlari,
+      and(
+        eq(vardiyaKayitlari.makine_id, makineler.id),
+        sql`${vardiyaKayitlari.bitis} IS NULL`,
+      ),
+    )
+    .where(
+      and(
+        eq(makineler.is_active, 1),
+        eq(makineler.durum, 'aktif'),
+        sql`EXISTS (
+          SELECT 1 FROM makine_kuyrugu mk
+          WHERE mk.makine_id = ${makineler.id}
+            AND mk.durum IN ('bekliyor', 'calisiyor', 'duraklatildi')
+        )`,
+      ),
+    )
+    .orderBy(asc(makineler.kod));
+
+  return rows.map((r) => ({
+    makineId: r.makineId,
+    makineKod: r.makineKod,
+    makineAd: r.makineAd,
+    acikVardiyaId: r.acikVardiyaId ?? null,
+    vardiyaTipi: r.vardiyaTipi ?? null,
+    baslangic: r.baslangic ?? null,
+  }));
 }
 
 // ============================================================
@@ -956,78 +1176,29 @@ export async function repoMalKabul(
   body: MalKabulBody,
   operatorUserId: string | null,
 ): Promise<MalKabulDto> {
-  const id = randomUUID();
-  const now = new Date();
-
-  await db.transaction(async (tx) => {
-    await tx.insert(malKabulKayitlari).values({
-      id,
-      kaynak_tipi: 'satin_alma',
-      satin_alma_siparis_id: body.satinAlmaSiparisId,
-      satin_alma_kalem_id: body.satinAlmaKalemId,
-      urun_id: body.urunId,
-      gelen_miktar: body.gelenMiktar.toFixed(4),
-      operator_user_id: operatorUserId ?? null,
-      kabul_tarihi: now,
-      notlar: body.notlar ?? null,
-    });
-
-    // Stok artirmasi
-    await tx
-      .update(urunler)
-      .set({ stok: sql`${urunler.stok} + ${body.gelenMiktar.toFixed(4)}` })
-      .where(eq(urunler.id, body.urunId));
-
-    // Hareket kaydi
-    await tx.insert(hareketler).values({
-      id: randomUUID(),
-      urun_id: body.urunId,
-      hareket_tipi: 'giris',
-      referans_tipi: 'mal_kabul',
-      referans_id: id,
-      miktar: body.gelenMiktar.toFixed(4),
-      aciklama: `Mal kabul`,
-      created_by_user_id: operatorUserId ?? null,
-    });
-
-    // Satin alma siparisi durumunu otomatik guncelle
-    const kalemleri = await tx
-      .select({ id: satinAlmaKalemleri.id, miktar: satinAlmaKalemleri.miktar })
-      .from(satinAlmaKalemleri)
-      .where(eq(satinAlmaKalemleri.siparis_id, body.satinAlmaSiparisId));
-
-    if (kalemleri.length > 0) {
-      const kalemIds = kalemleri.map((k) => k.id);
-      const kabulTotals = await tx
-        .select({
-          kalemId: malKabulKayitlari.satin_alma_kalem_id,
-          totalKabul: sql<string>`COALESCE(SUM(${malKabulKayitlari.gelen_miktar}), 0)`,
-        })
-        .from(malKabulKayitlari)
-        .where(inArray(malKabulKayitlari.satin_alma_kalem_id, kalemIds))
-        .groupBy(malKabulKayitlari.satin_alma_kalem_id);
-
-      const kabulMap = new Map(kabulTotals.map((r) => [r.kalemId, Number(r.totalKabul)]));
-      const allDone = kalemleri.every((k) => (kabulMap.get(k.id) ?? 0) >= Number(k.miktar));
-      const anyKabul = kalemleri.some((k) => (kabulMap.get(k.id) ?? 0) > 0);
-
-      const yeniDurum = allDone ? 'tamamlandi' : anyKabul ? 'kismen_teslim' : undefined;
-      if (yeniDurum) {
-        await tx
-          .update(satinAlmaSiparisleri)
-          .set({ durum: yeniDurum })
-          .where(
-            and(
-              eq(satinAlmaSiparisleri.id, body.satinAlmaSiparisId),
-              sql`${satinAlmaSiparisleri.durum} != 'iptal'`,
-            ),
-          );
-      }
-    }
-  });
-
-  const [row] = await db.select().from(malKabulKayitlari).where(eq(malKabulKayitlari.id, id)).limit(1);
-  return malKabulRowToDto(row);
+  const result = await malKabulRepoCreate(
+    {
+      kaynakTipi: 'satin_alma',
+      satinAlmaSiparisId: body.satinAlmaSiparisId,
+      satinAlmaKalemId: body.satinAlmaKalemId,
+      urunId: body.urunId,
+      gelenMiktar: body.gelenMiktar,
+      notlar: body.notlar,
+      kaliteDurumu: 'kabul',
+    },
+    operatorUserId,
+  );
+  return {
+    id: result.id,
+    kaynakTipi: result.kaynakTipi,
+    satinAlmaSiparisId: result.satinAlmaSiparisId,
+    satinAlmaKalemId: result.satinAlmaKalemId,
+    urunId: result.urunId,
+    gelenMiktar: result.gelenMiktar,
+    operatorUserId: result.operatorUserId,
+    kabulTarihi: typeof result.kabulTarihi === 'string' ? result.kabulTarihi : (result.kabulTarihi as Date).toISOString(),
+    notlar: result.notlar,
+  };
 }
 
 // ============================================================

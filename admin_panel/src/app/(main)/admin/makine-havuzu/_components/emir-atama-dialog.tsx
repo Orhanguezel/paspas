@@ -16,11 +16,23 @@ import {
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   useAtaOperasyonAdminMutation,
   useListMakinelerAdminQuery,
 } from '@/integrations/endpoints/admin/erp/makine_havuzu_admin.endpoints';
+import { useLazyCheckHammaddeAdminQuery } from '@/integrations/endpoints/admin/erp/uretim_emirleri_admin.endpoints';
 import { useListUyumluMakinelerAdminQuery } from '@/integrations/endpoints/admin/erp/tanimlar_admin.endpoints';
 import type { AtanmamisEmirDto } from '@/integrations/shared/erp/makine_havuzu.types';
+import type { HammaddeUyari } from '@/integrations/shared/erp/uretim_emirleri.types';
 
 interface EmirAtamaDialogProps {
   emir: AtanmamisEmirDto | null;
@@ -31,12 +43,17 @@ interface EmirAtamaDialogProps {
 export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogProps) {
   const { data: makineData } = useListMakinelerAdminQuery({});
   const [ata, ataState] = useAtaOperasyonAdminMutation();
+  const [checkHammadde] = useLazyCheckHammaddeAdminQuery();
 
   // Per-operation machine selections: { operasyonId: makineId }
   const [selections, setSelections] = useState<Record<string, string>>({});
 
   // Which operation carries the montaj (only relevant for multi-op / çift taraflı)
   const [montajOpId, setMontajOpId] = useState<string | null>(null);
+
+  // Hammadde uyarı onay dialog state
+  const [hammaddeUyarilar, setHammaddeUyarilar] = useState<HammaddeUyari[]>([]);
+  const [showHammaddeOnay, setShowHammaddeOnay] = useState(false);
 
   // Collect unique kalipIds from all operations
   const kalipIds = emir?.operasyonlar
@@ -71,13 +88,11 @@ export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogPro
 
   const allSelected = emir?.operasyonlar.every((op) => selections[op.id] && selections[op.id] !== 'none') ?? false;
 
-  async function handleAta() {
+  async function doAta() {
     if (!emir || !allSelected) return;
     const isMultiOp = emir.operasyonlar.length > 1;
-    // For multi-op, find the machine assigned to the montaj operation
     const montajMakineId = isMultiOp && montajOpId ? selections[montajOpId] : undefined;
     try {
-      // Assign each operation sequentially
       for (const op of emir.operasyonlar) {
         await ata({
           emirOperasyonId: op.id,
@@ -90,6 +105,27 @@ export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogPro
     } catch {
       toast.error(t('kuyrukYonetimi.atama.hata'));
     }
+  }
+
+  async function handleAta() {
+    if (!emir || !allSelected) return;
+    try {
+      const result = await checkHammadde(emir.uretimEmriId).unwrap();
+      if (!result.yeterli) {
+        setHammaddeUyarilar(result.uyarilar);
+        setShowHammaddeOnay(true);
+        return;
+      }
+    } catch {
+      // Kontrol başarısız olursa yine de devam et
+    }
+    await doAta();
+  }
+
+  function handleHammaddeOnay() {
+    setShowHammaddeOnay(false);
+    setHammaddeUyarilar([]);
+    doAta();
   }
 
   const isSingleOp = emir?.operasyonlar.length === 1;
@@ -185,6 +221,34 @@ export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogPro
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Hammadde yetersizlik onay dialogu */}
+      <AlertDialog open={showHammaddeOnay} onOpenChange={setShowHammaddeOnay}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hammadde Stok Yetersiz</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>Aşağıdaki hammaddelerde stok yetersiz. Yine de atama yapmak istiyor musunuz?</p>
+                <div className="rounded-md border bg-destructive/5 p-3 text-sm space-y-1">
+                  {hammaddeUyarilar.map((u) => (
+                    <div key={u.urunId} className="flex justify-between">
+                      <span className="font-medium">{u.urunKod} — {u.urunAd}</span>
+                      <span className="text-destructive font-mono">{u.eksikMiktar.toLocaleString('tr-TR')} eksik</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleHammaddeOnay}>
+              Yine de Ata
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

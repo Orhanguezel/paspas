@@ -27,13 +27,18 @@ export const uretimBitirBodySchema = z.object({
 // -- Duraklat --
 export const duraklatBodySchema = z.object({
   makineKuyrukId: z.string().min(1),
+  durusNedeniId: z.string().min(1),
   neden: z.string().trim().min(1).max(255),
-  makineArizasi: z.boolean().default(false),
+  anlikUretimMiktari: z.coerce.number().min(0).optional(),
 });
 
 // -- Devam et --
 export const devamEtBodySchema = z.object({
   makineKuyrukId: z.string().min(1),
+  uretilenMiktar: z.coerce.number().min(0).optional(),
+  fireMiktar: z.coerce.number().min(0).default(0),
+  birimTipi: z.enum(['adet', 'takim']).default('adet'),
+  notlar: z.string().trim().max(500).optional(),
 });
 
 // -- Vardiya basi / sonu --

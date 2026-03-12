@@ -92,3 +92,9 @@ Her dosyada import sırası şöyle olmalı:
 ```
 Bu CLAUDE.md  >  admin_panel/CLAUDE.md  >  backend/CLAUDE.md  >  Claude'un varsayılanları
 ```
+
+## Portfolio Metadata Rule
+
+- Proje kokunde `project.portfolio.json` dosyasi zorunludur.
+- Proje ozeti, teknoloji yigini, kategori, servisler, repo/live URL bilgileri degistiginde bu dosya guncellenir.
+- `/home/orhan/Documents/Projeler` portfolio standardi geregi bu dosya guncellenmeden is tamamlanmis sayilmaz.

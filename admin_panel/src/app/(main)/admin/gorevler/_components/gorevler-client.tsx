@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarClock, CheckCircle2, ClipboardList, Filter, Plus, RefreshCcw, Search, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { CalendarClock, CheckCircle2, ClipboardList, ExternalLink, Filter, Plus, RefreshCcw, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
@@ -51,6 +52,7 @@ const MODUL_OPTIONS = [
   { value: 'uretim_emirleri', label: 'Üretim Emirleri' },
   { value: 'makine_havuzu', label: 'Makine Havuzu' },
   { value: 'operator', label: 'Operatör' },
+  { value: 'sevkiyat', label: 'Sevkiyat' },
   { value: 'dashboard', label: 'Dashboard' },
 ] as const;
 
@@ -71,6 +73,29 @@ const TIP_OPTIONS = [
   { value: 'audit', label: 'Audit' },
   { value: 'genel', label: 'Genel' },
 ] as const;
+
+/** Modül adından admin panel route'una eşleme */
+const MODUL_ROUTE_MAP: Record<string, string> = {
+  satin_alma: '/admin/satin-alma',
+  stoklar: '/admin/stoklar',
+  satis_siparisleri: '/admin/satis-siparisleri',
+  uretim_emirleri: '/admin/uretim-emirleri',
+  makine_havuzu: '/admin/makine-havuzu',
+  operator: '/admin/operator',
+  dashboard: '/admin/dashboard',
+  sevkiyat: '/admin/sevkiyat',
+  receteler: '/admin/receteler',
+  urunler: '/admin/urunler',
+  musteriler: '/admin/musteriler',
+};
+
+function buildDeepLink(modul: string | null, ilgiliKayitId: string | null): string | null {
+  if (!modul) return null;
+  const base = MODUL_ROUTE_MAP[modul];
+  if (!base) return null;
+  if (ilgiliKayitId) return `${base}/${ilgiliKayitId}`;
+  return base;
+}
 
 const BADGE_BY_STATUS: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   acik: 'default',
@@ -277,7 +302,21 @@ export default function GorevlerClient() {
                     <div className="text-xs text-muted-foreground">{item.atananRol ?? '—'}</div>
                   </div>
                 </TableCell>
-                <TableCell className="text-sm">{item.modul ?? 'Genel'}</TableCell>
+                <TableCell className="text-sm">
+                  {(() => {
+                    const deepLink = buildDeepLink(item.modul, item.ilgiliKayitId);
+                    const label = MODUL_OPTIONS.find((o) => o.value === item.modul)?.label ?? item.modul ?? 'Genel';
+                    if (deepLink) {
+                      return (
+                        <Link href={deepLink} className="inline-flex items-center gap-1 text-primary hover:underline">
+                          {label}
+                          <ExternalLink className="size-3" />
+                        </Link>
+                      );
+                    }
+                    return label;
+                  })()}
+                </TableCell>
                 <TableCell>
                   <Badge variant={BADGE_BY_STATUS[item.durum] ?? 'outline'}>{item.durum.replaceAll('_', ' ')}</Badge>
                 </TableCell>

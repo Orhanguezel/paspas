@@ -7,6 +7,7 @@
 
 export interface MakineKuyruguDetayDto {
   id: string;
+  stokFarki?: number;
   makineId: string;
   makineKod: string;
   makineAd: string;
@@ -31,9 +32,20 @@ export interface MakineKuyruguDetayDto {
   gercekBaslangic: string | null;
   gercekBitis: string | null;
   durum: string;
+  oncekiUretimToplam: number;
+  oncekiFireToplam: number;
 }
 
 export type KuyrukDurum = 'bekliyor' | 'calisiyor' | 'duraklatildi' | 'tamamlandi' | 'iptal';
+
+export interface AcikVardiyaDto {
+  makineId: string;
+  makineKod: string;
+  makineAd: string;
+  acikVardiyaId: string | null;
+  vardiyaTipi: string | null;
+  baslangic: string | null;
+}
 
 // -- Payloads --
 
@@ -51,12 +63,17 @@ export interface UretimBitirPayload {
 
 export interface DuraklatPayload {
   makineKuyrukId: string;
+  durusNedeniId: string;
   neden: string;
-  makineArizasi?: boolean;
+  anlikUretimMiktari?: number;
 }
 
 export interface DevamEtPayload {
   makineKuyrukId: string;
+  uretilenMiktar?: number;
+  fireMiktar?: number;
+  birimTipi?: 'adet' | 'takim';
+  notlar?: string;
 }
 
 export interface VardiyaBasiPayload {
@@ -205,6 +222,8 @@ export function normalizeMakineKuyrugu(raw: unknown): MakineKuyruguDetayDto {
     gercekBaslangic: r.gercekBaslangic != null ? toStr(r.gercekBaslangic) : null,
     gercekBitis: r.gercekBitis != null ? toStr(r.gercekBitis) : null,
     durum: toStr(r.durum, 'bekliyor'),
+    oncekiUretimToplam: toNum(r.oncekiUretimToplam),
+    oncekiFireToplam: toNum(r.oncekiFireToplam),
   };
 }
 

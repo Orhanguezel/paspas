@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, isNotNull, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNotNull, or, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import type { AnyMySqlColumn, MySqlTable } from 'drizzle-orm/mysql-core';
 
@@ -6,8 +6,9 @@ import { db } from '@/db/client';
 import { gorevler } from '@/modules/gorevler/schema';
 import { hareketler } from '@/modules/hareketler/schema';
 import { makineKuyrugu, makineler } from '@/modules/makine_havuzu/schema';
+import { malKabulKayitlari } from '@/modules/mal_kabul/schema';
 import { musteriler } from '@/modules/musteriler/schema';
-import { sevkiyatKalemleri, sevkiyatlar } from '@/modules/operator/schema';
+import { operatorGunlukKayitlari, sevkiyatKalemleri, sevkiyatlar } from '@/modules/operator/schema';
 import { receteler } from '@/modules/receteler/schema';
 import { satinAlmaSiparisleri } from '@/modules/satin_alma/schema';
 import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/schema';
@@ -213,9 +214,39 @@ export async function getDashboardKpi(userId: string | null, role: string): Prom
   };
 }
 
+export type ActionItemType =
+  | 'overdue_production' | 'overdue_sales' | 'overdue_purchase' | 'overdue_task'
+  | 'critical_stock' | 'pending_purchase' | 'shipment_approval' | 'physical_shipment'
+  | 'unassigned_production' | 'machine_fault' | 'quality_reject'
+  | 'production_completed' | 'new_sales_order' | 'goods_received' | 'shipment_completed' | 'machine_status_change'
+  | 'shift_production' | 'stock_increased';
+export type ActionItemCategory = 'task' | 'info';
+
+const ACTION_CATEGORY_MAP: Record<ActionItemType, ActionItemCategory> = {
+  overdue_production: 'task',
+  overdue_sales: 'task',
+  overdue_purchase: 'task',
+  overdue_task: 'task',
+  pending_purchase: 'task',
+  shipment_approval: 'task',
+  physical_shipment: 'task',
+  unassigned_production: 'task',
+  machine_fault: 'task',
+  quality_reject: 'task',
+  critical_stock: 'info',
+  production_completed: 'info',
+  new_sales_order: 'info',
+  goods_received: 'info',
+  shipment_completed: 'info',
+  machine_status_change: 'info',
+  shift_production: 'info',
+  stock_increased: 'info',
+};
+
 export type ActionItem = {
   id: string;
-  type: 'overdue_production' | 'overdue_sales' | 'overdue_purchase' | 'overdue_task' | 'critical_stock' | 'pending_purchase' | 'shipment_approval' | 'physical_shipment';
+  type: ActionItemType;
+  category: ActionItemCategory;
   severity: 'critical' | 'warning';
   title: string;
   subtitle: string;
@@ -225,7 +256,7 @@ export type ActionItem = {
 
 export type ActionCenterResult = {
   items: ActionItem[];
-  counts: { critical: number; warning: number };
+  counts: { critical: number; warning: number; task: number; info: number };
 };
 
 export async function getDashboardActionCenter(userId: string | null, role: string): Promise<ActionCenterResult> {
@@ -241,7 +272,7 @@ export async function getDashboardActionCenter(userId: string | null, role: stri
 
   for (const row of overdueProduction) {
     items.push({
-      id: row.id, type: 'overdue_production', severity: 'critical',
+      id: row.id, type: 'overdue_production', category: 'task', severity: 'critical',
       title: `Üretim emri ${row.emirNo} termin aşımı`, subtitle: `Durum: ${row.durum}`,
       href: `/admin/uretim-emirleri/${row.id}`, date: row.terminTarihi ? asDateOnly(row.terminTarihi) : null,
     });
@@ -256,7 +287,7 @@ export async function getDashboardActionCenter(userId: string | null, role: stri
 
   for (const row of overdueSales) {
     items.push({
-      id: row.id, type: 'overdue_sales', severity: 'critical',
+      id: row.id, type: 'overdue_sales', category: 'task', severity: 'critical',
       title: `Satış siparişi ${row.siparisNo} termin aşımı`, subtitle: `Durum: ${row.durum}`,
       href: `/admin/satis-siparisleri/${row.id}`, date: row.terminTarihi ? asDateOnly(row.terminTarihi) : null,
     });
@@ -271,7 +302,7 @@ export async function getDashboardActionCenter(userId: string | null, role: stri
 
   for (const row of overduePurchase) {
     items.push({
-      id: row.id, type: 'overdue_purchase', severity: 'critical',
+      id: row.id, type: 'overdue_purchase', category: 'task', severity: 'critical',
       title: `Satın alma ${row.siparisNo} termin aşımı`, subtitle: `Durum: ${row.durum}`,
       href: `/admin/satin-alma/${row.id}`, date: row.terminTarihi ? asDateOnly(row.terminTarihi) : null,
     });
@@ -286,7 +317,7 @@ export async function getDashboardActionCenter(userId: string | null, role: stri
 
   for (const row of pendingPurchase) {
     items.push({
-      id: `pending-${row.id}`, type: 'pending_purchase', severity: 'warning',
+      id: `pending-${row.id}`, type: 'pending_purchase', category: 'task', severity: 'warning',
       title: `Satın alma ${row.siparisNo} onay bekliyor`, subtitle: 'Taslak durumunda',
       href: `/admin/satin-alma/${row.id}`, date: row.terminTarihi ? asDateOnly(row.terminTarihi) : null,
     });
@@ -309,6 +340,7 @@ export async function getDashboardActionCenter(userId: string | null, role: stri
       items.push({
         id: `shipment-approval-${row.id}`,
         type: 'shipment_approval',
+        category: 'task',
         severity: 'warning',
         title: `Sevk emri ${row.sevkEmriNo} admin onayi bekliyor`,
         subtitle: row.musteriAd ? `Musteri: ${row.musteriAd}` : 'Musteri bilgisi bekleniyor',
@@ -335,6 +367,7 @@ export async function getDashboardActionCenter(userId: string | null, role: stri
       items.push({
         id: `physical-shipment-${row.id}`,
         type: 'physical_shipment',
+        category: 'task',
         severity: 'critical',
         title: `Sevk emri ${row.sevkEmriNo} fiziki cikis bekliyor`,
         subtitle: row.musteriAd ? `Musteri: ${row.musteriAd}` : 'Fiziksel sevk bekliyor',
@@ -353,7 +386,7 @@ export async function getDashboardActionCenter(userId: string | null, role: stri
 
   for (const row of lowStock) {
     items.push({
-      id: `stock-${row.id}`, type: 'critical_stock', severity: 'warning',
+      id: `stock-${row.id}`, type: 'critical_stock', category: 'info', severity: 'warning',
       title: `${row.ad} stok kritik`, subtitle: `Mevcut: ${Number(row.stok).toFixed(2)}`,
       href: '/admin/stoklar', date: null,
     });
@@ -373,13 +406,210 @@ export async function getDashboardActionCenter(userId: string | null, role: stri
 
   for (const row of overdueTasks) {
     items.push({
-      id: `task-${row.id}`, type: 'overdue_task', severity: 'critical',
+      id: `task-${row.id}`, type: 'overdue_task', category: 'task', severity: 'critical',
       title: row.baslik, subtitle: 'Görev termin aşımı',
       href: '/admin/gorevler', date: row.terminTarihi ? row.terminTarihi.toISOString().slice(0, 10) : null,
     });
   }
 
+  // ── New task items ──────────────────────────────────────────
+
+  // Unassigned production orders (task)
+  const unassignedProduction = await db
+    .select({ id: uretimEmirleri.id, emirNo: uretimEmirleri.emir_no, createdAt: uretimEmirleri.created_at })
+    .from(uretimEmirleri)
+    .where(and(eq(uretimEmirleri.durum, 'atanmamis'), eq(uretimEmirleri.is_active, 1)))
+    .limit(10);
+
+  for (const row of unassignedProduction) {
+    items.push({
+      id: `unassigned-${row.id}`, type: 'unassigned_production', category: 'task', severity: 'warning',
+      title: `Üretim emri ${row.emirNo} makineye atanmamış`, subtitle: 'Makineye atama bekliyor',
+      href: `/admin/uretim-emirleri/${row.id}`, date: asDateOnly(row.createdAt),
+    });
+  }
+
+  // Machines in fault status (task)
+  const faultyMachines = await db
+    .select({ id: makineler.id, ad: makineler.ad })
+    .from(makineler)
+    .where(and(eq(makineler.is_active, 1), eq(makineler.durum, 'ariza')))
+    .limit(10);
+
+  for (const row of faultyMachines) {
+    items.push({
+      id: `fault-${row.id}`, type: 'machine_fault', category: 'task', severity: 'critical',
+      title: `Makine ${row.ad} arızalı`, subtitle: 'Arıza giderilmeli',
+      href: '/admin/makine-havuzu', date: null,
+    });
+  }
+
+  // Recent quality rejections (task) — last 7 days
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const qualityRejects = await db
+    .select({
+      id: malKabulKayitlari.id,
+      urunAd: urunler.ad,
+      gelenMiktar: malKabulKayitlari.gelen_miktar,
+      kabulTarihi: malKabulKayitlari.kabul_tarihi,
+    })
+    .from(malKabulKayitlari)
+    .leftJoin(urunler, eq(urunler.id, malKabulKayitlari.urun_id))
+    .where(and(eq(malKabulKayitlari.kalite_durumu, 'red'), gte(malKabulKayitlari.kabul_tarihi, sevenDaysAgo)))
+    .orderBy(desc(malKabulKayitlari.kabul_tarihi))
+    .limit(5);
+
+  for (const row of qualityRejects) {
+    items.push({
+      id: `qreject-${row.id}`, type: 'quality_reject', category: 'task', severity: 'critical',
+      title: `${row.urunAd ?? 'Ürün'} kalite red`, subtitle: `Reddedilen: ${Number(row.gelenMiktar).toFixed(2)}`,
+      href: '/admin/hareketler', date: row.kabulTarihi ? asDateOnly(row.kabulTarihi) : null,
+    });
+  }
+
+  // ── New info items ─────────────────────────────────────────
+
+  // Recently completed production orders (info) — last 3 days
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  const recentCompleted = await db
+    .select({ id: uretimEmirleri.id, emirNo: uretimEmirleri.emir_no, updatedAt: uretimEmirleri.updated_at })
+    .from(uretimEmirleri)
+    .where(and(eq(uretimEmirleri.durum, 'tamamlandi'), gte(uretimEmirleri.updated_at, threeDaysAgo)))
+    .orderBy(desc(uretimEmirleri.updated_at))
+    .limit(5);
+
+  for (const row of recentCompleted) {
+    items.push({
+      id: `completed-${row.id}`, type: 'production_completed', category: 'info', severity: 'warning',
+      title: `Üretim emri ${row.emirNo} tamamlandı`, subtitle: 'Üretim başarıyla bitirildi',
+      href: `/admin/uretim-emirleri/${row.id}`, date: asDateOnly(row.updatedAt),
+    });
+  }
+
+  // New sales orders (info) — last 3 days
+  const recentSalesOrders = await db
+    .select({ id: satisSiparisleri.id, siparisNo: satisSiparisleri.siparis_no, createdAt: satisSiparisleri.created_at })
+    .from(satisSiparisleri)
+    .where(gte(satisSiparisleri.created_at, threeDaysAgo))
+    .orderBy(desc(satisSiparisleri.created_at))
+    .limit(5);
+
+  for (const row of recentSalesOrders) {
+    items.push({
+      id: `newsales-${row.id}`, type: 'new_sales_order', category: 'info', severity: 'warning',
+      title: `Yeni satış siparişi ${row.siparisNo}`, subtitle: 'Sipariş oluşturuldu',
+      href: `/admin/satis-siparisleri/${row.id}`, date: asDateOnly(row.createdAt),
+    });
+  }
+
+  // Recent goods receipts (info) — last 3 days
+  const recentGoodsReceipt = await db
+    .select({
+      id: malKabulKayitlari.id,
+      urunAd: urunler.ad,
+      gelenMiktar: malKabulKayitlari.gelen_miktar,
+      kabulTarihi: malKabulKayitlari.kabul_tarihi,
+    })
+    .from(malKabulKayitlari)
+    .leftJoin(urunler, eq(urunler.id, malKabulKayitlari.urun_id))
+    .where(and(eq(malKabulKayitlari.kalite_durumu, 'kabul'), gte(malKabulKayitlari.kabul_tarihi, threeDaysAgo)))
+    .orderBy(desc(malKabulKayitlari.kabul_tarihi))
+    .limit(5);
+
+  for (const row of recentGoodsReceipt) {
+    items.push({
+      id: `receipt-${row.id}`, type: 'goods_received', category: 'info', severity: 'warning',
+      title: `Mal kabul: ${row.urunAd ?? 'Ürün'}`, subtitle: `Miktar: ${Number(row.gelenMiktar).toFixed(2)}`,
+      href: '/admin/hareketler', date: row.kabulTarihi ? asDateOnly(row.kabulTarihi) : null,
+    });
+  }
+
+  // Recent completed shipments (info) — last 3 days
+  const recentShipments = await db
+    .select({
+      id: sevkEmirleri.id,
+      sevkEmriNo: sevkEmirleri.sevk_emri_no,
+      tarih: sevkEmirleri.tarih,
+      musteriAd: musteriler.ad,
+    })
+    .from(sevkEmirleri)
+    .leftJoin(musteriler, eq(sevkEmirleri.musteri_id, musteriler.id))
+    .where(and(eq(sevkEmirleri.durum, 'sevk_edildi'), gte(sevkEmirleri.updated_at, threeDaysAgo)))
+    .orderBy(desc(sevkEmirleri.updated_at))
+    .limit(5);
+
+  for (const row of recentShipments) {
+    items.push({
+      id: `shipped-${row.id}`, type: 'shipment_completed', category: 'info', severity: 'warning',
+      title: `Sevk tamamlandı: ${row.sevkEmriNo}`, subtitle: row.musteriAd ?? 'Müşteri',
+      href: '/admin/sevkiyat', date: row.tarih ? asDateOnly(row.tarih) : null,
+    });
+  }
+
+  // Recent shift-end production logs (info) — last 3 days
+  const recentShiftProduction = await db
+    .select({
+      id: operatorGunlukKayitlari.id,
+      netMiktar: operatorGunlukKayitlari.net_miktar,
+      kayitTarihi: operatorGunlukKayitlari.kayit_tarihi,
+      makineAd: makineler.ad,
+      emirNo: uretimEmirleri.emir_no,
+      uretimEmriId: operatorGunlukKayitlari.uretim_emri_id,
+    })
+    .from(operatorGunlukKayitlari)
+    .leftJoin(makineler, eq(makineler.id, operatorGunlukKayitlari.makine_id))
+    .leftJoin(uretimEmirleri, eq(uretimEmirleri.id, operatorGunlukKayitlari.uretim_emri_id))
+    .where(gte(operatorGunlukKayitlari.kayit_tarihi, threeDaysAgo))
+    .orderBy(desc(operatorGunlukKayitlari.kayit_tarihi))
+    .limit(5);
+
+  for (const row of recentShiftProduction) {
+    const net = Number(row.netMiktar ?? 0);
+    if (net <= 0) continue;
+    items.push({
+      id: `shiftprod-${row.id}`, type: 'shift_production', category: 'info', severity: 'warning',
+      title: `Vardiya üretimi: ${net.toLocaleString('tr-TR')} adet`,
+      subtitle: `${row.makineAd ?? 'Makine'} — ${row.emirNo ?? ''}`,
+      href: row.uretimEmriId ? `/admin/uretim-emirleri/${row.uretimEmriId}` : '/admin/operator',
+      date: row.kayitTarihi ? asDateOnly(row.kayitTarihi) : null,
+    });
+  }
+
+  // Recent stock increases from production (info) — last 3 days
+  const recentStockIncrease = await db
+    .select({
+      id: hareketler.id,
+      urunAd: urunler.ad,
+      urunKod: urunler.kod,
+      miktar: hareketler.miktar,
+      createdAt: hareketler.created_at,
+    })
+    .from(hareketler)
+    .leftJoin(urunler, eq(urunler.id, hareketler.urun_id))
+    .where(and(
+      eq(hareketler.hareket_tipi, 'giris'),
+      eq(hareketler.referans_tipi, 'uretim'),
+      gte(hareketler.created_at, threeDaysAgo),
+    ))
+    .orderBy(desc(hareketler.created_at))
+    .limit(5);
+
+  for (const row of recentStockIncrease) {
+    const miktar = Number(row.miktar ?? 0);
+    if (miktar <= 0) continue;
+    items.push({
+      id: `stockup-${row.id}`, type: 'stock_increased', category: 'info', severity: 'warning',
+      title: `Stok artışı: ${row.urunKod ?? ''} ${row.urunAd ?? 'Ürün'}`,
+      subtitle: `+${miktar.toLocaleString('tr-TR')} adet üretimden`,
+      href: '/admin/stoklar', date: asDateOnly(row.createdAt),
+    });
+  }
+
+  // Sort: tasks first, then info; within each category critical first, then by date
   items.sort((a, b) => {
+    if (a.category !== b.category) return a.category === 'task' ? -1 : 1;
     if (a.severity !== b.severity) return a.severity === 'critical' ? -1 : 1;
     if (a.date && b.date) return a.date.localeCompare(b.date);
     return 0;
@@ -390,6 +620,8 @@ export async function getDashboardActionCenter(userId: string | null, role: stri
     counts: {
       critical: items.filter((i) => i.severity === 'critical').length,
       warning: items.filter((i) => i.severity === 'warning').length,
+      task: items.filter((i) => i.category === 'task').length,
+      info: items.filter((i) => i.category === 'info').length,
     },
   };
 }

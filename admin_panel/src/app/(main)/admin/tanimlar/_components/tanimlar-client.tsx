@@ -123,6 +123,7 @@ export default function TanimlarClient() {
   const [durusFormOpen, setDurusFormOpen] = useState(false);
   const [editingDurus, setEditingDurus] = useState<DurusNedeniDto | null>(null);
   const [deleteDurus, setDeleteDurus] = useState<DurusNedeniDto | null>(null);
+  const [durusSearch, setDurusSearch] = useState("");
 
   const [haftaSonuFormOpen, setHaftaSonuFormOpen] = useState(false);
   const [editingHaftaSonu, setEditingHaftaSonu] = useState<HaftaSonuPlanDto | null>(null);
@@ -747,10 +748,18 @@ export default function TanimlarClient() {
         <KategorilerTab />
       ) : (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {durusNedenleri?.total ?? 0} {t("admin.erp.tanimlar.durusNedenleri.count")}
-            </p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Input
+                value={durusSearch}
+                onChange={(e) => setDurusSearch(e.target.value)}
+                placeholder={t("admin.erp.tanimlar.durusNedenleri.searchPlaceholder")}
+                className="h-8 w-64"
+              />
+              <p className="text-sm text-muted-foreground whitespace-nowrap">
+                {durusNedenleri?.total ?? 0} {t("admin.erp.tanimlar.durusNedenleri.count")}
+              </p>
+            </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => refetchDurus()}>
                 <RefreshCcw className="size-4" />
@@ -794,7 +803,13 @@ export default function TanimlarClient() {
                   </TableRow>
                 )}
                 {!durusLoading &&
-                  durusNedenleri?.items.map((d) => (
+                  durusNedenleri?.items
+                    .filter((d) => {
+                      if (!durusSearch.trim()) return true;
+                      const q = durusSearch.trim().toLowerCase();
+                      return d.kod.toLowerCase().includes(q) || d.ad.toLowerCase().includes(q) || d.kategori.toLowerCase().includes(q);
+                    })
+                    .map((d) => (
                     <TableRow key={d.id}>
                       <TableCell className="font-mono font-semibold">{d.kod}</TableCell>
                       <TableCell>{d.ad}</TableCell>

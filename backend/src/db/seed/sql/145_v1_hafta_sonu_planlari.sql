@@ -23,34 +23,5 @@ CREATE TABLE IF NOT EXISTS `hafta_sonu_planlari` (
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ============================================================================
--- Varsayılan ayar: Normalde Cumartesi/Pazar çalışılmaz (mevcut sistem davranışı)
--- Örnek demo verisi - geçerli hafta için
--- ============================================================================
-
--- Pazartesi günü hesaplama helper (bu hafta için)
-SET @bugun = CURDATE();
-SET @gun_farki = WEEKDAY(@bugun); -- 0=Pazartesi, 6=Pazar
-SET @bu_pazartesi = DATE_SUB(@bugun, INTERVAL @gun_farki DAY);
-SET @gelecek_pazartesi = DATE_ADD(@bu_pazartesi, INTERVAL 7 DAY);
-
--- Demo: Bu hafta tüm makineler Cumartesi çalışsın (örnek senaryo)
-INSERT INTO `hafta_sonu_planlari` (`id`, `hafta_baslangic`, `makine_id`, `cumartesi_calisir`, `pazar_calisir`, `aciklama`)
-SELECT
-  LOWER(CONCAT(
-    SUBSTR(MD5(CONCAT('hafta-sonu-plan-demo-', @bu_pazartesi)), 1, 8), '-',
-    SUBSTR(MD5(CONCAT('hafta-sonu-plan-demo-', @bu_pazartesi)), 9, 4), '-',
-    SUBSTR(MD5(CONCAT('hafta-sonu-plan-demo-', @bu_pazartesi)), 13, 4), '-',
-    SUBSTR(MD5(CONCAT('hafta-sonu-plan-demo-', @bu_pazartesi)), 17, 4), '-',
-    SUBSTR(MD5(CONCAT('hafta-sonu-plan-demo-', @bu_pazartesi)), 21, 12)
-  )),
-  @bu_pazartesi,
-  NULL,
-  1,
-  0,
-  'Demo: Bu hafta Cumartesi çalışılacak'
-FROM DUAL
-WHERE NOT EXISTS (
-  SELECT 1 FROM `hafta_sonu_planlari`
-  WHERE `hafta_baslangic` = @bu_pazartesi AND `makine_id` IS NULL
-);
+-- Varsayılan: Tablo boş — hafta sonu çalışma planları UI üzerinden girilir.
+-- Kayıt yoksa tüm günler tatil sayılır (cumartesi_calisir=0, pazar_calisir=0).

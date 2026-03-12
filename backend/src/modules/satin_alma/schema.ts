@@ -39,6 +39,8 @@ export type SatinAlmaKalemDto = {
   sira: number;
   kabulMiktar: number;
   kalanMiktar: number;
+  stok: number;
+  kritikStok: number;
 };
 
 export type SatinAlmaSiparisDto = {
@@ -65,6 +67,8 @@ type SatinAlmaKalemDtoSource = SatinAlmaKalemRow & {
   urun_ad?: string | null;
   birim?: string | null;
   kabul_miktar?: string | number | null;
+  urun_stok?: string | number | null;
+  urun_kritik_stok?: string | number | null;
 };
 
 export function siparisRowToDto(row: SatinAlmaSiparisDtoSource): SatinAlmaSiparisDto {
@@ -103,5 +107,7 @@ export function kalemRowToDto(row: SatinAlmaKalemDtoSource): SatinAlmaKalemDto {
     sira: row.sira,
     kabulMiktar,
     kalanMiktar: Math.max(0, miktar - kabulMiktar),
+    stok: Number(row.urun_stok ?? 0),
+    kritikStok: Number(row.urun_kritik_stok ?? 0),
   };
 }

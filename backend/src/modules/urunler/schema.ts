@@ -17,6 +17,7 @@ export const urunler = mysqlTable('urunler', {
   image_alt: varchar('image_alt', { length: 255 }),
   stok: decimal('stok', { precision: 12, scale: 4 }).notNull().default('0.0000'),
   kritik_stok: decimal('kritik_stok', { precision: 12, scale: 4 }).notNull().default('0.0000'),
+  rezerve_stok: decimal('rezerve_stok', { precision: 12, scale: 4 }).notNull().default('0.0000'),
   birim_fiyat: decimal('birim_fiyat', { precision: 12, scale: 2 }),
   kdv_orani: decimal('kdv_orani', { precision: 5, scale: 2 }).notNull().default('20.00'),
   operasyon_tipi: varchar('operasyon_tipi', { length: 32 }),
@@ -42,6 +43,8 @@ export type UrunDto = {
   imageAlt: string | null;
   stok: number;
   kritikStok: number;
+  rezerveStok: number;
+  kullanilabilirStok: number;
   birimFiyat: number | null;
   kdvOrani: number;
   operasyonTipi: string | null;
@@ -66,6 +69,8 @@ export function rowToDto(row: UrunRow): UrunDto {
     imageAlt: row.image_alt ?? null,
     stok: Number(row.stok ?? 0),
     kritikStok: Number(row.kritik_stok ?? 0),
+    rezerveStok: Number(row.rezerve_stok ?? 0),
+    kullanilabilirStok: Number(row.stok ?? 0) - Number(row.rezerve_stok ?? 0),
     birimFiyat: row.birim_fiyat ? Number(row.birim_fiyat) : null,
     kdvOrani: Number(row.kdv_orani ?? 20),
     operasyonTipi: row.operasyon_tipi ?? null,
@@ -212,6 +217,39 @@ export function medyaRowToDto(row: UrunMedyaRow): UrunMedyaDto {
     baslik: row.baslik ?? null,
     sira: row.sira,
     isCover: row.is_cover === 1,
+    createdAt: row.created_at,
+  };
+}
+
+// -- Hammadde Rezervasyonları --
+export const hammaddeRezervasyonlari = mysqlTable('hammadde_rezervasyonlari', {
+  id: char('id', { length: 36 }).primaryKey().notNull(),
+  uretim_emri_id: char('uretim_emri_id', { length: 36 }).notNull(),
+  urun_id: char('urun_id', { length: 36 }).notNull(),
+  miktar: decimal('miktar', { precision: 12, scale: 4 }).notNull().default('0.0000'),
+  durum: varchar('durum', { length: 32 }).notNull().default('rezerve'),
+  created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updated_at: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
+});
+
+export type HammaddeRezervasyonRow = typeof hammaddeRezervasyonlari.$inferSelect;
+
+export type HammaddeRezervasyonDto = {
+  id: string;
+  uretimEmriId: string;
+  urunId: string;
+  miktar: number;
+  durum: string;
+  createdAt: Date | string;
+};
+
+export function rezervasyonRowToDto(row: HammaddeRezervasyonRow): HammaddeRezervasyonDto {
+  return {
+    id: row.id,
+    uretimEmriId: row.uretim_emri_id,
+    urunId: row.urun_id,
+    miktar: Number(row.miktar),
+    durum: row.durum,
     createdAt: row.created_at,
   };
 }

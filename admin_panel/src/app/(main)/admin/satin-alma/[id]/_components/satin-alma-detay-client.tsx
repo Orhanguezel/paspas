@@ -214,6 +214,7 @@ export default function SatinAlmaDetayClient({ id }: Props) {
                   <TableHead className="text-right">Kabul Edilen</TableHead>
                   <TableHead className="text-right">Kalan</TableHead>
                   <TableHead>Birim</TableHead>
+                  <TableHead className="text-right">Stok Durumu</TableHead>
                   <TableHead className="text-right">Birim Fiyat</TableHead>
                   <TableHead className="text-right">Toplam</TableHead>
                   <TableHead className="w-[120px]" />
@@ -256,6 +257,25 @@ export default function SatinAlmaDetayClient({ id }: Props) {
                         )}
                       </TableCell>
                       <TableCell>{k.birim ?? '—'}</TableCell>
+                      <TableCell className="text-right">
+                        {k.kritikStok > 0 && k.stok <= k.kritikStok ? (
+                          <div className="space-y-0.5">
+                            <Badge variant="destructive" className="text-[10px]">Kritik</Badge>
+                            <p className="text-[10px] tabular-nums text-muted-foreground">
+                              {k.stok.toFixed(2)} / {k.kritikStok.toFixed(2)}
+                            </p>
+                          </div>
+                        ) : k.kritikStok > 0 ? (
+                          <div className="space-y-0.5">
+                            <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-300">Yeterli</Badge>
+                            <p className="text-[10px] tabular-nums text-muted-foreground">
+                              {k.stok.toFixed(2)} / {k.kritikStok.toFixed(2)}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">{k.birimFiyat.toFixed(2)}</TableCell>
                       <TableCell className="text-right tabular-nums font-medium">
                         {(k.miktar * k.birimFiyat).toFixed(2)}
@@ -278,7 +298,7 @@ export default function SatinAlmaDetayClient({ id }: Props) {
                 })}
                 {/* Toplam */}
                 <TableRow className="border-t-2 font-semibold bg-muted/30">
-                  <TableCell colSpan={7} className="text-right">Genel Toplam</TableCell>
+                  <TableCell colSpan={8} className="text-right">Genel Toplam</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {kalemler.reduce((s, k) => s + k.miktar * k.birimFiyat, 0).toFixed(2)}
                   </TableCell>

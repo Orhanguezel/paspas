@@ -209,7 +209,7 @@ export async function repoCheckYeterlilik(query: YeterlilikQuery): Promise<Yeter
     const miktar = Number(kalem.miktar ?? 0) * carpan;
     const fireOrani = Number(kalem.fire_orani ?? 0);
     const gerekliMiktarFireli = miktar * (1 + fireOrani / 100);
-    const mevcutStok = malzeme ? Number(malzeme.stok ?? 0) : 0;
+    const mevcutStok = malzeme ? Number(malzeme.stok ?? 0) - Number(malzeme.rezerve_stok ?? 0) : 0;
     const fark = mevcutStok - gerekliMiktarFireli;
 
     return {

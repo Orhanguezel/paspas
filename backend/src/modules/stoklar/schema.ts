@@ -18,6 +18,7 @@ export type StokDto = {
   birimDonusumleri: BirimDonusumItem[];
   stok: number;
   kritikStok: number;
+  rezerveStok: number;
   acikUretimIhtiyaci: number;
   serbestStok: number;
   durum: 'yeterli' | 'kritik' | 'yetersiz';
@@ -38,6 +39,7 @@ export function rowToDto(
 ): StokDto {
   const stok = Number(row.stok ?? 0);
   const kritikStok = Number(row.kritik_stok ?? 0);
+  const rezerveStok = Number(row.rezerve_stok ?? 0);
   const serbestStok = stok - acikUretimIhtiyaci;
   return {
     urunId: row.id,
@@ -49,6 +51,7 @@ export function rowToDto(
     birimDonusumleri,
     stok,
     kritikStok,
+    rezerveStok,
     acikUretimIhtiyaci,
     serbestStok,
     durum: getStokDurumu(stok, kritikStok),

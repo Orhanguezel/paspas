@@ -262,6 +262,7 @@ export interface KapasiteGunDto {
   calisiyor: boolean;
   tatilMi: boolean;
   haftaSonuMu: boolean;
+  durusSaati: number;
 }
 
 export interface KapasiteHesabiDto {
@@ -273,6 +274,8 @@ export interface KapasiteHesabiDto {
   gunlukCalismaSaati: number;
   toplamCalismaGunu: number;
   toplamCalismaSaati: number;
+  toplamDurusSaati: number;
+  netCalismaSaati: number;
   baslangicTarihi: string;
   bitisTarihi: string;
   gunler: KapasiteGunDto[];
@@ -295,6 +298,8 @@ export function normalizeKapasiteHesabi(raw: unknown): KapasiteHesabiDto {
     gunlukCalismaSaati: toNum(r.gunlukCalismaSaati, 8),
     toplamCalismaGunu: toNum(r.toplamCalismaGunu),
     toplamCalismaSaati: toNum(r.toplamCalismaSaati),
+    toplamDurusSaati: toNum(r.toplamDurusSaati),
+    netCalismaSaati: toNum(r.netCalismaSaati),
     baslangicTarihi: toStr(r.baslangicTarihi),
     bitisTarihi: toStr(r.bitisTarihi),
     gunler: Array.isArray(r.gunler)
@@ -306,6 +311,7 @@ export function normalizeKapasiteHesabi(raw: unknown): KapasiteHesabiDto {
             calisiyor: toBool(gr.calisiyor, false),
             tatilMi: toBool(gr.tatilMi, false),
             haftaSonuMu: toBool(gr.haftaSonuMu, false),
+            durusSaati: toNum(gr.durusSaati),
           };
         })
       : [],

@@ -57,6 +57,32 @@ export interface UretimEmriCreatePayload {
 
 export type UretimEmriPatchPayload = Partial<UretimEmriCreatePayload>;
 
+export interface HammaddeUyari {
+  urunId: string;
+  urunAd: string;
+  urunKod: string;
+  gerekliMiktar: number;
+  mevcutStok: number;
+  eksikMiktar: number;
+}
+
+export interface UretimEmriCreateResponse extends UretimEmriDto {
+  hammaddeUyarilari: HammaddeUyari[];
+}
+
+export interface HammaddeKontrolResponse {
+  yeterli: boolean;
+  uyarilar: HammaddeUyari[];
+}
+
+export interface UretimKarsilastirma {
+  planlananMiktar: number;
+  toplamUretilen: number;
+  toplamFire: number;
+  netUretilen: number;
+  fark: number;
+}
+
 export interface UretimEmriAdayDto {
   siparisKalemId: string;
   siparisNo: string;
@@ -134,6 +160,26 @@ export function normalizeUretimEmri(raw: unknown): UretimEmriDto {
     isActive: toBool(r.isActive),
     createdAt: toStr(r.createdAt),
     updatedAt: toStr(r.updatedAt),
+  };
+}
+
+export function normalizeUretimEmriCreateResponse(raw: unknown): UretimEmriCreateResponse {
+  const r = isRecord(raw) ? raw : {};
+  const dto = normalizeUretimEmri(raw);
+  const rawUyarilar = Array.isArray(r.hammaddeUyarilari) ? r.hammaddeUyarilari : [];
+  return {
+    ...dto,
+    hammaddeUyarilari: rawUyarilar.map((u: unknown) => {
+      const item = isRecord(u) ? u : {};
+      return {
+        urunId: toStr(item.urunId),
+        urunAd: toStr(item.urunAd),
+        urunKod: toStr(item.urunKod),
+        gerekliMiktar: toNum(item.gerekliMiktar),
+        mevcutStok: toNum(item.mevcutStok),
+        eksikMiktar: toNum(item.eksikMiktar),
+      };
+    }),
   };
 }
 

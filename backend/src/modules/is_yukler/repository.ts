@@ -172,6 +172,15 @@ async function resequenceMakine(tx: any, makineId: string, currentIds?: string[]
         .where(eq(makineKuyrugu.makine_id, makineId))
         .orderBy(asc(makineKuyrugu.sira));
 
+  // Unique constraint (makine_id, sira) oldugu icin once yuksek offset'e tasi
+  const offset = 10_000;
+  for (const [index, row] of rows.entries()) {
+    await tx
+      .update(makineKuyrugu)
+      .set({ sira: index + 1 + offset })
+      .where(eq(makineKuyrugu.id, row.id));
+  }
+  // Sonra gercek siralara guncelle
   for (const [index, row] of rows.entries()) {
     await tx
       .update(makineKuyrugu)

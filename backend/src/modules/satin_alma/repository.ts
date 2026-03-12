@@ -23,6 +23,8 @@ type SatinAlmaKalemDetailRow = SatinAlmaKalemRow & {
   urun_ad: string | null;
   birim: string | null;
   kabul_miktar: string | null;
+  urun_stok: string | null;
+  urun_kritik_stok: string | null;
 };
 
 type ListResult = { items: SatinAlmaSiparisListRow[]; total: number };
@@ -117,6 +119,7 @@ async function getNextSiparisNoBatch(count: number): Promise<string[]> {
 function buildAutoDraftNote(
   urunlerById: Map<string, { kod: string; ad: string; stok: string | number | null; kritikStok: string | number | null }>,
   urunIds: string[],
+  referansAciklama?: string,
 ): string {
   const detaylar = urunIds
     .map((urunId) => {
@@ -129,11 +132,12 @@ function buildAutoDraftNote(
     })
     .filter((satir): satir is string => Boolean(satir));
 
-  if (detaylar.length === 0) return AUTO_DRAFT_NOTE;
-  return `${AUTO_DRAFT_NOTE} ${detaylar.join(' ; ')}`;
+  const base = referansAciklama ? `${referansAciklama}. ` : '';
+  if (detaylar.length === 0) return `${base}${AUTO_DRAFT_NOTE}`;
+  return `${base}${AUTO_DRAFT_NOTE} ${detaylar.join(' ; ')}`;
 }
 
-export async function ensureCriticalStockDrafts(): Promise<void> {
+export async function ensureCriticalStockDrafts(referansAciklama?: string): Promise<void> {
   const [kritikUrunler, tedarikciler, acikSiparisKalemleri] = await Promise.all([
     db
       .select({
@@ -253,7 +257,7 @@ export async function ensureCriticalStockDrafts(): Promise<void> {
         tedarikci_id: supplierId,
         siparis_tarihi: new Date(today),
         durum: 'taslak',
-        aciklama: buildAutoDraftNote(urunById, kalemler.map((kalem) => kalem.urunId)),
+        aciklama: buildAutoDraftNote(urunById, kalemler.map((kalem) => kalem.urunId), referansAciklama),
         is_active: 1,
       });
 
@@ -318,6 +322,8 @@ export async function repoList(query: ListQuery): Promise<ListResult> {
       birim_fiyat: satinAlmaKalemleri.birim_fiyat,
       sira: satinAlmaKalemleri.sira,
       kabul_miktar: sql<string>`(SELECT COALESCE(SUM(m.gelen_miktar), 0) FROM mal_kabul_kayitlari m WHERE m.satin_alma_kalem_id = ${satinAlmaKalemleri.id})`,
+      urun_stok: urunler.stok,
+      urun_kritik_stok: urunler.kritik_stok,
       created_at: satinAlmaKalemleri.created_at,
       updated_at: satinAlmaKalemleri.updated_at,
     })
@@ -376,6 +382,8 @@ export async function repoGetById(id: string): Promise<DetailResult | null> {
       birim_fiyat: satinAlmaKalemleri.birim_fiyat,
       sira: satinAlmaKalemleri.sira,
       kabul_miktar: sql<string>`(SELECT COALESCE(SUM(m.gelen_miktar), 0) FROM mal_kabul_kayitlari m WHERE m.satin_alma_kalem_id = ${satinAlmaKalemleri.id})`,
+      urun_stok: urunler.stok,
+      urun_kritik_stok: urunler.kritik_stok,
       created_at: satinAlmaKalemleri.created_at,
       updated_at: satinAlmaKalemleri.updated_at,
     })

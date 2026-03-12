@@ -7,7 +7,11 @@ import { db } from '@/db/client';
 import { kalipUyumluMakineler, kaliplar, tatiller, haftaSonuPlanlari } from '@/modules/tanimlar/schema';
 import { repoGetHaftaSonuPlanByDate } from '@/modules/tanimlar/repository';
 import { uretimEmirleri, uretimEmriOperasyonlari } from '@/modules/uretim_emirleri/schema';
+import { stokDus, stokGeriAl } from '@/modules/uretim_emirleri/hammadde_service';
+import { ensureCriticalStockDrafts } from '@/modules/satin_alma/repository';
 import { urunler } from '@/modules/urunler/schema';
+
+import { durusKayitlari } from '@/modules/operator/schema';
 
 import { makineler, makineKuyrugu, type MakineRow } from './schema';
 import type { AtaBody, CreateBody, KuyrukSiralaBody, ListQuery, PatchBody } from './validation';
@@ -371,7 +375,7 @@ async function skipToNextWorkingDay(date: Date, makineId: string): Promise<Date>
       const [tatil] = await db
         .select({ id: tatiller.id })
         .from(tatiller)
-        .where(eq(tatiller.tarih, new Date(dateStr)))
+        .where(sql`${tatiller.tarih} = ${dateStr}`)
         .limit(1);
 
       if (!tatil) {
@@ -520,6 +524,8 @@ export async function repoAtaOperasyon(data: AtaBody): Promise<void> {
     insertSira = (maxRow?.maxSira ?? 0) + 1;
   }
 
+  let ilkAtama = false;
+
   await db.transaction(async (tx) => {
     // 0. Kardes varsa sonraki siralari kaydir
     if (kardesKuyruk) {
@@ -563,12 +569,27 @@ export async function repoAtaOperasyon(data: AtaBody): Promise<void> {
       .where(eq(uretimEmirleri.id, opRow.uretim_emri_id))
       .limit(1);
     if (emirRow?.durum === 'atanmamis') {
+      ilkAtama = true;
       await tx
         .update(uretimEmirleri)
         .set({ durum: 'planlandi' })
         .where(eq(uretimEmirleri.id, opRow.uretim_emri_id));
     }
   });
+
+  // İlk makine atamasında hammadde stoktan düş (rezerve → gerçek tüketim)
+  // Stok negatife düşerse otomatik satın alma taslağı oluştur
+  if (ilkAtama) {
+    const [emirInfo] = await db
+      .select({ emirNo: uretimEmirleri.emir_no })
+      .from(uretimEmirleri)
+      .where(eq(uretimEmirleri.id, opRow.uretim_emri_id))
+      .limit(1);
+    await stokDus(opRow.uretim_emri_id);
+    await ensureCriticalStockDrafts(
+      emirInfo?.emirNo ? `Üretim emri ${emirInfo.emirNo} için hammadde eksikliği` : undefined,
+    );
+  }
 
   // Tarih hesapla
   await recalcMakineKuyrukTarihleri(makineId);
@@ -621,12 +642,32 @@ export async function repoKuyrukCikar(kuyruguId: string): Promise<void> {
     }
   });
 
+  // Tüm atamalar kaldırıldıysa tüketilen hammadde stoku geri al (rezerveye döner)
+  if (affectedEmriId) {
+    const [check] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(makineKuyrugu)
+      .where(eq(makineKuyrugu.uretim_emri_id, affectedEmriId));
+    if (Number(check?.count ?? 0) === 0) {
+      await stokGeriAl(affectedEmriId);
+    }
+  }
+
   // Kalan kuyruk icin tarihleri yeniden hesapla
   await recalcMakineKuyrukTarihleri(affectedMakineId);
 }
 
 /** Kuyruk siralarini guncelle */
 export async function repoKuyrukSirala(data: KuyrukSiralaBody): Promise<void> {
+  // Unique constraint (makine_id, sira) oldugu icin once tum siralari yuksek offset'e tasi
+  const offset = 10_000;
+  for (const item of data.siralar) {
+    await db
+      .update(makineKuyrugu)
+      .set({ sira: item.sira + offset })
+      .where(and(eq(makineKuyrugu.id, item.kuyruguId), eq(makineKuyrugu.makine_id, data.makineId)));
+  }
+  // Sonra gercek siralara guncelle
   for (const item of data.siralar) {
     await db
       .update(makineKuyrugu)
@@ -651,6 +692,8 @@ export type KapasiteHesabiDto = {
   gunlukCalismaSaati: number;
   toplamCalismaGunu: number;
   toplamCalismaSaati: number;
+  toplamDurusSaati: number;
+  netCalismaSaati: number;
   baslangicTarihi: string;
   bitisTarihi: string;
   gunler: Array<{
@@ -659,6 +702,7 @@ export type KapasiteHesabiDto = {
     calisiyor: boolean;
     tatilMi: boolean;
     haftaSonuMu: boolean;
+    durusSaati: number;
   }>;
 };
 
@@ -681,7 +725,44 @@ export async function repoCalculateCapacity(
   const gunlukSaat = makine.calisir_24_saat === 1 ? 24 : 8;
   const gunler: KapasiteHesabiDto['gunler'] = [];
 
+  // Duruş kayıtlarını tarih aralığı için toplu çek
+  const startStr = startDate.toISOString().slice(0, 10);
+  const endStr = endDate.toISOString().slice(0, 10);
+  const durusRows = await db
+    .select({
+      baslangic: durusKayitlari.baslangic,
+      bitis: durusKayitlari.bitis,
+    })
+    .from(durusKayitlari)
+    .where(
+      and(
+        eq(durusKayitlari.makine_id, makineId),
+        sql`${durusKayitlari.baslangic} <= ${endStr + ' 23:59:59'}`,
+        sql`(${durusKayitlari.bitis} IS NULL OR ${durusKayitlari.bitis} >= ${startStr + ' 00:00:00'})`,
+      ),
+    );
+
+  // Her gün için duruş saatlerini hesapla
+  function calcDurusHoursForDate(dateStr: string): number {
+    const dayStart = new Date(`${dateStr}T00:00:00`);
+    const dayEnd = new Date(`${dateStr}T23:59:59`);
+    let totalMinutes = 0;
+
+    for (const row of durusRows) {
+      const dStart = new Date(row.baslangic);
+      const dEnd = row.bitis ? new Date(row.bitis) : new Date(); // devam eden duruş → şu an
+      const overlapStart = dStart > dayStart ? dStart : dayStart;
+      const overlapEnd = dEnd < dayEnd ? dEnd : dayEnd;
+      if (overlapStart < overlapEnd) {
+        totalMinutes += (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60);
+      }
+    }
+
+    return Math.round((totalMinutes / 60) * 100) / 100; // 2 ondalık saat
+  }
+
   let totalWorkingDays = 0;
+  let totalDurusHours = 0;
   let current = new Date(startDate);
 
   while (current <= endDate) {
@@ -693,7 +774,7 @@ export async function repoCalculateCapacity(
     const [tatil] = await db
       .select({ id: tatiller.id })
       .from(tatiller)
-      .where(eq(tatiller.tarih, current))
+      .where(sql`${tatiller.tarih} = ${dateStr}`)
       .limit(1);
     const isTatil = !!tatil;
 
@@ -703,12 +784,16 @@ export async function repoCalculateCapacity(
       calisiyor = await isMakineWorkingDay(makineId, current);
     }
 
+    const durusSaati = calisiyor ? calcDurusHoursForDate(dateStr) : 0;
+    totalDurusHours += durusSaati;
+
     gunler.push({
       tarih: dateStr,
       gunAdi: GUN_ADLARI[dayOfWeek],
       calisiyor,
       tatilMi: isTatil,
       haftaSonuMu: isWeekend,
+      durusSaati,
     });
 
     if (calisiyor) {
@@ -719,6 +804,9 @@ export async function repoCalculateCapacity(
     current = new Date(current.getTime() + 24 * 60 * 60 * 1000);
   }
 
+  const toplamCalismaSaati = totalWorkingDays * gunlukSaat;
+  const toplamDurusSaati = Math.round(totalDurusHours * 100) / 100;
+
   return {
     makineId: makine.id,
     makineKod: makine.kod,
@@ -727,9 +815,11 @@ export async function repoCalculateCapacity(
     saatlikKapasite: makine.saatlik_kapasite ? Number(makine.saatlik_kapasite) : null,
     gunlukCalismaSaati: gunlukSaat,
     toplamCalismaGunu: totalWorkingDays,
-    toplamCalismaSaati: totalWorkingDays * gunlukSaat,
-    baslangicTarihi: startDate.toISOString().slice(0, 10),
-    bitisTarihi: endDate.toISOString().slice(0, 10),
+    toplamCalismaSaati: toplamCalismaSaati,
+    toplamDurusSaati,
+    netCalismaSaati: Math.round((toplamCalismaSaati - toplamDurusSaati) * 100) / 100,
+    baslangicTarihi: startStr,
+    bitisTarihi: endStr,
     gunler,
   };
 }

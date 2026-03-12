@@ -3,7 +3,8 @@ import { z } from 'zod';
 const sortEnum = z.enum(['emir_no', 'baslangic_tarihi', 'bitis_tarihi', 'created_at']);
 const orderEnum = z.enum(['asc', 'desc']);
 const durumEnum = z.enum(['atanmamis', 'planlandi', 'uretimde', 'tamamlandi', 'iptal']);
-const uuidSchema = z.string().uuid();
+// char(36) — seed data may use non-standard UUID-like IDs (e.g. u0000001-...)
+const uuidSchema = z.string().trim().min(1).max(36);
 
 // Accepts a UUID string or empty string → undefined
 const optionalUuidSchema = z.preprocess(

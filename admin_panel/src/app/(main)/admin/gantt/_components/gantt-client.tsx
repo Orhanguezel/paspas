@@ -1,465 +1,528 @@
-'use client';
+"use client";
 
-// =============================================================
-// FILE: src/app/(main)/admin/gantt/_components/gantt-client.tsx
-// Paspas ERP — Gantt Diyagramı (zaman çizelgesi görünümü)
-// =============================================================
+import { useMemo, useRef, useState } from "react";
 
-import { useMemo, useRef, useState } from 'react';
-import { CheckCircle2, ChevronLeft, ChevronRight, RefreshCcw, Search, Wrench } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCcw, Search, Wrench } from "lucide-react";
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
-import {
-  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useLocaleContext } from "@/i18n/LocaleProvider";
+import { useListGanttAdminQuery } from "@/integrations/endpoints/admin/erp/gantt_admin.endpoints";
+import { useListMakinelerAdminQuery } from "@/integrations/endpoints/admin/erp/makine_havuzu_admin.endpoints";
+import type { GanttBarDto, GanttBlockDto, GanttMachineDto } from "@/integrations/shared/erp/gantt.types";
 
-import { useLocaleContext } from '@/i18n/LocaleProvider';
-import { useListGanttAdminQuery } from '@/integrations/endpoints/admin/erp/gantt_admin.endpoints';
-import { useListMakinelerAdminQuery } from '@/integrations/endpoints/admin/erp/makine_havuzu_admin.endpoints';
-import { EMIR_DURUM_LABELS, EMIR_DURUM_BADGE } from '@/integrations/shared/erp/uretim_emirleri.types';
-import type { UretimEmriDurum } from '@/integrations/shared/erp/uretim_emirleri.types';
-import type { GanttItemDto } from '@/integrations/shared/erp/gantt.types';
-
-// ─── Sabitler ───────────────────────────────────────────────
 const DAY_MS = 86_400_000;
-const COL_W = 40; // piksel / gün
-const ROW_H = 56; // piksel / satır
-const LABEL_W = 260; // sol etiket sütunu genişliği
+const ROW_H = 96;
+const LABEL_W = 300;
+const PRESET_COL_W: Record<RangePreset, number> = {
+  week: 140,
+  month: 42,
+  quarter: 14,
+};
+const BLOCK_STYLES: Record<GanttBlockDto["tip"], string> = {
+  hafta_sonu: "bg-slate-200/65",
+  tatil: "bg-rose-200/70",
+  durus: "bg-orange-300/70",
+};
+const BLOCK_LABELS: Record<GanttBlockDto["tip"], string> = {
+  hafta_sonu: "Hafta Sonu / Çalışma Yok",
+  tatil: "Tatil / Planlı Kesinti",
+  durus: "Operatör Duruşu",
+};
 
-const DURUM_STYLES: Record<string, { dot: string; track: string; fill: string; icon: string }> = {
-  atanmamis: {
-    dot: 'bg-zinc-700',
-    track: 'bg-zinc-200 ring-1 ring-zinc-300',
-    fill: 'bg-zinc-600',
-    icon: 'text-zinc-700',
+const DURUM_STYLES: Record<string, { dot: string; track: string; fill: string; text: string; badge: string }> = {
+  bekliyor: {
+    dot: "bg-amber-500",
+    track: "border border-amber-300 bg-amber-50",
+    fill: "bg-amber-500",
+    text: "text-amber-950",
+    badge: "border-amber-300 bg-amber-50 text-amber-800",
   },
-  planlandi: {
-    dot: 'bg-amber-600',
-    track: 'bg-amber-100 ring-1 ring-amber-300',
-    fill: 'bg-amber-500',
-    icon: 'text-amber-700',
-  },
-  uretimde: {
-    dot: 'bg-indigo-600',
-    track: 'bg-indigo-100 ring-1 ring-indigo-300',
-    fill: 'bg-indigo-600',
-    icon: 'text-indigo-700',
+  calisiyor: {
+    dot: "bg-blue-600",
+    track: "border border-blue-300 bg-blue-50",
+    fill: "bg-blue-600",
+    text: "text-blue-950",
+    badge: "border-blue-300 bg-blue-50 text-blue-800",
   },
   tamamlandi: {
-    dot: 'bg-emerald-600',
-    track: 'bg-emerald-100 ring-1 ring-emerald-300',
-    fill: 'bg-emerald-500',
-    icon: 'text-emerald-700',
+    dot: "bg-emerald-600",
+    track: "border border-emerald-300 bg-emerald-50",
+    fill: "bg-emerald-500",
+    text: "text-emerald-950",
+    badge: "border-emerald-300 bg-emerald-50 text-emerald-800",
+  },
+  duraklatildi: {
+    dot: "bg-orange-500",
+    track: "border border-orange-300 bg-orange-50",
+    fill: "bg-orange-500",
+    text: "text-orange-950",
+    badge: "border-orange-300 bg-orange-50 text-orange-800",
   },
   iptal: {
-    dot: 'bg-rose-600',
-    track: 'bg-rose-100 ring-1 ring-rose-300',
-    fill: 'bg-rose-500',
-    icon: 'text-rose-700',
+    dot: "bg-rose-600",
+    track: "border border-rose-300 bg-rose-50",
+    fill: "bg-rose-500",
+    text: "text-rose-950",
+    badge: "border-rose-300 bg-rose-50 text-rose-800",
   },
 };
 
-const ALL_DURUMLAR = ['atanmamis', 'planlandi', 'uretimde', 'tamamlandi', 'iptal'] as const;
+const DURUM_LABELS: Record<string, string> = {
+  bekliyor: "Bekliyor",
+  calisiyor: "Çalışıyor",
+  duraklatildi: "Durdu",
+  tamamlandi: "Tamamlandı",
+  iptal: "İptal",
+};
 
-// ─── Yardımcılar ────────────────────────────────────────────
-function toDate(s: string | null): Date | null {
-  if (!s) return null;
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? null : d;
+const ALL_DURUMLAR = ["bekliyor", "calisiyor", "duraklatildi", "tamamlandi", "iptal"] as const;
+const RANGE_PRESETS = {
+  week: 7,
+  month: 30,
+  quarter: 90,
+} as const;
+
+type RangePreset = keyof typeof RANGE_PRESETS;
+
+function toDate(value: string | null): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function startOfDay(date: Date): Date {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+function addDays(date: Date, days: number): Date {
+  return new Date(date.getTime() + days * DAY_MS);
 }
 
 function daysBetween(a: Date, b: Date): number {
   return Math.round((b.getTime() - a.getTime()) / DAY_MS);
 }
 
-function addDays(d: Date, n: number): Date {
-  return new Date(d.getTime() + n * DAY_MS);
+function isoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }
 
-function fmtDate(d: Date): string {
-  return d.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' });
+function formatDateTime(value: string | null): string {
+  const parsed = toDate(value);
+  if (!parsed) return "—";
+  return parsed.toLocaleString("tr-TR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-function fmtDateFull(d: Date): string {
-  return d.toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' });
+function formatDateOnly(value: string | null): string {
+  const parsed = toDate(value);
+  if (!parsed) return "—";
+  return parsed.toLocaleDateString("tr-TR");
 }
 
-function isoStr(d: Date): string {
-  return d.toISOString().split('T')[0];
+function preciseDayOffset(start: Date, point: Date): number {
+  return (point.getTime() - start.getTime()) / DAY_MS;
 }
 
-function startOfDay(d: Date): Date {
-  const copy = new Date(d);
-  copy.setHours(0, 0, 0, 0);
-  return copy;
+function preciseDayDuration(start: Date, end: Date): number {
+  return Math.max((end.getTime() - start.getTime()) / DAY_MS, 1 / 24);
 }
 
-// ─── Bileşen ────────────────────────────────────────────────
+function blockPatternStyle(tip: GanttBlockDto["tip"]) {
+  if (tip === "durus") {
+    return {
+      backgroundImage:
+        "repeating-linear-gradient(135deg, rgba(249,115,22,0.55) 0 8px, rgba(251,146,60,0.18) 8px 16px)",
+    };
+  }
+  if (tip === "tatil") {
+    return {
+      backgroundImage:
+        "repeating-linear-gradient(135deg, rgba(244,63,94,0.28) 0 10px, rgba(251,113,133,0.08) 10px 20px)",
+    };
+  }
+  return {
+    backgroundImage:
+      "repeating-linear-gradient(135deg, rgba(100,116,139,0.20) 0 10px, rgba(148,163,184,0.06) 10px 20px)",
+  };
+}
+
+function getBlockRect(block: GanttBlockDto, timelineStart: Date, totalDays: number, colWidth: number) {
+  const start = toDate(block.baslangicTarihi);
+  const end = toDate(block.bitisTarihi);
+  if (!start || !end) return null;
+
+  const startOffset = preciseDayOffset(timelineStart, start);
+  const duration = preciseDayDuration(start, end);
+  const left = Math.max(0, startOffset) * colWidth;
+  const width = Math.max(6, Math.min(duration, totalDays - Math.max(0, startOffset)) * colWidth);
+
+  return { left, width };
+}
+
+function progressOf(item: GanttBarDto): number {
+  if (!item.planlananMiktar) return 0;
+  return Math.max(0, Math.min(100, Math.round((item.uretilenMiktar / item.planlananMiktar) * 100)));
+}
+
+function hasVisiblePlan(item: GanttBarDto) {
+  return Boolean(item.baslangicTarihi && item.bitisTarihi);
+}
+
 export default function GanttClient() {
   const { t } = useLocaleContext();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const today = startOfDay(new Date());
-  const [baslangic, setBaslangic] = useState(isoStr(addDays(today, -7)));
-  const [bitis, setBitis] = useState(isoStr(addDays(today, 30)));
-  const [q, setQ] = useState('');
-  const [durumFilter, setDurumFilter] = useState<string>('');
-  const [makineIdFilter, setMakineIdFilter] = useState<string>('');
+  const [rangePreset, setRangePreset] = useState<RangePreset>("month");
+  const [baslangic, setBaslangic] = useState(isoDate(today));
+  const [bitis, setBitis] = useState(isoDate(addDays(today, RANGE_PRESETS.month - 1)));
+  const [q, setQ] = useState("");
+  const [durumFilter, setDurumFilter] = useState("");
+  const [makineIdFilter, setMakineIdFilter] = useState("");
+  const [makineGosterim, setMakineGosterim] = useState<"kuyrukta" | "tamami">("kuyrukta");
 
-  const queryParams = useMemo(() => ({
-    baslangic: baslangic || undefined,
-    bitis: bitis || undefined,
-    q: q.trim() || undefined,
-    durum: durumFilter || undefined,
-    makineId: makineIdFilter || undefined,
-  }), [baslangic, bitis, q, durumFilter, makineIdFilter]);
+  const queryParams = useMemo(
+    () => ({
+      baslangic: baslangic || undefined,
+      bitis: bitis || undefined,
+      q: q.trim() || undefined,
+      durum: durumFilter || undefined,
+      makineId: makineIdFilter || undefined,
+    }),
+    [baslangic, bitis, q, durumFilter, makineIdFilter],
+  );
 
   const { data, isLoading, isFetching, refetch } = useListGanttAdminQuery(queryParams);
   const { data: makinelerData } = useListMakinelerAdminQuery({});
-  const items = data?.items ?? [];
+  const colWidth = PRESET_COL_W[rangePreset];
+
+  const groups = useMemo(
+    () =>
+      makineGosterim === "tamami"
+        ? (data?.items ?? [])
+        : (data?.items ?? []).filter((group) => group.items.length > 0),
+    [data?.items, makineGosterim],
+  );
   const makineler = makinelerData?.items ?? [];
+  const totalBarCount = useMemo(() => groups.reduce((sum, group) => sum + group.items.length, 0), [groups]);
   const summary = useMemo(() => {
-    const aktif = items.filter((item) => item.durum === 'planlandi' || item.durum === 'uretimde').length;
-    const tamamlandi = items.filter((item) => item.durum === 'tamamlandi').length;
-    const montajli = items.filter((item) => item.montaj).length;
+    const bars = groups.flatMap((group) => group.items);
     return {
-      total: data?.total ?? 0,
-      aktif,
-      tamamlandi,
-      montajli,
+      makineSayisi: groups.length,
+      toplamIs: bars.length,
+      calisan: bars.filter((item) => item.durum === "calisiyor").length,
+      bekleyen: bars.filter((item) => item.durum === "bekliyor").length,
+      durdu: bars.filter((item) => item.durum === "duraklatildi").length,
+      montajli: bars.filter((item) => item.montaj).length,
     };
-  }, [data?.total, items]);
+  }, [groups]);
 
-  // Zaman aralığını hesapla
   const { timelineStart, totalDays, columns } = useMemo(() => {
-    const tsStart = startOfDay(new Date(baslangic));
-    const tsEnd = startOfDay(new Date(bitis));
-    const days = Math.max(1, daysBetween(tsStart, tsEnd) + 1);
-
-    const cols: { date: Date; label: string; isToday: boolean; isWeekend: boolean; monthLabel?: string }[] = [];
-    let lastMonth = -1;
+    const start = startOfDay(new Date(baslangic));
+    const end = startOfDay(new Date(bitis));
+    const days = Math.max(1, daysBetween(start, end) + 1);
+    const cols: { date: Date; label: string; isToday: boolean; isWeekend: boolean }[] = [];
 
     for (let i = 0; i < days; i++) {
-      const d = addDays(tsStart, i);
-      const dayOfWeek = d.getDay();
-      const month = d.getMonth();
+      const date = addDays(start, i);
       cols.push({
-        date: d,
-        label: d.getDate().toString(),
-        isToday: isoStr(d) === isoStr(today),
-        isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
-        monthLabel: month !== lastMonth
-          ? d.toLocaleDateString('tr-TR', { month: 'short', year: '2-digit' })
-          : undefined,
+        date,
+        label: String(date.getDate()),
+        isToday: isoDate(date) === isoDate(today),
+        isWeekend: date.getDay() === 0 || date.getDay() === 6,
       });
-      lastMonth = month;
     }
 
-    return { timelineStart: tsStart, totalDays: days, columns: cols };
-  }, [baslangic, bitis]);
+    return { timelineStart: start, totalDays: days, columns: cols };
+  }, [baslangic, bitis, today]);
 
-  // Ay gruplarını hesapla (üst başlık)
   const monthHeaders = useMemo(() => {
-    const headers: { label: string; span: number }[] = [];
-    let current = '';
-    let count = 0;
+    const headers: Array<{ label: string; span: number }> = [];
+    let current = "";
+    let span = 0;
 
     for (const col of columns) {
-      const monthKey = col.date.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
-      if (monthKey !== current) {
-        if (current) headers.push({ label: current, span: count });
-        current = monthKey;
-        count = 1;
+      const label = col.date.toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
+      if (label !== current) {
+        if (current) headers.push({ label: current, span });
+        current = label;
+        span = 1;
       } else {
-        count++;
+        span += 1;
       }
     }
-    if (current) headers.push({ label: current, span: count });
+    if (current) headers.push({ label: current, span });
     return headers;
   }, [columns]);
 
-  function ilerleme(planlanan: number, uretilen: number) {
-    if (!planlanan) return 0;
-    return Math.min(100, Math.round((uretilen / planlanan) * 100));
-  }
-
-  // Tarih aralığını kaydır
   function shiftRange(days: number) {
-    const s = addDays(new Date(baslangic), days);
-    const e = addDays(new Date(bitis), days);
-    setBaslangic(isoStr(s));
-    setBitis(isoStr(e));
+    setBaslangic(isoDate(addDays(new Date(baslangic), days)));
+    setBitis(isoDate(addDays(new Date(bitis), days)));
   }
 
-  // Bugüne git
+  function applyPreset(preset: RangePreset) {
+    setRangePreset(preset);
+    setBaslangic(isoDate(today));
+    setBitis(isoDate(addDays(today, RANGE_PRESETS[preset] - 1)));
+  }
+
   function scrollToToday() {
     if (!scrollRef.current) return;
-    const todayIdx = columns.findIndex((c) => c.isToday);
-    if (todayIdx >= 0) {
-      scrollRef.current.scrollLeft = Math.max(0, todayIdx * COL_W - 200);
+    const index = columns.findIndex((col) => col.isToday);
+    if (index >= 0) {
+      scrollRef.current.scrollLeft = Math.max(0, index * colWidth - 220);
     }
   }
 
   function resetFilters() {
-    setBaslangic(isoStr(addDays(today, -7)));
-    setBitis(isoStr(addDays(today, 30)));
-    setQ('');
-    setDurumFilter('');
-    setMakineIdFilter('');
+    setRangePreset("month");
+    setBaslangic(isoDate(today));
+    setBitis(isoDate(addDays(today, RANGE_PRESETS.month - 1)));
+    setQ("");
+    setDurumFilter("");
+    setMakineIdFilter("");
+    setMakineGosterim("kuyrukta");
   }
 
   return (
-    <TooltipProvider delayDuration={200}>
+    <TooltipProvider delayDuration={150}>
       <div className="space-y-4">
-        {/* ─── Başlık ─── */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg font-semibold">{t('admin.erp.gantt.title')}</h1>
+            <h1 className="text-lg font-semibold">{t("admin.erp.gantt.title")}</h1>
             <p className="text-sm text-muted-foreground">
-              {t('admin.erp.gantt.description', { count: data?.total ?? 0 })}
+              {t("admin.erp.gantt.description", { count: totalBarCount })}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => shiftRange(-7)}>
+            <div className="flex items-center gap-1 rounded-md border p-1">
+              <Button variant={rangePreset === "week" ? "default" : "ghost"} size="sm" onClick={() => applyPreset("week")}>
+                Haftalik
+              </Button>
+              <Button variant={rangePreset === "month" ? "default" : "ghost"} size="sm" onClick={() => applyPreset("month")}>
+                Aylik
+              </Button>
+              <Button
+                variant={rangePreset === "quarter" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => applyPreset("quarter")}
+              >
+                3 Aylik
+              </Button>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => shiftRange(-RANGE_PRESETS[rangePreset])}>
               <ChevronLeft className="size-4" />
             </Button>
             <Button variant="outline" size="sm" onClick={scrollToToday}>
-              {t('admin.erp.gantt.today')}
+              {t("admin.erp.gantt.today")}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => shiftRange(7)}>
+            <Button variant="outline" size="sm" onClick={() => shiftRange(RANGE_PRESETS[rangePreset])}>
               <ChevronRight className="size-4" />
             </Button>
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-              <RefreshCcw className={`size-4${isFetching ? ' animate-spin' : ''}`} />
+              <RefreshCcw className={`size-4${isFetching ? " animate-spin" : ""}`} />
             </Button>
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-muted-foreground text-xs">{t('admin.erp.gantt.summary.total')}</div>
-              <div className="mt-1 font-semibold text-2xl tabular-nums">{summary.total}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-muted-foreground text-xs">{t('admin.erp.gantt.summary.active')}</div>
-              <div className="mt-1 font-semibold text-2xl tabular-nums">{summary.aktif}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-muted-foreground text-xs">{t('admin.erp.gantt.summary.completed')}</div>
-              <div className="mt-1 font-semibold text-2xl tabular-nums text-emerald-600">{summary.tamamlandi}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-muted-foreground text-xs">{t('admin.erp.gantt.summary.montajli')}</div>
-              <div className="mt-1 font-semibold text-2xl tabular-nums text-amber-600">{summary.montajli}</div>
-            </CardContent>
-          </Card>
+        <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          <SummaryCard label="Makine" value={summary.makineSayisi} />
+          <SummaryCard label="Toplam İş" value={summary.toplamIs} />
+          <SummaryCard label="Çalışan" value={summary.calisan} valueClassName="text-indigo-600" />
+          <SummaryCard label="Bekleyen" value={summary.bekleyen} valueClassName="text-amber-600" />
+          <SummaryCard label="Durdu" value={summary.durdu} valueClassName="text-orange-600" />
+          <SummaryCard label="Montajlı" value={summary.montajli} valueClassName="text-emerald-600" />
         </div>
 
-        {/* ─── Filtreler ─── */}
-        <div className="flex flex-wrap gap-3 items-end">
-          {/* Tarih aralığı */}
+        <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">{t('admin.erp.gantt.columns.baslangic')}</Label>
-            <Input type="date" value={baslangic} onChange={(e) => setBaslangic(e.target.value)} className="w-40 h-8" />
+            <Label className="text-xs text-muted-foreground">{t("admin.erp.gantt.columns.baslangic")}</Label>
+            <Input type="date" value={baslangic} onChange={(e) => setBaslangic(e.target.value)} className="h-8 w-40" />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">{t('admin.erp.gantt.columns.bitis')}</Label>
-            <Input type="date" value={bitis} onChange={(e) => setBitis(e.target.value)} className="w-40 h-8" />
+            <Label className="text-xs text-muted-foreground">{t("admin.erp.gantt.columns.bitis")}</Label>
+            <Input type="date" value={bitis} onChange={(e) => setBitis(e.target.value)} className="h-8 w-40" />
           </div>
-
-          {/* Arama */}
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">{t('admin.erp.gantt.filters.ara')}</Label>
+            <Label className="text-xs text-muted-foreground">{t("admin.erp.gantt.filters.ara")}</Label>
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder={t('admin.erp.gantt.filters.araPlaceholder')}
-                className="pl-7 w-44 h-8"
+                placeholder={t("admin.erp.gantt.filters.araPlaceholder")}
+                className="h-8 w-52 pl-7"
               />
             </div>
           </div>
-
-          {/* Durum filtresi */}
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">{t('admin.erp.gantt.filters.durum')}</Label>
-            <Select value={durumFilter || '_all'} onValueChange={(v) => setDurumFilter(v === '_all' ? '' : v)}>
-              <SelectTrigger className="w-40 h-8">
+            <Label className="text-xs text-muted-foreground">{t("admin.erp.gantt.filters.durum")}</Label>
+            <Select
+              value={durumFilter || "_all"}
+              onValueChange={(value) => setDurumFilter(value === "_all" ? "" : value)}
+            >
+              <SelectTrigger className="h-8 w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="_all">{t('admin.erp.gantt.filters.tumDurumlar')}</SelectItem>
-                {ALL_DURUMLAR.map((d) => (
-                  <SelectItem key={d} value={d}>
+                <SelectItem value="_all">{t("admin.erp.gantt.filters.tumDurumlar")}</SelectItem>
+                {ALL_DURUMLAR.map((durum) => (
+                  <SelectItem key={durum} value={durum}>
                     <span className="flex items-center gap-2">
-                      <span className={`inline-block size-2 rounded-full ${DURUM_STYLES[d].dot}`} />
-                      {EMIR_DURUM_LABELS[d]}
+                      <span className={`inline-block size-2 rounded-full ${DURUM_STYLES[durum].dot}`} />
+                      {DURUM_LABELS[durum]}
                     </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-
-          {/* Makine filtresi */}
           {makineler.length > 0 && (
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">{t('admin.erp.gantt.filters.makine')}</Label>
-              <Select value={makineIdFilter || '_all'} onValueChange={(v) => setMakineIdFilter(v === '_all' ? '' : v)}>
-                <SelectTrigger className="w-48 h-8">
+              <Label className="text-xs text-muted-foreground">{t("admin.erp.gantt.filters.makine")}</Label>
+              <Select
+                value={makineIdFilter || "_all"}
+                onValueChange={(value) => setMakineIdFilter(value === "_all" ? "" : value)}
+              >
+                <SelectTrigger className="h-8 w-48">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_all">{t('admin.erp.gantt.filters.tumMakineler')}</SelectItem>
-                  {makineler.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      <span className="font-mono">{m.kod}</span> — {m.ad}
+                  <SelectItem value="_all">{t("admin.erp.gantt.filters.tumMakineler")}</SelectItem>
+                  {makineler.map((makine) => (
+                    <SelectItem key={makine.id} value={makine.id}>
+                      <span className="font-mono">{makine.kod}</span> - {makine.ad}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           )}
-
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Görünüm</Label>
+            <Select value={makineGosterim} onValueChange={(v) => setMakineGosterim(v as "kuyrukta" | "tamami")}>
+              <SelectTrigger className="h-8 w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="kuyrukta">Kuyruktaki Makineler</SelectItem>
+                <SelectItem value="tamami">Tüm Makineler</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Button variant="ghost" size="sm" onClick={resetFilters}>
-            {t('admin.erp.gantt.filters.reset')}
+            {t("admin.erp.gantt.filters.reset")}
           </Button>
-
-          {/* Durum renk açıklaması */}
-          <div className="flex items-center gap-3 pb-1 ml-auto">
-            {ALL_DURUMLAR.map((d) => (
-              <div key={d} className="flex items-center gap-1.5">
-                <span className={`inline-block size-3 rounded-sm ${DURUM_STYLES[d].dot}`} />
-                <span className="text-xs text-muted-foreground">{EMIR_DURUM_LABELS[d]}</span>
+          <div className="ml-auto flex items-center gap-3 pb-1">
+            {ALL_DURUMLAR.map((durum) => (
+              <div key={durum} className="flex items-center gap-1.5">
+                <span className={`inline-block size-3 rounded-sm ${DURUM_STYLES[durum].dot}`} />
+                <span className="text-xs text-muted-foreground">{DURUM_LABELS[durum]}</span>
+              </div>
+            ))}
+            {(["hafta_sonu", "tatil", "durus"] as const).map((tip) => (
+              <div key={tip} className="flex items-center gap-1.5">
+                <span
+                  className={`inline-block size-3 rounded-sm border ${BLOCK_STYLES[tip]}`}
+                  style={blockPatternStyle(tip)}
+                />
+                <span className="text-xs text-muted-foreground">{BLOCK_LABELS[tip]}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* ─── Gantt Diyagramı ─── */}
         {isLoading ? (
           <div className="space-y-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full" />
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Skeleton key={index} className="h-16 w-full" />
             ))}
           </div>
-        ) : items.length === 0 ? (
+        ) : groups.length === 0 ? (
           <div className="rounded-md border py-16 text-center text-sm text-muted-foreground">
-            {t('admin.erp.gantt.notFound')}
+            {t("admin.erp.gantt.notFound")}
           </div>
         ) : (
-          <div className="rounded-md border overflow-hidden">
+          <div className="overflow-hidden rounded-md border">
             <div className="flex">
-              {/* ─── Sol etiket sütunu ─── */}
-              <div className="shrink-0 border-r bg-muted/50" style={{ width: LABEL_W }}>
-                {/* Ay başlığı boşluk */}
+              <div className="shrink-0 border-r bg-muted/40" style={{ width: LABEL_W }}>
                 <div className="h-6 border-b" />
-                {/* Gün başlığı boşluk */}
                 <div className="h-8 border-b" />
-                {/* Satırlar */}
-                {items.map((item) => {
-                  const durum = item.durum as UretimEmriDurum;
-                  const isTamamlandi = item.durum === 'tamamlandi';
-                  return (
-                    <div
-                      key={item.uretimEmriId}
-                      className={`flex items-center gap-2 border-b px-2 ${isTamamlandi ? 'opacity-60' : ''}`}
-                      style={{ height: ROW_H }}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className={`text-xs font-medium truncate flex items-center gap-1 ${isTamamlandi ? 'line-through text-muted-foreground' : ''}`}>
-                          {isTamamlandi && <CheckCircle2 className="size-3 text-emerald-500 shrink-0" />}
-                          {item.emirNo}
-                          {item.montaj && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Wrench className="size-3 text-amber-500 shrink-0 cursor-default" />
-                              </TooltipTrigger>
-                              <TooltipContent side="right" className="text-xs">
-                                {t('admin.erp.gantt.montajVar')}
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground truncate">
-                          {item.urunAd ?? item.urunId}
-                        </div>
-                        {item.operasyonOzet && (
-                          <div className="text-[10px] text-blue-600 dark:text-blue-400 truncate">
-                            {item.operasyonOzet}
-                          </div>
-                        )}
-                        {item.musteriOzet && (
-                          <div className="text-[10px] text-muted-foreground truncate">
-                            {item.musteriOzet}
-                          </div>
-                        )}
+                {groups.map((group) => (
+                  <div key={group.makineId} className="border-b px-3 py-2 flex flex-col justify-center" style={{ height: ROW_H }}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="truncate font-mono text-xs font-semibold leading-tight">{group.makineKod}</div>
+                        <div className="truncate text-[11px] text-muted-foreground leading-tight">{group.makineAd}</div>
                       </div>
-                      <Badge variant={EMIR_DURUM_BADGE[durum] ?? 'outline'} className="text-[10px] px-1.5 py-0 shrink-0">
-                        {EMIR_DURUM_LABELS[durum] ?? durum}
+                      <Badge variant="outline" className="shrink-0 text-[10px]">
+                        {group.items.length} iş
                       </Badge>
                     </div>
-                  );
-                })}
+                    <div className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground leading-tight">
+                      <span>Kapasite: {group.saatlikKapasite ?? "—"}/saat</span>
+                      <span>Çalışma: {group.gunlukCalismaSaati}s/gün</span>
+                      <span>Takvim: {group.calisir24Saat ? "24 saat sürekli" : "Gündüz planı"}</span>
+                      <span>İlk iş: {group.items[0]?.emirNo ?? "—"}</span>
+                      {(() => { const d = group.items.filter((i) => i.durum === "duraklatildi").length; return d > 0 ? <span className="text-orange-600 font-medium">Durdu: {d}</span> : null; })()}
+                    </div>
+                    <div className="mt-0.5 text-[10px] text-muted-foreground leading-tight truncate">
+                      Son bitiş:{" "}
+                      {group.items.length
+                        ? formatDateTime(group.items[group.items.length - 1]?.bitisTarihi ?? null)
+                        : "—"}
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              {/* ─── Zaman çizelgesi ─── */}
               <div className="flex-1 overflow-x-auto" ref={scrollRef}>
-                <div style={{ width: totalDays * COL_W, minWidth: '100%' }}>
-                  {/* Ay başlıkları */}
+                <div style={{ width: totalDays * colWidth, minWidth: "100%" }}>
                   <div className="flex h-6 border-b">
-                    {monthHeaders.map((mh, i) => (
+                    {monthHeaders.map((header) => (
                       <div
-                        key={i}
-                        className="text-[10px] font-medium text-muted-foreground flex items-center justify-center border-r bg-muted/30"
-                        style={{ width: mh.span * COL_W }}
+                        key={`${header.label}-${header.span}`}
+                        className="flex items-center justify-center border-r bg-muted/30 text-[10px] font-medium text-muted-foreground"
+                        style={{ width: header.span * colWidth }}
                       >
-                        {mh.label}
+                        {header.label}
                       </div>
                     ))}
                   </div>
-
-                  {/* Gün başlıkları */}
                   <div className="flex h-8 border-b">
-                    {columns.map((col, i) => (
+                    {columns.map((col) => (
                       <div
-                        key={i}
-                        className={`flex items-center justify-center text-[10px] border-r
-                          ${col.isToday ? 'bg-blue-100 dark:bg-blue-950 font-bold text-blue-700 dark:text-blue-300' : ''}
-                          ${col.isWeekend && !col.isToday ? 'bg-muted/40 text-muted-foreground' : ''}
-                        `}
-                        style={{ width: COL_W }}
+                        key={col.date.toISOString()}
+                        className={`flex items-center justify-center border-r text-[10px] ${
+                          col.isToday ? "bg-blue-100 font-semibold text-blue-700" : ""
+                        } ${col.isWeekend && !col.isToday ? "bg-muted/30 text-muted-foreground" : ""}`}
+                        style={{ width: colWidth }}
                       >
                         {col.label}
                       </div>
                     ))}
                   </div>
-
-                  {/* Gantt satırları */}
-                  {items.map((item) => (
-                    <GanttRow
-                      key={item.uretimEmriId}
-                      item={item}
+                  {groups.map((group) => (
+                    <MachineTimelineRow
+                      key={group.makineId}
+                      group={group}
                       timelineStart={timelineStart}
                       totalDays={totalDays}
                       columns={columns}
-                      ilerleme={ilerleme}
+                      colWidth={colWidth}
                     />
                   ))}
                 </div>
@@ -472,139 +535,185 @@ export default function GanttClient() {
   );
 }
 
-// ─── Gantt Satır Bileşeni ────────────────────────────────────
-function GanttRow({
-  item,
+function SummaryCard({ label, value, valueClassName }: { label: string; value: number; valueClassName?: string }) {
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="text-xs text-muted-foreground">{label}</div>
+        <div className={`mt-1 text-2xl font-semibold tabular-nums ${valueClassName ?? ""}`}>{value}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function MachineTimelineRow({
+  group,
   timelineStart,
   totalDays,
   columns,
-  ilerleme,
+  colWidth,
 }: {
-  item: GanttItemDto;
+  group: GanttMachineDto;
   timelineStart: Date;
   totalDays: number;
-  columns: { isToday: boolean; isWeekend: boolean }[];
-  ilerleme: (p: number, u: number) => number;
+  columns: Array<{ date: Date; isToday: boolean; isWeekend: boolean }>;
+  colWidth: number;
 }) {
-  const start = toDate(item.baslangicTarihi);
-  const end = toDate(item.bitisTarihi);
-  const termin = toDate(item.terminTarihi);
-  const durum = item.durum as UretimEmriDurum;
-  const pct = ilerleme(item.planlananMiktar, item.uretilenMiktar);
-  const isTamamlandi = item.durum === 'tamamlandi';
-  const isIptal = item.durum === 'iptal';
+  const bars = useMemo(() => {
+    const sorted = group.items.filter(hasVisiblePlan).sort((a, b) => a.sira - b.sira);
 
-  // Bar pozisyonu hesaplama
-  let barLeft = 0;
-  let barWidth = 0;
+    return sorted
+      .map((item) => {
+        const start = toDate(item.baslangicTarihi);
+        const end = toDate(item.bitisTarihi);
+        if (!start || !end) return null;
 
-  if (start && end) {
-    const startOffset = daysBetween(timelineStart, start);
-    const duration = daysBetween(start, end) + 1;
-    barLeft = Math.max(0, startOffset) * COL_W;
-    barWidth = Math.max(1, Math.min(duration, totalDays - Math.max(0, startOffset))) * COL_W;
-  } else if (start) {
-    const startOffset = daysBetween(timelineStart, start);
-    barLeft = Math.max(0, startOffset) * COL_W;
-    barWidth = COL_W; // tek gün
-  }
+        const startOffset = preciseDayOffset(timelineStart, start);
+        const duration = preciseDayDuration(start, end);
+        const left = Math.max(0, startOffset) * colWidth;
+        const width = Math.max(12, Math.min(duration, totalDays - Math.max(0, startOffset)) * colWidth - 4);
 
-  const statusStyle = DURUM_STYLES[durum] ?? DURUM_STYLES.planlandi;
+        return { item, left, width };
+      })
+      .filter((value): value is { item: GanttBarDto; left: number; width: number } => value !== null);
+  }, [group.items, timelineStart, totalDays]);
 
   return (
-    <div className={`relative border-b ${isTamamlandi ? 'opacity-60' : ''}`} style={{ height: ROW_H }}>
-      {/* Arka plan grid çizgileri */}
+    <div className="relative border-b" style={{ height: ROW_H }}>
+      {/* Layer 0: Column grid + today highlight */}
       <div className="absolute inset-0 flex">
-        {columns.map((col, i) => (
+        {columns.map((col) => (
           <div
-            key={i}
-            className={`border-r h-full
-              ${col.isToday ? 'bg-blue-50/50 dark:bg-blue-950/30' : ''}
-              ${col.isWeekend && !col.isToday ? 'bg-muted/20' : ''}
-            `}
-            style={{ width: COL_W }}
+            key={col.date.toISOString()}
+            className={`h-full border-r ${col.isToday ? "bg-blue-50/40" : ""}`}
+            style={{ width: colWidth }}
           />
         ))}
       </div>
 
-      {/* Gantt barı */}
-      {barWidth > 0 && (
-        <Tooltip>
-          <TooltipTrigger asChild>
+      {/* Layer 1: Weekend stripes — ALWAYS visible on all weekends for all machines */}
+      <div className="absolute inset-0 z-1 flex pointer-events-none">
+        {columns.map((col) =>
+          col.isWeekend ? (
             <div
-              className="absolute top-2 cursor-default"
-              style={{ left: barLeft + 2, width: Math.max(barWidth - 4, 8) }}
-            >
-              {/* Arka plan bar */}
-              <div className={`h-7 rounded-md ${statusStyle.track} relative overflow-hidden shadow-sm ${isIptal ? 'opacity-50' : ''}`}>
-                {/* İlerleme dolgu */}
-                {pct > 0 && !isIptal && (
-                  <div
-                    className={`absolute inset-y-0 left-0 rounded-l-md ${statusStyle.fill} transition-all`}
-                    style={{ width: `${pct}%` }}
-                  />
-                )}
-                {/* Tamamlandı checkmark */}
-                {isTamamlandi && barWidth > 30 && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <CheckCircle2 className={`size-4 drop-shadow-sm ${statusStyle.icon}`} />
-                  </div>
-                )}
-                {/* Bar içi yüzde — tamamlanmış/iptal değilse */}
-                {!isTamamlandi && !isIptal && barWidth > 60 && (
-                  <div className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-white drop-shadow-sm">
-                    {pct}%
-                  </div>
-                )}
-                {/* Montaj ikonu */}
-                {item.montaj && barWidth > 20 && (
-                  <div className="absolute right-1 top-1/2 -translate-y-1/2">
-                    <Wrench className="size-3 text-amber-800 drop-shadow-sm" />
-                  </div>
-                )}
-              </div>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="max-w-xs">
-            <div className="space-y-1">
-              <div className="font-medium">{item.emirNo}</div>
-              {item.urunAd ? (
-                <div className="text-xs">
-                  <span className="font-mono text-muted-foreground">{item.urunKod}</span>
-                  {' '}{item.urunAd}
-                </div>
-              ) : (
-                <div className="text-xs text-muted-foreground">{item.urunId}</div>
-              )}
-              {item.operasyonOzet && (
-                <div className="text-xs text-blue-600 dark:text-blue-400">{item.operasyonOzet}</div>
-              )}
-              {item.musteriOzet && (
-                <div className="text-xs text-muted-foreground">{item.musteriOzet}</div>
-              )}
-              <div className="text-xs">
-                {start ? fmtDateFull(start) : '—'} → {end ? fmtDateFull(end) : '—'}
-              </div>
-              {termin && (
-                <div className="text-xs text-muted-foreground">
-                  Termin: {fmtDateFull(termin)}
-                </div>
-              )}
-              <div className="text-xs">
-                İlerleme: {pct}% ({item.uretilenMiktar}/{item.planlananMiktar})
-              </div>
-              {item.montaj && (
-                <div className="text-xs flex items-center gap-1 text-amber-600">
-                  <Wrench className="size-3" /> Montaj operasyonu var
-                </div>
-              )}
-              <Badge variant={EMIR_DURUM_BADGE[durum] ?? 'outline'} className="text-[10px]">
-                {EMIR_DURUM_LABELS[durum] ?? durum}
-              </Badge>
-            </div>
-          </TooltipContent>
-        </Tooltip>
+              key={`wk-${col.date.toISOString()}`}
+              className="h-full"
+              style={{ width: colWidth, ...blockPatternStyle("hafta_sonu") }}
+            />
+          ) : (
+            <div key={`wk-${col.date.toISOString()}`} style={{ width: colWidth }} />
+          ),
+        )}
+      </div>
+
+      {/* Layer 2: Work bars (z-[5]) — on top of weekend stripes */}
+      {bars.length === 0 ? (
+        <div className="absolute inset-y-0 left-3 z-5 flex items-center text-xs text-muted-foreground">
+          Bu makinede seçili aralıkta planlı iş yok
+        </div>
+      ) : (
+        bars.map(({ item, left, width }) => (
+          <GanttBar key={item.kuyrukId} item={item} left={left} top={28} width={width} />
+        ))
       )}
+
+      {/* Layer 3: Non-working hafta sonu + tatil blocks (z-[10]) — cover bars for non-working days */}
+      {group.blocks
+        .filter((block) => block.tip !== "durus")
+        .map((block) => {
+          const rect = getBlockRect(block, timelineStart, totalDays, colWidth);
+          if (!rect) return null;
+
+          const isWeekendBlock = block.tip === "hafta_sonu";
+          return (
+            <Tooltip key={block.id}>
+              <TooltipTrigger asChild>
+                <div
+                  className={`absolute inset-y-0 z-10 border-x ${isWeekendBlock ? "bg-background" : `bg-background ${BLOCK_STYLES[block.tip]}`}`}
+                  style={{ left: rect.left, width: rect.width, ...blockPatternStyle(block.tip) }}
+                />
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                {BLOCK_LABELS[block.tip]}: {formatDateTime(block.baslangicTarihi)} → {formatDateTime(block.bitisTarihi)}
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
+
+      {/* Layer 4: Duruş blocks (z-[15]) — on top of everything */}
+      {group.blocks
+        .filter((block) => block.tip === "durus")
+        .map((block) => {
+          const rect = getBlockRect(block, timelineStart, totalDays, colWidth);
+          if (!rect) return null;
+
+          return (
+            <Tooltip key={block.id}>
+              <TooltipTrigger asChild>
+                <div
+                  className={`absolute inset-y-0 z-15 border ${BLOCK_STYLES[block.tip]}`}
+                  style={{ left: rect.left, width: rect.width, ...blockPatternStyle(block.tip) }}
+                />
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                {BLOCK_LABELS[block.tip]}: {formatDateTime(block.baslangicTarihi)} → {formatDateTime(block.bitisTarihi)}
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
     </div>
+  );
+}
+
+function GanttBar({ item, left, top, width }: { item: GanttBarDto; left: number; top: number; width: number }) {
+  const pct = progressOf(item);
+  const style = DURUM_STYLES[item.durum] ?? DURUM_STYLES.bekliyor;
+  const isCancelled = item.durum === "iptal";
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="absolute z-5 cursor-default" style={{ left: left + 2, top, width }}>
+          <div className={`relative h-8 overflow-hidden rounded-md shadow-sm ${style.track}`}>
+            {pct > 0 && !isCancelled && (
+              <div className={`absolute inset-y-0 left-0 ${style.fill}`} style={{ width: `${pct}%` }} />
+            )}
+            {isCancelled && <div className={`absolute inset-0 opacity-35 ${style.fill}`} />}
+            <div className={`absolute inset-0 flex items-center gap-1 px-2 text-[10px] font-medium ${style.text}`}>
+              <span className="shrink-0 font-mono">{item.emirNo}</span>
+              {width > 90 && <span className="truncate">{item.urunKod ?? item.urunAd ?? item.urunId}</span>}
+              {item.montaj && <Wrench className="ml-auto size-3 shrink-0 text-amber-700" />}
+            </div>
+          </div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs">
+        <div className="space-y-1 text-xs">
+          <div className="font-medium">{item.emirNo}</div>
+          {item.siparisNo && <div>Sipariş: {item.siparisNo}</div>}
+          <div>
+            <span className="font-mono text-muted-foreground">{item.urunKod ?? "—"}</span> {item.urunAd ?? item.urunId}
+          </div>
+          {item.operasyonAdi && <div>Operasyon: {item.operasyonAdi}</div>}
+          {item.musteriOzet && <div>Müşteri: {item.musteriOzet}</div>}
+          <div>Sıra: {item.sira}</div>
+          <div>Başlangıç: {formatDateTime(item.baslangicTarihi)}</div>
+          {item.planlananBaslangicTarihi && item.planlananBaslangicTarihi !== item.baslangicTarihi && (
+            <div className="text-muted-foreground">Plan Başlangıç: {formatDateTime(item.planlananBaslangicTarihi)}</div>
+          )}
+          <div>Bitiş: {formatDateTime(item.bitisTarihi)}</div>
+          {item.planlananBitisTarihi && item.planlananBitisTarihi !== item.bitisTarihi && (
+            <div className="text-muted-foreground">Plan Bitiş: {formatDateTime(item.planlananBitisTarihi)}</div>
+          )}
+          <div>Termin: {formatDateOnly(item.terminTarihi)}</div>
+          <div>
+            İlerleme: {pct}% ({item.uretilenMiktar}/{item.planlananMiktar})
+          </div>
+          <Badge variant="outline" className={`text-[10px] ${style.badge}`}>
+            {DURUM_LABELS[item.durum] ?? item.durum}
+          </Badge>
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 }
