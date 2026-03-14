@@ -378,7 +378,32 @@ planlama_motoru(makineId) {
 
 ---
 
-### 8.4 Uretim Baslat — Hafta Sonu/Tatil Kontrolu Eksik (2026-03-14)
+### 8.4 Sevkiyat Akis Dokumantasyonu Notu (2026-03-14)
+
+**Onemli:** Sevkiyat sayfasindaki "Sevk Bekleyenler" tabi `sevk_emirleri` tablosundan **degil**, `siparis_kalemleri` tablosundan hesaplaniyor. Bu iki farkli veri kaynagi karistirilmamali.
+
+**Akis:**
+```
+1. Siparis olustur (satis siparisleri)
+2. Uretim emri olustur (siparisten veya manuel)
+3. Makineye ata → Uretim baslat → Uretim bitir
+4. Sevkiyat sayfasi "Sevk Bekleyenler" tabinda siparis kalemi gorunur
+   (kaynak: siparis_kalemleri + urunler.stok)
+5. "Sevk Emri Olustur" butonuna bas → sevk_emirleri tablosuna kayit duser
+6. "Sevk Emirleri" tabinda gorunur → Admin onaylar → Fiziksel sevk yapilir
+7. Stok duser, siparis durumu guncellenir
+```
+
+**Veri kaynaklari:**
+- "Sevk Bekleyenler" tabi → `siparis_kalemleri` JOIN `urunler` JOIN `musteriler` (hesaplanmis, tablo degil)
+- "Sevk Emirleri" tabi → `sevk_emirleri` tablosu (kullanici tarafindan olusturulur)
+- Seed sonrasi `sevk_emirleri` bos gelir — dogru davranis, sevk emirleri uctan uca kullanici olusturur
+
+**Dokuman hazilarken bu ayrimi mutlaka belirt.**
+
+---
+
+### 8.5 Uretim Baslat — Hafta Sonu/Tatil Kontrolu Eksik (2026-03-14)
 
 **Not:** Hafta sonu calisma plani olmayan bir makinede is emrini baslatabiliyorum. Vardiya kontrolu eklenmisti ama uretim baslatma icin ayni kontrol yoktu. Ayrica Gantt uzerinden de calisma plani olmayan gunde is baslatilabiliyor.
 
