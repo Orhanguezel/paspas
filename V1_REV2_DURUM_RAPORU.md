@@ -403,7 +403,24 @@ planlama_motoru(makineId) {
 
 ---
 
-### 8.5 Uretim Baslat — Hafta Sonu/Tatil Kontrolu Eksik (2026-03-14)
+### 8.5 Sevkiyat Stok Rezervasyonu Eksik (2026-03-14)
+
+**Not:** Sevk emri olusturuldugunda stok miktari degismiyor. Fiziksel sevk yapilinca stok dususyor ama o zamana kadar stok dogru gorulmuyor. Urunler ve Stoklar sayfasinda serbest stok yanlis gorunuyor.
+
+**Beklenen davranis:**
+1. Sevk emri olusturuldu → `rezerve_stok` artmali (serbest stok azalir)
+2. Fiziksel sevk yapildi → gercek `stok` dusmeli + `rezerve_stok` sifirlanmali
+3. Sevk emri iptal edildi → `rezerve_stok` geri alinmali
+
+**Durum:**
+- [X] ✅ `repoCreateSevkEmri`: sevk emri olusturulunca `rezerve_stok` artiriliyor
+- [X] ✅ `repoPatchSevkEmri` (sevk_edildi): gercek stok dusuyor + `rezerve_stok` azaltiliyor
+- [X] ✅ `repoPatchSevkEmri` (iptal): `rezerve_stok` geri aliniyor
+- [X] ✅ Urunler ve Stoklar sayfasinda serbest stok (stok - rezerve_stok) dogru gorunecek
+
+---
+
+### 8.6 Uretim Baslat — Hafta Sonu/Tatil Kontrolu Eksik (2026-03-14)
 
 **Not:** Hafta sonu calisma plani olmayan bir makinede is emrini baslatabiliyorum. Vardiya kontrolu eklenmisti ama uretim baslatma icin ayni kontrol yoktu. Ayrica Gantt uzerinden de calisma plani olmayan gunde is baslatilabiliyor.
 

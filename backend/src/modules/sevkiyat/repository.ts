@@ -362,17 +362,25 @@ export async function repoCreateSevkEmri(data: SevkEmriCreate, createdBy: string
   const sevkEmriNo = await generateSevkEmriNo();
   const tarih = data.tarih || new Date().toISOString().slice(0, 10);
 
-  await db.insert(sevkEmirleri).values({
-    id,
-    sevk_emri_no: sevkEmriNo,
-    siparis_id: data.siparisId ?? null,
-    siparis_kalem_id: data.siparisKalemId ?? null,
-    musteri_id: data.musteriId,
-    urun_id: data.urunId,
-    miktar: String(data.miktar),
-    tarih: new Date(tarih),
-    notlar: data.notlar ?? null,
-    created_by: createdBy,
+  await db.transaction(async (tx) => {
+    await tx.insert(sevkEmirleri).values({
+      id,
+      sevk_emri_no: sevkEmriNo,
+      siparis_id: data.siparisId ?? null,
+      siparis_kalem_id: data.siparisKalemId ?? null,
+      musteri_id: data.musteriId,
+      urun_id: data.urunId,
+      miktar: String(data.miktar),
+      tarih: new Date(tarih),
+      notlar: data.notlar ?? null,
+      created_by: createdBy,
+    });
+
+    // Sevk emri olusturuldu — stok rezerve et (fiziksel sevke kadar bekletilecek)
+    await tx
+      .update(urunler)
+      .set({ rezerve_stok: sql`${urunler.rezerve_stok} + ${String(data.miktar)}` })
+      .where(eq(urunler.id, data.urunId));
   });
 
   const row = await repoGetSevkEmriById(id);
@@ -489,7 +497,10 @@ export async function repoPatchSevkEmri(id: string, patch: SevkEmriPatch, operat
 
       await tx
         .update(urunler)
-        .set({ stok: sql`GREATEST(0, ${urunler.stok} - ${String(existing.miktar)})` })
+        .set({
+          stok: sql`GREATEST(0, ${urunler.stok} - ${String(existing.miktar)})`,
+          rezerve_stok: sql`GREATEST(0, ${urunler.rezerve_stok} - ${String(existing.miktar)})`,
+        })
         .where(eq(urunler.id, existing.urunId));
 
       await tx.insert(hareketler).values({
@@ -505,6 +516,14 @@ export async function repoPatchSevkEmri(id: string, patch: SevkEmriPatch, operat
     });
 
     touchedSiparisId = existing.siparisId ?? null;
+  }
+
+  // Iptal durumunda rezervasyonu geri al
+  if (patch.durum === 'iptal' && existing.durum !== 'iptal' && existing.durum !== 'sevk_edildi') {
+    await db
+      .update(urunler)
+      .set({ rezerve_stok: sql`GREATEST(0, ${urunler.rezerve_stok} - ${String(existing.miktar)})` })
+      .where(eq(urunler.id, existing.urunId));
   }
 
   if (touchedSiparisId) {
