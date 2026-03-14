@@ -341,7 +341,26 @@ planlama_motoru(makineId) {
 
 ---
 
-### 8.2 Uretim Baslat — Hafta Sonu/Tatil Kontrolu Eksik (2026-03-14)
+### 8.2 Tamamlanan Is Emirleri — Listeden Cikarma ve Arsiv Mantigi (2026-03-14)
+
+**Not:** Tamamlanan is emirleri is yukleri listesinde görünmeye devam ediyor. Sira degistirilebiliyor. Bunlarin listeden cikmasi lazim ama Gantt'ta gecmise bakinca gorunmeli, is emri kaydi silinmemeli.
+
+**Cozum:**
+- Tamamlanan isler varsayilan olarak İş Yükleri listesinden gizleniyor
+- "Tamamlananları Göster" toggle butonu ile geri getirilebiliyor
+- Tamamlanan satir: kirmizi cerceve, soluk gorunum, suruklenemez
+- Gantt diyagrami etkilenmiyor — tum kuyruk kayitlari (tamamlandi dahil) Gantt'ta gorunuyor
+- `makine_kuyrugu` tablosundaki kayitlar silinmiyor, sadece `is_yukler` listesi `durum NOT IN ('tamamlandi','iptal')` filtresi uyguluyor
+
+**Durum:**
+- [X] ✅ Backend `repoList`: `tamamlananlariGoster` query parametresi eklendi, varsayilan `false`
+- [X] ✅ Frontend: "Tamamlananları Göster" toggle butonu eklendi
+- [X] ✅ Tamamlanan satir: kirmizi cerceve + opacity + suruklenemez + drag kilidi
+- [X] ✅ Gantt etkilenmedi — tum kuyruk kayitlari gorunuyor
+
+---
+
+### 8.3 Uretim Baslat — Hafta Sonu/Tatil Kontrolu Eksik (2026-03-14)
 
 **Not:** Hafta sonu calisma plani olmayan bir makinede is emrini baslatabiliyorum. Vardiya kontrolu eklenmisti ama uretim baslatma icin ayni kontrol yoktu. Ayrica Gantt uzerinden de calisma plani olmayan gunde is baslatilabiliyor.
 

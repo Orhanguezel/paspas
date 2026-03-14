@@ -146,7 +146,13 @@ async function resequenceMakine(tx: any, makineId: string, currentIds?: string[]
 }
 
 export async function repoList(query: ListQuery): Promise<IsYukuDto[]> {
-  const where = query.makineId ? eq(makineKuyrugu.makine_id, query.makineId) : undefined;
+  const conditions: SQL[] = [];
+  if (query.makineId) conditions.push(eq(makineKuyrugu.makine_id, query.makineId));
+  // Varsayilan: tamamlandi + iptal gizle, toggle ile goster
+  if (!query.tamamlananlariGoster) {
+    conditions.push(sql`${makineKuyrugu.durum} NOT IN ('tamamlandi', 'iptal')`);
+  }
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
   const rows = await selectQueue(where).limit(query.limit).offset(query.offset);
   return rows.map((row) => toDto(row as QueueJoinRow));
 }

@@ -4,6 +4,7 @@ const durumEnum = z.enum(['bekliyor', 'hazirlaniyor', 'uretimde', 'tamamlandi', 
 
 export const listQuerySchema = z.object({
   makineId: z.string().min(1).optional(),
+  tamamlananlariGoster: z.coerce.boolean().default(false),
   limit: z.coerce.number().int().min(1).max(500).default(200),
   offset: z.coerce.number().int().min(0).default(0),
 });

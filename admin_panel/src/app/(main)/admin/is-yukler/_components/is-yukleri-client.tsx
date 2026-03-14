@@ -94,9 +94,11 @@ function ListRow({
   isBusy: boolean;
 }) {
   const isRunning = item.durum === 'calisiyor';
+  const isDone = item.durum === 'tamamlandi';
+  const isLocked = isRunning || isDone;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.kuyrukId,
-    disabled: isRunning,
+    disabled: isLocked,
   });
   const style = { transform: CSS.Transform.toString(transform), transition };
 
@@ -106,52 +108,64 @@ function ListRow({
       new Date(item.planlananBitis).getTime() > new Date(item.terminTarihi).getTime(),
   );
 
+  const rowBorder = isDone
+    ? 'border-destructive/40 bg-destructive/5 dark:border-destructive/30 dark:bg-destructive/10 opacity-70'
+    : isRunning
+      ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950'
+      : 'bg-background';
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={`flex items-center gap-1.5 rounded border px-1.5 py-1 text-[11px] leading-tight transition ${
         isDragging ? 'opacity-60' : ''
-      } ${isRunning ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950' : 'bg-background'}`}
+      } ${rowBorder}`}
     >
       <button
         type="button"
-        className={`shrink-0 ${isRunning ? 'text-muted-foreground/30 cursor-not-allowed' : 'text-muted-foreground hover:text-foreground'}`}
+        className={`shrink-0 ${isLocked ? 'text-muted-foreground/30 cursor-not-allowed' : 'text-muted-foreground hover:text-foreground'}`}
         {...attributes}
-        {...(isRunning ? {} : listeners)}
+        {...(isLocked ? {} : listeners)}
       >
         <GripVertical className="size-3" />
       </button>
 
-      <span className="w-4 shrink-0 text-center font-mono text-muted-foreground">{item.sira}</span>
+      <span className="w-5 shrink-0 text-center font-mono text-muted-foreground">{item.sira}</span>
 
       <Link
         href={`/admin/uretim-emirleri/${item.uretimEmriId}`}
-        className="w-18 shrink-0 truncate font-mono font-semibold text-[11px] hover:underline"
+        className="w-24 shrink-0 truncate font-mono font-semibold text-[11px] hover:underline"
       >
         {item.emirNo}
       </Link>
 
-      <span className="w-14 shrink-0 truncate font-mono text-muted-foreground">{item.urunKod}</span>
-      <span className="min-w-0 flex-1 truncate">{item.urunAd}</span>
+      <span className="w-16 shrink-0 truncate font-mono text-muted-foreground">{item.urunKod}</span>
+      <span className="min-w-0 flex-2 truncate">{item.urunAd}</span>
 
-      <span className="w-12 shrink-0 text-right font-mono tabular-nums">{item.planlananMiktar?.toLocaleString('tr-TR')}</span>
+      <span className="min-w-0 flex-1 truncate text-muted-foreground">{item.operasyonAdi}</span>
 
-      <span className="w-10 shrink-0 text-right text-muted-foreground tabular-nums">
+      <span className="w-14 shrink-0 text-right font-mono tabular-nums">{item.planlananMiktar?.toLocaleString('tr-TR')}</span>
+
+      {item.musteriAd && (
+        <span className="w-28 shrink-0 truncate text-muted-foreground">{item.musteriAd}</span>
+      )}
+
+      <span className="w-14 shrink-0 text-right text-muted-foreground tabular-nums">
         <Clock3 className="mr-0.5 inline size-2.5" />
         {fmtDuration(item.hazirlikSuresiDk + item.planlananSureDk)}
       </span>
 
-      <span className={`w-12 shrink-0 text-right tabular-nums ${terminRiski ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
+      <span className={`w-14 shrink-0 text-right tabular-nums ${terminRiski ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
         {fmtOnlyDate(item.terminTarihi)}
         {terminRiski && <AlertTriangle className="ml-0.5 inline size-2.5" />}
       </span>
 
-      <span className="w-14 shrink-0 text-right text-muted-foreground tabular-nums">
+      <span className="w-20 shrink-0 text-right text-muted-foreground tabular-nums">
         {fmtDate(item.planlananBaslangic)}
       </span>
 
-      <div className="flex w-14 shrink-0 items-center justify-end gap-0.5">
+      <div className="flex w-16 shrink-0 items-center justify-end gap-0.5">
         {item.montaj && (
           <Badge variant="secondary" className="px-1 py-0 text-[9px] gap-0.5">
             <Wrench className="size-2.5" />
@@ -188,11 +202,19 @@ function GridRow({
   isBusy: boolean;
 }) {
   const isRunning = item.durum === 'calisiyor';
+  const isDone = item.durum === 'tamamlandi';
+  const isLocked = isRunning || isDone;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.kuyrukId,
-    disabled: isRunning,
+    disabled: isLocked,
   });
   const style = { transform: CSS.Transform.toString(transform), transition };
+
+  const cardBorder = isDone
+    ? 'border-destructive/40 bg-destructive/5 dark:border-destructive/30 dark:bg-destructive/10 opacity-70'
+    : isRunning
+      ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950'
+      : 'bg-background';
 
   return (
     <div
@@ -200,14 +222,14 @@ function GridRow({
       style={style}
       className={`rounded-md border px-2.5 py-2 text-xs transition ${
         isDragging ? 'opacity-50' : ''
-      } ${isRunning ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950' : 'bg-background'}`}
+      } ${cardBorder}`}
     >
       <div className="flex items-center gap-1.5 mb-1">
         <button
           type="button"
-          className={`shrink-0 ${isRunning ? 'text-muted-foreground/30 cursor-not-allowed' : 'text-muted-foreground hover:text-foreground'}`}
+          className={`shrink-0 ${isLocked ? 'text-muted-foreground/30 cursor-not-allowed' : 'text-muted-foreground hover:text-foreground'}`}
           {...attributes}
-          {...(isRunning ? {} : listeners)}
+          {...(isLocked ? {} : listeners)}
         >
           <GripVertical className="size-3.5" />
         </button>
@@ -333,9 +355,15 @@ export default function IsYukleriClient() {
   const { t } = useLocaleContext();
   const [makineId, setMakineId] = useState('hepsi');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const params = makineId !== 'hepsi' ? { makineId } : undefined;
+  const [showCompleted, setShowCompleted] = useState(false);
+  const params = {
+    ...(makineId !== 'hepsi' ? { makineId } : {}),
+    ...(showCompleted ? { tamamlananlariGoster: true } : {}),
+  };
 
-  const { data, isLoading, isFetching, refetch } = useListIsYukleriAdminQuery(params);
+  const { data, isLoading, isFetching, refetch } = useListIsYukleriAdminQuery(
+    Object.keys(params).length > 0 ? params : undefined,
+  );
   const { data: makineler } = useListMakinelerAdminQuery({});
   const [updateIsYuku, updateState] = useUpdateIsYukuAdminMutation();
   const [deleteIsYuku, deleteState] = useDeleteIsYukuAdminMutation();
@@ -404,8 +432,8 @@ export default function IsYukleriClient() {
 
     const movedItem = sourceGroup.items[sourceIndex];
 
-    if (movedItem.durum === 'calisiyor') {
-      toast.warning('Çalışan iş sırası değiştirilemez. Önce durdurun veya bitirin.');
+    if (movedItem.durum === 'calisiyor' || movedItem.durum === 'tamamlandi') {
+      toast.warning('Çalışan veya tamamlanmış iş sırası değiştirilemez.');
       return;
     }
 
@@ -477,6 +505,15 @@ export default function IsYukleriClient() {
               ))}
             </SelectContent>
           </Select>
+
+          <Button
+            variant={showCompleted ? 'secondary' : 'outline'}
+            size="sm"
+            className="h-8 text-xs"
+            onClick={() => setShowCompleted((v) => !v)}
+          >
+            {showCompleted ? 'Tümü' : 'Tamamlananları Göster'}
+          </Button>
 
           <div className="flex rounded-md border">
             <Button

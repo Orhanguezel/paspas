@@ -11,7 +11,7 @@ const BASE = "/admin/is-yukler";
 
 export const isYukleriAdminApi = baseApi.injectEndpoints({
   endpoints: (b) => ({
-    listIsYukleriAdmin: b.query<IsYukuListResponse, { makineId?: string; durum?: string } | undefined>({
+    listIsYukleriAdmin: b.query<IsYukuListResponse, { makineId?: string; tamamlananlariGoster?: boolean } | undefined>({
       query: (params) => ({ url: BASE, params: params ?? undefined }),
       transformResponse: (res: unknown) => normalizeIsYukuList(res),
       providesTags: [{ type: "IsYukleri" as const, id: "LIST" }],
