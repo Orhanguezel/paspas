@@ -52,9 +52,11 @@ async function getReceteIhtiyaclari(
   return kalemRows.map((k) => {
     const baseMiktar = Number(k.miktar ?? 0) * carpan;
     const fireOrani = Number(k.fireOrani ?? 0);
+    const rawMiktar = baseMiktar * (1 + fireOrani / 100);
+    // Kesirli cikan miktarlari yukari yuvarla (orn: 99.6 koli → 100 koli)
     return {
       urunId: k.urunId,
-      miktar: baseMiktar * (1 + fireOrani / 100),
+      miktar: Math.ceil(rawMiktar),
     };
   });
 }

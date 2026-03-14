@@ -45,7 +45,7 @@ import { resolveMediaUrl } from "@/lib/media-url";
 import UrunForm from "./urun-form";
 
 type UrunListQueryParams = {
-  search?: string;
+  q?: string;
   kategori?: string;
   tedarikTipi?: TedarikTipi;
   urunGrubu?: string;
@@ -131,7 +131,7 @@ export default function UrunlerClient() {
   }, [filteredSubCategories, urunGrubuFilter]);
 
   const queryParams: UrunListQueryParams = {};
-  if (search) queryParams.search = search;
+  if (search) queryParams.q = search;
   if (kategoriFilter) queryParams.kategori = kategoriFilter;
   if (tedarikFilter) queryParams.tedarikTipi = tedarikFilter;
   if (urunGrubuFilter) queryParams.urunGrubu = urunGrubuFilter;

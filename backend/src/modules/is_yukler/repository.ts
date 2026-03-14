@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { makineKuyrugu, makineler } from '@/modules/makine_havuzu/schema';
 import { uretimEmirleri, uretimEmriOperasyonlari } from '@/modules/uretim_emirleri/schema';
 import { urunler } from '@/modules/urunler/schema';
+import { recalcMakineKuyrukTarihleri } from '@/modules/_shared/planlama';
 
 import type { IsYukuDto } from './schema';
 import type { CreateBody, ListQuery, PatchBody } from './validation';
@@ -116,52 +117,7 @@ function selectQueue(where?: SQL) {
     .$dynamic();
 }
 
-async function recalcMakineKuyrukTarihleri(makineId: string): Promise<void> {
-  const items = await db
-    .select({
-      id: makineKuyrugu.id,
-      sira: makineKuyrugu.sira,
-      planlananSureDk: makineKuyrugu.planlanan_sure_dk,
-      hazirlikSuresiDk: makineKuyrugu.hazirlik_suresi_dk,
-      durum: makineKuyrugu.durum,
-      gercekBaslangic: makineKuyrugu.gercek_baslangic,
-      emirOperasyonId: makineKuyrugu.emir_operasyon_id,
-    })
-    .from(makineKuyrugu)
-    .where(eq(makineKuyrugu.makine_id, makineId))
-    .orderBy(asc(makineKuyrugu.sira));
-
-  if (items.length === 0) return;
-
-  let cursor = new Date();
-  for (const item of items) {
-    const totalDk = Number(item.hazirlikSuresiDk ?? 0) + Number(item.planlananSureDk ?? 0);
-    const baslangic = item.durum === 'calisiyor' && item.gercekBaslangic
-      ? new Date(item.gercekBaslangic)
-      : new Date(cursor.getTime());
-    const bitis = new Date(baslangic.getTime() + totalDk * 60_000);
-
-    await db
-      .update(makineKuyrugu)
-      .set({
-        planlanan_baslangic: baslangic,
-        planlanan_bitis: bitis,
-      })
-      .where(eq(makineKuyrugu.id, item.id));
-
-    if (item.emirOperasyonId) {
-      await db
-        .update(uretimEmriOperasyonlari)
-        .set({
-          planlanan_baslangic: baslangic,
-          planlanan_bitis: bitis,
-        })
-        .where(eq(uretimEmriOperasyonlari.id, item.emirOperasyonId));
-    }
-
-    cursor = bitis;
-  }
-}
+// recalcMakineKuyrukTarihleri artik _shared/planlama.ts'den import ediliyor
 
 async function resequenceMakine(tx: any, makineId: string, currentIds?: string[]) {
   const rows = currentIds

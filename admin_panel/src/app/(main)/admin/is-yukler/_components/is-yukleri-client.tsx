@@ -139,8 +139,9 @@ function KuyrukSatiri({
 
       <div className="flex w-20 shrink-0 items-center justify-end gap-1">
         {item.montaj && (
-          <Badge variant="secondary" className="px-1 text-[9px]">
-            <Wrench className="size-2.5" />
+          <Badge variant="secondary" className="px-1.5 py-0.5 text-xs gap-1">
+            <Wrench className="size-3" />
+            Montaj
           </Badge>
         )}
         <Badge variant={IS_YUKU_DURUM_BADGE[item.durum] ?? 'outline'} className="px-1.5 text-[9px]">

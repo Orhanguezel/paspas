@@ -78,6 +78,26 @@ export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogPro
     }
   }, [emir]);
 
+  // Aynı makineye atanan çift operasyonda montaj mecburen ikinci sırada olmalı
+  useEffect(() => {
+    if (!emir || emir.operasyonlar.length !== 2 || !montajOpId) return;
+
+    const [firstOp, secondOp] = emir.operasyonlar;
+    const firstMakine = selections[firstOp.id];
+    const secondMakine = selections[secondOp.id];
+
+    // Both assigned to same machine and montaj is on first op → force to second
+    if (
+      firstMakine && secondMakine &&
+      firstMakine !== 'none' && secondMakine !== 'none' &&
+      firstMakine === secondMakine &&
+      montajOpId === firstOp.id
+    ) {
+      setMontajOpId(secondOp.id);
+      toast.warning('Aynı makinede montaj ikinci sırada olmalıdır');
+    }
+  }, [selections, montajOpId, emir]);
+
   const allMakineler = (makineData?.items ?? []).filter((m) => m.isActive);
 
   function getFilteredMakineler(kalipId: string | null) {
@@ -102,8 +122,22 @@ export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogPro
       }
       toast.success(t('kuyrukYonetimi.atama.basarili'));
       onClose();
-    } catch {
-      toast.error(t('kuyrukYonetimi.atama.hata'));
+    } catch (err: unknown) {
+      const msg = err && typeof err === 'object' && 'data' in err
+        ? ((err as Record<string, unknown>).data as Record<string, unknown>)?.error
+          ? String(((err as Record<string, unknown>).data as Record<string, { message?: string }>)?.error?.message ?? '')
+          : ''
+        : '';
+      const detay = msg === 'kalip_makine_uyumsuz'
+        ? 'Seçilen makine kalıp ile uyumlu değil.'
+        : msg === 'operasyon_bulunamadi'
+          ? 'Operasyon bulunamadı, emir güncel olmayabilir.'
+          : msg === 'makine_bulunamadi'
+            ? 'Seçilen makine bulunamadı.'
+            : msg
+              ? `Hata: ${msg}`
+              : t('kuyrukYonetimi.atama.hata');
+      toast.error(detay);
     }
   }
 

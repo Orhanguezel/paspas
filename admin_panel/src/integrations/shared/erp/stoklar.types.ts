@@ -103,7 +103,10 @@ export interface YeterlilikKalemDto {
   gerekliMiktar: number;
   fireOrani: number;
   gerekliMiktarFireli: number;
+  toplamStok: number;
+  rezerveStok: number;
   mevcutStok: number;
+  eksikMiktar: number;
   fark: number;
   yeterli: boolean;
 }
@@ -130,7 +133,10 @@ function normalizeYeterlilikKalem(raw: unknown): YeterlilikKalemDto {
     gerekliMiktar: toNum(r.gerekliMiktar),
     fireOrani: toNum(r.fireOrani),
     gerekliMiktarFireli: toNum(r.gerekliMiktarFireli),
+    toplamStok: toNum(r.toplamStok),
+    rezerveStok: toNum(r.rezerveStok),
     mevcutStok: toNum(r.mevcutStok),
+    eksikMiktar: toNum(r.eksikMiktar),
     fark: toNum(r.fark),
     yeterli: typeof r.yeterli === "boolean" ? r.yeterli : true,
   };

@@ -155,7 +155,10 @@ export type YeterlilikKalemResult = {
   gerekliMiktar: number;
   fireOrani: number;
   gerekliMiktarFireli: number;
+  toplamStok: number;
+  rezerveStok: number;
   mevcutStok: number;
+  eksikMiktar: number;
   fark: number;
   yeterli: boolean;
 };
@@ -209,8 +212,11 @@ export async function repoCheckYeterlilik(query: YeterlilikQuery): Promise<Yeter
     const miktar = Number(kalem.miktar ?? 0) * carpan;
     const fireOrani = Number(kalem.fire_orani ?? 0);
     const gerekliMiktarFireli = miktar * (1 + fireOrani / 100);
-    const mevcutStok = malzeme ? Number(malzeme.stok ?? 0) - Number(malzeme.rezerve_stok ?? 0) : 0;
+    const toplamStok = malzeme ? Number(malzeme.stok ?? 0) : 0;
+    const rezerveStok = malzeme ? Number(malzeme.rezerve_stok ?? 0) : 0;
+    const mevcutStok = toplamStok - rezerveStok;
     const fark = mevcutStok - gerekliMiktarFireli;
+    const eksikMiktar = fark < 0 ? Math.abs(fark) : 0;
 
     return {
       malzemeId: kalem.urun_id,
@@ -221,7 +227,10 @@ export async function repoCheckYeterlilik(query: YeterlilikQuery): Promise<Yeter
       gerekliMiktar: miktar,
       fireOrani,
       gerekliMiktarFireli,
+      toplamStok,
+      rezerveStok,
       mevcutStok,
+      eksikMiktar,
       fark,
       yeterli: fark >= 0,
     };

@@ -58,6 +58,7 @@ export const uretimEmirleriAdminApi = baseApi.injectEndpoints({
         { type: 'UretimEmirleri', id: 'ADAYLAR' },
         { type: 'UretimEmirleri', id: 'NEXT_NO' },
         { type: 'Stoklar', id: 'LIST' },
+        { type: 'MakineKuyrugu', id: 'ATANMAMIS' },
       ],
     }),
 
@@ -68,6 +69,7 @@ export const uretimEmirleriAdminApi = baseApi.injectEndpoints({
         { type: 'UretimEmri', id },
         { type: 'UretimEmirleri', id: 'LIST' },
         { type: 'UretimEmirleri', id: 'ADAYLAR' },
+        { type: 'MakineKuyrugu', id: 'ATANMAMIS' },
       ],
     }),
 
@@ -87,6 +89,8 @@ export const uretimEmirleriAdminApi = baseApi.injectEndpoints({
         { type: 'UretimEmirleri', id: 'ADAYLAR' },
         { type: 'UretimEmirleri', id: 'NEXT_NO' },
         { type: 'Stoklar', id: 'LIST' },
+        { type: 'MakineKuyrugu', id: 'ATANMAMIS' },
+        { type: 'MakineKuyrugu', id: 'KUYRUKLAR' },
       ],
     }),
   }),

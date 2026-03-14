@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2 } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -25,8 +25,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -211,8 +213,8 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   const productionFieldsEnabled = selectedCategory?.uretim_alanlari_aktif ?? false;
   const operationTypeRequired = selectedCategory?.operasyon_tipi_gerekli ?? false;
   const isRecipeCategory = watchKategori === "urun";
-  const showProductionFields = isRecipeCategory && productionFieldsEnabled && watchTedarikTipi === "uretim";
-  const showOperasyonTipi = isRecipeCategory && operationTypeRequired && showProductionFields;
+  const showProductionFields = productionFieldsEnabled && watchTedarikTipi === "uretim";
+  const showOperasyonTipi = operationTypeRequired && showProductionFields;
 
   useEffect(() => {
     if (activeTab === "operasyonlar" && !showProductionFields) {
@@ -898,7 +900,15 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                             <Label className="text-xs">{tForm("cevrimSuresi")}</Label>
                             <Input type="number" step="0.01" {...form.register(`operasyonlar.${idx}.cevrimSuresiSn`)} />
                           </div>
-
+                          <div className="flex items-center gap-2 pt-5">
+                            <Switch
+                              checked={form.watch(`operasyonlar.${idx}.montaj`)}
+                              onCheckedChange={(v) =>
+                                form.setValue(`operasyonlar.${idx}.montaj`, v, { shouldDirty: true })
+                              }
+                            />
+                            <Label className="text-xs">Montaj</Label>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1121,6 +1131,78 @@ interface ReceteRow {
   sira: number;
 }
 
+interface MalzemeOption {
+  id: string;
+  kod: string;
+  ad: string;
+  birim: string;
+}
+
+interface MalzemeComboboxProps {
+  malzemeOptions: MalzemeOption[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  label: string;
+}
+
+function MalzemeCombobox({ malzemeOptions, value, onChange, placeholder, label }: MalzemeComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const selected = malzemeOptions.find((m) => m.id === value);
+
+  return (
+    <div className="space-y-1 sm:col-span-3">
+      <Label className="text-xs">{label}</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full justify-between font-normal"
+          >
+            {selected ? `${selected.kod} — ${selected.ad}` : placeholder}
+            <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+          <Command>
+            <CommandInput placeholder={placeholder} />
+            <CommandList>
+              <CommandEmpty>Sonuc bulunamadi.</CommandEmpty>
+              <CommandGroup>
+                {value && (
+                  <CommandItem
+                    value="__clear__"
+                    onSelect={() => {
+                      onChange("");
+                      setOpen(false);
+                    }}
+                  >
+                    —
+                  </CommandItem>
+                )}
+                {malzemeOptions.map((option) => (
+                  <CommandItem
+                    key={option.id}
+                    value={`${option.kod} ${option.ad}`}
+                    onSelect={() => {
+                      onChange(option.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check className={`mr-2 size-4 ${value === option.id ? "opacity-100" : "opacity-0"}`} />
+                    {option.kod} — {option.ad} ({option.birim})
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 function createReceteRow(partial?: Partial<Omit<ReceteRow, "key">>): ReceteRow {
   return {
     key: crypto.randomUUID(),
@@ -1191,25 +1273,13 @@ function DraftReceteSection({ birim, allowedCategoryCodes, rows, onRowsChange }:
         return (
           <div key={row.key} className="space-y-2 rounded-lg border bg-muted/30 p-3">
             <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-6">
-              <div className="space-y-1 sm:col-span-3">
-                <Label className="text-xs">{tForm("receteMalzeme")}</Label>
-                <Select
-                  value={row.urunId || "none"}
-                  onValueChange={(value) => updateRow(idx, "urunId", value === "none" ? "" : value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={tForm("receteMalzemeSec")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">—</SelectItem>
-                    {malzemeOptions.map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        {option.kod} — {option.ad} ({option.birim})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <MalzemeCombobox
+                malzemeOptions={malzemeOptions}
+                value={row.urunId}
+                onChange={(value) => updateRow(idx, "urunId", value)}
+                placeholder={tForm("receteMalzemeSec")}
+                label={tForm("receteMalzeme")}
+              />
               <div className="space-y-1">
                 <Label className="text-xs">{tForm("receteMiktar")}</Label>
                 <Input
@@ -1406,25 +1476,13 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
         return (
           <div key={row.key} className="space-y-2 rounded-lg border bg-muted/30 p-3">
             <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-6">
-              <div className="space-y-1 sm:col-span-3">
-                <Label className="text-xs">{tForm("receteMalzeme")}</Label>
-                <Select
-                  value={row.urunId || "none"}
-                  onValueChange={(v) => updateRow(idx, "urunId", v === "none" ? "" : v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={tForm("receteMalzemeSec")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">—</SelectItem>
-                    {malzemeOptions.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.kod} — {u.ad} ({u.birim})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <MalzemeCombobox
+                malzemeOptions={malzemeOptions}
+                value={row.urunId}
+                onChange={(value) => updateRow(idx, "urunId", value)}
+                placeholder={tForm("receteMalzemeSec")}
+                label={tForm("receteMalzeme")}
+              />
               <div className="space-y-1">
                 <Label className="text-xs">{tForm("receteMiktar")}</Label>
                 <Input

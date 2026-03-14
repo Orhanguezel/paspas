@@ -35,7 +35,7 @@ export const urunlerAdminApi = baseApi.injectEndpoints({
     listUrunlerAdmin: b.query<
       UrunListResponse,
       | {
-          search?: string;
+          q?: string;
           page?: number;
           limit?: number;
           kategori?: UrunKategori;

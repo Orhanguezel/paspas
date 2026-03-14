@@ -42,6 +42,15 @@ async function dropAndCreate(root: mysql.Connection) {
   await root.query(
     `CREATE DATABASE \`${env.DB.name}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
   );
+  // DROP DATABASE silince DB-specific GRANT'lar da siliniyor.
+  // Yeni DB icin kullaniciya yetki ver, yoksa sonraki baglanti basarisiz olur.
+  await root.query(
+    `GRANT ALL PRIVILEGES ON \`${env.DB.name}\`.* TO '${env.DB.user}'@'localhost';`
+  );
+  await root.query(
+    `GRANT ALL PRIVILEGES ON \`${env.DB.name}\`.* TO '${env.DB.user}'@'%';`
+  );
+  await root.query(`FLUSH PRIVILEGES;`);
 }
 
 async function createRoot(): Promise<mysql.Connection> {

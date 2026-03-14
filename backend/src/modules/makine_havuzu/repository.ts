@@ -4,12 +4,12 @@ import { and, asc, desc, eq, inArray, isNull, like, or, sql } from 'drizzle-orm'
 import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
-import { kalipUyumluMakineler, kaliplar, tatiller, haftaSonuPlanlari } from '@/modules/tanimlar/schema';
-import { repoGetHaftaSonuPlanByDate } from '@/modules/tanimlar/repository';
+import { kalipUyumluMakineler, kaliplar, tatiller } from '@/modules/tanimlar/schema';
 import { uretimEmirleri, uretimEmriOperasyonlari } from '@/modules/uretim_emirleri/schema';
 import { stokDus, stokGeriAl } from '@/modules/uretim_emirleri/hammadde_service';
 import { ensureCriticalStockDrafts } from '@/modules/satin_alma/repository';
 import { urunler } from '@/modules/urunler/schema';
+import { recalcMakineKuyrukTarihleri, isMakineWorkingDay } from '@/modules/_shared/planlama';
 
 import { durusKayitlari } from '@/modules/operator/schema';
 
@@ -338,129 +338,8 @@ export async function repoListKuyruklar(): Promise<KuyrukGrubuDto[]> {
   });
 }
 
-/**
- * Belirli bir tarihte makine calisabilir mi kontrolu (tatil ve hafta sonu planlari).
- * Varsayilan olarak hafta sonu (Cumartesi/Pazar) calisma yok, hafta_sonu_planlari tablosundan override.
- */
-async function isMakineWorkingDay(makineId: string, date: Date): Promise<boolean> {
-  const dayOfWeek = date.getDay(); // 0=Pazar, 6=Cumartesi
-
-  // Hafta ici (1-5) = calisma gunu
-  if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-    return true;
-  }
-
-  // Hafta sonu: hafta_sonu_planlari tablosuna bak
-  // Once makine bazli plan var mi kontrol et, yoksa genel plan (makine_id=NULL)
-  const plan = await repoGetHaftaSonuPlanByDate(date, makineId);
-  if (plan) return plan.calisiyor;
-
-  // Plan yoksa varsayilan: hafta sonu calisma yok
-  return false;
-}
-
-/**
- * Bir tarihi ileriye tasir, tatil ve hafta sonu kontrolu yapar.
- * Tatil veya calisma disinda ise bir sonraki calisma gunune atar.
- */
-async function skipToNextWorkingDay(date: Date, makineId: string): Promise<Date> {
-  const maxIterations = 30; // sonsuz donguyu engellemek icin
-  let current = new Date(date);
-  
-  for (let i = 0; i < maxIterations; i++) {
-    const isWorking = await isMakineWorkingDay(makineId, current);
-    if (isWorking) {
-      // Tatil kontrolu
-      const dateStr = current.toISOString().slice(0, 10);
-      const [tatil] = await db
-        .select({ id: tatiller.id })
-        .from(tatiller)
-        .where(sql`${tatiller.tarih} = ${dateStr}`)
-        .limit(1);
-
-      if (!tatil) {
-        return current; // Calisma gunu ve tatil yok
-      }
-    }
-
-    // Sonraki gune gec (gun basinda)
-    current = new Date(current.getFullYear(), current.getMonth(), current.getDate() + 1, 8, 0, 0);
-  }
-
-  return current;
-}
-
-/**
- * Kuyruk sirasina gore planlanan baslangic/bitis tarihlerini hesapla ve guncelle.
- * - calisiyor durumundaki is: gercek_baslangic varsa onu kullan, yoksa simdiyi
- * - bekliyor durumundaki is: onceki isin planlanan_bitis'inden devam
- * - sure = hazirlik_suresi_dk + planlanan_sure_dk (dakika)
- * - Tatil ve hafta sonu calisma planlarini dikkate alir
- */
-async function recalcMakineKuyrukTarihleri(makineId: string): Promise<void> {
-  const items = await db
-    .select({
-      id: makineKuyrugu.id,
-      sira: makineKuyrugu.sira,
-      planlananSureDk: makineKuyrugu.planlanan_sure_dk,
-      hazirlikSuresiDk: makineKuyrugu.hazirlik_suresi_dk,
-      durum: makineKuyrugu.durum,
-      gercekBaslangic: makineKuyrugu.gercek_baslangic,
-      gercekBitis: makineKuyrugu.gercek_bitis,
-      emirOperasyonId: makineKuyrugu.emir_operasyon_id,
-    })
-    .from(makineKuyrugu)
-    .where(
-      and(
-        eq(makineKuyrugu.makine_id, makineId),
-        inArray(makineKuyrugu.durum, ['bekliyor', 'calisiyor']),
-      ),
-    )
-    .orderBy(asc(makineKuyrugu.sira));
-
-  if (items.length === 0) return;
-
-  let cursor = await skipToNextWorkingDay(new Date(), makineId); // baslangic noktasi: simdi (calisma gunu)
-
-  for (const item of items) {
-    const totalDk = item.hazirlikSuresiDk + item.planlananSureDk;
-
-    let baslangic: Date;
-    let bitis: Date;
-
-    if (item.durum === 'calisiyor') {
-      // Calisan is: gercek baslangic varsa onu kullan
-      baslangic = item.gercekBaslangic ? new Date(item.gercekBaslangic) : cursor;
-      bitis = new Date(baslangic.getTime() + totalDk * 60_000);
-    } else {
-      // Bekleyen is: onceki isin bitis zamanindan basla, calisma gunu kontrolu yap
-      baslangic = await skipToNextWorkingDay(cursor, makineId);
-      bitis = new Date(baslangic.getTime() + totalDk * 60_000);
-    }
-
-    // Kuyruk kaydini guncelle
-    await db
-      .update(makineKuyrugu)
-      .set({
-        planlanan_baslangic: baslangic,
-        planlanan_bitis: bitis,
-      })
-      .where(eq(makineKuyrugu.id, item.id));
-
-    // Emir operasyonunu da guncelle
-    if (item.emirOperasyonId) {
-      await db
-        .update(uretimEmriOperasyonlari)
-        .set({
-          planlanan_baslangic: baslangic,
-          planlanan_bitis: bitis,
-        })
-        .where(eq(uretimEmriOperasyonlari.id, item.emirOperasyonId));
-    }
-
-    cursor = bitis; // sonraki is bu isin bitisinden baslar
-  }
-}
+// isMakineWorkingDay, skipToNextWorkingDay, recalcMakineKuyrukTarihleri
+// artik _shared/planlama.ts'den import ediliyor
 
 /** Operasyonu makineye ata */
 export async function repoAtaOperasyon(data: AtaBody): Promise<void> {

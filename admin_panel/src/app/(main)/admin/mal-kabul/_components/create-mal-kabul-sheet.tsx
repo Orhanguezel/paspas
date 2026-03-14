@@ -79,7 +79,7 @@ export default function CreateMalKabulSheet({ open, onClose }: Props) {
 
   // ── Free product query (non-SA) ──
   const urunlerQuery = useListUrunlerAdminQuery(
-    { search: freeUrunSearch, limit: 50 },
+    { q: freeUrunSearch, limit: 50 },
     { skip: isSatinAlma || !open },
   );
   const urunler = urunlerQuery.data?.items ?? [];

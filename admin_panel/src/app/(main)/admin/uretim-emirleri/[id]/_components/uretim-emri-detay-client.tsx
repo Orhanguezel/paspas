@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 
 import Link from "next/link";
 
-import { AlertTriangle, ArrowLeft, CheckCircle2, Pencil, RefreshCcw, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Pencil, RefreshCcw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,7 +56,9 @@ export default function UretimEmriDetayClient({ id }: Props) {
   const yeterlilikKalemleri = yeterlilik?.kalemler ?? [];
   const eksikKalemSayisi = yeterlilikKalemleri.filter((kalem) => !kalem.yeterli).length;
   const toplamGerekli = yeterlilikKalemleri.reduce((total, kalem) => total + kalem.gerekliMiktarFireli, 0);
-  const toplamStok = yeterlilikKalemleri.reduce((total, kalem) => total + kalem.mevcutStok, 0);
+  const toplamStokHam = yeterlilikKalemleri.reduce((total, kalem) => total + kalem.toplamStok, 0);
+  const toplamRezerve = yeterlilikKalemleri.reduce((total, kalem) => total + kalem.rezerveStok, 0);
+  const toplamSerbest = yeterlilikKalemleri.reduce((total, kalem) => total + kalem.mevcutStok, 0);
 
   function pct(uretilen: number, planlanan: number) {
     if (!planlanan) return 0;
@@ -141,80 +143,74 @@ export default function UretimEmriDetayClient({ id }: Props) {
         </div>
       </div>
 
-      {/* KPI kartları */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-muted-foreground text-xs">Durum</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Badge variant={EMIR_DURUM_BADGE[emri.durum]} className="text-sm">
-              {EMIR_DURUM_LABELS[emri.durum]}
-            </Badge>
+      {/* Özet: Emir No + Ürün + Durum (sol) — İlerleme (sağ) */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardContent className="flex flex-wrap items-center gap-x-6 gap-y-3 py-4">
+            <div>
+              <div className="text-muted-foreground text-xs">Emir No</div>
+              <div className="font-mono font-semibold text-lg">{emri.emirNo}</div>
+            </div>
+            <Separator orientation="vertical" className="hidden h-10 sm:block" />
+            <div className="min-w-0">
+              <div className="text-muted-foreground text-xs">Ürün</div>
+              <div className="truncate font-medium">{emri.urunAd ?? emri.urunId}</div>
+              <div className="font-mono text-muted-foreground text-xs">{emri.urunKod ?? emri.urunId}</div>
+            </div>
+            <Separator orientation="vertical" className="hidden h-10 sm:block" />
+            <div>
+              <div className="text-muted-foreground text-xs">Durum</div>
+              <Badge variant={EMIR_DURUM_BADGE[emri.durum]} className="mt-1 text-sm">
+                {EMIR_DURUM_LABELS[emri.durum]}
+              </Badge>
+            </div>
           </CardContent>
         </Card>
+
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-muted-foreground text-xs">Planlanan Miktar</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="font-bold text-2xl tabular-nums">{emri.planlananMiktar}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-muted-foreground text-xs">Üretilen Miktar</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="font-bold text-2xl text-green-600 tabular-nums">{emri.uretilenMiktar}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-muted-foreground text-xs">İlerleme</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="font-bold text-2xl tabular-nums">{ilerleme}%</p>
+          <CardContent className="space-y-2 py-4">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">İlerleme</span>
+              <span className="font-semibold tabular-nums">{ilerleme}%</span>
+            </div>
+            <Progress value={ilerleme} className="h-3" />
+            <p className="text-muted-foreground text-xs">
+              {emri.uretilenMiktar} / {emri.planlananMiktar} adet tamamlandı
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Detay bilgileri */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Emir Bilgileri</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Ürün</span>
-              <div className="text-right">
-                <div className="font-medium">{emri.urunAd ?? emri.urunId}</div>
-                <div className="font-mono text-muted-foreground text-xs">{emri.urunKod ?? emri.urunId}</div>
-              </div>
-            </div>
-            <div className="flex justify-between">
+      {/* Detay bilgileri */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Detaylar</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            <div className="flex justify-between sm:flex-col sm:gap-0.5">
               <span className="text-muted-foreground">Müşteri</span>
-              <span>{emri.musteriAd ?? (emri.musteriOzetTipi === "manuel" ? "Manuel üretim" : "—")}</span>
+              <span className="font-medium">{emri.musteriAd ?? (emri.musteriOzetTipi === "manuel" ? "Manuel üretim" : "—")}</span>
             </div>
             {emri.siparisNo && (
-              <div className="flex justify-between">
+              <div className="flex justify-between sm:flex-col sm:gap-0.5">
                 <span className="text-muted-foreground">Sipariş</span>
                 <span className="font-medium">{emri.siparisNo}</span>
               </div>
             )}
-            {emri.siparisKalemIds.length > 1 && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Bağlı Sipariş Kalemleri</span>
-                <span>{emri.siparisKalemIds.length} kalem</span>
-              </div>
-            )}
-            <Separator />
-            <div className="flex justify-between">
+            <div className="flex justify-between sm:flex-col sm:gap-0.5">
+              <span className="text-muted-foreground">Planlanan Miktar</span>
+              <span className="font-semibold tabular-nums">{emri.planlananMiktar}</span>
+            </div>
+            <div className="flex justify-between sm:flex-col sm:gap-0.5">
+              <span className="text-muted-foreground">Üretilen Miktar</span>
+              <span className="font-semibold tabular-nums text-emerald-600">{emri.uretilenMiktar}</span>
+            </div>
+            <div className="flex justify-between sm:flex-col sm:gap-0.5">
               <span className="text-muted-foreground">Başlangıç</span>
               <span>{formatDate(emri.baslangicTarihi)}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between sm:flex-col sm:gap-0.5">
               <span className="text-muted-foreground">Termin</span>
               <div className="flex items-center gap-1">
                 {emri.terminRiski && <AlertTriangle className="size-3.5 text-destructive" />}
@@ -223,65 +219,22 @@ export default function UretimEmriDetayClient({ id }: Props) {
                 </span>
               </div>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between sm:flex-col sm:gap-0.5">
               <span className="text-muted-foreground">Planlanan Bitiş</span>
-              <div className="text-right">
+              <div>
                 <div>{formatDateTime(emri.planlananBitisTarihi ?? emri.bitisTarihi)}</div>
                 <div className="text-muted-foreground text-xs">
-                  {emri.makineAtamaSayisi > 0 ? `${emri.makineAtamaSayisi} makine atamasi` : "Operasyon tahmini"}
+                  {emri.makineAtamaSayisi > 0 ? `${emri.makineAtamaSayisi} makine ataması` : "Operasyon tahmini"}
                 </div>
               </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Silme Durumu</span>
-              <div className="max-w-[240px] text-right">
-                <div className={emri.silinebilir ? "text-emerald-600" : "font-medium text-amber-600"}>
-                  {emri.silinebilir ? "Silinebilir" : "Silinemez"}
-                </div>
-                {!emri.silinebilir && emri.silmeNedeni && (
-                  <div className="text-muted-foreground text-xs">{emri.silmeNedeni}</div>
-                )}
-              </div>
-            </div>
-            <Separator />
-            <div className="flex justify-between">
+            <div className="flex justify-between sm:flex-col sm:gap-0.5">
               <span className="text-muted-foreground">Oluşturulma</span>
               <span className="tabular-nums">{formatDateTime(String(emri.createdAt))}</span>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* İlerleme */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">İlerleme</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Üretim İlerlemesi</span>
-                <span className="font-semibold">{ilerleme}%</span>
-              </div>
-              <Progress value={ilerleme} className="h-3" />
-              <p className="text-muted-foreground text-xs">
-                {emri.uretilenMiktar} / {emri.planlananMiktar} adet tamamlandı
-              </p>
-            </div>
-
-            <Separator />
-
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Durum</span>
-              <Badge variant={EMIR_DURUM_BADGE[emri.durum]} className="text-xs">
-                {EMIR_DURUM_LABELS[emri.durum]}
-              </Badge>
-            </div>
-            <p className="text-muted-foreground text-xs">
-              Durum, makine ataması ve operatör işlemlerine göre otomatik güncellenir.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Makine Kuyruğu */}
       <Card>
@@ -332,8 +285,8 @@ export default function UretimEmriDetayClient({ id }: Props) {
                 <CardTitle className="flex items-center gap-2 text-sm">
                   Malzeme Yeterliliği
                   {yeterlilik && !yeterlilikLoading && (
-                    <Badge variant={yeterlilik.tumYeterli ? "default" : "destructive"} className="text-xs">
-                      {yeterlilik.tumYeterli ? "Yeterli" : "Eksik"}
+                    <Badge variant={yeterlilik.tumYeterli ? "default" : "secondary"} className="text-xs">
+                      {yeterlilik.tumYeterli ? "Yeterli" : `${eksikKalemSayisi} kalem eksik`}
                     </Badge>
                   )}
                 </CardTitle>
@@ -343,20 +296,24 @@ export default function UretimEmriDetayClient({ id }: Props) {
               </div>
 
               {!yeterlilikLoading && yeterlilik && (
-                <div className="grid min-w-[260px] gap-2 sm:grid-cols-3">
+                <div className="grid min-w-[320px] gap-2 sm:grid-cols-4">
                   <div className="rounded-md border bg-muted/30 px-3 py-2">
                     <div className="text-[11px] text-muted-foreground">Malzeme</div>
                     <div className="font-semibold tabular-nums">{yeterlilikKalemleri.length}</div>
+                  </div>
+                  <div className="rounded-md border bg-muted/30 px-3 py-2">
+                    <div className="text-[11px] text-muted-foreground">Toplam Stok</div>
+                    <div className="font-semibold tabular-nums">{toplamStokHam.toFixed(1)}</div>
+                  </div>
+                  <div className="rounded-md border bg-muted/30 px-3 py-2">
+                    <div className="text-[11px] text-muted-foreground">Serbest Stok</div>
+                    <div className="font-semibold tabular-nums">{toplamSerbest.toFixed(1)}</div>
                   </div>
                   <div className="rounded-md border bg-muted/30 px-3 py-2">
                     <div className="text-[11px] text-muted-foreground">Eksik Kalem</div>
                     <div className={`font-semibold tabular-nums ${eksikKalemSayisi > 0 ? "text-destructive" : "text-emerald-600"}`}>
                       {eksikKalemSayisi}
                     </div>
-                  </div>
-                  <div className="rounded-md border bg-muted/30 px-3 py-2">
-                    <div className="text-[11px] text-muted-foreground">Toplam Stok</div>
-                    <div className="font-semibold tabular-nums">{toplamStok.toFixed(1)}</div>
                   </div>
                 </div>
               )}
@@ -374,76 +331,68 @@ export default function UretimEmriDetayClient({ id }: Props) {
             ) : (
               <div className="space-y-4">
                 <div className="rounded-md border bg-muted/20 px-3 py-3 text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">Özet:</span>{' '}
-                  Toplam gerekli {toplamGerekli.toFixed(1)} birim malzeme, mevcut stok toplamı {toplamStok.toFixed(1)}.
-                  {!yeterlilik.tumYeterli && ` ${eksikKalemSayisi} kalemde stok açığı var.`}
+                  <span className="font-medium text-foreground">Ozet:</span>{' '}
+                  Toplam gerekli {toplamGerekli.toFixed(1)} birim, stok {toplamStokHam.toFixed(1)} (rezerve {toplamRezerve.toFixed(1)}, serbest {toplamSerbest.toFixed(1)}).
+                  {!yeterlilik.tumYeterli && ` ${eksikKalemSayisi} kalemde stok acigi var.`}
                 </div>
 
-                <div className="space-y-3">
-                  {yeterlilik.kalemler.map((k) => (
-                    <div
-                      key={k.malzemeId}
-                      className={`rounded-lg border p-3 ${k.yeterli ? "bg-background" : "border-destructive/30 bg-destructive/5"}`}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                          {k.malzemeGorselUrl ? (
-                            <img
-                              src={k.malzemeGorselUrl}
-                              alt={k.malzemeAd}
-                              className="size-12 rounded-md border object-cover"
-                            />
-                          ) : (
-                            <div className="size-12 rounded-md border bg-muted" />
-                          )}
-                          <div className="min-w-0">
-                            <div className="font-medium">{k.malzemeAd}</div>
-                            <div className="font-mono text-xs text-muted-foreground">{k.malzemeKod}</div>
-                          </div>
-                        </div>
-
-                        <Badge variant={k.yeterli ? "outline" : "destructive"} className="shrink-0">
-                          {k.yeterli ? "Yeterli" : "Eksik"}
-                        </Badge>
-                      </div>
-
-                      <div className="mt-3 grid gap-2 sm:grid-cols-4">
-                        <div className="rounded-md border bg-muted/30 px-3 py-2">
-                          <div className="text-[11px] text-muted-foreground">Gerekli</div>
-                          <div className="font-semibold tabular-nums">
-                            {k.gerekliMiktarFireli.toFixed(1)} {k.birim}
-                          </div>
-                          {k.fireOrani > 0 && (
-                            <div className="text-[11px] text-muted-foreground">%{k.fireOrani.toFixed(0)} fire dahil</div>
-                          )}
-                        </div>
-                        <div className="rounded-md border bg-muted/30 px-3 py-2">
-                          <div className="text-[11px] text-muted-foreground">Stok</div>
-                          <div className="font-semibold tabular-nums">
-                            {k.mevcutStok.toFixed(1)} {k.birim}
-                          </div>
-                        </div>
-                        <div className="rounded-md border bg-muted/30 px-3 py-2">
-                          <div className="text-[11px] text-muted-foreground">Fark</div>
-                          <div className={`font-semibold tabular-nums ${k.fark < 0 ? "text-destructive" : "text-emerald-600"}`}>
-                            {k.fark >= 0 ? "+" : ""}{k.fark.toFixed(1)} {k.birim}
-                          </div>
-                        </div>
-                        <div className="rounded-md border bg-muted/30 px-3 py-2">
-                          <div className="text-[11px] text-muted-foreground">Durum</div>
-                          <div className="flex items-center gap-2 font-semibold">
-                            {k.yeterli ? (
-                              <CheckCircle2 className="size-4 text-emerald-600" />
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Malzeme</TableHead>
+                      <TableHead className="text-right">Gerekli</TableHead>
+                      <TableHead className="text-right">Stok</TableHead>
+                      <TableHead className="text-right">Rezerve</TableHead>
+                      <TableHead className="text-right">Serbest</TableHead>
+                      <TableHead className="text-right">Eksik</TableHead>
+                      <TableHead className="text-center">Durum</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {yeterlilik.kalemler.map((k) => (
+                      <TableRow key={k.malzemeId}>
+                        <TableCell>
+                          <div className="flex min-w-0 items-center gap-2">
+                            {k.malzemeGorselUrl ? (
+                              <img
+                                src={k.malzemeGorselUrl}
+                                alt={k.malzemeAd}
+                                className="size-8 shrink-0 rounded border object-cover"
+                              />
                             ) : (
-                              <XCircle className="size-4 text-destructive" />
+                              <div className="size-8 shrink-0 rounded border bg-muted" />
                             )}
-                            <span>{k.yeterli ? "Hazır" : "Tedarik Gerekli"}</span>
+                            <div className="min-w-0">
+                              <div className="truncate font-medium text-sm">{k.malzemeAd}</div>
+                              <div className="truncate font-mono text-xs text-muted-foreground">{k.malzemeKod}</div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          <div className="font-semibold">{k.gerekliMiktarFireli.toFixed(1)}</div>
+                          {k.fireOrani > 0 && (
+                            <div className="text-[11px] text-muted-foreground">%{k.fireOrani.toFixed(0)} fire</div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{k.toplamStok.toFixed(1)}</TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">{k.rezerveStok.toFixed(1)}</TableCell>
+                        <TableCell className="text-right tabular-nums font-medium">{k.mevcutStok.toFixed(1)}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {k.eksikMiktar > 0 ? (
+                            <span className="font-semibold text-destructive">{k.eksikMiktar.toFixed(1)}</span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={k.yeterli ? "outline" : (k.eksikMiktar > 0 ? "destructive" : "secondary")}>
+                            {k.yeterli ? "Yeterli" : "Tedarik Gerekli"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>

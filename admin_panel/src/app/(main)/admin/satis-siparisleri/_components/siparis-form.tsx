@@ -298,15 +298,6 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
             </div>
           </div>
 
-          {/* Açıklama */}
-          <div className="space-y-1">
-            <Label>{t("admin.erp.satisSiparisleri.form.aciklama")}</Label>
-            <Input
-              {...form.register("aciklama")}
-              placeholder={t("admin.erp.satisSiparisleri.form.aciklamaPlaceholder")}
-            />
-          </div>
-
           {/* Kalemler */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -392,6 +383,15 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Açıklama */}
+          <div className="space-y-1">
+            <Label>{t("admin.erp.satisSiparisleri.form.aciklama")}</Label>
+            <Input
+              {...form.register("aciklama")}
+              placeholder={t("admin.erp.satisSiparisleri.form.aciklamaPlaceholder")}
+            />
           </div>
 
           <div className="rounded-md border bg-muted/30 p-3">
