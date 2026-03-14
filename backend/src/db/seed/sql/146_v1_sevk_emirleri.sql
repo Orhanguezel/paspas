@@ -30,19 +30,4 @@ CREATE TABLE IF NOT EXISTS `sevk_emirleri` (
   CONSTRAINT `fk_sevk_emirleri_siparis_kalem` FOREIGN KEY (`siparis_kalem_id`) REFERENCES `siparis_kalemleri` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `sevk_emirleri`
-(`id`, `sevk_emri_no`, `siparis_id`, `siparis_kalem_id`, `musteri_id`, `urun_id`, `miktar`, `tarih`, `durum`, `operator_onay`, `notlar`, `created_by`)
-VALUES
-('se000001-0000-4000-8000-000000000001', 'SVK-001', 's0000001-0000-4000-8000-000000000001', 'sk000001-0000-4000-8000-000000000001', 'c0000001-0000-4000-8000-000000000001', 'u0000001-0000-4000-8000-000000000020', 40.0000, '2026-03-08', 'bekliyor', 0, 'İstanbul bayisi için ilk kısmi sevk planı.', NULL),
-('se000001-0000-4000-8000-000000000002', 'SVK-002', 's0000001-0000-4000-8000-000000000002', 'sk000001-0000-4000-8000-000000000004', 'c0000001-0000-4000-8000-000000000002', 'u0000001-0000-4000-8000-000000000060', 25.0000, '2026-03-09', 'onaylandi', 1, 'Star Plus sevkiyat hazırlığı tamamlandı.', NULL)
-ON DUPLICATE KEY UPDATE
-  `siparis_id` = VALUES(`siparis_id`),
-  `siparis_kalem_id` = VALUES(`siparis_kalem_id`),
-  `musteri_id` = VALUES(`musteri_id`),
-  `urun_id` = VALUES(`urun_id`),
-  `miktar` = VALUES(`miktar`),
-  `tarih` = VALUES(`tarih`),
-  `durum` = VALUES(`durum`),
-  `operator_onay` = VALUES(`operator_onay`),
-  `notlar` = VALUES(`notlar`),
-  `created_by` = VALUES(`created_by`);
+-- Seed verisi kaldirildi: sevkiyat uctan uca kullanici tarafindan olusturulacak
