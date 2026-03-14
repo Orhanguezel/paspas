@@ -154,8 +154,9 @@ function MakineKuyruguTab() {
     try {
       await baslat({ makineKuyrukId: item.id }).unwrap();
       toast.success(t("admin.erp.operator.started"));
-    } catch {
-      toast.error(t("admin.erp.common.operationFailed"));
+    } catch (error) {
+      const msg = getErrorMessage(error);
+      toast.error(msg);
     }
   }
 
@@ -560,6 +561,8 @@ function VardiyaPanel() {
     if (message === "acik_vardiya_zaten_var") return t("admin.erp.operator.shiftAlreadyOpen");
     if (message === "acik_vardiya_bulunamadi") return t("admin.erp.operator.shiftNotFound");
     if (message === "makine_bugun_calismiyor") return "Bu makine için bugün çalışma planı tanımlanmamış.";
+    if (message === "makinede_aktif_is_var") return "Bu makinede zaten çalışan bir iş var.";
+    if (message === "sadece_bekliyor_baslatilabilir") return "Sadece bekleyen işler başlatılabilir.";
     return t("admin.erp.common.operationFailed");
   }
 

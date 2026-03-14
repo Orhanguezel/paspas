@@ -73,6 +73,7 @@ export const uretimBaslat: RouteHandler = async (req, reply) => {
     if (msg === 'kuyruk_zaten_baslatilmis') return sendError(reply, 409, 'kuyruk_zaten_baslatilmis');
     if (msg === 'sadece_bekliyor_baslatilabilir') return sendError(reply, 409, msg);
     if (msg === 'makinede_aktif_is_var') return sendError(reply, 409, msg);
+    if (msg === 'makine_bugun_calismiyor') return sendError(reply, 409, 'makine_bugun_calismiyor');
     return sendError(reply, 500, msg || 'sunucu_hatasi');
   }
 };

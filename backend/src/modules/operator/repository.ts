@@ -402,6 +402,12 @@ export async function repoUretimBaslat(
     if (!target) throw new Error('kuyruk_kaydi_bulunamadi');
     if (target.durum !== 'bekliyor') throw new Error('sadece_bekliyor_baslatilabilir');
 
+    // Hafta sonu / tatil kontrolu: makine icin bugun calisma plani var mi?
+    const calismaDurumu = await isMakineWorkingDay(target.makine_id, now);
+    if (!calismaDurumu) {
+      throw new Error('makine_bugun_calismiyor');
+    }
+
     // Ayni makinede zaten calisan veya duraklatilmis is var mi?
     const [activeJob] = await tx
       .select({ id: makineKuyrugu.id })

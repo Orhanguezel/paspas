@@ -341,6 +341,22 @@ planlama_motoru(makineId) {
 
 ---
 
+### 8.2 Uretim Baslat — Hafta Sonu/Tatil Kontrolu Eksik (2026-03-14)
+
+**Not:** Hafta sonu calisma plani olmayan bir makinede is emrini baslatabiliyorum. Vardiya kontrolu eklenmisti ama uretim baslatma icin ayni kontrol yoktu. Ayrica Gantt uzerinden de calisma plani olmayan gunde is baslatilabiliyor.
+
+**Sorun:**
+1. `POST /operator/baslat` (uretim baslatma) — hafta sonu/tatil kontrolu yoktu
+2. Vardiya acilmadan da uretim baslatilabiliyordu
+3. Gantt uzerinden de calisma plani olmayan gunde is gorunup baslatilabiliyordu
+
+**Durum:**
+- [X] ✅ `repoUretimBaslat` icinde `isMakineWorkingDay()` kontrolu eklendi
+- [X] ✅ `409 makine_bugun_calismiyor` hatasi donuyor
+- [X] ✅ Frontend operator ekraninda detayli Turkce hata mesajlari eklendi (`makine_bugun_calismiyor`, `makinede_aktif_is_var`, `sadece_bekliyor_baslatilabilir`)
+
+---
+
 ## 9. Ek Teknik Bulgular (Kod Incelemesinden)
 
 ### 8.1 Hafta Sonu Plan Modeli Gecis Notu
