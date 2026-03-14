@@ -86,6 +86,8 @@ export const sevkiyatAdminApi = baseApi.injectEndpoints({
         { type: 'SevkBekleyenler', id: 'SIPARISSIZ' },
         { type: 'Sevkiyat', id: 'LIST' },
         { type: 'SatisSiparisleri', id: 'LIST' },
+        { type: 'Stoklar', id: 'LIST' },
+        { type: 'Urunler', id: 'LIST' },
       ],
     }),
 
@@ -99,6 +101,7 @@ export const sevkiyatAdminApi = baseApi.injectEndpoints({
         { type: 'SevkBekleyenler', id: 'SIPARISSIZ' },
         { type: 'Sevkiyat', id: 'LIST' },
         { type: 'SatisSiparisleri', id: 'LIST' },
+        { type: 'Stoklar', id: 'LIST' },
         { type: 'Urunler', id: 'LIST' },
       ],
     }),
