@@ -197,7 +197,7 @@ planlama_motoru(makineId) {
 **Durum:**
 - [X] ✅ `hammadde_service.ts` → `getReceteIhtiyaclari()` icinde `Math.ceil` yuvarlamasi eklendi
 - [X] ✅ Kismi rezervasyon mantigi mevcut ve dogru calisiyor (stok yeterliyse gerekli kadar, yetersizse tum stok rezerve)
-- [ ] 🔧 Stok girisi (mal kabul) sonrasi eksik rezervasyonlarin otomatik tamamlanmasi — yeni ozellik (V2'ye ertelenebilir)
+- [ ] 🔧 Stok girisi (mal kabul) sonrasi eksik rezervasyonlarin otomatik tamamlanmasi — V2'ye ertelendi
 - [X] ✅ Frontend detay sayfasinda malzeme tablosu 7 kolonlu Table'a donusturuldu: Malzeme, Gerekli, Stok, Rezerve, Serbest, Eksik, Durum
 
 #### 3.2 Detay Sayfasi Sadeleştirme — ✅ Tamamlandi
@@ -311,7 +311,19 @@ planlama_motoru(makineId) {
 
 ---
 
-## 8. Ek Teknik Bulgular (Kod Incelemesinden)
+## 8. Orhan Notlari (Canli Test Sirasinda)
+
+### 8.0 Makine Is Yukleri — Calisan Is Sirasi Degistirilemez (2026-03-14)
+
+**Not:** Operator is emrini calistirmissa (makine calismaya baslamissa) o isin sirasi degistirilemez. Calisan makineyi durdurmadan veya bitirmeden sirayi degistiremez. Calisan is haricindeki diger isler (ornegin kuyrukta 3 is daha varsa) kendi aralarinda yer degistirebilir.
+
+- [X] ✅ `is-yukleri-client.tsx`: `durum === 'calisiyor'` olan satir surukleme devre disi birakildi (`useSortable({ disabled: true })`)
+- [X] ✅ Calisan is gorselde yesil cerceve ile belirtildi, drag handle soluk ve `cursor-not-allowed`
+- [X] ✅ `handleDragEnd` icinde ek koruma: calisan is suruklenmeye calisilirsa `toast.warning` ile uyari
+
+---
+
+## 9. Ek Teknik Bulgular (Kod Incelemesinden)
 
 ### 8.1 Hafta Sonu Plan Modeli Gecis Notu
 

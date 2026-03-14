@@ -81,8 +81,10 @@ function KuyrukSatiri({
   onRemove: (item: IsYukuDto) => void;
   isBusy: boolean;
 }) {
+  const isRunning = item.durum === 'calisiyor';
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.kuyrukId,
+    disabled: isRunning,
   });
   const style = { transform: CSS.Transform.toString(transform), transition };
 
@@ -96,11 +98,16 @@ function KuyrukSatiri({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 rounded border bg-background px-2 py-1.5 text-xs transition ${
+      className={`flex items-center gap-2 rounded border px-2 py-1.5 text-xs transition ${
         isDragging ? 'opacity-60' : ''
-      }`}
+      } ${isRunning ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950' : 'bg-background'}`}
     >
-      <button type="button" className="text-muted-foreground hover:text-foreground" {...attributes} {...listeners}>
+      <button
+        type="button"
+        className={isRunning ? 'text-muted-foreground/30 cursor-not-allowed' : 'text-muted-foreground hover:text-foreground'}
+        {...attributes}
+        {...(isRunning ? {} : listeners)}
+      >
         <GripVertical className="size-3.5" />
       </button>
 
@@ -320,6 +327,13 @@ export default function IsYukleriClient() {
     if (sourceGroupId === targetGroupId && sourceIndex === targetIndex) return;
 
     const movedItem = sourceGroup.items[sourceIndex];
+
+    // Calisan is suruklenmez
+    if (movedItem.durum === 'calisiyor') {
+      toast.warning('Çalışan iş sırası değiştirilemez. Önce durdurun veya bitirin.');
+      return;
+    }
+
     const nextGroups = localGroups.map((g) => ({ ...g, items: [...g.items] }));
     const nextSource = nextGroups.find((g) => g.makineId === sourceGroupId);
     const nextTarget = nextGroups.find((g) => g.makineId === targetGroupId);
