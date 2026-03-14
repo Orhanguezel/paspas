@@ -360,7 +360,25 @@ planlama_motoru(makineId) {
 
 ---
 
-### 8.3 Uretim Baslat — Hafta Sonu/Tatil Kontrolu Eksik (2026-03-14)
+### 8.3 Sevkiyat — Uretim Tamamlanan Siparisler Sevk Bekleyenlerde Gorunmuyor (2026-03-14)
+
+**Not:** Is emri tamamlandiktan sonra sevkiyat sayfasinda o siparis "sevk bekleyen" olarak gorunmuyordu. Sebebi: `repoListBekleyenler` filtresi sadece `taslak, planlandi, onaylandi, uretimde, kismen_sevk` durumlarini kabul ediyordu. `tamamlandi` durumu listede yoktu — uretim bittikten sonra siparis sevkiyat ekranina dusmuyordu.
+
+**Cozum:** Filtre degistirildi: `durum NOT IN ('iptal', 'kapali')` — boylece uretim tamamlanan siparisler de sevk bekleyenler listesinde gorunuyor.
+
+**Diger:**
+- Operator ekranindan sevkiyat tabi kaldirildi
+- Sevkiyat seed verisi temizlendi — uctan uca kullanici olusturacak
+- `sevk_emirleri` tablosu seed sonrasi bos geliyor
+
+**Durum:**
+- [X] ✅ `repoListBekleyenler` filtresi duzeltildi — `tamamlandi` durumu artik sevk bekleyenlerde gorunuyor
+- [X] ✅ Operator sevkiyat tabi kaldirildi
+- [X] ✅ Sevkiyat seed verisi temizlendi
+
+---
+
+### 8.4 Uretim Baslat — Hafta Sonu/Tatil Kontrolu Eksik (2026-03-14)
 
 **Not:** Hafta sonu calisma plani olmayan bir makinede is emrini baslatabiliyorum. Vardiya kontrolu eklenmisti ama uretim baslatma icin ayni kontrol yoktu. Ayrica Gantt uzerinden de calisma plani olmayan gunde is baslatilabiliyor.
 
