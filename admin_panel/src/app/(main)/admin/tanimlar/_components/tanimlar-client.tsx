@@ -711,8 +711,11 @@ export default function TanimlarClient() {
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {p.makineAdlari.length > 0 ? (
-                            p.makineAdlari.map((makineAdi) => (
-                              <Badge key={`${p.id}-${makineAdi}`} variant="outline">{makineAdi}</Badge>
+                            p.makineAdlari.map((makineAdi, idx) => (
+                              <Badge key={`${p.id}-${makineAdi}`} variant="outline">
+                                {p.makineKodlari?.[idx] ? <span className="font-mono font-semibold mr-1">{p.makineKodlari[idx]}</span> : null}
+                                {makineAdi}
+                              </Badge>
                             ))
                           ) : (
                             <span className="text-sm text-muted-foreground">

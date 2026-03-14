@@ -221,6 +221,7 @@ export interface HaftaSonuPlanDto {
   makineIds: string[];
   makineAd: string | null;  // İlk makine adı / geriye dönük alan
   makineAdlari: string[];
+  makineKodlari: string[];
   gunTipi: 'cumartesi' | 'pazar' | null;
   cumartesiCalisir: boolean;
   pazarCalisir: boolean;
@@ -254,6 +255,9 @@ export function normalizeHaftaSonuPlan(raw: unknown): HaftaSonuPlanDto {
     makineAdlari: Array.isArray(r.makineAdlari)
       ? r.makineAdlari.map((item) => toStr(item)).filter(Boolean)
       : (r.makineAd != null ? [toStr(r.makineAd)] : []).filter(Boolean),
+    makineKodlari: Array.isArray(r.makineKodlari)
+      ? r.makineKodlari.map((item) => toStr(item)).filter(Boolean)
+      : [],
     gunTipi: r.gunTipi === 'cumartesi' || r.gunTipi === 'pazar' ? r.gunTipi : null,
     cumartesiCalisir: toBool(r.cumartesiCalisir, false),
     pazarCalisir: toBool(r.pazarCalisir, false),

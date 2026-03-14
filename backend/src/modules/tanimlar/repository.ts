@@ -249,14 +249,15 @@ export async function repoListHaftaSonuPlanlari(): Promise<Array<HaftaSonuPlanRo
       updated_at: haftaSonuPlanlari.updated_at,
       created_by: haftaSonuPlanlari.created_by,
       makine_ad: makineler.ad,
+      makine_kod: makineler.kod,
     })
     .from(haftaSonuPlanlari)
     .leftJoin(makineler, eq(haftaSonuPlanlari.makine_id, makineler.id))
-    .orderBy(desc(haftaSonuPlanlari.hafta_baslangic), asc(makineler.ad));
+    .orderBy(desc(haftaSonuPlanlari.hafta_baslangic), asc(makineler.kod));
 
-  const grouped = new Map<string, HaftaSonuPlanDtoRow & { makine_ad?: string }>();
+  const grouped = new Map<string, HaftaSonuPlanDtoRow & { makine_ad?: string; makine_kodlari?: string[] }>();
 
-  for (const row of rows as (HaftaSonuPlanRow & { makine_ad?: string })[]) {
+  for (const row of rows as (HaftaSonuPlanRow & { makine_ad?: string; makine_kod?: string })[]) {
     if (!isWeekendDate(row.hafta_baslangic)) continue;
     const tarih = toDateOnly(row.hafta_baslangic);
     const current = grouped.get(tarih);
@@ -266,6 +267,7 @@ export async function repoListHaftaSonuPlanlari(): Promise<Array<HaftaSonuPlanRo
         ...row,
         makine_ids: row.makine_id ? [row.makine_id] : [],
         makine_adlari: row.makine_ad ? [row.makine_ad] : [],
+        makine_kodlari: row.makine_kod ? [row.makine_kod] : [],
       });
       continue;
     }
@@ -276,9 +278,12 @@ export async function repoListHaftaSonuPlanlari(): Promise<Array<HaftaSonuPlanRo
     if (row.makine_ad && !(current.makine_adlari ?? []).includes(row.makine_ad)) {
       current.makine_adlari = [...(current.makine_adlari ?? []), row.makine_ad];
     }
+    if (row.makine_kod && !(current.makine_kodlari ?? []).includes(row.makine_kod)) {
+      current.makine_kodlari = [...(current.makine_kodlari ?? []), row.makine_kod];
+    }
   }
 
-  return [...grouped.values()] as (HaftaSonuPlanRow & { makine_ad?: string })[];
+  return [...grouped.values()];
 }
 
 export async function repoGetHaftaSonuPlanById(id: string): Promise<(HaftaSonuPlanRow & { makine_ad?: string }) | null> {
