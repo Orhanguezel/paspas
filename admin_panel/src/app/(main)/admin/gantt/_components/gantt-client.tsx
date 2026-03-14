@@ -436,6 +436,10 @@ export default function GanttClient() {
                 <span className="text-xs text-muted-foreground">{DURUM_LABELS[durum]}</span>
               </div>
             ))}
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex size-3 items-center justify-center rounded-full bg-amber-500 text-[6px] font-bold text-white">!</span>
+              <span className="text-xs text-muted-foreground">H.Sonu Bitiş</span>
+            </div>
             {(["hafta_sonu", "tatil", "durus"] as const).map((tip) => (
               <div key={tip} className="flex items-center gap-1.5">
                 <span
@@ -673,11 +677,16 @@ function GanttBar({ item, left, top, width }: { item: GanttBarDto; left: number;
   const style = DURUM_STYLES[item.durum] ?? DURUM_STYLES.bekliyor;
   const isCancelled = item.durum === "iptal";
 
+  const bitisDate = toDate(item.bitisTarihi);
+  const isWeekendBitis = bitisDate ? bitisDate.getDay() === 0 || bitisDate.getDay() === 6 : false;
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <div className="absolute z-5 cursor-default" style={{ left: left + 2, top, width }}>
-          <div className={`relative h-8 overflow-hidden rounded-md shadow-sm ${style.track}`}>
+          <div
+            className={`relative h-8 overflow-hidden rounded-md shadow-sm ${style.track} ${isWeekendBitis ? "ring-2 ring-amber-400 ring-offset-1" : ""}`}
+          >
             {pct > 0 && !isCancelled && (
               <div className={`absolute inset-y-0 left-0 ${style.fill}`} style={{ width: `${pct}%` }} />
             )}
@@ -686,6 +695,11 @@ function GanttBar({ item, left, top, width }: { item: GanttBarDto; left: number;
               <span className="shrink-0 font-mono">{item.emirNo}</span>
               {width > 90 && <span className="truncate">{item.urunKod ?? item.urunAd ?? item.urunId}</span>}
               {item.montaj && <Wrench className="ml-auto size-3 shrink-0 text-amber-700" />}
+              {isWeekendBitis && (
+                <span className="ml-auto flex size-4 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-white" title="Bitiş hafta sonuna denk geliyor">
+                  !
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -709,6 +723,9 @@ function GanttBar({ item, left, top, width }: { item: GanttBarDto; left: number;
             <div className="text-muted-foreground">Plan Bitiş: {formatDateTime(item.planlananBitisTarihi)}</div>
           )}
           <div>Termin: {formatDateOnly(item.terminTarihi)}</div>
+          {isWeekendBitis && (
+            <div className="font-medium text-amber-600">⚠ Bitiş hafta sonuna denk geliyor</div>
+          )}
           <div>
             İlerleme: {pct}% ({item.uretilenMiktar}/{item.planlananMiktar})
           </div>

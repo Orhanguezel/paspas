@@ -233,6 +233,24 @@ export function addWorkingMinutes(
   return cursor;
 }
 
+// ── Public yardimci: Tum aktif makinelerin kuyruklarini recalc et ────
+
+/**
+ * Kuyrugunda bekliyor/calisiyor is olan tum makinelerin tarihlerini yeniden hesaplar.
+ * Tatil veya hafta sonu plani degistiginde cagrilmali.
+ */
+export async function recalcAllActiveMachines(): Promise<number> {
+  const rows = await db
+    .selectDistinct({ makineId: makineKuyrugu.makine_id })
+    .from(makineKuyrugu)
+    .where(inArray(makineKuyrugu.durum, ['bekliyor', 'calisiyor']));
+
+  for (const row of rows) {
+    await recalcMakineKuyrukTarihleri(row.makineId);
+  }
+  return rows.length;
+}
+
 // ── Public yardimci: Tek tarih icin calisma gunu kontrolu ────────────
 
 /**

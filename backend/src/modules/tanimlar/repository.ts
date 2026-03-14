@@ -4,6 +4,7 @@ import { asc, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { makineler } from '@/modules/makine_havuzu/schema';
+import { recalcAllActiveMachines } from '@/modules/_shared/planlama';
 
 import { kaliplar, kalipUyumluMakineler, tatilMakineler, tatiller, vardiyalar, durusNedenleri, haftaSonuPlanlari, type KalipRow, type TatilRow, type VardiyaRow, type DurusNedeniRow, type HaftaSonuPlanDtoRow, type HaftaSonuPlanRow } from './schema';
 import type { CreateKalipBody, CreateTatilBody, PatchKalipBody, PatchTatilBody, SetKalipUyumluMakinelerBody, CreateVardiyaBody, PatchVardiyaBody, CreateDurusNedeniBody, PatchDurusNedeniBody, CreateHaftaSonuPlanBody, PatchHaftaSonuPlanBody } from './validation';
@@ -124,6 +125,8 @@ export async function repoCreateTatil(body: CreateTatilBody): Promise<TatilRow> 
   });
   const row = await repoGetTatilById(id);
   if (!row) throw new Error('insert_failed');
+  // Tatil eklendi — aktif kuyruklu makinelerin tarihlerini yeniden hesapla
+  await recalcAllActiveMachines();
   return row;
 }
 
@@ -135,6 +138,8 @@ export async function repoUpdateTatil(id: string, body: PatchTatilBody): Promise
   if (body.bitisSaati !== undefined) payload.bitis_saati = body.bitisSaati;
   if (body.aciklama !== undefined) payload.aciklama = body.aciklama;
   await db.update(tatiller).set(payload).where(eq(tatiller.id, id));
+  // Tatil guncellendi — aktif kuyruklu makinelerin tarihlerini yeniden hesapla
+  await recalcAllActiveMachines();
   return repoGetTatilById(id);
 }
 
@@ -143,6 +148,8 @@ export async function repoDeleteTatil(id: string): Promise<void> {
     await tx.delete(tatilMakineler).where(eq(tatilMakineler.tatil_id, id));
     await tx.delete(tatiller).where(eq(tatiller.id, id));
   });
+  // Tatil silindi — aktif kuyruklu makinelerin tarihlerini yeniden hesapla
+  await recalcAllActiveMachines();
 }
 
 // ── Vardiyalar ──────────────────────────────────────────────
@@ -339,6 +346,8 @@ export async function repoCreateHaftaSonuPlan(body: CreateHaftaSonuPlanBody, use
     .limit(1);
   const row = inserted ? await repoGetHaftaSonuPlanById(inserted.id) : null;
   if (!row) throw new Error('insert_failed');
+  // Hafta sonu plani degisti — aktif kuyruklu makinelerin tarihlerini yeniden hesapla
+  await recalcAllActiveMachines();
   return row;
 }
 
@@ -375,7 +384,10 @@ export async function repoUpdateHaftaSonuPlan(id: string, body: PatchHaftaSonuPl
     .from(haftaSonuPlanlari)
     .where(sql`${haftaSonuPlanlari.hafta_baslangic} = ${hedefTarihStr}`)
     .limit(1);
-  return updated ? repoGetHaftaSonuPlanById(updated.id) : null;
+  const result = updated ? await repoGetHaftaSonuPlanById(updated.id) : null;
+  // Hafta sonu plani guncellendi — aktif kuyruklu makinelerin tarihlerini yeniden hesapla
+  await recalcAllActiveMachines();
+  return result;
 }
 
 export async function repoDeleteHaftaSonuPlan(id: string): Promise<boolean> {
@@ -387,6 +399,8 @@ export async function repoDeleteHaftaSonuPlan(id: string): Promise<boolean> {
     .from(haftaSonuPlanlari)
     .where(sql`${haftaSonuPlanlari.hafta_baslangic} = ${toDateOnly(current.hafta_baslangic)}`)
     .limit(1);
+  // Hafta sonu plani silindi — aktif kuyruklu makinelerin tarihlerini yeniden hesapla
+  await recalcAllActiveMachines();
   return !remaining;
 }
 

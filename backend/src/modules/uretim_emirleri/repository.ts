@@ -5,6 +5,7 @@ import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { makineKuyrugu } from '@/modules/makine_havuzu/schema';
+import { recalcMakineKuyrukTarihleri } from '@/modules/_shared/planlama';
 import { musteriler } from '@/modules/musteriler/schema';
 import { operatorGunlukKayitlari } from '@/modules/operator/schema';
 import { receteler } from '@/modules/receteler/schema';
@@ -499,6 +500,48 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<Enriched
     const urunId = patch.urunId ?? (await repoGetById(id))?.urun_id;
     await syncJunctionRows(id, patch.siparisKalemIds ?? [], urunId ?? undefined);
   }
+
+  // Miktar degistiyse operasyonlarin planlanan_miktar'ini ve kuyruk surelerini guncelle
+  if (patch.planlananMiktar !== undefined) {
+    const miktarStr = patch.planlananMiktar.toFixed(4);
+    // Operasyonlarin planlanan miktarini guncelle
+    await db
+      .update(uretimEmriOperasyonlari)
+      .set({ planlanan_miktar: miktarStr })
+      .where(eq(uretimEmriOperasyonlari.uretim_emri_id, id));
+
+    // Kuyruk surelerini yeniden hesapla (cevrim_suresi * yeni miktar)
+    const kuyrukRows = await db
+      .select({
+        kuyrukId: makineKuyrugu.id,
+        makineId: makineKuyrugu.makine_id,
+        emirOpId: makineKuyrugu.emir_operasyon_id,
+      })
+      .from(makineKuyrugu)
+      .where(eq(makineKuyrugu.uretim_emri_id, id));
+
+    const affectedMachines = new Set<string>();
+    for (const kRow of kuyrukRows) {
+      if (!kRow.emirOpId) continue;
+      // Operasyondan cevrim suresini al
+      const [op] = await db
+        .select({ cevrimSuresiSn: uretimEmriOperasyonlari.cevrim_suresi_sn, hazirlikSuresiDk: uretimEmriOperasyonlari.hazirlik_suresi_dk })
+        .from(uretimEmriOperasyonlari)
+        .where(eq(uretimEmriOperasyonlari.id, kRow.emirOpId))
+        .limit(1);
+      if (op) {
+        const planlananSureDk = Math.ceil((Number(op.cevrimSuresiSn ?? 0) * patch.planlananMiktar) / 60);
+        await db.update(makineKuyrugu).set({ planlanan_sure_dk: planlananSureDk }).where(eq(makineKuyrugu.id, kRow.kuyrukId));
+      }
+      affectedMachines.add(kRow.makineId);
+    }
+
+    // Etkilenen makinelerin kuyruklarini recalc et
+    for (const makineId of affectedMachines) {
+      await recalcMakineKuyrukTarihleri(makineId);
+    }
+  }
+
   return repoGetById(id);
 }
 
