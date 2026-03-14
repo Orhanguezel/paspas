@@ -9,7 +9,7 @@ export const kaynakTipiEnum = z.enum([
   'diger',
 ]);
 
-export const kaliteDurumuEnum = z.enum(['kabul', 'red', 'kosullu']);
+export const kaliteDurumuEnum = z.enum(['bekliyor', 'kabul', 'red', 'kosullu']);
 
 export const listQuerySchema = z.object({
   q: z.string().trim().optional(),
@@ -35,7 +35,7 @@ export const createSchema = z
     gelenMiktar: z.coerce.number().min(0.0001),
     partiNo: z.string().trim().max(64).optional(),
     notlar: z.string().trim().max(500).optional(),
-    kaliteDurumu: kaliteDurumuEnum.default('kabul'),
+    kaliteDurumu: kaliteDurumuEnum.default('bekliyor'),
     kaliteNotu: z.string().trim().max(500).optional(),
   })
   .superRefine((data, ctx) => {

@@ -61,15 +61,17 @@ export const KAYNAK_TIPI_BADGE: Record<string, 'default' | 'secondary' | 'destru
 };
 
 export const KALITE_DURUMU_LABELS: Record<string, string> = {
-  kabul:   'Kabul',
-  red:     'Red',
-  kosullu: 'Koşullu',
+  bekliyor: 'Onay Bekliyor',
+  kabul:    'Kabul',
+  red:      'Red',
+  kosullu:  'Koşullu',
 };
 
 export const KALITE_DURUMU_BADGE: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  kabul:   'default',
-  red:     'destructive',
-  kosullu: 'secondary',
+  bekliyor: 'outline',
+  kabul:    'default',
+  red:      'destructive',
+  kosullu:  'secondary',
 };
 
 function toStr(v: unknown, d = ''): string { return typeof v === 'string' ? v.trim() : d; }

@@ -420,7 +420,29 @@ planlama_motoru(makineId) {
 
 ---
 
-### 8.6 Uretim Baslat — Hafta Sonu/Tatil Kontrolu Eksik (2026-03-14)
+### 8.6 Mal Kabul — Satin Alma Siparis Verildiginde Otomatik Kayit (2026-03-15)
+
+**Not:** Mal kabul sayfasinda gelen mallari goremiyoruz. Satin alma siparisi verildiginde (durum: siparis_verildi) her kalem icin mal kabul kaydinin otomatik dusmesi gerekiyor. Kullanici mal kabul sayfasinda bu kayitlari gorup onaylayacak (kabul/red/kosullu).
+
+**Akis:**
+```
+1. Satin alma siparisi olustur (taslak)
+2. Durumu "siparis_verildi" yap
+3. → Her kalem icin mal_kabul_kayitlari'na kalite_durumu='bekliyor' kayit duser
+4. Mal Kabul sayfasinda "Onay Bekliyor" olarak gorunur
+5. Kullanici duzenle ile kalite durumunu "kabul" / "red" / "kosullu" olarak gunceller
+6. "kabul" durumunda stok otomatik artar
+```
+
+**Durum:**
+- [X] ✅ `kaliteDurumuEnum`'a `'bekliyor'` eklendi (validation + frontend label/badge)
+- [X] ✅ `repoUpdate` (satin_alma): durum `siparis_verildi` olunca her kalem icin mal kabul kaydi otomatik olusturuluyor
+- [X] ✅ Ayni SA kalem icin tekrar kayit olusturulmuyor (idempotent)
+- [X] ✅ Frontend: "Onay Bekliyor" label + outline badge eklendi
+
+---
+
+### 8.7 Uretim Baslat — Hafta Sonu/Tatil Kontrolu Eksik (2026-03-14)
 
 **Not:** Hafta sonu calisma plani olmayan bir makinede is emrini baslatabiliyorum. Vardiya kontrolu eklenmisti ama uretim baslatma icin ayni kontrol yoktu. Ayrica Gantt uzerinden de calisma plani olmayan gunde is baslatilabiliyor.
 

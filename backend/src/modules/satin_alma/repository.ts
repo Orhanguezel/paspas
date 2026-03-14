@@ -6,6 +6,7 @@ import type { SQL } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { musteriler } from '@/modules/musteriler/schema';
 import { urunler } from '@/modules/urunler/schema';
+import { malKabulKayitlari } from '@/modules/mal_kabul/schema';
 
 import { satinAlmaKalemleri, satinAlmaSiparisleri, type SatinAlmaKalemRow, type SatinAlmaSiparisRow } from './schema';
 import type { CreateBody, ListQuery, PatchBody } from './validation';
@@ -420,6 +421,8 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<DetailRe
   const current = await repoGetById(id);
   if (!current) return null;
 
+  const eskiDurum = current.siparis.durum;
+
   await db.transaction(async (tx) => {
     const siparisPatch = mapSiparisPatch(patch);
     if (Object.keys(siparisPatch).length > 0) {
@@ -430,6 +433,46 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<DetailRe
       await tx.insert(satinAlmaKalemleri).values(mapKalemInsert(id, patch.items));
     }
   });
+
+  // Durum 'siparis_verildi' olunca her kalem icin mal kabul kaydi olustur (bekliyor)
+  const yeniDurum = patch.durum;
+  if (yeniDurum === 'siparis_verildi' && eskiDurum !== 'siparis_verildi') {
+    const kalemler = await db
+      .select({
+        id: satinAlmaKalemleri.id,
+        urunId: satinAlmaKalemleri.urun_id,
+        miktar: satinAlmaKalemleri.miktar,
+      })
+      .from(satinAlmaKalemleri)
+      .where(eq(satinAlmaKalemleri.siparis_id, id));
+
+    for (const kalem of kalemler) {
+      // Ayni SA kalem icin zaten mal kabul kaydi varsa tekrar olusturma
+      const [existing] = await db
+        .select({ id: malKabulKayitlari.id })
+        .from(malKabulKayitlari)
+        .where(
+          and(
+            eq(malKabulKayitlari.satin_alma_siparis_id, id),
+            eq(malKabulKayitlari.satin_alma_kalem_id, kalem.id),
+          ),
+        )
+        .limit(1);
+      if (existing) continue;
+
+      await db.insert(malKabulKayitlari).values({
+        id: randomUUID(),
+        kaynak_tipi: 'satin_alma',
+        satin_alma_siparis_id: id,
+        satin_alma_kalem_id: kalem.id,
+        urun_id: kalem.urunId,
+        tedarikci_id: current.siparis.tedarikci_id ?? null,
+        gelen_miktar: String(kalem.miktar),
+        kalite_durumu: 'bekliyor',
+        notlar: `SA ${current.siparis.siparis_no} siparişi verildi — mal kabul onayı bekliyor`,
+      });
+    }
+  }
 
   return repoGetById(id);
 }
