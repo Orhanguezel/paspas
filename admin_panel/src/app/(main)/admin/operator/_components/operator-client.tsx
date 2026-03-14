@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 
-import { Check, Clock, Pause, Play, RefreshCcw, RotateCcw, Square, Truck, X } from "lucide-react";
+import { Check, Clock, Pause, Play, RefreshCcw, RotateCcw, Square, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,6 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useLocaleContext } from "@/i18n/LocaleProvider";
 import {
@@ -32,12 +31,7 @@ import {
   useVardiyaSonuAdminMutation,
 } from "@/integrations/endpoints/admin/erp/operator_admin.endpoints";
 import { useListDurusNedenleriAdminQuery } from "@/integrations/endpoints/admin/erp/tanimlar_admin.endpoints";
-import {
-  useListSevkEmirleriAdminQuery,
-  useUpdateSevkEmriAdminMutation,
-} from "@/integrations/endpoints/admin/erp/sevkiyat_admin.endpoints";
 import type { MakineKuyruguDetayDto } from "@/integrations/shared/erp/operator.types";
-import { SEVK_DURUM_BADGE, SEVK_DURUM_LABELS } from "@/integrations/shared/erp/sevkiyat.types";
 
 const DURUM_BADGE: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   bekliyor: "outline",
@@ -66,7 +60,6 @@ function useRealtimeClock() {
 
 export default function OperatorClient() {
   const { t } = useLocaleContext();
-  const [activeTab, setActiveTab] = useState("kuyruk");
   const now = useRealtimeClock();
 
   const dateStr = now.toLocaleDateString("tr-TR", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
@@ -88,19 +81,7 @@ export default function OperatorClient() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="kuyruk">{t("admin.erp.operator.tabs.kuyruk")}</TabsTrigger>
-          <TabsTrigger value="sevkiyat">{t("admin.erp.operator.tabs.sevkiyat")}</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="kuyruk" className="space-y-4">
-          <MakineKuyruguTab />
-        </TabsContent>
-        <TabsContent value="sevkiyat" className="space-y-4">
-          <SevkiyatTab />
-        </TabsContent>
-      </Tabs>
+      <MakineKuyruguTab />
     </div>
   );
 }
@@ -746,157 +727,3 @@ function VardiyaPanel() {
 }
 
 // ============================================================
-// Tab 2: Sevkiyat
-// ============================================================
-
-function SevkiyatTab() {
-  const { t } = useLocaleContext();
-  const [q, setQ] = useState("");
-  const [durumFilter, setDurumFilter] = useState<"_acik" | "_all" | "bekliyor" | "onaylandi" | "sevk_edildi" | "iptal">("_acik");
-  const [updateEmri] = useUpdateSevkEmriAdminMutation();
-  const { data, isLoading, isFetching, refetch } = useListSevkEmirleriAdminQuery({
-    q: q.trim() || undefined,
-    durum: durumFilter === "_acik" || durumFilter === "_all" ? undefined : durumFilter,
-    limit: 100,
-  });
-
-  const allItems = data?.items ?? [];
-  const items =
-    durumFilter === "_acik"
-      ? allItems.filter((item) => item.durum === "bekliyor" || item.durum === "onaylandi")
-      : allItems;
-
-  async function handleDurumChange(id: string, durum: "sevk_edildi" | "iptal") {
-    try {
-      await updateEmri({ id, body: { durum } }).unwrap();
-      toast.success(
-        t("admin.erp.sevkiyat.messages.durumGuncellendi", {
-          durum: SEVK_DURUM_LABELS[durum]?.toLowerCase() ?? durum,
-        }),
-      );
-    } catch {
-      toast.error(t("admin.erp.sevkiyat.messages.durumHata"));
-    }
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Truck className="size-4" />
-          {t("admin.erp.operator.shipmentQueueTitle")}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">{t("admin.erp.operator.shipmentQueueDescription")}</p>
-
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">{t("admin.erp.sevkiyat.filters.ara")}</Label>
-            <Input
-              value={q}
-              onChange={(event) => setQ(event.target.value)}
-              placeholder={t("admin.erp.sevkiyat.filters.araPlaceholder")}
-              className="h-8 w-64"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">{t("admin.erp.sevkiyat.filters.durum")}</Label>
-            <Select value={durumFilter} onValueChange={(value) => setDurumFilter(value as typeof durumFilter)}>
-              <SelectTrigger className="h-8 w-44">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_acik">{t("admin.erp.operator.openShipmentOrders")}</SelectItem>
-                <SelectItem value="_all">{t("admin.erp.sevkiyat.filters.tumDurumlar")}</SelectItem>
-                <SelectItem value="bekliyor">{t("admin.erp.sevkiyat.durumlar.bekliyor")}</SelectItem>
-                <SelectItem value="onaylandi">{t("admin.erp.sevkiyat.durumlar.onaylandi")}</SelectItem>
-                <SelectItem value="sevk_edildi">{t("admin.erp.sevkiyat.durumlar.sevk_edildi")}</SelectItem>
-                <SelectItem value="iptal">{t("admin.erp.sevkiyat.durumlar.iptal")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCcw className={`size-4${isFetching ? " animate-spin" : ""}`} />
-          </Button>
-          <div className="ml-auto text-sm text-muted-foreground">
-            {items.length} {t("admin.erp.operator.shipmentQueueCount")}
-          </div>
-        </div>
-
-        {isLoading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton key={`shipment-order-skeleton-${index}`} className="h-12 w-full" />
-            ))}
-          </div>
-        ) : items.length === 0 ? (
-          <div className="rounded-md border py-12 text-center text-sm text-muted-foreground">
-            {t("admin.erp.operator.noShipmentQueue")}
-          </div>
-        ) : (
-          <div className="overflow-auto rounded-md border">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40">
-                <tr className="border-b text-left">
-                  <th className="px-3 py-2 font-medium">{t("admin.erp.sevkiyat.columns.sevkEmriNo")}</th>
-                  <th className="px-3 py-2 font-medium">{t("admin.erp.sevkiyat.columns.musteri")}</th>
-                  <th className="px-3 py-2 font-medium">{t("admin.erp.sevkiyat.columns.urunKod")}</th>
-                  <th className="px-3 py-2 font-medium">{t("admin.erp.sevkiyat.columns.urunAd")}</th>
-                  <th className="px-3 py-2 text-right font-medium">{t("admin.erp.sevkiyat.columns.miktar")}</th>
-                  <th className="px-3 py-2 text-right font-medium">{t("admin.erp.sevkiyat.columns.stok")}</th>
-                  <th className="px-3 py-2 font-medium">{t("admin.erp.sevkiyat.columns.tarih")}</th>
-                  <th className="px-3 py-2 font-medium">{t("admin.erp.sevkiyat.columns.durum")}</th>
-                  <th className="px-3 py-2 font-medium">{t("admin.erp.sevkiyat.columns.islem")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((row) => (
-                  <tr key={row.id} className="border-b last:border-b-0">
-                    <td className="px-3 py-2 font-mono text-xs">{row.sevkEmriNo}</td>
-                    <td className="px-3 py-2">{row.musteriAd ?? "—"}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{row.urunKod ?? "—"}</td>
-                    <td className="px-3 py-2">{row.urunAd ?? "—"}</td>
-                    <td className="px-3 py-2 text-right">{row.miktar}</td>
-                    <td className="px-3 py-2 text-right">{row.stokMiktar}</td>
-                    <td className="px-3 py-2">{row.tarih}</td>
-                    <td className="px-3 py-2">
-                      <Badge variant={SEVK_DURUM_BADGE[row.durum] ?? "outline"} className="text-[10px]">
-                        {SEVK_DURUM_LABELS[row.durum] ?? row.durum}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-2">
-                      {(row.durum === "bekliyor" || row.durum === "onaylandi") && (
-                        <div className="flex items-center gap-1">
-                          <Button
-                            size="sm"
-                            className="h-7 text-xs"
-                            onClick={() => handleDurumChange(row.id, "sevk_edildi")}
-                          >
-                            <Check className="mr-1 size-3.5" />
-                            {t("admin.erp.sevkiyat.actions.sevkEt")}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-2 text-destructive hover:text-destructive"
-                            onClick={() => handleDurumChange(row.id, "iptal")}
-                          >
-                            <X className="size-3.5" />
-                          </Button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CardContent>
-      <CardFooter className="justify-end text-xs text-muted-foreground">
-        {t("admin.erp.operator.shipmentQueueFooter")}
-      </CardFooter>
-    </Card>
-  );
-}
