@@ -154,9 +154,20 @@ function MakineKuyruguTab() {
     try {
       await baslat({ makineKuyrukId: item.id }).unwrap();
       toast.success(t("admin.erp.operator.started"));
-    } catch (error) {
-      const msg = getErrorMessage(error);
-      toast.error(msg);
+    } catch (error: unknown) {
+      const message =
+        typeof error === "object" && error && "data" in error
+          ? (error as { data?: { error?: { message?: string } } }).data?.error?.message
+          : undefined;
+      if (message === "makine_bugun_calismiyor") {
+        toast.error("Bu makine için bugün çalışma planı tanımlanmamış.");
+      } else if (message === "makinede_aktif_is_var") {
+        toast.error("Bu makinede zaten çalışan bir iş var.");
+      } else if (message === "sadece_bekliyor_baslatilabilir") {
+        toast.error("Sadece bekleyen işler başlatılabilir.");
+      } else {
+        toast.error(t("admin.erp.common.operationFailed"));
+      }
     }
   }
 
