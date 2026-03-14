@@ -135,6 +135,7 @@ export const vardiyaBasi: RouteHandler = async (req, reply) => {
     const { msg, stack } = extractError(error);
     if (msg === 'vardiya_saati_gecersiz') return sendError(reply, 409, 'vardiya_saati_gecersiz');
     if (msg === 'acik_vardiya_zaten_var') return sendError(reply, 409, 'acik_vardiya_zaten_var');
+    if (msg === 'makine_bugun_calismiyor') return sendError(reply, 409, 'makine_bugun_calismiyor');
     req.log.error({ error: msg, stack }, 'vardiya_basi_failed');
     return sendError(reply, 500, msg || 'sunucu_hatasi');
   }

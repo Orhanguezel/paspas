@@ -12,6 +12,7 @@ import { musteriler } from '@/modules/musteriler/schema';
 import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/schema';
 import { refreshSiparisDurum, getSiparisIdsByUretimEmriId } from '@/modules/satis_siparisleri/repository';
 import { repoCreate as malKabulRepoCreate } from '@/modules/mal_kabul/repository';
+import { isMakineWorkingDay } from '@/modules/_shared/planlama';
 
 import {
   durusKayitlari,
@@ -901,6 +902,12 @@ export async function repoVardiyaBasi(
 
   if (!isShiftTimeValid(now, body.vardiyaTipi)) {
     throw new Error('vardiya_saati_gecersiz');
+  }
+
+  // Hafta sonu / tatil kontrolu: makine icin bugun calisma plani var mi?
+  const calismaDurumu = await isMakineWorkingDay(body.makineId, now);
+  if (!calismaDurumu) {
+    throw new Error('makine_bugun_calismiyor');
   }
 
   const [openShift] = await db

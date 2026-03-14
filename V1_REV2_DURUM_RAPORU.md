@@ -323,6 +323,24 @@ planlama_motoru(makineId) {
 
 ---
 
+### 8.1 Operator Vardiya — Hafta Sonu Calisma Plani Kontrolu (2026-03-14)
+
+**Not:** Cumartesi gunu vardiya baslatabildim ama o makine icin hafta sonu calisma plani tanimlanmamisti. Operator, makine bazinda vardiya acarken sistem hafta sonu calisma planini kontrol etmeli. Eger o makine icin o gun calisma plani yoksa vardiya acilamamali ve uyari vermeli: "Bu makine icin bugun calisma plani tanimlanmamis."
+
+**Beklenen davranis:**
+1. Operator "Vardiya Ac" butonuna basinca backend o makinenin o gun calisabilir olup olmadigini kontrol etmeli
+2. Hafta ici (Pzt-Cum) → her zaman acilabilir
+3. Hafta sonu (Cmt/Pzr) → `hafta_sonu_planlari` tablosunda o makine icin o gun calisma plani olmalidir
+4. Tatil gunu → calisma acilamamali
+5. Kontrol basarisizsa `toast.error` ile Turkce uyari gosterilmeli
+
+**Durum:**
+- [X] ✅ Backend `repoVardiyaBasi` icinde `isMakineWorkingDay()` kontrolu eklendi
+- [X] ✅ Basarisizsa `409 makine_bugun_calismiyor` hatasi donuyor
+- [X] ✅ Frontend `getErrorMessage()` icinde "Bu makine için bugün çalışma planı tanımlanmamış." mesaji gosteriliyor
+
+---
+
 ## 9. Ek Teknik Bulgular (Kod Incelemesinden)
 
 ### 8.1 Hafta Sonu Plan Modeli Gecis Notu

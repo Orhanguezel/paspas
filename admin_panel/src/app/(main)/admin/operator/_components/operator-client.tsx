@@ -559,6 +559,7 @@ function VardiyaPanel() {
     if (message === "vardiya_saati_gecersiz") return t("admin.erp.operator.shiftTimeInvalid");
     if (message === "acik_vardiya_zaten_var") return t("admin.erp.operator.shiftAlreadyOpen");
     if (message === "acik_vardiya_bulunamadi") return t("admin.erp.operator.shiftNotFound");
+    if (message === "makine_bugun_calismiyor") return "Bu makine için bugün çalışma planı tanımlanmamış.";
     return t("admin.erp.common.operationFailed");
   }
 
