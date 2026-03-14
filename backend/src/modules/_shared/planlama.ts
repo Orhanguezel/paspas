@@ -23,7 +23,7 @@ const MAX_SKIP_DAYS = 90;
 
 // ── Yardimci tipler ──────────────────────────────────────────────────
 
-type MakineWorkConfig = {
+export type MakineWorkConfig = {
   makineId: string;
   calisir24Saat: boolean;
   workStartHour: number;
@@ -31,9 +31,9 @@ type MakineWorkConfig = {
   dailyWorkMinutes: number;
 };
 
-type HolidaySet = Set<string>; // 'YYYY-MM-DD' formatinda
+export type HolidaySet = Set<string>; // 'YYYY-MM-DD' formatinda
 
-type WeekendPlanMap = Map<string, Set<string>>; // tarih -> calisan makine id'leri
+export type WeekendPlanMap = Map<string, Set<string>>; // tarih -> calisan makine id'leri
 
 // ── On-bellek: tatil ve hafta sonu verilerini toplu cek ──────────────
 
@@ -94,7 +94,7 @@ async function loadWeekendPlans(): Promise<WeekendPlanMap> {
   return map;
 }
 
-function toDateKey(d: Date): string {
+export function toDateKey(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
@@ -102,8 +102,9 @@ function toDateKey(d: Date): string {
 }
 
 // ── Calisma gunu kontrolleri ─────────────────────────────────────────
+// export for testing
 
-function isWorkingDay(
+export function isWorkingDay(
   date: Date,
   makineId: string,
   holidays: HolidaySet,
@@ -126,7 +127,7 @@ function isWorkingDay(
   return false;
 }
 
-function skipToNextWorkingDay(
+export function skipToNextWorkingDay(
   date: Date,
   makineId: string,
   config: MakineWorkConfig,
@@ -164,7 +165,7 @@ function skipToNextWorkingDay(
  * Verilen baslangictan itibaren calisma saatleri icinde sure ekler.
  * 24 saat makinelerde lineer ekler. 8-17 makinelerde gun sinirlarina uyar.
  */
-function addWorkingMinutes(
+export function addWorkingMinutes(
   start: Date,
   minutes: number,
   config: MakineWorkConfig,

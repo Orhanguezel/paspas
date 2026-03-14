@@ -103,7 +103,7 @@ planlama_motoru(makineId) {
 - [X] ✅ **P0-4:** Calisma saati modeli eklendi: `calisir_24_saat=0` → 08:00-17:00, `calisir_24_saat=1` → 24 saat. `addWorkingMinutes()` gun sinirlarini dikkate aliyor
 - [X] ✅ **P0-5:** `is_yukler/repository.ts` duplike fonksiyon kaldirildi, `_shared/planlama.ts` import ediliyor
 - [X] ✅ **P0-6:** `makine_havuzu/repository.ts` de ayni merkezi fonksiyonu import ediyor, tum ata/cikar/sirala islemleri merkezi recalc kullaniyor
-- [ ] 🔧 **P0-7:** Entegrasyon testleri: hafta sonu, tatil, 8h/24h senaryolari — sonraki asama
+- [X] ✅ **P0-7:** Entegrasyon testleri tamamlandi — 33/33 test gecti (isWorkingDay, skipToNextWorkingDay, addWorkingMinutes: hafta sonu, tatil, 8h/24h, siralama degisimi senaryolari)
 
 ---
 
