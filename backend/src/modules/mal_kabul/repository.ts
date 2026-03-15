@@ -251,7 +251,7 @@ async function updateSatinAlmaDurum(tx: Parameters<Parameters<typeof db.transact
   }
 }
 
-export async function repoUpdate(id: string, patch: PatchBody): Promise<MalKabulDto | null> {
+export async function repoUpdate(id: string, patch: PatchBody, operatorUserId?: string | null): Promise<MalKabulDto | null> {
   const existing = await db.select().from(malKabulKayitlari).where(eq(malKabulKayitlari.id, id)).limit(1);
   if (!existing[0]) return null;
 
@@ -259,11 +259,14 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<MalKabul
   if (patch.notlar !== undefined) updateData.notlar = patch.notlar;
   if (patch.kaliteNotu !== undefined) updateData.kalite_notu = patch.kaliteNotu;
   if (patch.partiNo !== undefined) updateData.parti_no = patch.partiNo;
+  // Onaylayan operatoru kaydet
+  if (operatorUserId) updateData.operator_user_id = operatorUserId;
 
   // Handle kalite durumu change — may need stock adjustment
   if (patch.kaliteDurumu !== undefined && patch.kaliteDurumu !== existing[0].kalite_durumu) {
-    const wasAccepted = existing[0].kalite_durumu !== 'red';
-    const willBeAccepted = patch.kaliteDurumu !== 'red';
+    // bekliyor = henuz kabul edilmemis, stok eklenmemis
+    const wasAccepted = existing[0].kalite_durumu === 'kabul' || existing[0].kalite_durumu === 'kosullu';
+    const willBeAccepted = patch.kaliteDurumu === 'kabul' || patch.kaliteDurumu === 'kosullu';
     const miktar = Number(existing[0].gelen_miktar);
 
     if (wasAccepted && !willBeAccepted) {

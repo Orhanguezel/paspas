@@ -62,7 +62,8 @@ export const updateMalKabul: RouteHandler = async (req, reply) => {
     const parsed = patchSchema.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
 
-    const result = await repoUpdate(id, parsed.data);
+    const userId = (req.user as { id?: string })?.id ?? null;
+    const result = await repoUpdate(id, parsed.data, userId);
     if (!result) return sendError(reply, 404, 'kayit_bulunamadi');
     return result;
   } catch (error) {
