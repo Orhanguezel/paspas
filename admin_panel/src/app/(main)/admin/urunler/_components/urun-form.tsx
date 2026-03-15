@@ -900,15 +900,17 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                             <Label className="text-xs">{tForm("cevrimSuresi")}</Label>
                             <Input type="number" step="0.01" {...form.register(`operasyonlar.${idx}.cevrimSuresiSn`)} />
                           </div>
-                          <div className="flex items-center gap-2 pt-5">
-                            <Switch
-                              checked={form.watch(`operasyonlar.${idx}.montaj`)}
-                              onCheckedChange={(v) =>
-                                form.setValue(`operasyonlar.${idx}.montaj`, v, { shouldDirty: true })
-                              }
-                            />
-                            <Label className="text-xs">Montaj</Label>
-                          </div>
+                          {watchOperasyonTipi !== "cift_tarafli" && (
+                            <div className="flex items-center gap-2 pt-5">
+                              <Switch
+                                checked={form.watch(`operasyonlar.${idx}.montaj`)}
+                                onCheckedChange={(v) =>
+                                  form.setValue(`operasyonlar.${idx}.montaj`, v, { shouldDirty: true })
+                                }
+                              />
+                              <Label className="text-xs">Montaj</Label>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
