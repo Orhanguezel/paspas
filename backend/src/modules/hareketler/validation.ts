@@ -12,7 +12,7 @@ export const listQuerySchema = z.object({
   q: z.string().trim().min(1).optional(),
   hareketTipi: hareketTipiEnum.optional(),
   kaynakTipi: kaynakTipiEnum.optional(),
-  period: periodEnum.default('today'),
+  period: periodEnum.optional(),
   startDate: z.string().date().optional(),
   endDate: z.string().date().optional(),
   limit: z.coerce.number().int().min(1).max(500).default(100),

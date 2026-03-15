@@ -12,8 +12,11 @@ import type { CreateBody, ListQuery } from './validation';
 
 type ListResult = { items: HareketRow[]; total: number; summary: HareketOzetDto };
 
-function getDateRange(query: ListQuery): { start: Date; end: Date } {
+function getDateRange(query: ListQuery): { start: Date; end: Date } | null {
   const now = new Date();
+
+  if (!query.period) return null; // Tumu — filtre yok
+
   if (query.period === 'custom' && query.startDate && query.endDate) {
     const start = new Date(`${query.startDate}T00:00:00`);
     const end = new Date(`${query.endDate}T23:59:59`);
@@ -32,11 +35,15 @@ function getDateRange(query: ListQuery): { start: Date; end: Date } {
     return { start: current, end };
   }
 
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(now);
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
+  if (query.period === 'today') {
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }
+
+  return null;
 }
 
 function kaynakTipiExpression() {
@@ -54,10 +61,12 @@ function kaynakTipiExpression() {
 
 function buildWhere(query: ListQuery): SQL | undefined {
   const conditions: SQL[] = [];
-  const { start, end } = getDateRange(query);
+  const dateRange = getDateRange(query);
 
-  conditions.push(gte(hareketler.created_at, start));
-  conditions.push(lte(hareketler.created_at, end));
+  if (dateRange) {
+    conditions.push(gte(hareketler.created_at, dateRange.start));
+    conditions.push(lte(hareketler.created_at, dateRange.end));
+  }
 
   if (query.urunId) conditions.push(eq(hareketler.urun_id, query.urunId));
   if (query.hareketTipi) conditions.push(eq(hareketler.hareket_tipi, query.hareketTipi));
