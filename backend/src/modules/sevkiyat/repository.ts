@@ -159,9 +159,8 @@ export async function repoListBekleyenler(q: BekleyenlerQuery): Promise<{ items:
 
   const where = and(...conditions);
 
-  // Kalan miktar > 0 kontrolü — kalanMiktar = siparisMiktar - sevkEdilenMiktar
-  // Bunu HAVING ile filtreliyoruz
-  const kalanFilter = sql`(${siparisKalemleri.miktar} - ${sevkToplamSubquery}) > 0`;
+  // Kalan miktar > 0 kontrolu — kalanMiktar = siparisMiktar - sevkEdilen - acikSevkEmirleri
+  const kalanFilter = sql`(${siparisKalemleri.miktar} - ${sevkToplamSubquery} - ${acikSevkEmriSubquery}) > 0`;
 
   // Stok filtresi
   const stokCondition = q.stokFiltre === 'stoklu' ? and(kalanFilter, gt(urunler.stok, '0')) : kalanFilter;
@@ -219,7 +218,7 @@ export async function repoListBekleyenler(q: BekleyenlerQuery): Promise<{ items:
       sevkEdilenMiktar: sevkEdilen,
       acikSevkEmriMiktar: acikSevkEmri,
       onayliSevkEmriMiktar: onayliSevkEmri,
-      kalanMiktar: siparisMiktar - sevkEdilen,
+      kalanMiktar: siparisMiktar - sevkEdilen - acikSevkEmri,
       stokMiktar: Number(r.stokMiktar ?? 0),
       terminTarihi: r.terminTarihi ? String(r.terminTarihi) : null,
     };
