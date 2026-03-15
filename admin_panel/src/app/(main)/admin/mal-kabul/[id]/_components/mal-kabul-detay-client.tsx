@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, Package, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -26,12 +27,14 @@ interface Props {
 }
 
 const KALITE_OPTIONS = [
+  { value: 'bekliyor', label: 'Onay Bekliyor' },
   { value: 'kabul', label: 'Kabul' },
   { value: 'red', label: 'Red' },
   { value: 'kosullu', label: 'Koşullu' },
 ] as const;
 
 export default function MalKabulDetayClient({ id }: Props) {
+  const router = useRouter();
   const { data, isLoading } = useGetMalKabulAdminQuery(id);
   const [updateMalKabul, updateState] = useUpdateMalKabulAdminMutation();
 
@@ -62,6 +65,7 @@ export default function MalKabulDetayClient({ id }: Props) {
         },
       }).unwrap();
       toast.success('Kayıt güncellendi');
+      router.push('/admin/mal-kabul');
     } catch (error: unknown) {
       const msg = (error as { data?: { error?: { message?: string } } })?.data?.error?.message;
       toast.error(msg ?? 'Güncelleme başarısız');
