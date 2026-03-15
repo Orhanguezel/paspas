@@ -434,9 +434,9 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<DetailRe
     }
   });
 
-  // Durum 'siparis_verildi' olunca her kalem icin mal kabul kaydi olustur (bekliyor)
+  // Durum 'tamamlandi' olunca mal fabrikaya gelmis demek — her kalem icin mal kabul kaydi olustur
   const yeniDurum = patch.durum;
-  if (yeniDurum === 'siparis_verildi' && eskiDurum !== 'siparis_verildi') {
+  if (yeniDurum === 'tamamlandi' && eskiDurum !== 'tamamlandi') {
     const kalemler = await db
       .select({
         id: satinAlmaKalemleri.id,
@@ -469,7 +469,7 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<DetailRe
         tedarikci_id: current.siparis.tedarikci_id ?? null,
         gelen_miktar: String(kalem.miktar),
         kalite_durumu: 'bekliyor',
-        notlar: `SA ${current.siparis.siparis_no} siparişi verildi — mal kabul onayı bekliyor`,
+        notlar: `SA ${current.siparis.siparis_no} teslim alındı — mal kabul onayı bekliyor`,
       });
     }
   }

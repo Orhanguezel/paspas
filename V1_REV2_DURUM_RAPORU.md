@@ -420,23 +420,24 @@ planlama_motoru(makineId) {
 
 ---
 
-### 8.6 Mal Kabul — Satin Alma Siparis Verildiginde Otomatik Kayit (2026-03-15)
+### 8.6 Mal Kabul — Satin Alma Tamamlandiginda Otomatik Kayit (2026-03-15)
 
-**Not:** Mal kabul sayfasinda gelen mallari goremiyoruz. Satin alma siparisi verildiginde (durum: siparis_verildi) her kalem icin mal kabul kaydinin otomatik dusmesi gerekiyor. Kullanici mal kabul sayfasinda bu kayitlari gorup onaylayacak (kabul/red/kosullu).
+**Not:** Satin alma siparisi tamamlandiginda (mal fabrikaya geldiyse) her kalem icin mal kabul kaydinin otomatik dusmesi gerekiyor. Kullanici mal kabul sayfasinda gelen mallari gorup onaylayacak.
 
 **Akis:**
 ```
 1. Satin alma siparisi olustur (taslak)
-2. Durumu "siparis_verildi" yap
-3. → Her kalem icin mal_kabul_kayitlari'na kalite_durumu='bekliyor' kayit duser
-4. Mal Kabul sayfasinda "Onay Bekliyor" olarak gorunur
-5. Kullanici duzenle ile kalite durumunu "kabul" / "red" / "kosullu" olarak gunceller
-6. "kabul" durumunda stok otomatik artar
+2. Onayla → Siparis verildi (tedarikciye gonderildi)
+3. Mal fabrikaya geldi → Durumu "Tamamlandi" yap
+4. → Her kalem icin mal_kabul_kayitlari'na kalite_durumu='bekliyor' kayit duser
+5. Mal Kabul sayfasinda "Onay Bekliyor" olarak gorunur
+6. Kullanici duzenle ile miktar/urun kontrol eder, kalite durumunu "kabul"/"red"/"kosullu" olarak gunceller
+7. "kabul" durumunda stok otomatik artar
 ```
 
 **Durum:**
 - [X] ✅ `kaliteDurumuEnum`'a `'bekliyor'` eklendi (validation + frontend label/badge)
-- [X] ✅ `repoUpdate` (satin_alma): durum `siparis_verildi` olunca her kalem icin mal kabul kaydi otomatik olusturuluyor
+- [X] ✅ `repoUpdate` (satin_alma): durum `tamamlandi` olunca her kalem icin mal kabul kaydi otomatik olusturuluyor
 - [X] ✅ Ayni SA kalem icin tekrar kayit olusturulmuyor (idempotent)
 - [X] ✅ Frontend: "Onay Bekliyor" label + outline badge eklendi
 
