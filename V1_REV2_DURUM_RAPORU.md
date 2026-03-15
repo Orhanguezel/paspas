@@ -443,7 +443,19 @@ planlama_motoru(makineId) {
 
 ---
 
-### 8.7 Uretim Baslat — Hafta Sonu/Tatil Kontrolu Eksik (2026-03-14)
+### 8.7 Operator Ekrani — Eksik Malzeme Uyarisi (2026-03-15)
+
+**Not:** Operatör ekranindaki is emri kartlarinda eksik malzeme uyarisi gosterilmeli. Hammadde stoku yetersizse kart icinde amber/turuncu uyari kutusu cikmali. Malzeme satin alinip stok artinca uyari otomatik kalkmali.
+
+**Durum:**
+- [X] ✅ Backend: `repoListMakineKuyrugu` toplu hammadde rezervasyon kontrolu eklendi
+- [X] ✅ Backend: `MakineKuyruguDetayDto`'ya `eksikMalzemeler` alani eklendi
+- [X] ✅ Frontend: Operatör kartinda amber uyari kutusu (malzeme kodu + ad + eksik miktar)
+- [X] ✅ Stok artinca (mal kabul, satin alma) uyari otomatik kalkar (canli sorgu)
+
+---
+
+### 8.8 Uretim Baslat — Hafta Sonu/Tatil Kontrolu Eksik (2026-03-14)
 
 **Not:** Hafta sonu calisma plani olmayan bir makinede is emrini baslatabiliyorum. Vardiya kontrolu eklenmisti ama uretim baslatma icin ayni kontrol yoktu. Ayrica Gantt uzerinden de calisma plani olmayan gunde is baslatilabiliyor.
 

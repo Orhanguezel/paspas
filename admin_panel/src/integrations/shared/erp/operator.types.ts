@@ -34,6 +34,7 @@ export interface MakineKuyruguDetayDto {
   durum: string;
   oncekiUretimToplam: number;
   oncekiFireToplam: number;
+  eksikMalzemeler: { urunKod: string; urunAd: string; eksikMiktar: number }[];
 }
 
 export type KuyrukDurum = 'bekliyor' | 'calisiyor' | 'duraklatildi' | 'tamamlandi' | 'iptal';
@@ -224,6 +225,13 @@ export function normalizeMakineKuyrugu(raw: unknown): MakineKuyruguDetayDto {
     durum: toStr(r.durum, 'bekliyor'),
     oncekiUretimToplam: toNum(r.oncekiUretimToplam),
     oncekiFireToplam: toNum(r.oncekiFireToplam),
+    eksikMalzemeler: Array.isArray(r.eksikMalzemeler)
+      ? (r.eksikMalzemeler as Record<string, unknown>[]).map((m) => ({
+          urunKod: toStr(m.urunKod),
+          urunAd: toStr(m.urunAd),
+          eksikMiktar: toNum(m.eksikMiktar),
+        }))
+      : [],
   };
 }
 

@@ -13,6 +13,7 @@ import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/
 import { refreshSiparisDurum, getSiparisIdsByUretimEmriId } from '@/modules/satis_siparisleri/repository';
 import { repoCreate as malKabulRepoCreate } from '@/modules/mal_kabul/repository';
 import { isMakineWorkingDay } from '@/modules/_shared/planlama';
+import { hammaddeRezervasyonlari } from '@/modules/urunler/schema';
 
 import {
   durusKayitlari,
@@ -242,6 +243,7 @@ export type MakineKuyruguDetayDto = {
   durum: string;
   oncekiUretimToplam: number;
   oncekiFireToplam: number;
+  eksikMalzemeler: { urunKod: string; urunAd: string; eksikMiktar: number }[];
 };
 
 const toStr = (v: Date | string | null | undefined): string | null => {
@@ -345,6 +347,44 @@ export async function repoListMakineKuyrugu(
     }
   }
 
+  // Toplu hammadde eksiklik kontrolu
+  const emirIds = [...new Set(rows.map((r) => r.kq.uretim_emri_id))];
+  const eksikMap = new Map<string, { urunKod: string; urunAd: string; eksikMiktar: number }[]>();
+
+  if (emirIds.length > 0) {
+    const rezervasyonlar = await db
+      .select({
+        emirId: hammaddeRezervasyonlari.uretim_emri_id,
+        urunId: hammaddeRezervasyonlari.urun_id,
+        miktar: hammaddeRezervasyonlari.miktar,
+        urunKod: urunler.kod,
+        urunAd: urunler.ad,
+        stok: urunler.stok,
+      })
+      .from(hammaddeRezervasyonlari)
+      .innerJoin(urunler, eq(urunler.id, hammaddeRezervasyonlari.urun_id))
+      .where(
+        and(
+          inArray(hammaddeRezervasyonlari.uretim_emri_id, emirIds),
+          eq(hammaddeRezervasyonlari.durum, 'rezerve'),
+        ),
+      );
+
+    for (const rez of rezervasyonlar) {
+      const gerekli = Number(rez.miktar);
+      const stok = Number(rez.stok);
+      if (stok < gerekli) {
+        const list = eksikMap.get(rez.emirId) ?? [];
+        list.push({
+          urunKod: rez.urunKod ?? '',
+          urunAd: rez.urunAd ?? '',
+          eksikMiktar: Math.round(gerekli - stok),
+        });
+        eksikMap.set(rez.emirId, list);
+      }
+    }
+  }
+
   const items: MakineKuyruguDetayDto[] = rows.map((r) => {
     const lookupKey = r.kq.emir_operasyon_id ?? r.kq.uretim_emri_id;
     const prev = measurementMap.get(lookupKey);
@@ -376,6 +416,7 @@ export async function repoListMakineKuyrugu(
       durum: r.kq.durum,
       oncekiUretimToplam: prev?.uretim ?? 0,
       oncekiFireToplam: prev?.fire ?? 0,
+      eksikMalzemeler: eksikMap.get(r.kq.uretim_emri_id) ?? [],
     };
   });
 

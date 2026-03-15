@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 
-import { Check, Clock, Pause, Play, RefreshCcw, RotateCcw, Square, X } from "lucide-react";
+import { AlertTriangle, Check, Clock, Pause, Play, RefreshCcw, RotateCcw, Square, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -332,6 +332,20 @@ function MakineKuyruguTab() {
                             <Badge variant="outline" className="text-xs">
                               {t("admin.erp.operator.assembly")}
                             </Badge>
+                          )}
+                          {job.eksikMalzemeler && job.eksikMalzemeler.length > 0 && (
+                            <div className="rounded-md border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950 p-2 space-y-1">
+                              <div className="flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+                                <AlertTriangle className="size-3.5" />
+                                Eksik Malzeme
+                              </div>
+                              {job.eksikMalzemeler.map((m) => (
+                                <div key={m.urunKod} className="flex justify-between text-[11px]">
+                                  <span className="text-amber-800 dark:text-amber-300">{m.urunKod} — {m.urunAd}</span>
+                                  <span className="font-mono text-amber-600">{m.eksikMiktar} eksik</span>
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </CardContent>
                         <CardFooter className="gap-1 pt-0 flex-wrap">
