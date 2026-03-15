@@ -59,6 +59,7 @@ export const malKabulAdminApi = baseApi.injectEndpoints({
       kaliteDurumu?: string;
       kaliteNotu?: string;
       partiNo?: string;
+      gelenMiktar?: number;
     } }>({
       query: ({ id, body }) => ({ url: `${BASE}/${id}`, method: 'PATCH', body }),
       invalidatesTags: (_r, _e, { id }) => [

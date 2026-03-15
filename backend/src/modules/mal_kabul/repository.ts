@@ -259,6 +259,7 @@ export async function repoUpdate(id: string, patch: PatchBody, operatorUserId?: 
   if (patch.notlar !== undefined) updateData.notlar = patch.notlar;
   if (patch.kaliteNotu !== undefined) updateData.kalite_notu = patch.kaliteNotu;
   if (patch.partiNo !== undefined) updateData.parti_no = patch.partiNo;
+  if (patch.gelenMiktar !== undefined) updateData.gelen_miktar = patch.gelenMiktar.toFixed(4);
   // Onaylayan operatoru kaydet
   if (operatorUserId) updateData.operator_user_id = operatorUserId;
 

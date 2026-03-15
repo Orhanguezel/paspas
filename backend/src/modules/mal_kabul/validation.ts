@@ -59,6 +59,7 @@ export const patchSchema = z.object({
   kaliteDurumu: kaliteDurumuEnum.optional(),
   kaliteNotu: z.string().trim().max(500).optional(),
   partiNo: z.string().trim().max(64).optional(),
+  gelenMiktar: z.coerce.number().min(0).optional(),
 });
 
 export type ListQuery = z.infer<typeof listQuerySchema>;

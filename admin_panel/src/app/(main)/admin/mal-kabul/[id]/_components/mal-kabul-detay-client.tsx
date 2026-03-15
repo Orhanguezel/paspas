@@ -42,6 +42,7 @@ export default function MalKabulDetayClient({ id }: Props) {
   const [kaliteNotu, setKaliteNotu] = useState('');
   const [partiNo, setPartiNo] = useState('');
   const [notlar, setNotlar] = useState('');
+  const [gelenMiktar, setGelenMiktar] = useState('');
   const [edited, setEdited] = useState(false);
 
   // Populate form when data loads
@@ -50,11 +51,13 @@ export default function MalKabulDetayClient({ id }: Props) {
     setKaliteNotu(data.kaliteNotu ?? '');
     setPartiNo(data.partiNo ?? '');
     setNotlar(data.notlar ?? '');
+    setGelenMiktar(String(data.gelenMiktar));
     setEdited(true);
   }
 
   async function handleSave() {
     try {
+      const miktarNum = Number(gelenMiktar);
       await updateMalKabul({
         id,
         body: {
@@ -62,6 +65,7 @@ export default function MalKabulDetayClient({ id }: Props) {
           kaliteNotu: kaliteNotu.trim() || undefined,
           partiNo: partiNo.trim() || undefined,
           notlar: notlar.trim() || undefined,
+          ...(Number.isFinite(miktarNum) && miktarNum !== data?.gelenMiktar ? { gelenMiktar: miktarNum } : {}),
         },
       }).unwrap();
       toast.success('Kayıt güncellendi');
@@ -185,6 +189,19 @@ export default function MalKabulDetayClient({ id }: Props) {
             <CardTitle className="text-base">Güncelle</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <Label>Kabul Edilen Miktar {data.urunBirim ? `(${data.urunBirim})` : ''}</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={gelenMiktar}
+                onChange={(e) => setGelenMiktar(e.target.value)}
+              />
+              {data.gelenMiktar > 0 && Number(gelenMiktar) < data.gelenMiktar && Number(gelenMiktar) > 0 && (
+                <p className="text-xs text-amber-600">Kısmi kabul: {Number(gelenMiktar)} / {data.gelenMiktar}</p>
+              )}
+            </div>
+
             <div className="space-y-1">
               <Label>Kalite Durumu</Label>
               <Select value={kaliteDurumu} onValueChange={setKaliteDurumu}>
