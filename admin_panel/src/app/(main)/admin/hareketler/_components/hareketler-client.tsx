@@ -20,6 +20,7 @@ import { useListUrunlerAdminQuery } from '@/integrations/endpoints/admin/erp/uru
 import { HAREKET_KAYNAK_LABELS, HAREKET_TIPI_BADGE, HAREKET_TIPI_LABELS } from '@/integrations/shared/erp/hareketler.types';
 
 const PERIOD_OPTIONS = [
+  { value: 'all', label: 'Tümü' },
   { value: 'today', label: 'Bugün' },
   { value: 'week', label: 'Bu Hafta' },
   { value: 'custom', label: 'Özel Aralık' },
@@ -45,7 +46,7 @@ const HAREKET_OPTIONS = [
 export default function HareketlerClient() {
   const { t } = useLocaleContext();
   const [q, setQ] = useState('');
-  const [period, setPeriod] = useState<'today' | 'week' | 'custom'>('today');
+  const [period, setPeriod] = useState<'all' | 'today' | 'week' | 'custom'>('all');
   const [hareketTipi, setHareketTipi] = useState('hepsi');
   const [kaynakTipi, setKaynakTipi] = useState('hepsi');
   const [startDate, setStartDate] = useState('');
@@ -56,7 +57,7 @@ export default function HareketlerClient() {
     ...(q ? { q } : {}),
     ...(hareketTipi !== 'hepsi' ? { hareketTipi } : {}),
     ...(kaynakTipi !== 'hepsi' ? { kaynakTipi } : {}),
-    period,
+    ...(period !== 'all' ? { period } : {}),
     ...(period === 'custom' && startDate ? { startDate } : {}),
     ...(period === 'custom' && endDate ? { endDate } : {}),
     limit: 100,
