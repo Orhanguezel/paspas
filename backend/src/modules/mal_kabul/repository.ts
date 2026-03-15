@@ -270,18 +270,43 @@ export async function repoUpdate(id: string, patch: PatchBody, operatorUserId?: 
     const willBeAccepted = patch.kaliteDurumu === 'kabul' || patch.kaliteDurumu === 'kosullu';
     const miktar = Number(existing[0].gelen_miktar);
 
+    // gelenMiktar degistiyse guncellenmis miktari kullan
+    const effectiveMiktar = patch.gelenMiktar !== undefined ? patch.gelenMiktar : miktar;
+
     if (wasAccepted && !willBeAccepted) {
       // Was accepted, now rejected → remove from stock
       await db
         .update(urunler)
         .set({ stok: sql`${urunler.stok} - ${miktar.toFixed(4)}` })
         .where(eq(urunler.id, existing[0].urun_id));
+
+      await db.insert(hareketler).values({
+        id: randomUUID(),
+        urun_id: existing[0].urun_id,
+        hareket_tipi: 'cikis',
+        referans_tipi: 'mal_kabul',
+        referans_id: id,
+        miktar: miktar.toFixed(4),
+        aciklama: `Mal kabul reddedildi — stok düşüldü`,
+        created_by_user_id: operatorUserId ?? null,
+      });
     } else if (!wasAccepted && willBeAccepted) {
-      // Was rejected, now accepted → add to stock
+      // Was rejected/bekliyor, now accepted → add to stock
       await db
         .update(urunler)
-        .set({ stok: sql`${urunler.stok} + ${miktar.toFixed(4)}` })
+        .set({ stok: sql`${urunler.stok} + ${effectiveMiktar.toFixed(4)}` })
         .where(eq(urunler.id, existing[0].urun_id));
+
+      await db.insert(hareketler).values({
+        id: randomUUID(),
+        urun_id: existing[0].urun_id,
+        hareket_tipi: 'giris',
+        referans_tipi: 'mal_kabul',
+        referans_id: id,
+        miktar: effectiveMiktar.toFixed(4),
+        aciklama: `Mal kabul onaylandı — ${patch.kaliteDurumu === 'kosullu' ? 'koşullu kabul' : 'kabul'}`,
+        created_by_user_id: operatorUserId ?? null,
+      });
     }
 
     updateData.kalite_durumu = patch.kaliteDurumu;

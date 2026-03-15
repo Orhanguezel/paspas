@@ -49,9 +49,12 @@ export const HAREKET_TIPI_BADGE: Record<string, 'default' | 'secondary' | 'destr
 export const HAREKET_KAYNAK_LABELS: Record<string, string> = {
   sevkiyat: 'Sevkiyat',
   mal_kabul: 'Mal Kabul',
+  satin_alma: 'Satın Alma',
   stok_duzeltme: 'Stok Düzeltme',
   manuel: 'Manuel',
   uretim: 'Üretim',
+  uretim_emri: 'Üretim Emri',
+  vardiya_uretim: 'Vardiya Üretim',
   fire: 'Fire',
 };
 
