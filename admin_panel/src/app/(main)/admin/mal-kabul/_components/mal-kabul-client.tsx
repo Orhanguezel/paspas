@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { PackagePlus, RefreshCcw, Search, Trash2 } from 'lucide-react';
+import { Check, PackagePlus, RefreshCcw, Search, Trash2, X, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,7 @@ import { useLocaleContext } from '@/i18n/LocaleProvider';
 import {
   useListMalKabulAdminQuery,
   useDeleteMalKabulAdminMutation,
+  useUpdateMalKabulAdminMutation,
 } from '@/integrations/endpoints/admin/erp/mal_kabul_admin.endpoints';
 import {
   KAYNAK_TIPI_LABELS,
@@ -37,6 +38,7 @@ const KAYNAK_OPTIONS = [
 
 const KALITE_OPTIONS = [
   { value: 'hepsi', label: 'Tüm Kalite' },
+  { value: 'bekliyor', label: 'Onay Bekliyor' },
   { value: 'kabul', label: 'Kabul' },
   { value: 'red', label: 'Red' },
   { value: 'kosullu', label: 'Koşullu' },
@@ -62,8 +64,19 @@ export default function MalKabulClient() {
 
   const { data, isLoading, isFetching, refetch } = useListMalKabulAdminQuery(params);
   const [deleteMalKabul] = useDeleteMalKabulAdminMutation();
+  const [updateMalKabul] = useUpdateMalKabulAdminMutation();
   const items = data?.items ?? [];
   const summary = data?.summary;
+
+  async function handleKaliteGuncelle(id: string, kaliteDurumu: string) {
+    try {
+      await updateMalKabul({ id, body: { kaliteDurumu } }).unwrap();
+      const label = kaliteDurumu === 'kabul' ? 'Kabul edildi' : kaliteDurumu === 'red' ? 'Reddedildi' : 'Koşullu kabul';
+      toast.success(label);
+    } catch {
+      toast.error('Güncelleme başarısız');
+    }
+  }
 
   async function handleDelete(id: string) {
     if (!confirm(t('admin.erp.malKabul.deleteConfirm'))) return;
@@ -152,7 +165,7 @@ export default function MalKabulClient() {
               <TableHead>{t('admin.erp.malKabul.columns.partiNo')}</TableHead>
               <TableHead>{t('admin.erp.malKabul.columns.kaliteDurumu')}</TableHead>
               <TableHead>{t('admin.erp.malKabul.columns.operator')}</TableHead>
-              <TableHead className="w-10" />
+              <TableHead>İşlem</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -199,9 +212,44 @@ export default function MalKabulClient() {
                 </TableCell>
                 <TableCell className="text-sm">{row.operatorName ?? '—'}</TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="icon" className="size-8 text-destructive" onClick={() => handleDelete(row.id)}>
-                    <Trash2 className="size-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    {row.kaliteDurumu === 'bekliyor' && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => handleKaliteGuncelle(row.id, 'kabul')}
+                        >
+                          <Check className="mr-1 size-3" />
+                          Onayla
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={() => handleKaliteGuncelle(row.id, 'kosullu')}
+                        >
+                          <AlertTriangle className="mr-1 size-3" />
+                          Koşullu
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs text-destructive hover:text-destructive"
+                          onClick={() => handleKaliteGuncelle(row.id, 'red')}
+                        >
+                          <X className="mr-1 size-3" />
+                          Red
+                        </Button>
+                      </>
+                    )}
+                    <Button asChild variant="ghost" size="sm" className="h-7 text-xs">
+                      <Link href={`/admin/mal-kabul/${row.id}`}>Düzenle</Link>
+                    </Button>
+                    <Button variant="ghost" size="icon" className="size-7 text-destructive" onClick={() => handleDelete(row.id)}>
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
