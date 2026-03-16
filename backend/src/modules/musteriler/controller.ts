@@ -111,7 +111,15 @@ export const deleteMusteri: RouteHandler = async (req, reply) => {
     const { id } = req.params as { id: string };
     await repoDelete(id);
     return reply.code(204).send();
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message === 'musteri_bagimliligi_var') {
+      return reply.code(409).send({
+        error: {
+          message: 'musteri_bagimliligi_var',
+          blocking: error.blocking,
+        },
+      });
+    }
     req.log.error({ error }, 'delete_musteri_failed');
     return sendInternalError(reply);
   }

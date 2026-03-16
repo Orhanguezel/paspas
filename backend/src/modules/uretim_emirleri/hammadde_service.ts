@@ -312,15 +312,27 @@ export async function checkHammaddeYeterlilik(uretimEmriId: string): Promise<Ham
 
   const stokMap = new Map(stokRows.map((r) => [r.id, r]));
 
-  const uyarilar: HammaddeUyari[] = [];
+  // Aynı ürün için birden fazla rezervasyon satırı olabilir (cift tarafli operasyon gibi)
+  // Ürün bazında topla
+  const urunBazliMiktar = new Map<string, number>();
   for (const rez of rezervasyonlar) {
-    const info = stokMap.get(rez.urunId);
-    if (!info) continue;
     const miktar = Number(rez.miktar);
-    const mevcutStok = Number(info.stok ?? 0);
+    urunBazliMiktar.set(rez.urunId, (urunBazliMiktar.get(rez.urunId) ?? 0) + miktar);
+  }
+
+  const uyarilar: HammaddeUyari[] = [];
+  for (const [urunId, miktar] of urunBazliMiktar) {
+    const info = stokMap.get(urunId);
+    if (!info) continue;
+    // Serbest stok = toplam stok - diger emirlerin rezervasyonu
+    // Kendi rezervasyonumuzu hariç tutuyoruz (stoktan henüz düşülmedi)
+    const toplamRezerve = Number(info.rezerveStok ?? 0);
+    const kendiRezerve = miktar;
+    const digerRezerve = Math.max(toplamRezerve - kendiRezerve, 0);
+    const mevcutStok = Number(info.stok ?? 0) - digerRezerve;
     if (mevcutStok < miktar) {
       uyarilar.push({
-        urunId: rez.urunId,
+        urunId,
         urunAd: info.ad ?? '',
         urunKod: info.kod ?? '',
         gerekliMiktar: miktar,

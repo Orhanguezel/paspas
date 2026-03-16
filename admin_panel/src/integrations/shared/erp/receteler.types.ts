@@ -6,6 +6,10 @@
 export interface ReceteKalemDto {
   id: string;
   urunId: string;
+  malzemeKod: string | null;
+  malzemeAd: string | null;
+  malzemeBirim: string | null;
+  malzemeBirimFiyat: number | null;
   miktar: number;
   fireOrani: number;
   sira: number;
@@ -69,11 +73,15 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 export function normalizeReceteKalem(raw: unknown): ReceteKalemDto {
   const r = isRecord(raw) ? raw : {};
   return {
-    id:        toStr(r.id),
-    urunId:    toStr(r.urunId),
-    miktar:    toNum(r.miktar),
-    fireOrani: toNum(r.fireOrani),
-    sira:      toNum(r.sira),
+    id:                toStr(r.id),
+    urunId:            toStr(r.urunId),
+    malzemeKod:        r.malzemeKod != null ? toStr(r.malzemeKod) : null,
+    malzemeAd:         r.malzemeAd != null ? toStr(r.malzemeAd) : null,
+    malzemeBirim:      r.malzemeBirim != null ? toStr(r.malzemeBirim) : null,
+    malzemeBirimFiyat: r.malzemeBirimFiyat != null ? toNum(r.malzemeBirimFiyat) : null,
+    miktar:            toNum(r.miktar),
+    fireOrani:         toNum(r.fireOrani),
+    sira:              toNum(r.sira),
   };
 }
 

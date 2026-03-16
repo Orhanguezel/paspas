@@ -59,6 +59,7 @@ export interface UrunDto {
   updatedAt: string;
   operasyonlar?: UrunOperasyonDto[];
   birimDonusumleri?: BirimDonusumDto[];
+  silinebilir?: boolean;
 }
 
 export interface UrunListItem extends UrunDto {}
@@ -194,6 +195,7 @@ export function normalizeUrun(raw: unknown): UrunDto {
     birimDonusumleri: Array.isArray(r.birimDonusumleri)
       ? (r.birimDonusumleri as unknown[]).map(normalizeBirimDonusum)
       : undefined,
+    silinebilir: r.silinebilir != null ? toBool(r.silinebilir) : undefined,
   };
 }
 

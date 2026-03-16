@@ -29,6 +29,9 @@ export const isYukleriAdminApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { id }) => [
         { type: "IsYukleri", id: "LIST" },
         { type: "IsYukleri", id },
+        { type: "MakineKuyrugu", id: "ATANMAMIS" },
+        { type: "MakineKuyrugu", id: "KUYRUKLAR" },
+        { type: "Gantt", id: "LIST" },
       ],
     }),
 
@@ -37,6 +40,10 @@ export const isYukleriAdminApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, id) => [
         { type: "IsYukleri", id: "LIST" },
         { type: "IsYukleri", id },
+        { type: "MakineKuyrugu", id: "ATANMAMIS" },
+        { type: "MakineKuyrugu", id: "KUYRUKLAR" },
+        { type: "Gantt", id: "LIST" },
+        { type: "UretimEmirleri", id: "LIST" },
       ],
     }),
   }),

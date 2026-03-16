@@ -13,7 +13,6 @@ import {
   CircleOff,
   Clock,
   ClipboardCheck,
-  ClipboardList,
   Cpu,
   Database,
   Factory,
@@ -86,9 +85,10 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
     key: 'overview',
     items: [
       { key: 'dashboard',         url: '/admin/dashboard',         icon: LayoutDashboard, roles: ['admin'] },
-      { key: 'gorevler',          url: '/admin/gorevler',          icon: ClipboardList,   roles: ['admin', 'operator', 'satin_almaci', 'nakliyeci'] },
-      { 
-        key: 'is_ortaklari', 
+      // V2: görevler (tasks/notifications) buraya eklenecek
+      // { key: 'gorevler', url: '/admin/gorevler', icon: ClipboardList, roles: ['admin', 'operator', 'satin_almaci', 'nakliyeci'] },
+      {
+        key: 'is_ortaklari',
         url: '/admin/musteriler',  
         icon: Users, 
         roles: ['admin', 'satin_almaci'],
@@ -99,10 +99,10 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
       },
       { key: 'urunler',           url: '/admin/urunler',           icon: Package,         roles: ['admin'] },
       { key: 'kategoriler',       url: '/admin/tanimlar?tab=kategoriler', icon: FolderTree, roles: ['admin'] },
-      { 
-        key: 'uretim_tanimlari', 
-        url: '/admin/makineler',  
-        icon: Timer, 
+      {
+        key: 'uretim_tanimlari',
+        url: '/admin/makineler',
+        icon: Timer,
         roles: ['admin'],
         subItems: [
           { key: 'makineler',       url: '/admin/makineler',                     icon: Timer,      roles: ['admin'] },
@@ -110,10 +110,10 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
           { key: 'durus_nedenleri', url: '/admin/tanimlar?tab=durus-nedenleri',  icon: CircleOff,  roles: ['admin'] },
         ],
       },
-      { 
-        key: 'calisma_planlari', 
-        url: '/admin/tanimlar?tab=tatiller',  
-        icon: CalendarDays, 
+      {
+        key: 'calisma_planlari',
+        url: '/admin/tanimlar?tab=tatiller',
+        icon: CalendarDays,
         roles: ['admin'],
         subItems: [
           { key: 'tatil_gunleri',       url: '/admin/tanimlar?tab=tatiller',             icon: CalendarDays,   roles: ['admin'] },

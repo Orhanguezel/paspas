@@ -40,6 +40,7 @@ import { useListSubCategoriesAdminQuery } from "@/integrations/endpoints/admin/s
 import type { CategoryDto } from "@/integrations/shared/category.types";
 import type { TedarikTipi, UrunDto } from "@/integrations/shared/erp/urunler.types";
 import type { SubCategoryDto } from "@/integrations/shared/subcategory.types";
+import { useAuthStatusQuery } from "@/integrations/endpoints/users/auth_public.endpoints";
 import { resolveMediaUrl } from "@/lib/media-url";
 
 import UrunForm from "./urun-form";
@@ -67,6 +68,10 @@ const SKELETON_CELL_KEYS = [
   "cell-12",
 ] as const;
 
+const TURKISH_ERROR_MESSAGES: Record<string, string> = {
+  urun_bagimliligi_var: 'Bu ürün sipariş, üretim emri veya reçete ile ilişkilendirilmiş, silinemez.',
+};
+
 function getApiErrorMessage(error: unknown): string | undefined {
   if (!error || typeof error !== "object") return undefined;
   const data = (error as { data?: unknown }).data;
@@ -74,13 +79,16 @@ function getApiErrorMessage(error: unknown): string | undefined {
   const apiError = (data as { error?: unknown }).error;
   if (!apiError || typeof apiError !== "object") return undefined;
   const message = (apiError as { message?: unknown }).message;
-  return typeof message === "string" ? message : undefined;
+  if (typeof message === "string") return TURKISH_ERROR_MESSAGES[message] ?? message;
+  return undefined;
 }
 
 export default function UrunlerClient() {
   const { t } = useLocaleContext();
+  const { data: authStatus } = useAuthStatusQuery();
+  const isAdmin = authStatus?.is_admin === true;
   const [search, setSearch] = useState("");
-  const [kategoriFilter, setKategoriFilter] = useState("");
+  const [kategoriFilter, setKategoriFilter] = useState("urun");
   const [tedarikFilter, setTedarikFilter] = useState<TedarikTipi | "">("");
   const [urunGrubuFilter, setUrunGrubuFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -343,6 +351,7 @@ export default function UrunlerClient() {
                       onToggle={() => setExpandedId(isExpanded ? null : u.id)}
                       onEdit={() => openEdit(u)}
                       onDelete={() => setDeleteTarget(u)}
+                      canDelete={isAdmin && u.silinebilir !== false}
                       tKategori={tKategori}
                       tTedarik={tTedarik}
                       t={t}
@@ -390,6 +399,7 @@ interface ExpandableProductRowProps {
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  canDelete: boolean;
   tKategori: (k: string) => string;
   tTedarik: (k: string) => string;
   t: (key: string, params?: Record<string, string>) => string;
@@ -402,6 +412,7 @@ function ExpandableProductRow({
   onToggle,
   onEdit,
   onDelete,
+  canDelete,
   tKategori,
   tTedarik,
   t,
@@ -462,7 +473,14 @@ function ExpandableProductRow({
             <Button variant="ghost" size="icon" onClick={onEdit}>
               <Pencil className="size-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={onDelete}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={canDelete ? "text-destructive hover:text-destructive" : "text-muted-foreground/40 cursor-not-allowed"}
+              onClick={canDelete ? onDelete : undefined}
+              disabled={!canDelete}
+              title={!canDelete ? "Bu ürün sipariş veya üretim emri ile ilişkili, silinemez" : undefined}
+            >
               <Trash2 className="size-4" />
             </Button>
           </div>
@@ -498,16 +516,17 @@ function ExpandableProductRow({
                   </thead>
                   <tbody>
                     {receteItems.map((item) => {
-                      const malzeme = allProducts.find((p) => p.id === item.urunId);
-                      const birimFiyat = malzeme?.birimFiyat ?? 0;
+                      const birimFiyat = item.malzemeBirimFiyat ?? 0;
                       const satirMaliyet = item.miktar * (1 + item.fireOrani / 100) * birimFiyat;
                       return (
                         <tr key={item.id} className="border-muted/50 border-b">
-                          <td className="py-1.5 pr-4">{malzeme ? `${malzeme.kod} — ${malzeme.ad}` : item.urunId}</td>
+                          <td className="py-1.5 pr-4">
+                            {item.malzemeKod ? `${item.malzemeKod} — ${item.malzemeAd}` : item.urunId}
+                          </td>
                           <td className="py-1.5 pr-4 text-right tabular-nums">
                             {item.miktar.toLocaleString("tr-TR", { maximumFractionDigits: 4 })}
                           </td>
-                          <td className="py-1.5 pr-4 text-right">{malzeme?.birim ?? "—"}</td>
+                          <td className="py-1.5 pr-4 text-right">{item.malzemeBirim ?? "—"}</td>
                           <td className="py-1.5 pr-4 text-right tabular-nums">
                             %{item.fireOrani.toLocaleString("tr-TR", { maximumFractionDigits: 2 })}
                           </td>
@@ -531,8 +550,7 @@ function ExpandableProductRow({
                       <td className="py-1.5 text-right font-semibold tabular-nums">
                         {receteItems
                           .reduce((sum, item) => {
-                            const m = allProducts.find((p) => p.id === item.urunId);
-                            return sum + item.miktar * (1 + item.fireOrani / 100) * (m?.birimFiyat ?? 0);
+                            return sum + item.miktar * (1 + item.fireOrani / 100) * (item.malzemeBirimFiyat ?? 0);
                           }, 0)
                           .toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
                       </td>

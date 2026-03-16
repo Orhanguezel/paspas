@@ -30,6 +30,10 @@ export type ReceteKalemRow = typeof receteKalemleri.$inferSelect;
 export type ReceteKalemDto = {
   id: string;
   urunId: string;
+  malzemeKod: string | null;
+  malzemeAd: string | null;
+  malzemeBirim: string | null;
+  malzemeBirimFiyat: number | null;
   miktar: number;
   fireOrani: number;
   sira: number;
@@ -62,10 +66,21 @@ export function receteRowToDto(row: ReceteRow): ReceteDto {
   };
 }
 
-export function receteKalemRowToDto(row: ReceteKalemRow): ReceteKalemDto {
+export type EnrichedReceteKalemRow = ReceteKalemRow & {
+  malzemeKod?: string | null;
+  malzemeAd?: string | null;
+  malzemeBirim?: string | null;
+  malzemeBirimFiyat?: string | null;
+};
+
+export function receteKalemRowToDto(row: EnrichedReceteKalemRow): ReceteKalemDto {
   return {
     id: row.id,
     urunId: row.urun_id,
+    malzemeKod: row.malzemeKod ?? null,
+    malzemeAd: row.malzemeAd ?? null,
+    malzemeBirim: row.malzemeBirim ?? null,
+    malzemeBirimFiyat: row.malzemeBirimFiyat ? Number(row.malzemeBirimFiyat) : null,
     miktar: Number(row.miktar ?? 0),
     fireOrani: Number(row.fire_orani ?? 0),
     sira: row.sira,

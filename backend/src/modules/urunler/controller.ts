@@ -18,6 +18,7 @@ import {
   repoListMedya,
   repoSaveMedya,
   repoGetNextCode,
+  repoGetDependentUrunIds,
 } from './repository';
 import {
   repoGetByUrunId as repoGetReceteByUrunId,
@@ -168,8 +169,9 @@ export const listUrunler: RouteHandler = async (req, reply) => {
     }
 
     const { items, total } = await repoList(parsed.data);
+    const dependentIds = await repoGetDependentUrunIds(items.map((i) => i.id));
     reply.header('x-total-count', String(total));
-    return reply.send(items.map(rowToDto));
+    return reply.send(items.map((row) => ({ ...rowToDto(row), silinebilir: !dependentIds.has(row.id) })));
   } catch (error) {
     req.log.error({ error }, 'list_urunler_failed');
     return sendInternalError(reply);
@@ -337,7 +339,15 @@ export const deleteUrun: RouteHandler = async (req, reply) => {
     const { id } = req.params as { id: string };
     await repoDelete(id);
     return reply.code(204).send();
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message === 'urun_bagimliligi_var') {
+      return reply.code(409).send({
+        error: {
+          message: 'urun_bagimliligi_var',
+          blocking: error.blocking,
+        },
+      });
+    }
     req.log.error({ error }, 'delete_urun_failed');
     return sendInternalError(reply);
   }

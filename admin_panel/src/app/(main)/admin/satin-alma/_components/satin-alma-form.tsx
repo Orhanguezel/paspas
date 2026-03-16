@@ -125,7 +125,18 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
   }
 
   function updateKalem(idx: number, field: keyof KalemRow, value: string) {
-    setKalemler((prev) => prev.map((k, i) => (i === idx ? { ...k, [field]: value } : k)));
+    setKalemler((prev) => prev.map((k, i) => {
+      if (i !== idx) return k;
+      const updated = { ...k, [field]: value };
+      // Ürün seçildiğinde fiyatı otomatik doldur
+      if (field === 'urunId' && value) {
+        const urun = urunler.find((u) => u.id === value);
+        if (urun?.birimFiyat != null && (k.birimFiyat === '0' || k.birimFiyat === '')) {
+          updated.birimFiyat = String(urun.birimFiyat);
+        }
+      }
+      return updated;
+    }));
   }
 
   async function onSubmit(values: FormValues) {

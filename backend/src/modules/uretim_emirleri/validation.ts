@@ -39,6 +39,7 @@ export const listQuerySchema = z.object({
   siparisId: uuidSchema.optional(),
   urunId: uuidSchema.optional(),
   durum: durumEnum.optional(),
+  tamamlananlariGoster: z.coerce.boolean().default(false),
   isActive: isActiveQuerySchema.optional(),
   limit: z.coerce.number().int().min(1).max(500).default(100),
   offset: z.coerce.number().int().min(0).default(0),

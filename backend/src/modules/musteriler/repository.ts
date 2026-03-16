@@ -129,5 +129,26 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<MusteriR
 }
 
 export async function repoDelete(id: string): Promise<void> {
+  // FK dependency check
+  const deps = await db
+    .select({ table_name: sql<string>`'satis_siparisleri'`, cnt: sql<number>`count(*)` })
+    .from(sql`satis_siparisleri`)
+    .where(sql`musteri_id = ${id}`)
+    .unionAll(
+      db.select({ table_name: sql<string>`'uretim_emirleri'`, cnt: sql<number>`count(*)` })
+        .from(sql`uretim_emirleri`)
+        .where(sql`musteri_id = ${id}`),
+    )
+    .unionAll(
+      db.select({ table_name: sql<string>`'sevk_emirleri'`, cnt: sql<number>`count(*)` })
+        .from(sql`sevk_emirleri`)
+        .where(sql`musteri_id = ${id}`),
+    );
+
+  const blocking = deps.filter((d) => Number(d.cnt) > 0).map((d) => d.table_name);
+  if (blocking.length > 0) {
+    throw Object.assign(new Error('musteri_bagimliligi_var'), { blocking });
+  }
+
   await db.delete(musteriler).where(eq(musteriler.id, id));
 }

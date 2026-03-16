@@ -5,17 +5,19 @@
 // Paspas ERP — Sipariş oluştur / düzenle formu
 // =============================================================
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2 } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useLocaleContext } from "@/i18n/LocaleProvider";
@@ -69,7 +71,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
   const siparisDetail = isEdit ? detailData : null;
 
   const { data: musterilerData } = useListMusterilerAdminQuery({ tur: "musteri" });
-  const { data: urunlerData } = useListUrunlerAdminQuery({});
+  const { data: urunlerData } = useListUrunlerAdminQuery({ kategori: 'urun' });
   const { data: nextNoData } = useGetNextSiparisNoAdminQuery(undefined, { skip: isEdit });
 
   const musteriler = musterilerData?.items ?? [];
@@ -323,22 +325,13 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
                 {/* Ürün */}
                 <div className="space-y-1">
                   {idx === 0 && <Label className="text-xs">{t("admin.erp.satisSiparisleri.form.urun")}</Label>}
-                  <Select
+                  <UrunCombobox
+                    urunler={urunler}
                     value={form.watch(`items.${idx}.urunId`)}
-                    onValueChange={(v) => handleUrunChange(idx, v)}
+                    onChange={(v) => handleUrunChange(idx, v)}
+                    placeholder={t("admin.erp.satisSiparisleri.form.urunPlaceholder")}
                     disabled={siparis?.kilitli}
-                  >
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue placeholder={t("admin.erp.satisSiparisleri.form.urunPlaceholder")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {urunler.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>
-                          {u.ad}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                   {form.formState.errors.items?.[idx]?.urunId && (
                     <p className="text-xs text-destructive">{form.formState.errors.items[idx]?.urunId?.message}</p>
                   )}
@@ -436,5 +429,56 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
         </form>
       </SheetContent>
     </Sheet>
+  );
+}
+
+// -- Ürün arama Combobox --
+
+interface UrunComboboxProps {
+  urunler: { id: string; kod: string; ad: string }[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  disabled?: boolean;
+}
+
+function UrunCombobox({ urunler, value, onChange, placeholder, disabled }: UrunComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const selected = urunler.find((u) => u.id === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-8 w-full justify-between text-sm font-normal"
+          disabled={disabled}
+        >
+          <span className="truncate">{selected ? `${selected.kod} — ${selected.ad}` : placeholder}</span>
+          <ChevronsUpDown className="ml-2 size-3.5 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Ürün ara..." />
+          <CommandList>
+            <CommandEmpty>Sonuç bulunamadı.</CommandEmpty>
+            <CommandGroup>
+              {urunler.map((u) => (
+                <CommandItem
+                  key={u.id}
+                  value={`${u.kod} ${u.ad}`}
+                  onSelect={() => { onChange(u.id); setOpen(false); }}
+                >
+                  <Check className={`mr-2 size-4 ${value === u.id ? "opacity-100" : "opacity-0"}`} />
+                  {u.kod} — {u.ad}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }

@@ -18,8 +18,8 @@ import { useListMakinelerAdminQuery } from "@/integrations/endpoints/admin/erp/m
 import type { GanttBarDto, GanttBlockDto, GanttMachineDto } from "@/integrations/shared/erp/gantt.types";
 
 const DAY_MS = 86_400_000;
-const ROW_H = 96;
-const LABEL_W = 300;
+const ROW_H = 56;
+const LABEL_W = 260;
 const PRESET_COL_W: Record<RangePreset, number> = {
   week: 140,
   month: 42,
@@ -143,23 +143,15 @@ function preciseDayDuration(start: Date, end: Date): number {
   return Math.max((end.getTime() - start.getTime()) / DAY_MS, 1 / 24);
 }
 
-function blockPatternStyle(tip: GanttBlockDto["tip"]) {
+function blockPatternStyle(tip: GanttBlockDto["tip"]): React.CSSProperties {
   if (tip === "durus") {
-    return {
-      backgroundImage:
-        "repeating-linear-gradient(135deg, rgba(249,115,22,0.55) 0 8px, rgba(251,146,60,0.18) 8px 16px)",
-    };
+    return { backgroundColor: "rgba(249,115,22,0.18)" };
   }
   if (tip === "tatil") {
-    return {
-      backgroundImage:
-        "repeating-linear-gradient(135deg, rgba(244,63,94,0.28) 0 10px, rgba(251,113,133,0.08) 10px 20px)",
-    };
+    return { backgroundColor: "rgba(244,63,94,0.12)" };
   }
-  return {
-    backgroundImage:
-      "repeating-linear-gradient(135deg, rgba(100,116,139,0.20) 0 10px, rgba(148,163,184,0.06) 10px 20px)",
-  };
+  // hafta_sonu
+  return { backgroundColor: "rgba(100,116,139,0.08)" };
 }
 
 function getBlockRect(block: GanttBlockDto, timelineStart: Date, totalDays: number, colWidth: number) {
@@ -189,9 +181,9 @@ export default function GanttClient() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const today = startOfDay(new Date());
-  const [rangePreset, setRangePreset] = useState<RangePreset>("month");
+  const [rangePreset, setRangePreset] = useState<RangePreset>("week");
   const [baslangic, setBaslangic] = useState(isoDate(today));
-  const [bitis, setBitis] = useState(isoDate(addDays(today, RANGE_PRESETS.month - 1)));
+  const [bitis, setBitis] = useState(isoDate(addDays(today, RANGE_PRESETS.week - 1)));
   const [q, setQ] = useState("");
   const [durumFilter, setDurumFilter] = useState("");
   const [makineIdFilter, setMakineIdFilter] = useState("");
@@ -468,32 +460,24 @@ export default function GanttClient() {
               <div className="shrink-0 border-r bg-muted/40" style={{ width: LABEL_W }}>
                 <div className="h-6 border-b" />
                 <div className="h-8 border-b" />
-                {groups.map((group) => (
-                  <div key={group.makineId} className="border-b px-3 py-2 flex flex-col justify-center" style={{ height: ROW_H }}>
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="truncate font-mono text-xs font-semibold leading-tight">{group.makineKod}</div>
-                        <div className="truncate text-[11px] text-muted-foreground leading-tight">{group.makineAd}</div>
+                {groups.map((group) => {
+                  const sonBitis = group.items.length
+                    ? formatDateTime(group.items[group.items.length - 1]?.bitisTarihi ?? null)
+                    : "—";
+                  return (
+                    <div key={group.makineId} className="border-b px-3 flex items-center gap-2" style={{ height: ROW_H }}>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-xs font-semibold leading-tight">
+                          <span className="font-mono">{group.makineKod}</span>
+                          <span className="ml-1 font-normal text-muted-foreground">{group.makineAd}</span>
+                        </div>
+                        <div className="mt-0.5 text-[10px] text-muted-foreground leading-tight truncate">
+                          {group.items.length} iş · Son: {sonBitis}
+                        </div>
                       </div>
-                      <Badge variant="outline" className="shrink-0 text-[10px]">
-                        {group.items.length} iş
-                      </Badge>
                     </div>
-                    <div className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground leading-tight">
-                      <span>Kapasite: {group.saatlikKapasite ?? "—"}/saat</span>
-                      <span>Çalışma: {group.gunlukCalismaSaati}s/gün</span>
-                      <span>Takvim: {group.calisir24Saat ? "24 saat sürekli" : "Gündüz planı"}</span>
-                      <span>İlk iş: {group.items[0]?.emirNo ?? "—"}</span>
-                      {(() => { const d = group.items.filter((i) => i.durum === "duraklatildi").length; return d > 0 ? <span className="text-orange-600 font-medium">Durdu: {d}</span> : null; })()}
-                    </div>
-                    <div className="mt-0.5 text-[10px] text-muted-foreground leading-tight truncate">
-                      Son bitiş:{" "}
-                      {group.items.length
-                        ? formatDateTime(group.items[group.items.length - 1]?.bitisTarihi ?? null)
-                        : "—"}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="flex-1 overflow-x-auto" ref={scrollRef}>
@@ -585,6 +569,12 @@ function MachineTimelineRow({
       .filter((value): value is { item: GanttBarDto; left: number; width: number } => value !== null);
   }, [group.items, timelineStart, totalDays]);
 
+  // Bugün çizgisi pozisyonu (saat bazlı)
+  const now = new Date();
+  const todayOffset = preciseDayOffset(timelineStart, now);
+  const todayLineLeft = todayOffset * colWidth;
+  const showTodayLine = todayOffset >= 0 && todayOffset <= totalDays;
+
   return (
     <div className="relative border-b" style={{ height: ROW_H }}>
       {/* Layer 0: Column grid + today highlight */}
@@ -620,7 +610,7 @@ function MachineTimelineRow({
         </div>
       ) : (
         bars.map(({ item, left, width }) => (
-          <GanttBar key={item.kuyrukId} item={item} left={left} top={28} width={width} />
+          <GanttBar key={item.kuyrukId} item={item} left={left} top={12} width={width} />
         ))
       )}
 
@@ -647,7 +637,17 @@ function MachineTimelineRow({
           );
         })}
 
-      {/* Layer 4: Duruş blocks (z-[15]) — on top of everything */}
+      {/* Layer 4: Bugün çizgisi */}
+      {showTodayLine && (
+        <div
+          className="absolute top-0 bottom-0 z-20 w-px bg-red-500 pointer-events-none"
+          style={{ left: todayLineLeft }}
+        >
+          <div className="absolute -top-0.5 -left-1 size-2 rounded-full bg-red-500" />
+        </div>
+      )}
+
+      {/* Layer 5: Duruş blocks (z-[15]) — on top of everything */}
       {group.blocks
         .filter((block) => block.tip === "durus")
         .map((block) => {
@@ -692,9 +692,14 @@ function GanttBar({ item, left, top, width }: { item: GanttBarDto; left: number;
             )}
             {isCancelled && <div className={`absolute inset-0 opacity-35 ${style.fill}`} />}
             <div className={`absolute inset-0 flex items-center gap-1 px-2 text-[10px] font-medium ${style.text}`}>
-              <span className="shrink-0 font-mono">{item.emirNo}</span>
-              {width > 90 && <span className="truncate">{item.urunKod ?? item.urunAd ?? item.urunId}</span>}
-              {item.montaj && <Wrench className="ml-auto size-3 shrink-0 text-amber-700" />}
+              <span className="truncate">{item.operasyonAdi ?? item.emirNo}</span>
+              {item.musteriOzet && width > 120 && <span className="shrink-0 text-muted-foreground">· {item.musteriOzet}</span>}
+              {item.montaj && (
+                <span className="ml-auto flex items-center gap-0.5 shrink-0 text-amber-700">
+                  <Wrench className="size-3" />
+                  {width > 100 && <span className="text-[9px]">Montaj</span>}
+                </span>
+              )}
               {isWeekendBitis && (
                 <span className="ml-auto flex size-4 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-white" title="Bitiş hafta sonuna denk geliyor">
                   !
@@ -706,23 +711,10 @@ function GanttBar({ item, left, top, width }: { item: GanttBarDto; left: number;
       </TooltipTrigger>
       <TooltipContent side="top" className="max-w-xs">
         <div className="space-y-1 text-xs">
-          <div className="font-medium">{item.emirNo}</div>
-          {item.siparisNo && <div>Sipariş: {item.siparisNo}</div>}
-          <div>
-            <span className="font-mono text-muted-foreground">{item.urunKod ?? "—"}</span> {item.urunAd ?? item.urunId}
-          </div>
-          {item.operasyonAdi && <div>Operasyon: {item.operasyonAdi}</div>}
+          {item.operasyonAdi && <div className="font-medium">{item.operasyonAdi}</div>}
           {item.musteriOzet && <div>Müşteri: {item.musteriOzet}</div>}
-          <div>Sıra: {item.sira}</div>
           <div>Başlangıç: {formatDateTime(item.baslangicTarihi)}</div>
-          {item.planlananBaslangicTarihi && item.planlananBaslangicTarihi !== item.baslangicTarihi && (
-            <div className="text-muted-foreground">Plan Başlangıç: {formatDateTime(item.planlananBaslangicTarihi)}</div>
-          )}
           <div>Bitiş: {formatDateTime(item.bitisTarihi)}</div>
-          {item.planlananBitisTarihi && item.planlananBitisTarihi !== item.bitisTarihi && (
-            <div className="text-muted-foreground">Plan Bitiş: {formatDateTime(item.planlananBitisTarihi)}</div>
-          )}
-          <div>Termin: {formatDateOnly(item.terminTarihi)}</div>
           {isWeekendBitis && (
             <div className="font-medium text-amber-600">⚠ Bitiş hafta sonuna denk geliyor</div>
           )}

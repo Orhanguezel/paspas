@@ -224,21 +224,22 @@ export default function AdminDashboardClient() {
   const summary = useGetDashboardSummaryAdminQuery();
   const kpi = useGetDashboardKpiAdminQuery();
   const trend = useGetDashboardTrendAdminQuery({ days: 30 });
-  const actionCenter = useGetDashboardActionCenterAdminQuery();
+  // V2: Aksiyon Merkezi — şimdilik devre dışı
+  // const actionCenter = useGetDashboardActionCenterAdminQuery();
   const todayMovements = useListHareketlerAdminQuery({ period: 'today', limit: 50 });
   const recentMovements = useListHareketlerAdminQuery({ period: 'week', limit: 6 });
   const criticalStocks = useListStoklarAdminQuery({ kritikOnly: true, sort: 'kritik_stok', order: 'desc' });
   const allStocks = useListStoklarAdminQuery({});
-  const gorevler = useListGorevlerAdminQuery({ limit: 6, gecikenOnly: false });
-  const myTasks = useListGorevlerAdminQuery({ limit: 6, sadeceBenim: true });
+  // V2: Görevler — şimdilik devre dışı
+  // const gorevler = useListGorevlerAdminQuery({ limit: 6, gecikenOnly: false });
+  // const myTasks = useListGorevlerAdminQuery({ limit: 6, sadeceBenim: true });
   const unassignedOperations = useListAtanmamisAdminQuery();
   const gunlukGirisler = useListGunlukGirislerAdminQuery({ limit: 500, dateFrom: todayYmd, dateTo: todayYmd });
 
   const isLoading =
     summary.isLoading || kpi.isLoading || trend.isLoading || todayMovements.isLoading ||
     recentMovements.isLoading || criticalStocks.isLoading || allStocks.isLoading ||
-    gorevler.isLoading || unassignedOperations.isLoading || gunlukGirisler.isLoading ||
-    actionCenter.isLoading || myTasks.isLoading;
+    unassignedOperations.isLoading || gunlukGirisler.isLoading;
 
   const todayProduction = React.useMemo(() => {
     const entries = gunlukGirisler.data?.items ?? [];
@@ -267,21 +268,22 @@ export default function AdminDashboardClient() {
     summary.refetch();
     kpi.refetch();
     trend.refetch();
-    actionCenter.refetch();
+    // V2: actionCenter.refetch();
     todayMovements.refetch();
     recentMovements.refetch();
     criticalStocks.refetch();
     allStocks.refetch();
-    gorevler.refetch();
-    myTasks.refetch();
+    // V2: gorevler.refetch();
+    // V2: myTasks.refetch();
     unassignedOperations.refetch();
     gunlukGirisler.refetch();
   }
 
-  const actionItems = actionCenter.data?.items ?? [];
-  const actionCounts = actionCenter.data?.counts ?? { critical: 0, warning: 0, task: 0, info: 0 };
-  const [actionFilter, setActionFilter] = React.useState<'all' | 'task' | 'info'>('all');
-  const filteredActionItems = actionFilter === 'all' ? actionItems : actionItems.filter((i) => i.category === actionFilter);
+  // V2: Aksiyon Merkezi state — şimdilik devre dışı
+  // const actionItems = actionCenter.data?.items ?? [];
+  // const actionCounts = actionCenter.data?.counts ?? { critical: 0, warning: 0, task: 0, info: 0 };
+  // const [actionFilter, setActionFilter] = React.useState<'all' | 'task' | 'info'>('all');
+  // const filteredActionItems = actionFilter === 'all' ? actionItems : actionItems.filter((i) => i.category === actionFilter);
 
   return (
     <div className="space-y-6">
@@ -336,7 +338,7 @@ export default function AdminDashboardClient() {
         </Card>
       )}
 
-      {/* Action Center */}
+      {/* V2: Aksiyon Merkezi (Görevler + Bilgilendirme) — şimdilik devre dışı
       {isVisible('actionCenter') && (
         <section className="space-y-3">
           <div className="flex flex-wrap items-center gap-3">
@@ -415,6 +417,7 @@ export default function AdminDashboardClient() {
           )}
         </section>
       )}
+      */}
 
       {/* Today Activity */}
       {isVisible('todayActivity') && (
@@ -456,7 +459,7 @@ export default function AdminDashboardClient() {
                 <StatusCard href="/admin/uretim-emirleri" title="Aktif Üretim Emri" value={kpi.data?.activeProductionOrders ?? 0} subtitle="planlandı / üretiliyor" icon={Factory} />
                 <StatusCard href="/admin/sevkiyat" title="Onay Bekleyen Sevk" value={kpi.data?.pendingShipmentApprovalCount ?? 0} subtitle={`${kpi.data?.pendingPhysicalShipmentCount ?? 0} fiziksel sevk bekliyor`} icon={Truck} />
                 <StatusCard href="/admin/satin-alma" title="Açık Satın Alma" value={kpi.data?.purchaseOpenCount ?? 0} subtitle="bekleyen tedarik" icon={Truck} />
-                <StatusCard href="/admin/gorevler" title="Açık Görev" value={gorevler.data?.summary.acik ?? 0} subtitle={`${gorevler.data?.summary.geciken ?? 0} geciken`} icon={CheckSquare2} />
+                {/* V2: <StatusCard href="/admin/gorevler" title="Açık Görev" value={gorevler.data?.summary.acik ?? 0} subtitle={`${gorevler.data?.summary.geciken ?? 0} geciken`} icon={CheckSquare2} /> */}
               </>
             )}
           </div>
@@ -529,7 +532,7 @@ export default function AdminDashboardClient() {
         )}
       </div>
 
-      {/* My Tasks + Open Tasks */}
+      {/* V2: Bana Atanan Görevler + Açık Görevler + Görev Özeti — şimdilik devre dışı
       <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
         {isVisible('myTasks') && (
           <Card>
@@ -600,7 +603,6 @@ export default function AdminDashboardClient() {
         )}
       </div>
 
-      {/* Task Summary (show if openTasks visible) */}
       {isVisible('openTasks') && (
         <Card>
           <CardHeader><CardTitle className="text-base">Görev Özeti</CardTitle></CardHeader>
@@ -612,6 +614,7 @@ export default function AdminDashboardClient() {
           </CardContent>
         </Card>
       )}
+      */}
 
       {/* Recent Movements + Low Stock */}
       <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">

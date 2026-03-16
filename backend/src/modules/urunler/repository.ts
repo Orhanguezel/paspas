@@ -165,6 +165,23 @@ export async function repoList(query: ListQuery): Promise<ListResult> {
   return { items, total: Number(countResult[0]?.count ?? 0) };
 }
 
+/** Verilen ürün ID'leri için bağımlılığı olanların kümesini döner (tüm FK referanslar) */
+export async function repoGetDependentUrunIds(urunIds: string[]): Promise<Set<string>> {
+  if (urunIds.length === 0) return new Set();
+  const inList = sql.join(urunIds.map((id) => sql`${id}`), sql`, `);
+  const rows = await db
+    .select({ urunId: sql<string>`urun_id` })
+    .from(sql`(
+      SELECT DISTINCT urun_id FROM siparis_kalemleri WHERE urun_id IN (${inList})
+      UNION SELECT DISTINCT urun_id FROM uretim_emirleri WHERE urun_id IN (${inList})
+      UNION SELECT DISTINCT urun_id FROM sevk_emirleri WHERE urun_id IN (${inList})
+      UNION SELECT DISTINCT urun_id FROM sevkiyat_kalemleri WHERE urun_id IN (${inList})
+      UNION SELECT DISTINCT urun_id FROM mal_kabul_kayitlari WHERE urun_id IN (${inList})
+      UNION SELECT DISTINCT urun_id FROM satin_alma_kalemleri WHERE urun_id IN (${inList})
+    ) AS deps`);
+  return new Set(rows.map((r) => r.urunId));
+}
+
 export async function repoGetById(id: string): Promise<UrunRow | null> {
   const rows = await db.select().from(urunler).where(eq(urunler.id, id)).limit(1);
   return rows[0] ?? null;
@@ -215,9 +232,54 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<UrunRow 
 }
 
 export async function repoDelete(id: string): Promise<void> {
-  await db.delete(urunOperasyonlari).where(eq(urunOperasyonlari.urun_id, id));
-  await db.delete(urunBirimDonusumleri).where(eq(urunBirimDonusumleri.urun_id, id));
-  await db.delete(urunler).where(eq(urunler.id, id));
+  // FK dependency check — sipariş, üretim emri, sevkiyat, satın alma bağımlılığı kontrol
+  // receteler, recete_kalemleri, hareketler → ürünün kendi verileri, cascade ile silinir
+  const deps = await db
+    .select({ table_name: sql<string>`'siparis_kalemleri'`, cnt: sql<number>`count(*)` })
+    .from(sql`siparis_kalemleri`)
+    .where(sql`urun_id = ${id}`)
+    .unionAll(
+      db.select({ table_name: sql<string>`'uretim_emirleri'`, cnt: sql<number>`count(*)` })
+        .from(sql`uretim_emirleri`)
+        .where(sql`urun_id = ${id}`),
+    )
+    .unionAll(
+      db.select({ table_name: sql<string>`'sevk_emirleri'`, cnt: sql<number>`count(*)` })
+        .from(sql`sevk_emirleri`)
+        .where(sql`urun_id = ${id}`),
+    )
+    .unionAll(
+      db.select({ table_name: sql<string>`'sevkiyat_kalemleri'`, cnt: sql<number>`count(*)` })
+        .from(sql`sevkiyat_kalemleri`)
+        .where(sql`urun_id = ${id}`),
+    )
+    .unionAll(
+      db.select({ table_name: sql<string>`'mal_kabul_kayitlari'`, cnt: sql<number>`count(*)` })
+        .from(sql`mal_kabul_kayitlari`)
+        .where(sql`urun_id = ${id}`),
+    )
+    .unionAll(
+      db.select({ table_name: sql<string>`'satin_alma_kalemleri'`, cnt: sql<number>`count(*)` })
+        .from(sql`satin_alma_kalemleri`)
+        .where(sql`urun_id = ${id}`),
+    );
+
+  const blocking = deps.filter((d) => Number(d.cnt) > 0).map((d) => d.table_name);
+  if (blocking.length > 0) {
+    throw Object.assign(new Error('urun_bagimliligi_var'), { blocking });
+  }
+
+  // Owned children — cascade delete (raw SQL for reliable FK order)
+  await db.execute(sql`DELETE FROM hammadde_rezervasyonlari WHERE urun_id = ${id}`);
+  await db.execute(sql`DELETE FROM hareketler WHERE urun_id = ${id}`);
+  await db.execute(sql`DELETE FROM recete_kalemleri WHERE urun_id = ${id}`);
+  await db.execute(sql`DELETE FROM recete_kalemleri WHERE recete_id IN (SELECT id FROM receteler WHERE urun_id = ${id})`);
+  await db.execute(sql`DELETE FROM receteler WHERE urun_id = ${id}`);
+  await db.execute(sql`DELETE FROM urun_medya WHERE urun_id = ${id}`);
+  await db.execute(sql`DELETE FROM urun_operasyon_makineleri WHERE urun_operasyon_id IN (SELECT id FROM urun_operasyonlari WHERE urun_id = ${id})`);
+  await db.execute(sql`DELETE FROM urun_operasyonlari WHERE urun_id = ${id}`);
+  await db.execute(sql`DELETE FROM urun_birim_donusumleri WHERE urun_id = ${id}`);
+  await db.execute(sql`DELETE FROM urunler WHERE id = ${id}`);
 }
 
 // -- Operasyon Helpers --

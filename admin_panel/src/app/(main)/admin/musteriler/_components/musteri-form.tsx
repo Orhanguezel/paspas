@@ -186,10 +186,12 @@ export default function MusteriForm({ open, onClose, musteri }: MusteriFormProps
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* V2: Cari Kodu — müşteri talebiyle kaldırıldı
               <div className="space-y-2">
                 <Label>{t('admin.erp.musteriler.form.cariKodu')}</Label>
                 <Input {...form.register('cariKodu')} placeholder={t('admin.erp.musteriler.form.cariKoduPlaceholder')} />
               </div>
+              */}
               <div className="space-y-2">
                 <Label>{t('admin.erp.musteriler.form.sevkiyatNotu')}</Label>
                 <Textarea

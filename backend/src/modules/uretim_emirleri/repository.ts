@@ -159,7 +159,20 @@ function buildWhere(query: ListQuery): SQL | undefined {
     );
   }
   if (query.urunId) conditions.push(eq(uretimEmirleri.urun_id, query.urunId));
-  if (query.durum) conditions.push(eq(uretimEmirleri.durum, query.durum));
+  if (query.durum === 'atanmamis') {
+    // Emir bazli degil, operasyon bazli kontrol: en az bir operasyonu makineye atanmamis olan emirler
+    conditions.push(
+      sql`${uretimEmirleri.id} IN (
+        SELECT DISTINCT uretim_emri_id FROM uretim_emri_operasyonlari
+        WHERE makine_id IS NULL AND durum = 'bekliyor'
+      )`,
+    );
+  } else if (query.durum) {
+    conditions.push(eq(uretimEmirleri.durum, query.durum));
+  }
+  if (!query.tamamlananlariGoster && !query.durum) {
+    conditions.push(sql`${uretimEmirleri.durum} NOT IN ('tamamlandi', 'iptal')`);
+  }
   if (typeof query.isActive === 'boolean') conditions.push(eq(uretimEmirleri.is_active, query.isActive ? 1 : 0));
   if (conditions.length === 0) return undefined;
   if (conditions.length === 1) return conditions[0];

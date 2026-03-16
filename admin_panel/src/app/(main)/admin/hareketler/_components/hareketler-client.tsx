@@ -46,7 +46,7 @@ const HAREKET_OPTIONS = [
 export default function HareketlerClient() {
   const { t } = useLocaleContext();
   const [q, setQ] = useState('');
-  const [period, setPeriod] = useState<'all' | 'today' | 'week' | 'custom'>('all');
+  const [period, setPeriod] = useState<'all' | 'today' | 'week' | 'custom'>('today');
   const [hareketTipi, setHareketTipi] = useState('hepsi');
   const [kaynakTipi, setKaynakTipi] = useState('hepsi');
   const [startDate, setStartDate] = useState('');

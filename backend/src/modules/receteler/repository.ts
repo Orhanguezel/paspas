@@ -5,7 +5,8 @@ import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 
-import { receteKalemleri, receteler, type ReceteKalemRow, type ReceteRow } from './schema';
+import { urunler } from '@/modules/urunler/schema';
+import { receteKalemleri, receteler, type EnrichedReceteKalemRow, type ReceteKalemRow, type ReceteRow } from './schema';
 import type { CreateBody, ListQuery, PatchBody } from './validation';
 
 type ListResult = {
@@ -15,7 +16,7 @@ type ListResult = {
 
 type ReceteDetail = {
   recete: ReceteRow;
-  items: ReceteKalemRow[];
+  items: EnrichedReceteKalemRow[];
 };
 
 function buildWhere(query: ListQuery): SQL | undefined {
@@ -151,8 +152,22 @@ export async function repoGetByUrunId(urunId: string): Promise<ReceteDetail | nu
   if (!recete) return null;
 
   const items = await db
-    .select()
+    .select({
+      id: receteKalemleri.id,
+      recete_id: receteKalemleri.recete_id,
+      urun_id: receteKalemleri.urun_id,
+      miktar: receteKalemleri.miktar,
+      fire_orani: receteKalemleri.fire_orani,
+      sira: receteKalemleri.sira,
+      created_at: receteKalemleri.created_at,
+      updated_at: receteKalemleri.updated_at,
+      malzemeKod: urunler.kod,
+      malzemeAd: urunler.ad,
+      malzemeBirim: urunler.birim,
+      malzemeBirimFiyat: urunler.birim_fiyat,
+    })
     .from(receteKalemleri)
+    .leftJoin(urunler, eq(receteKalemleri.urun_id, urunler.id))
     .where(eq(receteKalemleri.recete_id, recete.id))
     .orderBy(asc(receteKalemleri.sira), asc(receteKalemleri.created_at));
 

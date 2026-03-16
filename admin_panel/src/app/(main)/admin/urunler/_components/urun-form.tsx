@@ -247,7 +247,8 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
     } else {
       replaceOps([{ operasyonAdi: name, sira: 1, hazirlikSuresiDk: 60, cevrimSuresiSn: 45, montaj: false }]);
     }
-  }, [watchOperasyonTipi, watchAd, watchRenk, showProductionFields, isEdit, operationTypeRequired, replaceOps]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- replaceOps identity changes every render, safe to omit
+  }, [watchOperasyonTipi, watchAd, watchRenk, showProductionFields, isEdit, operationTypeRequired]);
 
   // Handle operasyonTipi change for EXISTING products (bug fix)
   const prevOpTipiRef = useRef<string | null>(null);
@@ -282,7 +283,8 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
       const first = currentOps[0] ?? { hazirlikSuresiDk: 60, cevrimSuresiSn: 45, montaj: false };
       replaceOps([{ ...first, operasyonAdi: baseName, sira: 1 }]);
     }
-  }, [watchOperasyonTipi, isEdit, showOperasyonTipi, form.getValues, replaceOps, watchAd]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- replaceOps/form.getValues identity unstable
+  }, [watchOperasyonTipi, isEdit, showOperasyonTipi, watchAd]);
 
   useEffect(() => {
     if (!selectedCategory) return;
@@ -749,7 +751,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => appendDonusum({ hedefBirim: "", carpan: 1 })}
+                    onClick={() => appendDonusum({ hedefBirim: watchKategori === "urun" ? "koli" : "", carpan: 1 })}
                   >
                     <Plus className="mr-1 size-3" /> {tForm("donusumEkle")}
                   </Button>
@@ -900,7 +902,8 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                             <Label className="text-xs">{tForm("cevrimSuresi")}</Label>
                             <Input type="number" step="0.01" {...form.register(`operasyonlar.${idx}.cevrimSuresiSn`)} />
                           </div>
-                          {watchOperasyonTipi !== "cift_tarafli" && (
+                          {/* Montaj toggle: çift taraflı operasyonlarda gösterilir, tek taraflıda gizli */}
+                          {watchOperasyonTipi === "cift_tarafli" && (
                             <div className="flex items-center gap-2 pt-5">
                               <Switch
                                 checked={form.watch(`operasyonlar.${idx}.montaj`)}

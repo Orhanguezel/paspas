@@ -167,9 +167,9 @@ function ListRow({
 
       <div className="flex w-16 shrink-0 items-center justify-end gap-0.5">
         {item.montaj && (
-          <Badge variant="secondary" className="px-1 py-0 text-[9px] gap-0.5">
-            <Wrench className="size-2.5" />
-            M
+          <Badge variant="secondary" className="px-1.5 py-0.5 text-[10px] gap-0.5 bg-amber-100 text-amber-800 border-amber-300">
+            <Wrench className="size-3" />
+            Montaj
           </Badge>
         )}
         <Badge variant={IS_YUKU_DURUM_BADGE[item.durum] ?? 'outline'} className="px-1 py-0 text-[9px]">
@@ -238,8 +238,8 @@ function GridRow({
           {item.emirNo}
         </Link>
         {item.montaj && (
-          <Badge variant="secondary" className="px-1 py-0 text-[9px] gap-0.5">
-            <Wrench className="size-2.5" />
+          <Badge variant="secondary" className="px-1.5 py-0.5 text-xs gap-1 bg-amber-100 text-amber-800 border-amber-300">
+            <Wrench className="size-3" />
             Montaj
           </Badge>
         )}

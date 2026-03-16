@@ -83,6 +83,7 @@ export default function UretimEmirleriClient() {
   const { t } = useLocaleContext();
   const [search, setSearch] = useState("");
   const [durum, setDurum] = useState<UretimEmriDurum | "hepsi">("hepsi");
+  const [showCompleted, setShowCompleted] = useState(false);
   const [sortBy, setSortBy] = useState("bitis_tarihi");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<UretimEmriDto | null>(null);
@@ -107,6 +108,7 @@ export default function UretimEmirleriClient() {
   const params = {
     ...(search ? { q: search } : {}),
     ...(durum !== "hepsi" ? { durum } : {}),
+    ...(showCompleted ? { tamamlananlariGoster: true } : {}),
     sort: sortBy,
     order: (sortBy === "bitis_tarihi" ? "asc" : "desc") as "asc" | "desc",
   };
@@ -325,6 +327,13 @@ export default function UretimEmirleriClient() {
         </Select>
         <Button variant="ghost" size="sm" onClick={resetFilters}>
           {t("admin.erp.uretimEmirleri.resetFilters")}
+        </Button>
+        <Button
+          variant={showCompleted ? "secondary" : "outline"}
+          size="sm"
+          onClick={() => setShowCompleted((v) => !v)}
+        >
+          {showCompleted ? "Tamamlananları Gizle" : "Tamamlananları Göster"}
         </Button>
       </div>
 

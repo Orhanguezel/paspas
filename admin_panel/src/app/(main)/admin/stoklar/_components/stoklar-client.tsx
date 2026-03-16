@@ -136,36 +136,21 @@ export default function StoklarClient() {
         </Tabs>
 
         {kritikTakip.length > 0 && (
-          <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 p-4">
-            <div className="mb-3 flex items-center gap-2 text-orange-700">
+          <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50/50 p-3">
+            <div className="mb-2 flex items-center gap-2 text-orange-700">
               <AlertTriangle className="size-4" />
-              <h2 className="font-semibold text-sm">{t("admin.erp.stoklar.kritikTakip.title")}</h2>
+              <h2 className="font-semibold text-sm">{t("admin.erp.stoklar.kritikTakip.title")} ({kritikTakip.length})</h2>
             </div>
-            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-              {kritikTakip.slice(0, 6).map((item) => (
-                <div key={item.urunId} className="rounded-md border border-orange-200 bg-white p-3">
-                  <div className="mb-1 flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-mono text-muted-foreground text-xs">{item.urunKod}</p>
-                      <p className="font-medium text-sm">{item.urunAd}</p>
-                    </div>
-                    {durumBadge(item.durum)}
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    {t(`admin.erp.urunler.kategoriLabel.${item.kategori}`)}
-                  </p>
-                  <p className="mt-2 text-sm">
-                    {t("admin.erp.stoklar.kritikTakip.current")}:{" "}
-                    <span className="font-medium">{formatAmount(item.stok)}</span> {item.birim}
-                  </p>
-                  <p className="text-sm">
-                    {t("admin.erp.stoklar.kritikTakip.threshold")}:{" "}
-                    <span className="font-medium">{formatAmount(item.kritikStok)}</span> {item.birim}
-                  </p>
-                  <p className="text-orange-700 text-sm">
-                    {t("admin.erp.stoklar.kritikTakip.shortfall")}:{" "}
-                    <span className="font-medium">{formatAmount(item.kritikAcik)}</span> {item.birim}
-                  </p>
+            <div className="space-y-1">
+              {kritikTakip.map((item) => (
+                <div key={item.urunId} className="flex items-center gap-3 rounded-md border border-orange-200 bg-white px-3 py-1.5 text-sm">
+                  <span className="font-mono text-xs text-muted-foreground w-20 shrink-0">{item.urunKod}</span>
+                  <span className="font-medium flex-1 truncate">{item.urunAd}</span>
+                  <span className="tabular-nums shrink-0">{formatAmount(item.stok)} {item.birim}</span>
+                  <span className="text-muted-foreground shrink-0">/</span>
+                  <span className="tabular-nums text-muted-foreground shrink-0">{formatAmount(item.kritikStok)}</span>
+                  <span className="tabular-nums text-orange-700 font-medium shrink-0">-{formatAmount(item.kritikAcik)}</span>
+                  {durumBadge(item.durum)}
                 </div>
               ))}
             </div>
