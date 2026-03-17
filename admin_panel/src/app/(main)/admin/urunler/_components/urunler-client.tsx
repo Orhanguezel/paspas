@@ -68,10 +68,6 @@ const SKELETON_CELL_KEYS = [
   "cell-12",
 ] as const;
 
-const TURKISH_ERROR_MESSAGES: Record<string, string> = {
-  urun_bagimliligi_var: 'Bu ürün sipariş, üretim emri veya reçete ile ilişkilendirilmiş, silinemez.',
-};
-
 function getApiErrorMessage(error: unknown): string | undefined {
   if (!error || typeof error !== "object") return undefined;
   const data = (error as { data?: unknown }).data;
@@ -79,8 +75,11 @@ function getApiErrorMessage(error: unknown): string | undefined {
   const apiError = (data as { error?: unknown }).error;
   if (!apiError || typeof apiError !== "object") return undefined;
   const message = (apiError as { message?: unknown }).message;
-  if (typeof message === "string") return TURKISH_ERROR_MESSAGES[message] ?? message;
-  return undefined;
+  if (message === 'urun_bagimliligi_var') {
+    const reasons = (apiError as { reasons?: string[] }).reasons;
+    return `Bu ürün silinemez: ${reasons?.join(', ') ?? 'ilişkili kayıtlar mevcut'}.`;
+  }
+  return typeof message === "string" ? message : undefined;
 }
 
 export default function UrunlerClient() {

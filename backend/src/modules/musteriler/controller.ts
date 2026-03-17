@@ -117,6 +117,7 @@ export const deleteMusteri: RouteHandler = async (req, reply) => {
         error: {
           message: 'musteri_bagimliligi_var',
           blocking: error.blocking,
+          reasons: error.reasons,
         },
       });
     }

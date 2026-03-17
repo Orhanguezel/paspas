@@ -345,6 +345,7 @@ export const deleteUrun: RouteHandler = async (req, reply) => {
         error: {
           message: 'urun_bagimliligi_var',
           blocking: error.blocking,
+          reasons: error.reasons,
         },
       });
     }

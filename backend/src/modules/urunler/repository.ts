@@ -264,9 +264,21 @@ export async function repoDelete(id: string): Promise<void> {
         .where(sql`urun_id = ${id}`),
     );
 
-  const blocking = deps.filter((d) => Number(d.cnt) > 0).map((d) => d.table_name);
-  if (blocking.length > 0) {
-    throw Object.assign(new Error('urun_bagimliligi_var'), { blocking });
+  const blockingDeps = deps.filter((d) => Number(d.cnt) > 0);
+  if (blockingDeps.length > 0) {
+    const labels: Record<string, string> = {
+      siparis_kalemleri: 'satış siparişi',
+      uretim_emirleri: 'üretim emri',
+      sevk_emirleri: 'sevk emri',
+      sevkiyat_kalemleri: 'sevkiyat kalemi',
+      mal_kabul_kayitlari: 'mal kabul kaydı',
+      satin_alma_kalemleri: 'satın alma kalemi',
+    };
+    const reasons = blockingDeps.map((d) => `${Number(d.cnt)} ${labels[d.table_name] ?? d.table_name}`);
+    throw Object.assign(new Error('urun_bagimliligi_var'), {
+      blocking: blockingDeps.map((d) => d.table_name),
+      reasons,
+    });
   }
 
   // Owned children — cascade delete (raw SQL for reliable FK order)

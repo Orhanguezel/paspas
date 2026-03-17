@@ -68,15 +68,25 @@ async function loadWeekendPlans(): Promise<WeekendPlanMap> {
   for (const row of rows) {
     if (!row.haftaBaslangic || !row.makineId) continue;
 
-    // hafta_baslangic dogrudan o gunun tarihini tutar (Cumartesi veya Pazar)
-    // cumartesi_calisir=1 ise o tarih Cumartesi, pazar_calisir=1 ise Pazar
-    const tarihStr = row.haftaBaslangic instanceof Date
-      ? toDateKey(row.haftaBaslangic)
-      : String(row.haftaBaslangic).slice(0, 10);
+    // hafta_baslangic: o haftanin Cumartesi tarihini tutar
+    const baseTarih = row.haftaBaslangic instanceof Date
+      ? row.haftaBaslangic
+      : new Date(String(row.haftaBaslangic).slice(0, 10) + 'T00:00:00');
 
-    if (row.cumartesiCalisir === 1 || row.pazarCalisir === 1) {
-      if (!map.has(tarihStr)) map.set(tarihStr, new Set());
-      map.get(tarihStr)!.add(row.makineId);
+    // Cumartesi calisiyor mu?
+    if (row.cumartesiCalisir === 1) {
+      const cumartesiKey = toDateKey(baseTarih);
+      if (!map.has(cumartesiKey)) map.set(cumartesiKey, new Set());
+      map.get(cumartesiKey)!.add(row.makineId);
+    }
+
+    // Pazar calisiyor mu? (Cumartesi + 1 gün)
+    if (row.pazarCalisir === 1) {
+      const pazarDate = new Date(baseTarih);
+      pazarDate.setDate(pazarDate.getDate() + 1);
+      const pazarKey = toDateKey(pazarDate);
+      if (!map.has(pazarKey)) map.set(pazarKey, new Set());
+      map.get(pazarKey)!.add(row.makineId);
     }
   }
 

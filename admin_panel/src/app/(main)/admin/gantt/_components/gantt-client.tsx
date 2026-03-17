@@ -145,13 +145,13 @@ function preciseDayDuration(start: Date, end: Date): number {
 
 function blockPatternStyle(tip: GanttBlockDto["tip"]): React.CSSProperties {
   if (tip === "durus") {
-    return { backgroundColor: "rgba(249,115,22,0.18)" };
+    return { backgroundColor: "rgba(254,215,170,0.95)" }; // orange-200
   }
   if (tip === "tatil") {
-    return { backgroundColor: "rgba(244,63,94,0.12)" };
+    return { backgroundColor: "rgba(254,205,211,0.95)" }; // rose-200
   }
   // hafta_sonu
-  return { backgroundColor: "rgba(100,116,139,0.08)" };
+  return { backgroundColor: "rgba(226,232,240,0.95)" }; // slate-200
 }
 
 function getBlockRect(block: GanttBlockDto, timelineStart: Date, totalDays: number, colWidth: number) {
@@ -614,19 +614,18 @@ function MachineTimelineRow({
         ))
       )}
 
-      {/* Layer 3: Non-working hafta sonu + tatil blocks (z-[10]) — cover bars for non-working days */}
+      {/* Layer 3: Non-working hafta sonu + tatil blocks (z-10) — bar'ların üstünde */}
       {group.blocks
         .filter((block) => block.tip !== "durus")
         .map((block) => {
           const rect = getBlockRect(block, timelineStart, totalDays, colWidth);
           if (!rect) return null;
 
-          const isWeekendBlock = block.tip === "hafta_sonu";
           return (
             <Tooltip key={block.id}>
               <TooltipTrigger asChild>
                 <div
-                  className={`absolute inset-y-0 z-10 border-x ${isWeekendBlock ? "bg-background" : `bg-background ${BLOCK_STYLES[block.tip]}`}`}
+                  className="absolute inset-y-0 z-10 border-x border-background/50"
                   style={{ left: rect.left, width: rect.width, ...blockPatternStyle(block.tip) }}
                 />
               </TooltipTrigger>

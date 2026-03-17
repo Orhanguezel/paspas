@@ -75,8 +75,9 @@ export default function MusterilerClient() {
       toast.success(t('admin.erp.common.deleted', { item: t('admin.erp.musteriler.singular') }));
     } catch (err: any) {
       const msg = err?.data?.error?.message;
+      const reasons = err?.data?.error?.reasons as string[] | undefined;
       const turkceHata = msg === 'musteri_bagimliligi_var'
-        ? 'Bu müşteriye ait sipariş kayıtları var, silinemez.'
+        ? `Bu müşteri silinemez: ${reasons?.join(', ') ?? 'ilişkili kayıtlar mevcut'}.`
         : undefined;
       toast.error(turkceHata ?? msg ?? t('admin.erp.common.deleteFailed'));
     } finally {

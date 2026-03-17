@@ -40,11 +40,15 @@ function buildWhere(query: ListQuery): SQL | undefined {
 
 async function generateMusteriKod(tur: 'musteri' | 'tedarikci'): Promise<string> {
   const prefix = tur === 'tedarikci' ? 'TED' : 'MUS';
-  const [countResult] = await db
-    .select({ count: sql<number>`count(*)` })
+  // Son kodu bul ve +1 yap (silinen kayıtları da hesaba kat)
+  const [lastRow] = await db
+    .select({ kod: musteriler.kod })
     .from(musteriler)
-    .where(eq(musteriler.tur, tur));
-  const next = Number(countResult?.count ?? 0) + 1;
+    .where(like(musteriler.kod, `${prefix}-%`))
+    .orderBy(desc(musteriler.kod))
+    .limit(1);
+  const lastNum = lastRow?.kod ? Number.parseInt(lastRow.kod.replace(`${prefix}-`, ''), 10) : 0;
+  const next = (Number.isNaN(lastNum) ? 0 : lastNum) + 1;
   return `${prefix}-${String(next).padStart(3, '0')}`;
 }
 
@@ -129,25 +133,37 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<MusteriR
 }
 
 export async function repoDelete(id: string): Promise<void> {
-  // FK dependency check
+  // FK dependency check — gerçek FK referansları: satis_siparisleri, sevk_emirleri, sevkiyat_kalemleri, satin_alma_siparisleri
   const deps = await db
     .select({ table_name: sql<string>`'satis_siparisleri'`, cnt: sql<number>`count(*)` })
     .from(sql`satis_siparisleri`)
     .where(sql`musteri_id = ${id}`)
     .unionAll(
-      db.select({ table_name: sql<string>`'uretim_emirleri'`, cnt: sql<number>`count(*)` })
-        .from(sql`uretim_emirleri`)
-        .where(sql`musteri_id = ${id}`),
-    )
-    .unionAll(
       db.select({ table_name: sql<string>`'sevk_emirleri'`, cnt: sql<number>`count(*)` })
         .from(sql`sevk_emirleri`)
         .where(sql`musteri_id = ${id}`),
+    )
+    .unionAll(
+      db.select({ table_name: sql<string>`'sevkiyat_kalemleri'`, cnt: sql<number>`count(*)` })
+        .from(sql`sevkiyat_kalemleri`)
+        .where(sql`musteri_id = ${id}`),
+    )
+    .unionAll(
+      db.select({ table_name: sql<string>`'satin_alma_siparisleri'`, cnt: sql<number>`count(*)` })
+        .from(sql`satin_alma_siparisleri`)
+        .where(sql`tedarikci_id = ${id}`),
     );
 
-  const blocking = deps.filter((d) => Number(d.cnt) > 0).map((d) => d.table_name);
+  const blocking = deps.filter((d) => Number(d.cnt) > 0);
   if (blocking.length > 0) {
-    throw Object.assign(new Error('musteri_bagimliligi_var'), { blocking });
+    const labels: Record<string, string> = {
+      satis_siparisleri: 'satış siparişi',
+      sevk_emirleri: 'sevk emri',
+      sevkiyat_kalemleri: 'sevkiyat kalemi',
+      satin_alma_siparisleri: 'satın alma siparişi',
+    };
+    const reasons = blocking.map((d) => `${Number(d.cnt)} ${labels[d.table_name] ?? d.table_name}`);
+    throw Object.assign(new Error('musteri_bagimliligi_var'), { blocking: blocking.map((d) => d.table_name), reasons });
   }
 
   await db.delete(musteriler).where(eq(musteriler.id, id));

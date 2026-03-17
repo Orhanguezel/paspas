@@ -164,7 +164,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
       kod: "",
       ad: "",
       aciklama: "",
-      birim: "takim",
+      birim: "koli",
       renk: "",
       stok: 0,
       kritikStok: 0,
@@ -250,23 +250,16 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- replaceOps identity changes every render, safe to omit
   }, [watchOperasyonTipi, watchAd, watchRenk, showProductionFields, isEdit, operationTypeRequired]);
 
-  // Handle operasyonTipi change for EXISTING products (bug fix)
-  const prevOpTipiRef = useRef<string | null>(null);
+  // Handle operasyonTipi change for EXISTING products — event-driven, not effect-based
   const prevKategoriRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!isEdit || !showOperasyonTipi) return;
-    // Skip initial load
-    if (prevOpTipiRef.current === null) {
-      prevOpTipiRef.current = watchOperasyonTipi ?? null;
-      return;
-    }
-    if (prevOpTipiRef.current === watchOperasyonTipi) return;
-    prevOpTipiRef.current = watchOperasyonTipi ?? null;
+  function handleOperasyonTipiChange(newTipi: OperasyonTipi) {
+    form.setValue("operasyonTipi", newTipi, { shouldDirty: true });
 
+    if (!showOperasyonTipi) return;
     const currentOps = form.getValues("operasyonlar") ?? [];
-    const baseName = watchAd || tForm("defaultProductName");
+    const baseName = form.getValues("ad") || tForm("defaultProductName");
 
-    if (watchOperasyonTipi === "cift_tarafli") {
+    if (newTipi === "cift_tarafli") {
       const first = currentOps[0] ?? { hazirlikSuresiDk: 60, cevrimSuresiSn: 45, montaj: false };
       replaceOps([
         { ...first, operasyonAdi: `${baseName} - Sol`, sira: 1 },
@@ -283,8 +276,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
       const first = currentOps[0] ?? { hazirlikSuresiDk: 60, cevrimSuresiSn: 45, montaj: false };
       replaceOps([{ ...first, operasyonAdi: baseName, sira: 1 }]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- replaceOps/form.getValues identity unstable
-  }, [watchOperasyonTipi, isEdit, showOperasyonTipi, watchAd]);
+  }
 
   useEffect(() => {
     if (!selectedCategory) return;
@@ -379,13 +371,13 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   // Reset form when sheet opens or urun changes
   useEffect(() => {
     if (!open) return;
-    prevOpTipiRef.current = null;
     prevKategoriRef.current = null;
     setActiveTab("bilgiler");
     setDraftReceteRows([]);
     setDraftMediaUrls([]);
     setDraftCoverUrl("");
     if (urun) {
+      // Reset ref so the edit effect doesn't trigger on form load
       form.reset({
         kategori: urun.kategori ?? "urun",
         tedarikTipi: urun.tedarikTipi ?? "uretim",
@@ -489,7 +481,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
           kod: "",
           ad: "",
           aciklama: "",
-          birim: categories[0]?.varsayilan_birim ?? "takim",
+          birim: categories[0]?.varsayilan_birim ?? "koli",
           renk: "",
           stok: 0,
           kritikStok: 0,
@@ -842,7 +834,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                     <Label>{tForm("operasyonTipi")}</Label>
                     <Select
                       value={form.watch("operasyonTipi") ?? undefined}
-                      onValueChange={(v) => form.setValue("operasyonTipi", v as OperasyonTipi, { shouldDirty: true })}
+                      onValueChange={(v) => handleOperasyonTipiChange(v as OperasyonTipi)}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -902,18 +894,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                             <Label className="text-xs">{tForm("cevrimSuresi")}</Label>
                             <Input type="number" step="0.01" {...form.register(`operasyonlar.${idx}.cevrimSuresiSn`)} />
                           </div>
-                          {/* Montaj toggle: çift taraflı operasyonlarda gösterilir, tek taraflıda gizli */}
-                          {watchOperasyonTipi === "cift_tarafli" && (
-                            <div className="flex items-center gap-2 pt-5">
-                              <Switch
-                                checked={form.watch(`operasyonlar.${idx}.montaj`)}
-                                onCheckedChange={(v) =>
-                                  form.setValue(`operasyonlar.${idx}.montaj`, v, { shouldDirty: true })
-                                }
-                              />
-                              <Label className="text-xs">Montaj</Label>
-                            </div>
-                          )}
+                          {/* V2: Montaj toggle — makine atama ekranında gösterilecek */}
                         </div>
                       </div>
                     ))}

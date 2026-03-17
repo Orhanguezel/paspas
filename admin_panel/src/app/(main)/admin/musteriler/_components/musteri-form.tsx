@@ -98,14 +98,13 @@ export default function MusteriForm({ open, onClose, musteri }: MusteriFormProps
 
   // Yeni eklemede tur değiştiğinde veya nextKodData geldiğinde kod alanını güncelle
   useEffect(() => {
-    if (!isEdit && nextKodData?.kod) {
+    if (!isEdit && nextKodData?.kod && open) {
       const currentKod = form.getValues('kod');
-      // Eğer kullanıcı manuel bir şey girmemişse veya eski otomatik kod varsa güncelle
       if (!currentKod || currentKod.startsWith('MUS-') || currentKod.startsWith('TED-')) {
         form.setValue('kod', nextKodData.kod);
       }
     }
-  }, [nextKodData, isEdit]);
+  }, [nextKodData, isEdit, open]);
 
   async function onSubmit(values: FormValues) {
     const payload = {

@@ -161,8 +161,10 @@ function ListRow({
         {terminRiski && <AlertTriangle className="ml-0.5 inline size-2.5" />}
       </span>
 
-      <span className="w-20 shrink-0 text-right text-muted-foreground tabular-nums">
-        {fmtDate(item.planlananBaslangic)}
+      <span className="w-28 shrink-0 text-right text-muted-foreground tabular-nums text-[10px] leading-tight">
+        <span>{fmtDate(item.planlananBaslangic)}</span>
+        <br />
+        <span>{fmtDate(item.planlananBitis)}</span>
       </span>
 
       <div className="flex w-16 shrink-0 items-center justify-end gap-0.5">
@@ -437,13 +439,20 @@ export default function IsYukleriClient() {
       return;
     }
 
+    // Hedef grupta sabit (çalışan/tamamlanmış) işlerin önüne bırakılamaz
+    const lockedCount = targetGroup.items.filter((i) => i.durum === 'calisiyor' || i.durum === 'tamamlandi').length;
+    const minTargetIndex = sourceGroupId === targetGroupId
+      ? lockedCount  // aynı makinede: sabit işlerden sonra
+      : lockedCount; // farklı makinede: sabit işlerden sonra
+    const safeTargetIndex = Math.max(targetIndex, minTargetIndex);
+
     const nextGroups = localGroups.map((g) => ({ ...g, items: [...g.items] }));
     const nextSource = nextGroups.find((g) => g.makineId === sourceGroupId);
     const nextTarget = nextGroups.find((g) => g.makineId === targetGroupId);
     if (!nextSource || !nextTarget) return;
 
     if (sourceGroupId === targetGroupId) {
-      nextSource.items = arrayMove(nextSource.items, sourceIndex, targetIndex).map((item, index) => ({
+      nextSource.items = arrayMove(nextSource.items, sourceIndex, safeTargetIndex).map((item, index) => ({
         ...item,
         sira: index + 1,
       }));
@@ -451,7 +460,7 @@ export default function IsYukleriClient() {
       nextSource.items.splice(sourceIndex, 1);
       nextSource.items = nextSource.items.map((item, index) => ({ ...item, sira: index + 1 }));
       const moved = { ...movedItem, makineId: targetGroupId };
-      nextTarget.items.splice(targetIndex, 0, moved);
+      nextTarget.items.splice(safeTargetIndex, 0, moved);
       nextTarget.items = nextTarget.items.map((item, index) => ({ ...item, sira: index + 1 }));
     }
 
@@ -460,7 +469,7 @@ export default function IsYukleriClient() {
     try {
       await updateIsYuku({
         id: movedItem.kuyrukId,
-        body: { makineId: targetGroupId, sira: targetIndex + 1 },
+        body: { makineId: targetGroupId, sira: safeTargetIndex + 1 },
       }).unwrap();
       toast.success(
         sourceGroupId === targetGroupId

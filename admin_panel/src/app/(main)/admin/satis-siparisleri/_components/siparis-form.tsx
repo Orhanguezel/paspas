@@ -153,15 +153,18 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
   const selectedMusteriId = form.watch("musteriId");
   const selectedMusteriIskonto = musteriIskontoMap.get(selectedMusteriId) ?? 0;
 
+  // JSON.stringify ile deep comparison — watch referansı shallow olduğu için useMemo tetiklenmiyor
+  const itemsJson = JSON.stringify(watchedItems);
   const totals = useMemo(() => {
-    const araToplam = watchedItems.reduce(
-      (sum, item) => sum + (Number(item.miktar) || 0) * (Number(item.birimFiyat) || 0),
+    const items = JSON.parse(itemsJson) as typeof watchedItems;
+    const araToplam = items.reduce(
+      (sum: number, item: { miktar: number; birimFiyat: number }) => sum + (Number(item.miktar) || 0) * (Number(item.birimFiyat) || 0),
       0,
     );
     const iskontoOrani = selectedMusteriIskonto;
     const iskontoTutar = iskontoOrani > 0 ? araToplam * (iskontoOrani / 100) : 0;
     const iskontoluToplam = araToplam - iskontoTutar;
-    const kdvToplam = watchedItems.reduce((sum, item) => {
+    const kdvToplam = items.reduce((sum: number, item: { urunId: string; miktar: number; birimFiyat: number }) => {
       const urun = urunler.find((urunItem) => urunItem.id === item.urunId);
       const kdvOrani = urun?.kdvOrani ?? 20;
       const satirNet = (Number(item.miktar) || 0) * (Number(item.birimFiyat) || 0) * (1 - iskontoOrani / 100);
@@ -174,7 +177,8 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
       kdvToplam,
       genelToplam: iskontoluToplam + kdvToplam,
     };
-  }, [selectedMusteriIskonto, urunler, watchedItems]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMusteriIskonto, urunler, itemsJson]);
 
   // Müşteri değiştiğinde birim fiyat güncellenmez — fiyat her zaman indirimsiz baz fiyattır.
   // İskonto, toplam hesaplamasında ayrıca gösterilir.
