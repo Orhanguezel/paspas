@@ -19,49 +19,19 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Checkout repository
-        run: |
-          git clone --depth 1 --branch "$GITHUB_REF_NAME" "https://github.com/$GITHUB_REPOSITORY.git" repo
-
-      - name: Install Bun
-        run: |
-          curl -fsSL https://bun.sh/install | bash
-          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
-
-      - name: Build backend
-        working-directory: repo/backend
-        run: |
-          bun install --frozen-lockfile
-          bun run build
-
-      - name: Build admin panel
-        working-directory: repo/admin_panel
-        run: |
-          bun install --frozen-lockfile
-          bun run build
-
-      - name: Package deployment artifact
-        working-directory: repo
-        run: |
-          tar -czf /tmp/paspas-deploy.tar.gz \
-            README.md \
-            backend/dist \
-            admin_panel/.next \
-            admin_panel/public
-
       - name: Configure SSH
         env:
-          GZL_WEB_SSH_KEY: ${{ secrets.GZL_WEB_SSH_KEY }}
+          PASPAS_SSH_KEY: ${{ secrets.PASPAS_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s\n' "$GZL_WEB_SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$PASPAS_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-      - name: Upload artifact to gzl-web
+      - name: Deploy on VPS
         run: |
-          scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/paspas-deploy.tar.gz orhan@72.61.93.212:/var/www/paspas/.deploy/paspas-deploy.tar.gz
-
-      - name: Deploy artifact on gzl-web
-        run: |
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null orhan@72.61.93.212 '/home/orhan/bin/deploy-paspas-artifact /var/www/paspas/.deploy/paspas-deploy.tar.gz'
+          ssh -i ~/.ssh/id_ed25519 -p 22667 \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            root@178.210.161.181 \
+            '/root/bin/deploy-paspas'
