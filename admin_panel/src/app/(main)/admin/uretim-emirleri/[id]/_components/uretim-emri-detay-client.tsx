@@ -55,10 +55,10 @@ export default function UretimEmriDetayClient({ id }: Props) {
   const makineMapped = (isYukleri?.items ?? []).filter((y) => y.uretimEmriId === id);
   const yeterlilikKalemleri = yeterlilik?.kalemler ?? [];
   const eksikKalemSayisi = yeterlilikKalemleri.filter((kalem) => !kalem.yeterli).length;
-  const toplamGerekli = yeterlilikKalemleri.reduce((total, kalem) => total + kalem.gerekliMiktarFireli, 0);
-  const toplamStokHam = yeterlilikKalemleri.reduce((total, kalem) => total + kalem.toplamStok, 0);
-  const toplamRezerve = yeterlilikKalemleri.reduce((total, kalem) => total + kalem.rezerveStok, 0);
-  const toplamSerbest = yeterlilikKalemleri.reduce((total, kalem) => total + kalem.mevcutStok, 0);
+  const toplamGerekli = Math.ceil(yeterlilikKalemleri.reduce((total, kalem) => total + kalem.gerekliMiktarFireli, 0));
+  const toplamStokHam = Math.ceil(yeterlilikKalemleri.reduce((total, kalem) => total + kalem.toplamStok, 0));
+  const toplamRezerve = Math.ceil(yeterlilikKalemleri.reduce((total, kalem) => total + kalem.rezerveStok, 0));
+  const toplamSerbest = Math.ceil(yeterlilikKalemleri.reduce((total, kalem) => total + kalem.mevcutStok, 0));
 
   function pct(uretilen: number, planlanan: number) {
     if (!planlanan) return 0;
@@ -302,12 +302,10 @@ export default function UretimEmriDetayClient({ id }: Props) {
                     <div className="font-semibold tabular-nums">{yeterlilikKalemleri.length}</div>
                   </div>
                   <div className="rounded-md border bg-muted/30 px-3 py-2">
-                    <div className="text-[11px] text-muted-foreground">Toplam Stok</div>
-                    <div className="font-semibold tabular-nums">{toplamStokHam.toFixed(1)}</div>
-                  </div>
-                  <div className="rounded-md border bg-muted/30 px-3 py-2">
-                    <div className="text-[11px] text-muted-foreground">Serbest Stok</div>
-                    <div className="font-semibold tabular-nums">{toplamSerbest.toFixed(1)}</div>
+                    <div className="text-[11px] text-muted-foreground">Eksik Kalem</div>
+                    <div className={`font-semibold tabular-nums ${eksikKalemSayisi > 0 ? "text-destructive" : "text-emerald-600"}`}>
+                      {eksikKalemSayisi}
+                    </div>
                   </div>
                   <div className="rounded-md border bg-muted/30 px-3 py-2">
                     <div className="text-[11px] text-muted-foreground">Eksik Kalem</div>
@@ -332,7 +330,7 @@ export default function UretimEmriDetayClient({ id }: Props) {
               <div className="space-y-4">
                 <div className="rounded-md border bg-muted/20 px-3 py-3 text-xs text-muted-foreground">
                   <span className="font-medium text-foreground">Ozet:</span>{' '}
-                  Toplam gerekli {toplamGerekli.toFixed(1)} birim, stok {toplamStokHam.toFixed(1)} (rezerve {toplamRezerve.toFixed(1)}, serbest {toplamSerbest.toFixed(1)}).
+                  Toplam gerekli {toplamGerekli} birim, stok {toplamStokHam} (rezerve {toplamRezerve}, serbest {toplamSerbest}).
                   {!yeterlilik.tumYeterli && ` ${eksikKalemSayisi} kalemde stok acigi var.`}
                 </div>
 
@@ -369,17 +367,17 @@ export default function UretimEmriDetayClient({ id }: Props) {
                           </div>
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          <div className="font-semibold">{k.gerekliMiktarFireli.toFixed(1)}</div>
+                          <div className="font-semibold">{Math.ceil(k.gerekliMiktarFireli)}</div>
                           {k.fireOrani > 0 && (
                             <div className="text-[11px] text-muted-foreground">%{k.fireOrani.toFixed(0)} fire</div>
                           )}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">{k.toplamStok.toFixed(1)}</TableCell>
-                        <TableCell className="text-right tabular-nums text-muted-foreground">{k.rezerveStok.toFixed(1)}</TableCell>
-                        <TableCell className="text-right tabular-nums font-medium">{k.mevcutStok.toFixed(1)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{Math.ceil(k.toplamStok)}</TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">{Math.ceil(k.rezerveStok)}</TableCell>
+                        <TableCell className="text-right tabular-nums font-medium">{Math.ceil(k.mevcutStok)}</TableCell>
                         <TableCell className="text-right tabular-nums">
                           {k.eksikMiktar > 0 ? (
-                            <span className="font-semibold text-destructive">{k.eksikMiktar.toFixed(1)}</span>
+                            <span className="font-semibold text-destructive">{Math.ceil(k.eksikMiktar)}</span>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}

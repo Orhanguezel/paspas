@@ -274,7 +274,7 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
                         <SelectItem value="none">Malzeme seçin</SelectItem>
                         {urunler.map((u) => (
                           <SelectItem key={u.id} value={u.id}>
-                            {u.kod} — {u.ad}
+                            {u.kod} — {u.ad} (Stok: {u.stok} {u.birim})
                           </SelectItem>
                         ))}
                       </SelectContent>

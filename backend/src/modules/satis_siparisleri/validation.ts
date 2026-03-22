@@ -22,6 +22,7 @@ export const listQuerySchema = z.object({
   musteriId: z.string().min(1).optional(),
   durum: durumEnum.optional(),
   isActive: isActiveQuerySchema.optional(),
+  tamamlananlariGoster: z.preprocess((v) => v === 'true' || v === '1', z.boolean()).optional(),
   limit: z.coerce.number().int().min(1).max(500).default(100),
   offset: z.coerce.number().int().min(0).default(0),
   sort: sortEnum.default('created_at'),

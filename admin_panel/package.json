@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "locales:generate": "node scripts/generate-locales-manifest.mjs",
-    "predev": "npm run locales:generate",
-    "prebuild": "npm run locales:generate",
+    "predev": "bun run locales:generate",
+    "prebuild": "bun run locales:generate",
     "dev": "node scripts/dev.mjs",
     "dev:turbo": "NODE_OPTIONS='--max-old-space-size=4096' next dev --turbopack",
     "build": "next build",

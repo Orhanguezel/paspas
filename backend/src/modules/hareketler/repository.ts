@@ -71,11 +71,15 @@ function buildWhere(query: ListQuery): SQL | undefined {
   if (query.urunId) conditions.push(eq(hareketler.urun_id, query.urunId));
   if (query.hareketTipi) conditions.push(eq(hareketler.hareket_tipi, query.hareketTipi));
   if (query.kaynakTipi) conditions.push(eq(kaynakTipiExpression(), query.kaynakTipi));
+  if (query.kategori) conditions.push(eq(urunler.kategori, query.kategori));
+  if (query.urunGrubu) conditions.push(eq(urunler.urun_grubu, query.urunGrubu));
+
   if (query.q) {
+    const pattern = `%${query.q}%`;
     conditions.push(or(
-      like(urunler.ad, `%${query.q}%`),
-      like(urunler.kod, `%${query.q}%`),
-      like(hareketler.aciklama, `%${query.q}%`),
+      like(urunler.ad, pattern),
+      like(urunler.kod, pattern),
+      like(hareketler.aciklama, pattern),
     ) as SQL);
   }
   if (conditions.length === 0) return undefined;

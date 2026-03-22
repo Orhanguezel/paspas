@@ -8,7 +8,7 @@
 
 import Link from 'next/link';
 import { LayoutDashboard, Mail, Phone } from 'lucide-react';
-
+import { cn } from '@/lib/utils';
 import { resolveMediaUrl } from '@/lib/media-url';
 import {
   Sidebar,
@@ -80,30 +80,49 @@ function SidebarBrandBlock({
   title,
   subtitle,
   logoUrl,
+  iconUrl,
 }: {
   title: string;
   subtitle: string;
   logoUrl: string;
+  iconUrl?: string;
 }) {
   return (
-    <div className="w-full group-data-[collapsible=icon]:w-auto">
-      {logoUrl ? (
-        <div className="w-full overflow-hidden rounded-2xl bg-white/80 px-4 py-4 shadow-sm ring-1 ring-sidebar-border/60 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:size-16 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={logoUrl}
-            alt={title}
-            width={180}
-            height={72}
-            className="h-16 w-auto max-w-full object-contain group-data-[collapsible=icon]:h-10"
-          />
-        </div>
-      ) : (
-        <div className="flex h-16 w-full items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm group-data-[collapsible=icon]:size-16">
-          <LayoutDashboard className="size-7" />
-        </div>
-      )}
-
+    <div className="w-full transition-all duration-300 group-data-[collapsible=icon]:w-auto">
+      {/* Brand Icon/Logo Box */}
+      <div 
+        className={cn(
+          "w-full overflow-hidden rounded-2xl transition-all duration-300 shadow-sm ring-1 ring-sidebar-border/60",
+          "bg-white/80 px-4 py-4 group-data-[collapsible=icon]:bg-primary group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0 group-data-[collapsible=icon]:rounded-xl",
+          "group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:size-9 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:mx-auto"
+        )}
+      >
+        {logoUrl ? (
+          <>
+            {/* Full Logo (Expanded) */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={logoUrl}
+              alt={title}
+              width={180}
+              height={72}
+              className="h-16 w-auto max-w-full object-contain group-data-[collapsible=icon]:hidden"
+            />
+            {/* Minimal Icon (Collapsed) */}
+            <div className="hidden group-data-[collapsible=icon]:block">
+              {iconUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={iconUrl} alt={title} className="size-6 object-contain" />
+              ) : (
+                <LayoutDashboard className="size-5 text-primary-foreground" />
+              )}
+            </div>
+          </>
+        ) : (
+          <LayoutDashboard className="size-7 text-primary group-data-[collapsible=icon]:text-primary-foreground group-data-[collapsible=icon]:size-5" />
+        )}
+      </div>
+ 
       <div className="mt-4 flex flex-col gap-1 leading-none group-data-[collapsible=icon]:hidden">
         <span className="text-[1.35rem] font-semibold tracking-tight text-foreground">{title}</span>
         <span className="max-w-[12rem] text-xs leading-4 text-muted-foreground">{subtitle}</span>
@@ -172,6 +191,7 @@ export function AppSidebar({
   const panelSub = companyInfo.sidebarSubtitle || 'Uretim Yonetim Sistemi';
 
   const logoUrl = branding?.logo_url ? resolveMediaUrl(branding.logo_url) : '';
+  const iconUrl = branding?.apple_touch_icon ? resolveMediaUrl(branding.apple_touch_icon) : '';
 
   return (
     <Sidebar {...props} variant={variant} collapsible={collapsible}>
@@ -181,7 +201,12 @@ export function AppSidebar({
           href="/admin/dashboard"
           className="block px-4 py-5 transition-colors hover:bg-sidebar-accent/40 group-data-[collapsible=icon]:px-2"
         >
-          <SidebarBrandBlock title={panelLabel || 'Admin Panel'} subtitle={panelSub} logoUrl={logoUrl} />
+          <SidebarBrandBlock
+            title={panelLabel || 'Admin Panel'}
+            subtitle={panelSub}
+            logoUrl={logoUrl}
+            iconUrl={iconUrl}
+          />
         </Link>
       </SidebarHeader>
 

@@ -164,7 +164,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
       kod: "",
       ad: "",
       aciklama: "",
-      birim: "koli",
+      birim: "adet",
       renk: "",
       stok: 0,
       kritikStok: 0,
@@ -481,7 +481,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
           kod: "",
           ad: "",
           aciklama: "",
-          birim: categories[0]?.varsayilan_birim ?? "koli",
+          birim: categories[0]?.varsayilan_birim ?? "adet",
           renk: "",
           stok: 0,
           kritikStok: 0,
@@ -743,7 +743,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => appendDonusum({ hedefBirim: watchKategori === "urun" ? "koli" : "", carpan: 1 })}
+                    onClick={() => appendDonusum({ hedefBirim: watchKategori === "urun" ? "takim" : "", carpan: 1 })}
                   >
                     <Plus className="mr-1 size-3" /> {tForm("donusumEkle")}
                   </Button>
@@ -1027,14 +1027,15 @@ function MedyaSection({ urunId }: MedyaSectionProps) {
 
     const items = nextUrls.map((url, idx) => {
       const existing = (medyaData ?? []).find((m) => m.url === url);
+      const isPdf = url.toLowerCase().endsWith(".pdf") || existing?.tip === "pdf";
       return {
         id: existing?.id,
-        tip: "image" as const,
+        tip: isPdf ? ("pdf" as const) : ("image" as const),
         url,
         storageAssetId: existing?.storageAssetId ?? undefined,
         baslik: existing?.baslik ?? undefined,
         sira: idx + 1,
-        isCover: url === (uiCover || nextUrls[0]),
+        isCover: isPdf ? false : url === (uiCover || nextUrls[0]),
       };
     });
 

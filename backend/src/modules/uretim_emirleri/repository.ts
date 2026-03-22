@@ -504,6 +504,15 @@ export async function repoCreate(data: CreateBody): Promise<CreateResult> {
 }
 
 export async function repoUpdate(id: string, patch: PatchBody): Promise<EnrichedUretimEmriRow | null> {
+  // Tamamlanmış üretim emri düzenlenemez
+  const existing = await repoGetById(id);
+  if (!existing) return null;
+  if (existing.durum === 'tamamlandi') {
+    const err = new Error('uretim_emri_tamamlandi');
+    (err as any).detail = 'Tamamlanmış üretim emri düzenlenemez.';
+    throw err;
+  }
+
   const payload = mapPatchInput(patch);
   if (Object.keys(payload).length > 0) {
     await db.update(uretimEmirleri).set(payload).where(eq(uretimEmirleri.id, id));

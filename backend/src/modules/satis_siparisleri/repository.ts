@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, desc, eq, getTableColumns, inArray, like, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, getTableColumns, inArray, notInArray, like, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
@@ -38,6 +38,9 @@ function buildWhere(query: ListQuery): SQL | undefined {
   if (query.musteriId) conditions.push(eq(satisSiparisleri.musteri_id, query.musteriId));
   if (query.durum) conditions.push(eq(satisSiparisleri.durum, query.durum));
   if (typeof query.isActive === 'boolean') conditions.push(eq(satisSiparisleri.is_active, query.isActive ? 1 : 0));
+  if (!query.tamamlananlariGoster) {
+    conditions.push(notInArray(satisSiparisleri.durum, ['tamamlandi', 'iptal', 'kapali']));
+  }
   if (conditions.length === 0) return undefined;
   if (conditions.length === 1) return conditions[0];
   return and(...conditions);
@@ -107,8 +110,16 @@ export async function repoGetSiparisOzetleri(siparisIds: string[]): Promise<Map<
       })
       .from(uretimEmriSiparisKalemleri)
       .innerJoin(siparisKalemleri, eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemleri.id))
-      .where(inArray(siparisKalemleri.siparis_id, siparisIds))
+      .innerJoin(uretimEmirleri, eq(uretimEmriSiparisKalemleri.uretim_emri_id, uretimEmirleri.id))
+      .where(
+        and(
+          inArray(siparisKalemleri.siparis_id, siparisIds),
+          eq(uretimEmirleri.is_active, 1),
+          sql`${uretimEmirleri.durum} != 'iptal'`,
+        ),
+      )
       .groupBy(siparisKalemleri.siparis_id),
+
     db
       .select({
         siparisId: siparisKalemleri.siparis_id,
@@ -292,15 +303,14 @@ export async function repoCreate(data: CreateBody): Promise<DetailResult> {
 export async function repoUpdate(id: string, patch: PatchBody): Promise<DetailResult | null> {
   const current = await repoGetById(id);
   if (!current) return null;
+  // Tamamlanmış sipariş hiçbir şekilde düzenlenemez
+  if (current.siparis.durum === 'tamamlandi') {
+    throw new Error('siparis_kilitli');
+  }
+  // Üretim emrine aktarılmış siparişlerde sadece kalem değişikliği engellenir
   const ozet = await repoGetSiparisOzetleri([id]);
   const isLocked = ozet.get(id)?.kilitli === true;
-  const yapisalDegisiklikVar =
-    patch.siparisNo !== undefined ||
-    patch.musteriId !== undefined ||
-    patch.siparisTarihi !== undefined ||
-    patch.items !== undefined;
-
-  if (isLocked && yapisalDegisiklikVar) {
+  if (isLocked && patch.items !== undefined) {
     throw new Error('siparis_kilitli');
   }
 

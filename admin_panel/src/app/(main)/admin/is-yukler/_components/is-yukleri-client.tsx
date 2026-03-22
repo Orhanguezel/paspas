@@ -118,7 +118,7 @@ function ListRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-1.5 rounded border px-1.5 py-1 text-[11px] leading-tight transition ${
+      className={`flex items-center gap-2 rounded-md border px-3 py-2.5 text-sm leading-normal transition ${
         isDragging ? 'opacity-60' : ''
       } ${rowBorder}`}
     >
@@ -135,15 +135,14 @@ function ListRow({
 
       <Link
         href={`/admin/uretim-emirleri/${item.uretimEmriId}`}
-        className="w-24 shrink-0 truncate font-mono font-semibold text-[11px] hover:underline"
+        className="w-24 shrink-0 truncate font-mono font-semibold text-xs hover:underline"
       >
         {item.emirNo}
       </Link>
 
-      <span className="w-16 shrink-0 truncate font-mono text-muted-foreground">{item.urunKod}</span>
-      <span className="min-w-0 flex-2 truncate">{item.urunAd}</span>
+      <span className="w-20 shrink-0 truncate font-mono text-xs text-muted-foreground">{item.urunKod}</span>
 
-      <span className="min-w-0 flex-1 truncate text-muted-foreground">{item.operasyonAdi}</span>
+      <span className="min-w-0 flex-1 truncate font-bold uppercase">{item.operasyonAdi}</span>
 
       <span className="w-14 shrink-0 text-right font-mono tabular-nums">{item.planlananMiktar?.toLocaleString('tr-TR')}</span>
 
@@ -258,11 +257,10 @@ function GridRow({
           <Trash2 className="size-2.5" />
         </Button>
       </div>
-      <div className="ml-6 space-y-0.5 text-[11px]">
+      <div className="ml-6 space-y-0.5 text-xs">
         <div className="flex items-center gap-1">
           <span className="font-mono text-muted-foreground">{item.urunKod}</span>
-          <span className="truncate">{item.urunAd}</span>
-          {item.operasyonAdi && <span className="text-muted-foreground">— {item.operasyonAdi}</span>}
+          {item.operasyonAdi && <span className="font-bold uppercase">{item.operasyonAdi}</span>}
         </div>
         <div className="flex flex-wrap gap-x-3 text-muted-foreground">
           <span>Miktar: <span className="font-mono text-foreground">{item.planlananMiktar?.toLocaleString('tr-TR')}</span></span>

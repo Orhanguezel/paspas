@@ -74,6 +74,7 @@ function buildWhere(query: ListQuery): SQL | undefined {
         like(musteriler.ad, pattern),
         like(makineler.kod, pattern),
         like(makineler.ad, pattern),
+        like(uretimEmriOperasyonlari.operasyon_adi, pattern),
       ) as SQL,
     );
   }

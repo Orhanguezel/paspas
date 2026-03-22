@@ -95,6 +95,7 @@ export default function UrunlerClient() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UrunDto | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   // Fetch categories & subcategories for filter
   const { data: categoriesRaw } = useListCategoriesAdminQuery({ limit: 50, sort: "display_order", order: "asc" });
@@ -350,6 +351,7 @@ export default function UrunlerClient() {
                       onToggle={() => setExpandedId(isExpanded ? null : u.id)}
                       onEdit={() => openEdit(u)}
                       onDelete={() => setDeleteTarget(u)}
+                      onShowImage={(url) => setLightboxUrl(url)}
                       canDelete={isAdmin && u.silinebilir !== false}
                       tKategori={tKategori}
                       tTedarik={tTedarik}
@@ -387,6 +389,33 @@ export default function UrunlerClient() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Lightbox */}
+      {lightboxUrl && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 transition-opacity animate-in fade-in"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <div className="relative max-h-full max-w-full">
+            <img 
+              src={resolveMediaUrl(lightboxUrl)} 
+              alt="Büyük görsel" 
+              className="max-h-[90vh] max-w-[90vw] rounded-lg border-4 border-white/10 shadow-2xl transition-transform animate-in zoom-in-95"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              className="absolute -top-4 -right-4 size-10 rounded-full border-2 bg-background shadow-lg hover:bg-muted"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxUrl(null);
+              }}
+            >
+              <Plus className="size-6 rotate-45" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -398,6 +427,7 @@ interface ExpandableProductRowProps {
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onShowImage: (url: string) => void;
   canDelete: boolean;
   tKategori: (k: string) => string;
   tTedarik: (k: string) => string;
@@ -411,6 +441,7 @@ function ExpandableProductRow({
   onToggle,
   onEdit,
   onDelete,
+  onShowImage,
   canDelete,
   tKategori,
   tTedarik,
@@ -438,8 +469,12 @@ function ExpandableProductRow({
             <img
               src={resolveMediaUrl(u.imageUrl)}
               alt={u.imageAlt || u.ad}
-              className="h-10 w-10 rounded border object-cover"
+              className="h-10 w-10 cursor-pointer rounded border object-cover transition-transform hover:scale-110 active:scale-95"
               loading="lazy"
+              onClick={(e) => {
+                e.stopPropagation();
+                onShowImage(u.imageUrl!);
+              }}
             />
           ) : (
             <span className="text-muted-foreground">—</span>

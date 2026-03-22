@@ -313,7 +313,14 @@ export async function repoUpdate(id: string, patch: PatchBody, operatorUserId?: 
   }
 
   if (Object.keys(updateData).length > 0) {
-    await db.update(malKabulKayitlari).set(updateData).where(eq(malKabulKayitlari.id, id));
+    await db.transaction(async (tx) => {
+      await tx.update(malKabulKayitlari).set(updateData).where(eq(malKabulKayitlari.id, id));
+      
+      // Re-evaluate SA status if linked
+      if (existing[0].satin_alma_siparis_id) {
+        await updateSatinAlmaDurum(tx, existing[0].satin_alma_siparis_id);
+      }
+    });
   }
 
   return repoGetById(id);

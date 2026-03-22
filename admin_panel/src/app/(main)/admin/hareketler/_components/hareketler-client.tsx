@@ -15,8 +15,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
+import { useListCategoriesAdminQuery } from '@/integrations/endpoints/admin/categories_admin.endpoints';
 import { useCreateHareketAdminMutation, useListHareketlerAdminQuery } from '@/integrations/endpoints/admin/erp/hareketler_admin.endpoints';
 import { useListUrunlerAdminQuery } from '@/integrations/endpoints/admin/erp/urunler_admin.endpoints';
+import { useListSubCategoriesAdminQuery } from '@/integrations/endpoints/admin/subcategories_admin.endpoints';
 import { HAREKET_KAYNAK_LABELS, HAREKET_TIPI_BADGE, HAREKET_TIPI_LABELS } from '@/integrations/shared/erp/hareketler.types';
 
 const PERIOD_OPTIONS = [
@@ -49,14 +51,21 @@ export default function HareketlerClient() {
   const [period, setPeriod] = useState<'all' | 'today' | 'week' | 'custom'>('today');
   const [hareketTipi, setHareketTipi] = useState('hepsi');
   const [kaynakTipi, setKaynakTipi] = useState('hepsi');
+  const [kategori, setKategori] = useState('all');
+  const [urunGrubu, setUrunGrubu] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+
+  const { data: categoryData } = useListCategoriesAdminQuery({ limit: 50, sort: 'display_order', order: 'asc' });
+  const categories = categoryData ?? [];
 
   const params = {
     ...(q ? { q } : {}),
     ...(hareketTipi !== 'hepsi' ? { hareketTipi } : {}),
     ...(kaynakTipi !== 'hepsi' ? { kaynakTipi } : {}),
+    ...(kategori !== 'all' ? { kategori } : {}),
+    ...(urunGrubu !== 'all' ? { urunGrubu } : {}),
     ...(period !== 'all' ? { period } : {}),
     ...(period === 'custom' && startDate ? { startDate } : {}),
     ...(period === 'custom' && endDate ? { endDate } : {}),
@@ -98,7 +107,7 @@ export default function HareketlerClient() {
         />
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.4fr)_220px_220px_170px_170px]">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.4fr)_180px_180px_160px_160px_160px]">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -128,6 +137,29 @@ export default function HareketlerClient() {
             ))}
           </SelectContent>
         </Select>
+        <Select
+          value={kategori}
+          onValueChange={(val) => {
+            setKategori(val);
+            setUrunGrubu('all');
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Tüm Kategoriler" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tüm Kategoriler</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat.kod} value={cat.kod}>{cat.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <SubCategoryPicker
+          categoryId={categories.find((c) => c.kod === kategori)?.id}
+          value={urunGrubu}
+          onChange={setUrunGrubu}
+        />
         <Select value={period} onValueChange={(value: 'today' | 'week' | 'custom') => setPeriod(value)}>
           <SelectTrigger>
             <SelectValue />
@@ -206,6 +238,28 @@ export default function HareketlerClient() {
 
       <CreateHareketSheet open={createOpen} onClose={() => setCreateOpen(false)} />
     </div>
+  );
+}
+
+function SubCategoryPicker({ categoryId, value, onChange }: { categoryId?: string; value: string; onChange: (v: string) => void }) {
+  const { data: subData, isLoading } = useListSubCategoriesAdminQuery(
+    { category_id: categoryId, is_active: true },
+    { skip: !categoryId },
+  );
+  const subCategories = subData ?? [];
+
+  return (
+    <Select value={value} onValueChange={onChange} disabled={!categoryId || isLoading}>
+      <SelectTrigger>
+        <SelectValue placeholder="Tüm Alt Gruplar" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">Tüm Alt Gruplar</SelectItem>
+        {subCategories.map((sub) => (
+          <SelectItem key={sub.id} value={sub.name}>{sub.name}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 

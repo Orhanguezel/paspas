@@ -84,7 +84,7 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
     id: 1,
     key: 'overview',
     items: [
-      { key: 'dashboard',         url: '/admin/dashboard',         icon: LayoutDashboard, roles: ['admin'] },
+
       // V2: görevler (tasks/notifications) buraya eklenecek
       // { key: 'gorevler', url: '/admin/gorevler', icon: ClipboardList, roles: ['admin', 'operator', 'satin_almaci', 'nakliyeci'] },
       {
@@ -98,7 +98,7 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
         ],
       },
       { key: 'urunler',           url: '/admin/urunler',           icon: Package,         roles: ['admin'] },
-      { key: 'kategoriler',       url: '/admin/tanimlar?tab=kategoriler', icon: FolderTree, roles: ['admin'] },
+
       {
         key: 'uretim_tanimlari',
         url: '/admin/makineler',
@@ -148,17 +148,11 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
       { key: 'hareketler',        url: '/admin/hareketler',        icon: Activity,   roles: ['admin', 'satin_almaci', 'nakliyeci'] },
     ],
   },
-  // ─── Sistem Yönetimi ───
   {
     id: 4,
     key: 'system',
     items: [
-      { key: 'kullanicilar',       url: '/admin/users',             icon: Users,      roles: ['admin'] },
-      { key: 'storage',           url: '/admin/storage',           icon: HardDrive,  roles: ['admin'] },
-      { key: 'giris_ayarlari',    url: '/admin/giris-ayarlari',    icon: KeyRound,   roles: ['admin'] },
-      { key: 'site_settings',     url: '/admin/site-settings',     icon: Settings,   roles: ['admin'] },
-      { key: 'db_admin',          url: '/admin/db',                icon: Database,   roles: ['admin'] },
-      { key: 'audit_logs',        url: '/admin/audit-logs',        icon: FileSearch, roles: ['admin'] },
+      { key: 'site_settings',     url: '/admin/sistem',           icon: Settings,   roles: ['admin'] },
     ],
   },
 ];
@@ -207,7 +201,7 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   kullanicilar:      'Kullanıcılar',
   giris_ayarlari:    'Giriş Ayarları',
   storage:           'Medyalar',
-  site_settings:     'Site Ayarları',
+  site_settings:     'Sistem & Ayarlar',
   db_admin:          'Veritabanı',
 };
 

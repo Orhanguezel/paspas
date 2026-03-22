@@ -16,6 +16,8 @@ export const hareketlerAdminApi = baseApi.injectEndpoints({
       q?: string;
       hareketTipi?: string;
       kaynakTipi?: string;
+      kategori?: string;
+      urunGrubu?: string;
       period?: string;
       startDate?: string;
       endDate?: string;

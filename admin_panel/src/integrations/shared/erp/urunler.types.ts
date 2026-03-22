@@ -201,7 +201,7 @@ export function normalizeUrun(raw: unknown): UrunDto {
 
 // -- Medya --
 
-export type MedyaTip = 'image' | 'video' | 'url';
+export type MedyaTip = 'image' | 'video' | 'url' | 'pdf';
 
 export interface UrunMedyaDto {
   id: string;

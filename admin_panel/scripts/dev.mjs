@@ -5,6 +5,11 @@ import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 
 const projectDir = process.cwd();
+const repoRoot = path.resolve(projectDir, '..');
+const backendDir = path.join(repoRoot, 'backend');
+
+const DEV_HEALTH_TIMEOUT_MS = 400;
+const DEV_BOOT_TIMEOUT_MS = 20000;
 
 function parseEnvFile(filePath) {
   if (!existsSync(filePath)) return {};
@@ -120,9 +125,126 @@ function clearStaleLock() {
   }
 }
 
+function normalizeBaseUrl(raw) {
+  const v = String(raw || '').trim();
+  if (!v) return '';
+  return v.replace(/\/+$/, '');
+}
+
+function resolvePanelApiBase() {
+  const envFromFiles = {
+    ...parseEnvFile(path.join(projectDir, '.env')),
+    ...parseEnvFile(path.join(projectDir, '.env.local')),
+  };
+
+  const panelApiUrl = normalizeBaseUrl(process.env.PANEL_API_URL || envFromFiles.PANEL_API_URL);
+  if (panelApiUrl) return `${panelApiUrl}/api`;
+
+  const nextPublicApiBase = normalizeBaseUrl(
+    process.env.NEXT_PUBLIC_API_BASE_URL || envFromFiles.NEXT_PUBLIC_API_BASE_URL,
+  );
+  if (nextPublicApiBase) return nextPublicApiBase;
+
+  const nextPublicApiUrl = normalizeBaseUrl(
+    process.env.NEXT_PUBLIC_API_URL || envFromFiles.NEXT_PUBLIC_API_URL,
+  );
+  if (nextPublicApiUrl) return nextPublicApiUrl;
+
+  return 'http://localhost:8078/api';
+}
+
+function parseBackendOrigin(apiBase) {
+  try {
+    const u = new URL(apiBase);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return '';
+  }
+}
+
+function isLocalBackend(origin) {
+  try {
+    const u = new URL(origin);
+    return u.hostname === '127.0.0.1' || u.hostname === 'localhost';
+  } catch {
+    return false;
+  }
+}
+
+async function isBackendHealthy(origin) {
+  if (!origin) return false;
+  try {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), DEV_HEALTH_TIMEOUT_MS);
+    const res = await fetch(`${origin}/health`, { signal: controller.signal, cache: 'no-store' });
+    clearTimeout(t);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForBackend(origin, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await isBackendHealthy(origin)) return true;
+    await wait(500);
+  }
+  return false;
+}
+
+async function ensureBackendReady() {
+  const apiBase = resolvePanelApiBase();
+  const backendOrigin = parseBackendOrigin(apiBase);
+  if (!backendOrigin || !isLocalBackend(backendOrigin)) {
+    return { child: null, origin: backendOrigin };
+  }
+
+  if (await isBackendHealthy(backendOrigin)) {
+    console.log(`[dev] Backend reachable: ${backendOrigin}`);
+    return { child: null, origin: backendOrigin };
+  }
+
+  if (!existsSync(backendDir)) {
+    console.error(`[dev] Backend not reachable (${backendOrigin}) and backend directory not found: ${backendDir}`);
+    process.exit(1);
+  }
+
+  console.log(`[dev] Backend not reachable at ${backendOrigin}. Starting backend from ${backendDir} ...`);
+  const backendChild = spawn('bun', ['run', 'dev'], {
+    cwd: backendDir,
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+    },
+  });
+
+  const ready = await waitForBackend(backendOrigin, DEV_BOOT_TIMEOUT_MS);
+  if (!ready) {
+    console.error(
+      `[dev] Backend did not become healthy in ${DEV_BOOT_TIMEOUT_MS / 1000}s (${backendOrigin}/health).`,
+    );
+    try {
+      backendChild.kill('SIGTERM');
+    } catch {
+      // ignore
+    }
+    process.exit(1);
+  }
+
+  console.log(`[dev] Backend is ready: ${backendOrigin}`);
+  return { child: backendChild, origin: backendOrigin };
+}
+
 const port = resolvePort();
 ensurePortAvailable(port);
 clearStaleLock();
+
+const { child: backendChild } = await ensureBackendReady();
 
 const child = spawn('next', ['dev', '--webpack'], {
   cwd: projectDir,
@@ -134,7 +256,38 @@ const child = spawn('next', ['dev', '--webpack'], {
   shell: true,
 });
 
+let shuttingDown = false;
+function shutdownAll() {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  try {
+    child.kill('SIGTERM');
+  } catch {
+    // ignore
+  }
+
+  if (backendChild) {
+    try {
+      backendChild.kill('SIGTERM');
+    } catch {
+      // ignore
+    }
+  }
+}
+
+process.on('SIGINT', shutdownAll);
+process.on('SIGTERM', shutdownAll);
+
 child.on('exit', (code, signal) => {
+  if (backendChild) {
+    try {
+      backendChild.kill('SIGTERM');
+    } catch {
+      // ignore
+    }
+  }
+
   if (signal) {
     process.kill(process.pid, signal);
     return;

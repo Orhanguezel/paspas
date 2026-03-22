@@ -4,6 +4,7 @@ import { rowToDto } from './schema';
 import { repoCreate, repoDelete, repoGetById, repoGetNextEmirNo, repoGetOperasyonlar, repoGetUretimKarsilastirma, repoList, repoListAdaylar, repoUpdate } from './repository';
 import { checkHammaddeYeterlilik } from './hammadde_service';
 import { createSchema, listQuerySchema, patchSchema } from './validation';
+import { getSiparisIdsByUretimEmriId, refreshSiparisDurum } from '@/modules/satis_siparisleri/repository';
 
 function sendInternalError(reply: FastifyReply) {
   return reply.code(500).send({ error: { message: 'sunucu_hatasi' } });
@@ -89,6 +90,7 @@ export const updateUretimEmri: RouteHandler = async (req, reply) => {
     const err = error as { code?: string; message?: string; detail?: string };
     if (err.code === 'ER_DUP_ENTRY') return reply.code(409).send({ error: { message: 'emir_no_zaten_var' } });
     if (err.message === 'urun_uyumsuzlugu') return reply.code(400).send({ error: { message: err.message, detail: err.detail } });
+    if (err.message === 'uretim_emri_tamamlandi') return reply.code(409).send({ error: { message: err.message, detail: err.detail } });
     return sendInternalError(reply);
   }
 };
@@ -134,7 +136,13 @@ export const getUretimKarsilastirma: RouteHandler = async (req, reply) => {
 export const deleteUretimEmri: RouteHandler = async (req, reply) => {
   try {
     const { id } = req.params as { id: string };
+    // Collect linked sipariş IDs before deletion (junction table will be cleared)
+    const siparisIds = await getSiparisIdsByUretimEmriId(id);
     await repoDelete(id);
+    // Refresh linked sipariş durums (unlocks if no more UE linked)
+    for (const sid of siparisIds) {
+      await refreshSiparisDurum(sid);
+    }
     return reply.code(204).send();
   } catch (error: unknown) {
     req.log.error({ error }, 'delete_uretim_emri_failed');

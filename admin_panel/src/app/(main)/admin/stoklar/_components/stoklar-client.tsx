@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { AlertTriangle, PackageSearch, RefreshCcw, Search } from "lucide-react";
+import { PackageSearch, RefreshCcw, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,11 +37,6 @@ export default function StoklarClient() {
   const { data, isLoading, isFetching, refetch } = useListStoklarAdminQuery(query);
 
   const items = data?.items ?? [];
-  const kritikTakip = useMemo(
-    () => items.filter((item) => item.durum === "kritik" || item.durum === "yetersiz"),
-    [items],
-  );
-
   const counts = useMemo(
     () => ({
       toplam: items.length,
@@ -81,11 +76,7 @@ export default function StoklarClient() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <SummaryCard title={t("admin.erp.stoklar.summary.toplam")} value={String(counts.toplam)} tone="default" />
-        <SummaryCard title={t("admin.erp.stoklar.summary.kritik")} value={String(counts.kritik)} tone="warning" />
-        <SummaryCard title={t("admin.erp.stoklar.summary.yetersiz")} value={String(counts.yetersiz)} tone="danger" />
-      </div>
+
 
       <div className="rounded-xl border bg-background p-4">
         <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -134,28 +125,6 @@ export default function StoklarClient() {
             ))}
           </TabsList>
         </Tabs>
-
-        {kritikTakip.length > 0 && (
-          <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50/50 p-3">
-            <div className="mb-2 flex items-center gap-2 text-orange-700">
-              <AlertTriangle className="size-4" />
-              <h2 className="font-semibold text-sm">{t("admin.erp.stoklar.kritikTakip.title")} ({kritikTakip.length})</h2>
-            </div>
-            <div className="space-y-1">
-              {kritikTakip.map((item) => (
-                <div key={item.urunId} className="flex items-center gap-3 rounded-md border border-orange-200 bg-white px-3 py-1.5 text-sm">
-                  <span className="font-mono text-xs text-muted-foreground w-20 shrink-0">{item.urunKod}</span>
-                  <span className="font-medium flex-1 truncate">{item.urunAd}</span>
-                  <span className="tabular-nums shrink-0">{formatAmount(item.stok)} {item.birim}</span>
-                  <span className="text-muted-foreground shrink-0">/</span>
-                  <span className="tabular-nums text-muted-foreground shrink-0">{formatAmount(item.kritikStok)}</span>
-                  <span className="tabular-nums text-orange-700 font-medium shrink-0">-{formatAmount(item.kritikAcik)}</span>
-                  {durumBadge(item.durum)}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div className="overflow-x-auto rounded-lg border">
           <Table>
@@ -239,10 +208,8 @@ export default function StoklarClient() {
                       {item.rezerveStok > 0 ? formatAmount(item.rezerveStok) : "—"}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{formatAmount(item.acikUretimIhtiyaci)}</TableCell>
-                    <TableCell
-                      className={`text-right tabular-nums ${item.serbestStok < 0 ? "font-medium text-destructive" : ""}`}
-                    >
-                      {formatAmount(item.serbestStok)}
+                    <TableCell className="text-right tabular-nums">
+                      {item.serbestStok > 0 ? formatAmount(item.serbestStok) : "—"}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{formatAmount(item.kritikStok)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatAmount(item.kritikAcik)}</TableCell>

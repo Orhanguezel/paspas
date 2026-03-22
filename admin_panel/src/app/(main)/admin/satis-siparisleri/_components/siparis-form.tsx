@@ -69,6 +69,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
 
   const { data: detailData } = useGetSatisSiparisiAdminQuery(siparis?.id ?? "", { skip: !isEdit || !siparis?.id });
   const siparisDetail = isEdit ? detailData : null;
+  const isLocked = (siparisDetail ?? siparis)?.kilitli || (siparisDetail ?? siparis)?.durum === "tamamlandi";
 
   const { data: musterilerData } = useListMusterilerAdminQuery({ tur: "musteri" });
   const { data: urunlerData } = useListUrunlerAdminQuery({ kategori: 'urun' });
@@ -148,7 +149,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
         items: [{ urunId: "", miktar: 1, birimFiyat: 0, sira: 0 }],
       });
     }
-  }, [form, isEdit, nextNoData, siparisDetail]);
+  }, [form, isEdit, nextNoData, siparisDetail, open]);
 
   const selectedMusteriId = form.watch("musteriId");
   const selectedMusteriIskonto = musteriIskontoMap.get(selectedMusteriId) ?? 0;
@@ -233,7 +234,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
               <Input
                 {...form.register("siparisNo")}
                 placeholder={t("admin.erp.satisSiparisleri.form.siparisNoPlaceholder")}
-                disabled={siparis?.kilitli}
+                disabled={isLocked}
               />
               {form.formState.errors.siparisNo && (
                 <p className="text-xs text-destructive">{form.formState.errors.siparisNo.message}</p>
@@ -268,7 +269,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
           <div className="space-y-1">
             <Label>{t("admin.erp.satisSiparisleri.form.musteri")} *</Label>
             <Select value={selectedMusteriId} onValueChange={(v) => form.setValue("musteriId", v)}>
-              <SelectTrigger disabled={siparis?.kilitli}>
+              <SelectTrigger disabled={isLocked}>
                 <SelectValue placeholder={t("admin.erp.satisSiparisleri.form.musteriPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
@@ -289,18 +290,18 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
                 })}
               </p>
             )}
-            {siparis?.kilitli && <p className="text-xs text-amber-600">{t("admin.erp.satisSiparisleri.form.kilitliBilgi")}</p>}
+            {isLocked && <p className="text-xs text-amber-600">{t("admin.erp.satisSiparisleri.form.kilitliBilgi")}</p>}
           </div>
 
           {/* Tarihler */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label>{t("admin.erp.satisSiparisleri.form.siparisTarihi")} *</Label>
-              <Input type="date" {...form.register("siparisTarihi")} disabled={siparis?.kilitli} />
+              <Input type="date" {...form.register("siparisTarihi")} disabled={isLocked} />
             </div>
             <div className="space-y-1">
               <Label>{t("admin.erp.satisSiparisleri.form.terminTarihi")}</Label>
-              <Input type="date" {...form.register("terminTarihi")} />
+              <Input type="date" {...form.register("terminTarihi")} disabled={isLocked} />
             </div>
           </div>
 
@@ -313,7 +314,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
                 variant="outline"
                 size="sm"
                 onClick={() => append({ urunId: "", miktar: 1, birimFiyat: 0, sira: fields.length })}
-                disabled={siparis?.kilitli}
+                disabled={isLocked}
               >
                 <Plus className="mr-1 size-3" /> {t("admin.erp.satisSiparisleri.form.kalemEkle")}
               </Button>
@@ -334,7 +335,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
                     value={form.watch(`items.${idx}.urunId`)}
                     onChange={(v) => handleUrunChange(idx, v)}
                     placeholder={t("admin.erp.satisSiparisleri.form.urunPlaceholder")}
-                    disabled={siparis?.kilitli}
+                    disabled={isLocked}
                   />
                   {form.formState.errors.items?.[idx]?.urunId && (
                     <p className="text-xs text-destructive">{form.formState.errors.items[idx]?.urunId?.message}</p>
@@ -349,7 +350,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
                     min="0.0001"
                     className="h-8 text-sm"
                     {...form.register(`items.${idx}.miktar`)}
-                    disabled={siparis?.kilitli}
+                    disabled={isLocked}
                   />
                 </div>
                 {/* Fiyat */}
@@ -361,7 +362,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
                     min="0"
                     className="h-8 text-sm"
                     {...form.register(`items.${idx}.birimFiyat`)}
-                    disabled={siparis?.kilitli}
+                    disabled={isLocked}
                   />
                 </div>
                 {/* Sil */}
@@ -373,7 +374,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
                     size="icon"
                     className="h-8 w-8 text-destructive hover:text-destructive"
                     onClick={() => remove(idx)}
-                    disabled={fields.length === 1 || siparis?.kilitli}
+                    disabled={fields.length === 1 || isLocked}
                   >
                     <Trash2 className="size-3" />
                   </Button>
@@ -385,10 +386,11 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
           {/* Açıklama */}
           <div className="space-y-1">
             <Label>{t("admin.erp.satisSiparisleri.form.aciklama")}</Label>
-            <Input
-              {...form.register("aciklama")}
-              placeholder={t("admin.erp.satisSiparisleri.form.aciklamaPlaceholder")}
-            />
+              <Input
+                {...form.register("aciklama")}
+                placeholder={t("admin.erp.satisSiparisleri.form.aciklamaPlaceholder")}
+                disabled={isLocked}
+              />
           </div>
 
           <div className="rounded-md border bg-muted/30 p-3">
@@ -426,9 +428,10 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
               {t("admin.common.cancel")}
             </Button>
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" disabled={busy || isLocked}>
               {busy ? t("admin.erp.common.saving") : isEdit ? t("admin.common.save") : t("admin.common.save")}
             </Button>
+
           </SheetFooter>
         </form>
       </SheetContent>

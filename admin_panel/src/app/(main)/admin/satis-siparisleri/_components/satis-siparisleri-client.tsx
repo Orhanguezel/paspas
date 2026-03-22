@@ -53,6 +53,7 @@ export default function SatisSiparisleriClient() {
   const { t } = useLocaleContext();
   const [search, setSearch]         = useState('');
   const [durum, setDurum]           = useState<SiparisDurum | 'hepsi'>('hepsi');
+  const [showCompleted, setShowCompleted] = useState(false);
   const [formOpen, setFormOpen]     = useState(false);
   const [editing, setEditing]       = useState<SatisSiparisDto | null>(null);
   const [deleteTarget, setDelete]   = useState<SatisSiparisDto | null>(null);
@@ -72,6 +73,7 @@ export default function SatisSiparisleriClient() {
   const params = {
     ...(search ? { q: search } : {}),
     ...(durum !== 'hepsi' ? { durum } : {}),
+    tamamlananlariGoster: showCompleted,
   };
 
   const { data, isLoading, isFetching, refetch } = useListSatisSiparisleriAdminQuery(params);
@@ -216,6 +218,19 @@ export default function SatisSiparisleriClient() {
             ))}
           </SelectContent>
         </Select>
+
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="text-sm text-muted-foreground">Tamamlananları Göster</span>
+          <button
+            type="button"
+            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${showCompleted ? 'bg-primary' : 'bg-input'}`}
+            onClick={() => setShowCompleted(!showCompleted)}
+          >
+            <span
+              className={`pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform ${showCompleted ? 'translate-x-4' : 'translate-x-1'}`}
+            />
+          </button>
+        </div>
       </div>
 
       <div className="rounded-md border">

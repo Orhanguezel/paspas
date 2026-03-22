@@ -324,20 +324,17 @@ export async function checkHammaddeYeterlilik(uretimEmriId: string): Promise<Ham
   for (const [urunId, miktar] of urunBazliMiktar) {
     const info = stokMap.get(urunId);
     if (!info) continue;
-    // Serbest stok = toplam stok - diger emirlerin rezervasyonu
-    // Kendi rezervasyonumuzu hariç tutuyoruz (stoktan henüz düşülmedi)
-    const toplamRezerve = Number(info.rezerveStok ?? 0);
-    const kendiRezerve = miktar;
-    const digerRezerve = Math.max(toplamRezerve - kendiRezerve, 0);
-    const mevcutStok = Number(info.stok ?? 0) - digerRezerve;
-    if (mevcutStok < miktar) {
+    // mevcutStok = fiziksel stok (müşteri beklentisi: basit karşılaştırma)
+    const mevcutStok = Math.max(Number(info.stok ?? 0), 0);
+    const eksikMiktar = Math.max(miktar - mevcutStok, 0);
+    if (eksikMiktar > 0) {
       uyarilar.push({
         urunId,
         urunAd: info.ad ?? '',
         urunKod: info.kod ?? '',
         gerekliMiktar: miktar,
         mevcutStok,
-        eksikMiktar: miktar - mevcutStok,
+        eksikMiktar,
       });
     }
   }

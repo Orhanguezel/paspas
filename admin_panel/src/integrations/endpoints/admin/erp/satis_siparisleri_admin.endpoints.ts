@@ -22,6 +22,7 @@ export interface SatisSiparisListParams {
   q?: string;
   musteriId?: string;
   durum?: SiparisDurum;
+  tamamlananlariGoster?: boolean;
   limit?: number;
   offset?: number;
   sort?: string;
@@ -51,7 +52,10 @@ export const satisSiparisleriAdminApi = baseApi.injectEndpoints({
     createSatisSiparisiAdmin: b.mutation<SatisSiparisDto, SatisSiparisCreatePayload>({
       query: (body) => ({ url: BASE, method: 'POST', body }),
       transformResponse: (res: unknown) => normalizeSatisSiparis(res),
-      invalidatesTags: [{ type: 'SatisSiparisleri', id: 'LIST' }],
+      invalidatesTags: [
+        { type: 'SatisSiparisleri', id: 'LIST' },
+        { type: 'UretimEmirleri', id: 'ADAYLAR' },
+      ],
     }),
 
     updateSatisSiparisiAdmin: b.mutation<SatisSiparisDto, { id: string; body: SatisSiparisPatchPayload }>({
