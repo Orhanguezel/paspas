@@ -56,7 +56,7 @@ const ALL_ERP_ROLES: AppRole[] = ['admin', 'sevkiyatci', 'operator', 'satin_alma
 
 const ADMIN_PERMISSION_MAP: Record<AdminPermissionKey, AppRole[]> = {
   'admin.dashboard': ALL_ERP_ROLES,
-  'admin.urunler': ['admin', 'operator', 'satin_almaci'],
+  'admin.urunler': ['admin', 'operator', 'satin_almaci', 'sevkiyatci'],
   'admin.receteler': ['admin', 'operator'],
   'admin.musteriler': ['admin', 'sevkiyatci', 'satin_almaci'],
   'admin.satis_siparisleri': ADMIN_AND_SEVKIYATCI,
@@ -74,7 +74,7 @@ const ADMIN_PERMISSION_MAP: Record<AdminPermissionKey, AppRole[]> = {
   'admin.gorevler': ALL_ERP_ROLES,
   'admin.giris_ayarlari': ADMIN_ONLY,
   'admin.operator': ADMIN_AND_OPERATOR,
-  'admin.tanimlar': ['admin', 'operator', 'satin_almaci'],
+  'admin.tanimlar': ['admin', 'operator', 'satin_almaci', 'sevkiyatci'],
   'admin.app_settings': ADMIN_ONLY,
   'admin.users': ADMIN_ONLY,
   'admin.storage': ADMIN_ONLY,

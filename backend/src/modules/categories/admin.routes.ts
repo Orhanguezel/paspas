@@ -4,6 +4,7 @@
 import type { FastifyInstance } from "fastify";
 import { requireAuth } from "@/common/middleware/auth";
 import { requireAdmin } from "@/common/middleware/roles";
+import { makeAdminPermissionGuard } from "@/common/middleware/permissions";
 
 import type {
   CategoryCreateInput,
@@ -39,24 +40,26 @@ export async function registerCategoriesAdmin(app: FastifyInstance) {
 
   const BASE = "/categories";
 
+  const readGuard = makeAdminPermissionGuard('admin.tanimlar');
+
   // ⬇️ LIST endpointini /list'e aldık — /api/admin/categories ile çakışma kalkar
   app.get<{ Querystring: AdminListCategoriesQS }>(
     `${BASE}/list`,
-    { preHandler: [requireAuth, requireAdmin] },
+    { preHandler: readGuard },
     adminListCategories
   );
 
   // Tekil okuma
   app.get<{ Params: { id: string } }>(
     `${BASE}/:id`,
-    { preHandler: [requireAuth, requireAdmin] },
+    { preHandler: readGuard },
     adminGetCategoryById
   );
 
   // Slug ile okuma
   app.get<{ Params: { slug: string } }>(
     `${BASE}/by-slug/:slug`,
-    { preHandler: [requireAuth, requireAdmin] },
+    { preHandler: readGuard },
     adminGetCategoryBySlug
   );
 
