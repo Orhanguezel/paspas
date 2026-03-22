@@ -251,9 +251,9 @@ export const createUrun: RouteHandler = async (req, reply) => {
     });
   } catch (error: unknown) {
     req.log.error({ error }, 'create_urun_failed');
-    const err = error as { code?: string };
-    if (err.code === 'ER_DUP_ENTRY') {
-      return reply.code(409).send({ error: { message: 'urun_kodu_zaten_var' } });
+    const err = error as { code?: string; cause?: { code?: string } };
+    if (err.code === 'ER_DUP_ENTRY' || err.cause?.code === 'ER_DUP_ENTRY') {
+      return reply.code(409).send({ error: { message: 'Bu ürün kodu zaten kullanılıyor.' } });
     }
     return sendInternalError(reply);
   }
@@ -326,9 +326,9 @@ export const updateUrun: RouteHandler = async (req, reply) => {
     });
   } catch (error: unknown) {
     req.log.error({ error }, 'update_urun_failed');
-    const err = error as { code?: string };
-    if (err.code === 'ER_DUP_ENTRY') {
-      return reply.code(409).send({ error: { message: 'urun_kodu_zaten_var' } });
+    const err = error as { code?: string; cause?: { code?: string } };
+    if (err.code === 'ER_DUP_ENTRY' || err.cause?.code === 'ER_DUP_ENTRY') {
+      return reply.code(409).send({ error: { message: 'Bu ürün kodu zaten kullanılıyor.' } });
     }
     return sendInternalError(reply);
   }
@@ -504,8 +504,8 @@ export const saveUrunRecete: RouteHandler = async (req, reply) => {
     return reply.send(dto);
   } catch (error: unknown) {
     req.log.error({ error }, 'save_urun_recete_failed');
-    const err = error as { code?: string };
-    if (err.code === 'ER_DUP_ENTRY') {
+    const err = error as { code?: string; cause?: { code?: string } };
+    if (err.code === 'ER_DUP_ENTRY' || err.cause?.code === 'ER_DUP_ENTRY') {
       return reply.code(409).send({ error: { message: 'recete_kodu_zaten_var' } });
     }
     return sendInternalError(reply);
