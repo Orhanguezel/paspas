@@ -32,6 +32,7 @@ import { useAdminSettings } from '../admin-settings-provider';
 import { useStatusQuery, useGetMyProfileQuery } from '@/integrations/hooks';
 
 const VALID_ROLES = new Set<string>(['admin', 'operator', 'satin_almaci', 'nakliyeci']);
+const DB_TO_PANEL: Record<string, string> = { sevkiyatci: 'nakliyeci' };
 
 type SidebarMe = {
   id: string;
@@ -183,8 +184,9 @@ export function AppSidebar({
     return t(key, params, fallback);
   };
 
-  const resolvedRole: PanelRole = VALID_ROLES.has(currentUser.role)
-    ? (currentUser.role as PanelRole)
+  const mappedRole = DB_TO_PANEL[currentUser.role] ?? currentUser.role;
+  const resolvedRole: PanelRole = VALID_ROLES.has(mappedRole)
+    ? (mappedRole as PanelRole)
     : 'admin';
   const groupsForMe: NavGroup[] = buildAdminSidebarItems(copy.nav, wrappedT, resolvedRole);
   const panelLabel = baseName || 'ERP';

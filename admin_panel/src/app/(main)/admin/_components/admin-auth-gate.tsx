@@ -16,11 +16,13 @@ import { canAccessAdminPath, ROLE_HOME } from '@/navigation/permissions';
 import type { PanelRole } from '@/navigation/permissions';
 
 const VALID_ROLES = new Set<string>(['admin', 'operator', 'satin_almaci', 'nakliyeci']);
+const DB_TO_PANEL: Record<string, PanelRole> = { sevkiyatci: 'nakliyeci' };
 
 function resolveRole(me: ReturnType<typeof normalizeMeFromStatus>): PanelRole | null {
   if (!me) return null;
   const r = me.isAdmin ? 'admin' : (me.role ?? '');
-  return VALID_ROLES.has(r) ? (r as PanelRole) : null;
+  const mapped = DB_TO_PANEL[r] ?? r;
+  return VALID_ROLES.has(mapped) ? (mapped as PanelRole) : null;
 }
 
 export default function AdminAuthGate({ children }: { children: React.ReactNode }) {
