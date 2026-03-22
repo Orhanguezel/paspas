@@ -62,7 +62,7 @@ const ADMIN_PERMISSION_MAP: Record<AdminPermissionKey, AppRole[]> = {
   'admin.satis_siparisleri': ADMIN_AND_SEVKIYATCI,
   'admin.satis_pazarlama': ADMIN_AND_SEVKIYATCI,
   'admin.uretim_emirleri': ADMIN_AND_OPERATOR,
-  'admin.makine_havuzu': ADMIN_AND_OPERATOR,
+  'admin.makine_havuzu': ['admin', 'operator', 'sevkiyatci'],
   'admin.is_yukler': ADMIN_AND_OPERATOR,
   'admin.gantt': ['admin', 'operator', 'sevkiyatci'],
   'admin.stoklar': ['admin', 'operator', 'sevkiyatci', 'satin_almaci'],
