@@ -294,7 +294,7 @@ export default function GanttClient() {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="space-y-4">
+      <div className="space-y-4 min-w-0 overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-lg font-semibold">{t("admin.erp.gantt.title")}</h1>
@@ -455,8 +455,8 @@ export default function GanttClient() {
             {t("admin.erp.gantt.notFound")}
           </div>
         ) : (
-          <div className="overflow-hidden rounded-md border">
-            <div className="flex">
+          <div className="overflow-hidden rounded-md border min-w-0">
+            <div className="flex min-w-0">
               <div className="shrink-0 border-r bg-muted/40" style={{ width: LABEL_W }}>
                 <div className="h-6 border-b" />
                 <div className="h-8 border-b" />
