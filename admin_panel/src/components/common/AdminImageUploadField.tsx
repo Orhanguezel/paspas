@@ -632,7 +632,7 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
         <Input
           ref={fileInputRef as any}
           type="file"
-          accept="image/*,.svg,.ico,application/pdf,.pdf"
+          accept="image/*,.svg,.ico,application/pdf,.pdf,video/*,.mp4,.webm,.mov"
           multiple={!!multiple}
           className="hidden"
           onChange={handleFileChange}
