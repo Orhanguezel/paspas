@@ -112,6 +112,9 @@ export function canAccessAdminPath(role: PanelRole, pathname: string): boolean {
 
   const clean = pathname.split('?')[0] ?? pathname;
 
+  // Profil sayfasi tum roller icin erisime acik
+  if (clean === '/admin/profile' || clean.startsWith('/admin/profile/')) return true;
+
   for (const { prefix, key } of PATH_ROLE_MAP) {
     if (clean === prefix || clean.startsWith(`${prefix}/`)) {
       return NAV_ROLES[key].includes(role);

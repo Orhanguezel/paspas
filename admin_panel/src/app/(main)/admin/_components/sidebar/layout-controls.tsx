@@ -25,8 +25,14 @@ import { applyThemeMode, applyThemePreset } from "@/lib/preferences/theme-utils"
 import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
 import { useAdminSettings } from '../admin-settings-provider';
 import { useAdminTranslations, ADMIN_LOCALE_OPTIONS } from '@/i18n';
+import { useStatusQuery } from '@/integrations/hooks';
+import { normalizeMeFromStatus } from '@/integrations/shared';
+import type { AuthStatusResponse } from '@/integrations/shared';
 
 export function LayoutControls() {
+  const { data: statusData } = useStatusQuery();
+  const me = normalizeMeFromStatus(statusData as AuthStatusResponse | undefined);
+  if (!me?.isAdmin) return null;
   const { saveAdminConfig } = useAdminSettings();
   const adminLocale = usePreferencesStore((s) => s.adminLocale);
   const setAdminLocale = usePreferencesStore((s) => s.setAdminLocale);
