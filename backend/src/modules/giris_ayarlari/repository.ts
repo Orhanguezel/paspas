@@ -118,9 +118,6 @@ function buildGaps(dto: {
     if (role.activeCount === 0) {
       gaps.push(`${role.role} rolu icin aktif giris hesabi yok.`);
     }
-    if (role.totalCount > 1) {
-      gaps.push(`${role.role} rolu icin birden fazla hesap var; birincil kullanici standardi net degil.`);
-    }
   }
   return gaps;
 }

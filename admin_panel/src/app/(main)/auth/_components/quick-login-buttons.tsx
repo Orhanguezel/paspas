@@ -58,8 +58,7 @@ export function QuickLoginButtons() {
   const [config, setConfig] = useState<LoginConfig | null>(null);
 
   useEffect(() => {
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-    fetch(`${apiBase}/api/public/login-config`)
+    fetch('/api/public/login-config')
       .then((res) => res.json())
       .then((data: LoginConfig) => setConfig(data))
       .catch(() => setConfig({ showQuickLogin: false, enabledRoles: [] }));
