@@ -7,7 +7,6 @@ import { Camera, Loader2, Save } from 'lucide-react';
 import { useAdminT } from '@/app/(main)/admin/_components/common/useAdminT';
 import { useStatusQuery, useAuthUpdateMutation } from '@/integrations/hooks';
 import { useGetMyProfileQuery, useUpsertMyProfileMutation } from '@/integrations/hooks';
-import { useCreateAssetAdminMutation } from '@/integrations/endpoints/admin/storage_admin.endpoints';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +21,7 @@ export function ProfileForm() {
   const { data: profileData, isLoading: isProfileLoading } = useGetMyProfileQuery();
   const [upsertProfile, { isLoading: isUpdatingProfile }] = useUpsertMyProfileMutation();
   const [updateAuthUser, { isLoading: isUpdatingAuth }] = useAuthUpdateMutation();
-  const [createAsset, { isLoading: isUploading }] = useCreateAssetAdminMutation();
+  const [isUploading, setIsUploading] = React.useState(false);
 
   const [fullName, setFullName] = React.useState('');
   const [email, setEmail] = React.useState('');
@@ -45,19 +44,29 @@ export function ProfileForm() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsUploading(true);
     try {
-      const asset = await createAsset({
-        file,
-        bucket: 'avatars',
-        folder: 'profiles',
-      }).unwrap();
+      const fd = new FormData();
+      fd.append('file', file, file.name);
 
-      if (asset.url) {
-        setAvatarUrl(asset.url);
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
+      const res = await fetch(`${baseUrl}/storage/avatars/upload?path=profiles/${Date.now()}-${file.name}`, {
+        method: 'POST',
+        body: fd,
+        credentials: 'include',
+      });
+
+      if (!res.ok) throw new Error('upload_failed');
+      const data = await res.json();
+
+      if (data.url) {
+        setAvatarUrl(data.url);
         toast.success(t('admin.profile.avatarUploaded') || 'Profil resmi yüklendi.');
       }
-    } catch (err) {
+    } catch {
       toast.error(t('admin.profile.avatarUploadFailed') || 'Resim yüklenemedi.');
+    } finally {
+      setIsUploading(false);
     }
   };
 

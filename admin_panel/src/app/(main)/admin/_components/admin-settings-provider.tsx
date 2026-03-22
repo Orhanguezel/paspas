@@ -21,6 +21,9 @@ import {
   applyFont,
 } from '@/lib/preferences/layout-utils';
 import { DEFAULT_BRANDING, type AdminBrandingConfig } from '@/config/app-config';
+import { useStatusQuery } from '@/integrations/hooks';
+import { normalizeMeFromStatus } from '@/integrations/shared';
+import type { AuthStatusResponse } from '@/integrations/shared';
 
 export type AdminPageMeta = Record<string, { title: string; description?: string; metrics?: string[] }>;
 
@@ -101,6 +104,11 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
   const setAdminLocale = usePreferencesStore((s) => s.setAdminLocale);
   const adminLocale = usePreferencesStore((s) => s.adminLocale);
 
+  // Admin-only endpoint'leri non-admin kullanıcılar için skip et
+  const { data: statusData } = useStatusQuery();
+  const me = normalizeMeFromStatus(statusData as AuthStatusResponse | undefined);
+  const isAdmin = me?.isAdmin ?? false;
+
   /* --- Zustand setters --- */
   const setThemeMode = usePreferencesStore((s) => s.setThemeMode);
   const setThemePreset = usePreferencesStore((s) => s.setThemePreset);
@@ -123,8 +131,8 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
   const prefsRef = useRef({ themeMode, themePreset, font, contentLayout, navbarStyle, sidebarVariant, sidebarCollapsible, adminLocale });
   prefsRef.current = { themeMode, themePreset, font, contentLayout, navbarStyle, sidebarVariant, sidebarCollapsible, adminLocale };
 
-  // 1. Fetch Global Config
-  const { data: configRow, isLoading: configLoading } = useGetSiteSettingAdminByKeyQuery('ui_admin_config');
+  // 1. Fetch Global Config (admin-only)
+  const { data: configRow, isLoading: configLoading } = useGetSiteSettingAdminByKeyQuery('ui_admin_config', { skip: !isAdmin });
 
   const config = useMemo(() => {
     if (!configRow?.value) return null;
@@ -142,13 +150,13 @@ export function AdminSettingsProvider({ children }: { children: React.ReactNode 
     keys: ['ui_admin_pages'],
     locale,
     limit: 1,
-  });
+  }, { skip: !isAdmin });
   const pagesRow = pagesRows?.find((row) => row.key === 'ui_admin_pages') ?? null;
 
   const { data: companyRows, isLoading: companyLoading } = useListSiteSettingsAdminQuery({
     keys: ['company_profile', 'contact_info'],
     limit: 10,
-  });
+  }, { skip: !isAdmin });
 
   const pageMeta = useMemo(() => {
     if (!pagesRow?.value) return {};
