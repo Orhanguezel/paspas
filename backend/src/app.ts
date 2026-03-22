@@ -51,7 +51,7 @@ import { registerCategories } from '@/modules/categories/router';
 import { registerCategoriesAdmin } from '@/modules/categories/admin.routes';
 import { registerSubCategoriesAdmin } from '@/modules/subCategories/admin.routes';
 import { registerGorevler } from '@/modules/gorevler/router';
-import { registerGirisAyarlari } from '@/modules/giris_ayarlari/router';
+import { registerGirisAyarlari, registerPublicLoginConfig } from '@/modules/giris_ayarlari/router';
 import { registerSevkiyat } from '@/modules/sevkiyat/router';
 import { registerMalKabul } from '@/modules/mal_kabul/router';
 
@@ -206,6 +206,7 @@ export async function createApp() {
     await api.register(registerMalKabul,        { prefix: '/admin' });
 
     // --- Public modüller → /api/... ---
+    await registerPublicLoginConfig(api);
     await registerAuth(api);
     await registerStorage(api);
     await registerProfiles(api);

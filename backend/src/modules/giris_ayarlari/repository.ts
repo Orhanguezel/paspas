@@ -64,7 +64,7 @@ export type LoginSettingsDto = {
 };
 
 const DEFAULT_SETTINGS: LoginSettingsDto['settings'] = {
-  showQuickLogin: true,
+  showQuickLogin: false,
   allowPasswordLogin: true,
   roleCardsEnabled: true,
   passwordPolicy: {

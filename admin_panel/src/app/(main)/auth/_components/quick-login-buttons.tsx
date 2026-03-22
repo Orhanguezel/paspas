@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Shield, Truck, Wrench, ShoppingCart } from 'lucide-react';
@@ -48,11 +48,25 @@ const DEMO_ACCOUNTS = [
 
 const PASSWORD = 'admin123';
 
+type LoginConfig = { showQuickLogin: boolean; enabledRoles: string[] };
+
 export function QuickLoginButtons() {
   const { t } = useLocaleContext();
   const router = useRouter();
   const [login] = useAuthTokenMutation();
   const [busy, setBusy] = useState<string | null>(null);
+  const [config, setConfig] = useState<LoginConfig | null>(null);
+
+  useEffect(() => {
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+    fetch(`${apiBase}/api/public/login-config`)
+      .then((res) => res.json())
+      .then((data: LoginConfig) => setConfig(data))
+      .catch(() => setConfig({ showQuickLogin: false, enabledRoles: [] }));
+  }, []);
+
+  // Config yuklenmedi veya kapaliysa hicbir sey gosterme
+  if (!config || !config.showQuickLogin) return null;
 
   const handleQuickLogin = async (account: (typeof DEMO_ACCOUNTS)[number]) => {
     setBusy(account.key);
@@ -104,13 +118,6 @@ export function QuickLoginButtons() {
             </Button>
           );
         })}
-      </div>
-
-      <div className="rounded-md border bg-muted/50 p-3 text-xs text-muted-foreground space-y-1">
-        <p className="font-medium">Demo Hesapları (Şifre: <code className="font-mono">admin123</code>)</p>
-        {DEMO_ACCOUNTS.map((a) => (
-          <p key={a.key} className="font-mono">{a.email}</p>
-        ))}
       </div>
     </div>
   );
