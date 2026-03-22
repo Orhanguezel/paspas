@@ -292,15 +292,26 @@ export const adminCreateAsset: RouteHandler = async (req, reply) => {
     if (isDup(err)) {
       const existing = await getByBucketPath(bucket, path);
       if (existing) {
+        // Eski kaydı yeni provider bilgileriyle güncelle (local → cloudinary geçişi)
+        const newUrl = up.secure_url || existing.url;
+        await repoUpdateById(existing.id, {
+          url: newUrl,
+          provider: provider,
+          provider_public_id: up.public_id ?? existing.provider_public_id,
+          provider_resource_type: provider_resource_type ?? existing.provider_resource_type,
+          provider_format: provider_format ?? existing.provider_format,
+          provider_version: provider_version ?? existing.provider_version,
+        });
         req.log.warn(
           { ...fileLog, rec_id: existing.id },
-          "storage upload: duplicate key, returning existing row",
+          "storage upload: duplicate key, updated existing row with new provider url",
         );
         return reply.code(200).send({
           ...existing,
-          // ✅ netlik (opsiyonel ama faydalı)
           asset_id: existing.id,
-          url: buildPublicUrl(existing.bucket, existing.path, existing.url, cfg),
+          url: newUrl,
+          provider,
+          provider_public_id: up.public_id ?? existing.provider_public_id,
           created_at: existing.created_at,
           updated_at: existing.updated_at,
         });
