@@ -10,7 +10,8 @@ import { musteriler } from '@/modules/musteriler/schema';
 import { urunler } from '@/modules/urunler/schema';
 import { sevkiyatKalemleri } from '@/modules/operator/schema';
 import { uretimEmirleri, uretimEmriSiparisKalemleri } from '@/modules/uretim_emirleri/schema';
-import type { CreateBody, ListQuery, PatchBody } from './validation';
+import { transitionMultipleKalemDurum, canEditSiparis, canDeleteSiparis, canCloseSiparis } from './kalem-durum.service';
+import type { CreateBody, IslemlerQuery, ListQuery, PatchBody } from './validation';
 
 type ListResult = {
   items: EnrichedSatisSiparisRow[];
@@ -25,6 +26,7 @@ type DetailResult = {
 export type SiparisOzet = {
   kalemSayisi: number;
   toplamMiktar: number;
+  toplamFiyat: number;
   uretimeAktarilanKalemSayisi: number;
   uretimPlanlananMiktar: number;
   uretimTamamlananMiktar: number;
@@ -61,6 +63,7 @@ function mapSiparisInsert(data: CreateBody): typeof satisSiparisleri.$inferInser
     termin_tarihi: data.terminTarihi ? new Date(data.terminTarihi) : undefined,
     durum: data.durum,
     aciklama: data.aciklama,
+    ekstra_indirim_orani: data.ekstraIndirimOrani.toFixed(2),
     is_active: typeof data.isActive === 'boolean' ? (data.isActive ? 1 : 0) : undefined,
   };
 }
@@ -73,6 +76,7 @@ function mapSiparisPatch(data: PatchBody): Partial<typeof satisSiparisleri.$infe
   if (data.terminTarihi !== undefined) payload.termin_tarihi = new Date(data.terminTarihi);
   if (data.durum !== undefined) payload.durum = data.durum;
   if (data.aciklama !== undefined) payload.aciklama = data.aciklama;
+  if (data.ekstraIndirimOrani !== undefined) payload.ekstra_indirim_orani = data.ekstraIndirimOrani.toFixed(2);
   if (data.isActive !== undefined) payload.is_active = data.isActive ? 1 : 0;
   return payload;
 }
@@ -99,6 +103,8 @@ export async function repoGetSiparisOzetleri(siparisIds: string[]): Promise<Map<
         siparisId: siparisKalemleri.siparis_id,
         kalemSayisi: sql<number>`count(*)`,
         toplamMiktar: sql<string>`coalesce(sum(${siparisKalemleri.miktar}), 0)`,
+        // Brut toplam (indirimsiz)
+        brutFiyat: sql<string>`coalesce(sum(${siparisKalemleri.miktar} * ${siparisKalemleri.birim_fiyat}), 0)`,
       })
       .from(siparisKalemleri)
       .where(inArray(siparisKalemleri.siparis_id, siparisIds))
@@ -135,6 +141,7 @@ export async function repoGetSiparisOzetleri(siparisIds: string[]): Promise<Map<
     empty.set(siparisId, {
         kalemSayisi: 0,
         toplamMiktar: 0,
+        toplamFiyat: 0,
         uretimeAktarilanKalemSayisi: 0,
         uretimPlanlananMiktar: 0,
         uretimTamamlananMiktar: 0,
@@ -143,11 +150,33 @@ export async function repoGetSiparisOzetleri(siparisIds: string[]): Promise<Map<
       });
   }
 
+  // Siparis ana verilerini ve musteri iskontosunu cek
+  const siparisler = await db
+    .select({
+      id: satisSiparisleri.id,
+      ekstraIndirimOrani: satisSiparisleri.ekstra_indirim_orani,
+      musteriIskonto: musteriler.iskonto,
+    })
+    .from(satisSiparisleri)
+    .leftJoin(musteriler, eq(musteriler.id, satisSiparisleri.musteri_id))
+    .where(inArray(satisSiparisleri.id, siparisIds));
+
+  const siparisMap = new Map(siparisler.map(s => [s.id, s]));
+
   for (const row of kalemRows) {
+    const s = siparisMap.get(row.siparisId);
+    const mIskonto = Number(s?.musteriIskonto ?? 0) / 100;
+    const eIskonto = Number(s?.ekstraIndirimOrani ?? 0) / 100;
+    const brut = Number(row.brutFiyat ?? 0);
+    
+    // Sirali indirim: Brut * (1 - m) * (1 - e)
+    const net = brut * (1 - mIskonto) * (1 - eIskonto);
+
     empty.set(row.siparisId, {
       ...(empty.get(row.siparisId) ?? {
         kalemSayisi: 0,
         toplamMiktar: 0,
+        toplamFiyat: 0,
         uretimeAktarilanKalemSayisi: 0,
         uretimPlanlananMiktar: 0,
         uretimTamamlananMiktar: 0,
@@ -156,17 +185,34 @@ export async function repoGetSiparisOzetleri(siparisIds: string[]): Promise<Map<
       }),
       kalemSayisi: Number(row.kalemSayisi ?? 0),
       toplamMiktar: Number(row.toplamMiktar ?? 0),
+      toplamFiyat: net,
     });
+  }
+
+  const kalemler = await db
+    .select({
+      siparisId: siparisKalemleri.siparis_id,
+      uretimDurumu: siparisKalemleri.uretim_durumu,
+    })
+    .from(siparisKalemleri)
+    .where(inArray(siparisKalemleri.siparis_id, siparisIds));
+
+  const kalemMap = new Map<string, any[]>();
+  for (const k of kalemler) {
+    const list = kalemMap.get(k.siparisId) ?? [];
+    list.push(k.uretimDurumu);
+    kalemMap.set(k.siparisId, list);
   }
 
   for (const row of uretimeAktarimRows) {
     const current = empty.get(row.siparisId);
     if (!current) continue;
-    const uretimeAktarilanKalemSayisi = Number(row.uretimeAktarilanKalemSayisi ?? 0);
+    const items = kalemMap.get(row.siparisId) ?? [];
     empty.set(row.siparisId, {
       ...current,
-      uretimeAktarilanKalemSayisi,
-      kilitli: uretimeAktarilanKalemSayisi > 0,
+      uretimeAktarilanKalemSayisi: Number(row.uretimeAktarilanKalemSayisi ?? 0),
+      // Rev4: Kalem bazli kilitleme. canEditSiparis uretim_durumu'nu kontrol eder.
+      kilitli: !canEditSiparis(items as any),
     });
   }
 
@@ -307,11 +353,12 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<DetailRe
   if (current.siparis.durum === 'tamamlandi') {
     throw new Error('siparis_kilitli');
   }
-  // Üretim emrine aktarılmış siparişlerde sadece kalem değişikliği engellenir
-  const ozet = await repoGetSiparisOzetleri([id]);
-  const isLocked = ozet.get(id)?.kilitli === true;
-  if (isLocked && patch.items !== undefined) {
-    throw new Error('siparis_kilitli');
+  const currentItems = current.items.map((i) => i.uretim_durumu as any);
+  
+  if (patch.items !== undefined && !canEditSiparis(currentItems)) {
+    const err = new Error('siparis_kilitli');
+    (err as any).detail = 'Üretime başlanmış sipariş kalemleri değiştirilemez.';
+    throw err;
   }
 
   await db.transaction(async (tx) => {
@@ -377,7 +424,7 @@ export async function refreshSiparisDurum(siparisId: string): Promise<void> {
   const allUretimDone = totalLinked > 0 && tamamlandiCount === totalLinked;
   const anyUretimActive = uretimdeCount > 0;
 
-  // Priority: sevk tamamlandi > kismen sevk > üretimde > üretim bitti (sevk bekliyor) > planlandi
+  // Priority: sevk tamamlandi > kismen sevk > üretimde > üretim bitti (sevk bekliyor) > planlandi > onaylandi
   let yeniDurum: string | null = null;
   if (o.toplamMiktar > 0 && o.sevkEdilenMiktar >= o.toplamMiktar) {
     yeniDurum = 'tamamlandi';
@@ -390,6 +437,9 @@ export async function refreshSiparisDurum(siparisId: string): Promise<void> {
     yeniDurum = 'uretimde';
   } else if (o.uretimeAktarilanKalemSayisi > 0) {
     yeniDurum = 'planlandi';
+  } else {
+    // Hiç üretim emri bağlı değil (silindi veya hiç oluşturulmadı) → onaylandi'ya geri dön
+    yeniDurum = 'onaylandi';
   }
 
   if (yeniDurum && yeniDurum !== siparis.durum) {
@@ -410,10 +460,152 @@ export async function getSiparisIdsByUretimEmriId(uretimEmriId: string): Promise
   return [...new Set(rows.map((r) => r.siparisId))];
 }
 
+// Returns distinct sipariş kalem IDs linked to a given üretim emri via junction table
+export async function getKalemIdsByUretimEmriId(uretimEmriId: string): Promise<string[]> {
+  const rows = await db
+    .select({ kalemId: uretimEmriSiparisKalemleri.siparis_kalem_id })
+    .from(uretimEmriSiparisKalemleri)
+    .where(eq(uretimEmriSiparisKalemleri.uretim_emri_id, uretimEmriId));
+  return rows.map((r) => r.kalemId);
+}
+
+// ============================================================
+// Siparis Islemleri — kalem bazli flat liste
+// ============================================================
+
+export interface SiparisIslemSatiri {
+  kalemId: string;
+  siparisId: string;
+  siparisNo: string;
+  musteriId: string;
+  musteriAd: string;
+  urunId: string;
+  urunAd: string;
+  urunKod: string;
+  miktar: number;
+  birimFiyat: number;
+  uretimDurumu: string;
+  sevkEdilenMiktar: number;
+  uretimEmriId: string | null;
+  planlananBitis: string | null;
+  terminTarihi: string | null;
+}
+
+export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: SiparisIslemSatiri[]; total: number }> {
+  const conditions: SQL[] = [
+    eq(satisSiparisleri.is_active, 1),
+  ];
+
+  if (q.q) {
+    conditions.push(
+      sql`(${urunler.ad} LIKE ${'%' + q.q + '%'} OR ${satisSiparisleri.siparis_no} LIKE ${'%' + q.q + '%'} OR ${musteriler.ad} LIKE ${'%' + q.q + '%'})`,
+    );
+  }
+  if (q.musteriId) conditions.push(eq(satisSiparisleri.musteri_id, q.musteriId));
+  if (q.urunId) conditions.push(eq(siparisKalemleri.urun_id, q.urunId));
+  if (q.uretimDurumu) conditions.push(eq(siparisKalemleri.uretim_durumu, q.uretimDurumu));
+
+  if (q.gizleTamamlanan) {
+    conditions.push(
+      notInArray(satisSiparisleri.durum, ['kapali', 'iptal', 'tamamlandi']),
+    );
+    // Kalem bazinda: tamami sevk edilmis olanlari da gizle
+    conditions.push(
+      sql`${siparisKalemleri.uretim_durumu} != 'uretim_tamamlandi' OR ${siparisKalemleri.uretim_durumu} = 'uretim_tamamlandi'`,
+    );
+  }
+
+  // Sevk edilen miktar subquery
+  const sevkSubquery = sql<string>`COALESCE((
+    SELECT SUM(sk2.miktar) FROM sevkiyat_kalemleri sk2
+    WHERE sk2.siparis_kalem_id = ${siparisKalemleri.id}
+  ), 0)`;
+
+  // UE id subquery
+  const ueIdSubquery = sql<string>`(
+    SELECT uesk.uretim_emri_id FROM uretim_emri_siparis_kalemleri uesk
+    WHERE uesk.siparis_kalem_id = ${siparisKalemleri.id}
+    LIMIT 1
+  )`;
+
+  // Planlanan bitis subquery (montaj operasyonunun veya tek operasyonun planlanan_bitis'i)
+  const planlananBitisSubquery = sql<string>`(
+    SELECT MAX(eop.planlanan_bitis) FROM uretim_emri_operasyonlari eop
+    INNER JOIN uretim_emri_siparis_kalemleri uesk2 ON uesk2.uretim_emri_id = eop.uretim_emri_id
+    WHERE uesk2.siparis_kalem_id = ${siparisKalemleri.id}
+  )`;
+
+  const where = and(...conditions);
+
+  const baseQuery = db
+    .select({
+      kalemId: siparisKalemleri.id,
+      siparisId: siparisKalemleri.siparis_id,
+      siparisNo: satisSiparisleri.siparis_no,
+      musteriId: satisSiparisleri.musteri_id,
+      musteriAd: musteriler.ad,
+      urunId: siparisKalemleri.urun_id,
+      urunAd: urunler.ad,
+      urunKod: urunler.kod,
+      miktar: siparisKalemleri.miktar,
+      birimFiyat: siparisKalemleri.birim_fiyat,
+      uretimDurumu: siparisKalemleri.uretim_durumu,
+      sevkEdilenMiktar: sevkSubquery,
+      uretimEmriId: ueIdSubquery,
+      planlananBitis: planlananBitisSubquery,
+      terminTarihi: satisSiparisleri.termin_tarihi,
+    })
+    .from(siparisKalemleri)
+    .innerJoin(satisSiparisleri, eq(siparisKalemleri.siparis_id, satisSiparisleri.id))
+    .innerJoin(musteriler, eq(satisSiparisleri.musteri_id, musteriler.id))
+    .innerJoin(urunler, eq(siparisKalemleri.urun_id, urunler.id))
+    .where(where);
+
+  const [rows, countResult] = await Promise.all([
+    baseQuery
+      .orderBy(q.order === 'asc' ? asc(satisSiparisleri.created_at) : desc(satisSiparisleri.created_at))
+      .limit(q.limit)
+      .offset(q.offset),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(siparisKalemleri)
+      .innerJoin(satisSiparisleri, eq(siparisKalemleri.siparis_id, satisSiparisleri.id))
+      .innerJoin(musteriler, eq(satisSiparisleri.musteri_id, musteriler.id))
+      .innerJoin(urunler, eq(siparisKalemleri.urun_id, urunler.id))
+      .where(where),
+  ]);
+
+  return {
+    items: rows.map((r) => ({
+      kalemId: r.kalemId,
+      siparisId: r.siparisId,
+      siparisNo: r.siparisNo,
+      musteriId: r.musteriId,
+      musteriAd: r.musteriAd ?? '',
+      urunId: r.urunId,
+      urunAd: r.urunAd ?? '',
+      urunKod: r.urunKod ?? '',
+      miktar: Number(r.miktar),
+      birimFiyat: Number(r.birimFiyat),
+      uretimDurumu: r.uretimDurumu,
+      sevkEdilenMiktar: Number(r.sevkEdilenMiktar ?? 0),
+      uretimEmriId: r.uretimEmriId ?? null,
+      planlananBitis: r.planlananBitis ?? null,
+      terminTarihi: r.terminTarihi ? String(r.terminTarihi).slice(0, 10) : null,
+    })),
+    total: Number(countResult[0]?.count ?? 0),
+  };
+}
+
 export async function repoDelete(id: string): Promise<void> {
-  const ozet = await repoGetSiparisOzetleri([id]);
-  if (ozet.get(id)?.kilitli) {
-    throw new Error('siparis_kilitli');
+  const current = await repoGetById(id);
+  if (!current) return;
+
+  const currentItems = current.items.map((i) => i.uretim_durumu as any);
+  if (!canDeleteSiparis(currentItems)) {
+    const err = new Error('siparis_kilitli');
+    (err as any).detail = 'Üretim veya sevkiyat süreci başlamış siparişler silinemez.';
+    throw err;
   }
   await db.transaction(async (tx) => {
     await tx.delete(siparisKalemleri).where(eq(siparisKalemleri.siparis_id, id));
