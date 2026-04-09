@@ -375,7 +375,16 @@ function rowToDto(row: QueryRow): GanttBarDto {
     montaj: Number(row.montaj ?? 0) > 0,
     sira: Number(row.sira ?? 0),
     baslangicTarihi: toDateTimeString(row.gercek_baslangic ?? row.planlanan_baslangic),
-    bitisTarihi: toDateTimeString(row.gercek_bitis ?? row.planlanan_bitis),
+    bitisTarihi: (() => {
+      // Active/paused jobs with no real end: extend bar to now if planned end is in the past
+      if (!row.gercek_bitis && (row.durum === 'calisiyor' || row.durum === 'duraklatildi')) {
+        const planned = row.planlanan_bitis ? new Date(String(row.planlanan_bitis)) : null;
+        const now = new Date();
+        if (!planned || planned < now) return now.toISOString();
+        return toDateTimeString(planned);
+      }
+      return toDateTimeString(row.gercek_bitis ?? row.planlanan_bitis);
+    })(),
     planlananBaslangicTarihi: toDateTimeString(row.planlanan_baslangic),
     planlananBitisTarihi: toDateTimeString(row.planlanan_bitis),
     terminTarihi: toDateString(row.termin_tarihi),

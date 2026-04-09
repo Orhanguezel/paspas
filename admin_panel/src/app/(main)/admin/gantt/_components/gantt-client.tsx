@@ -538,7 +538,10 @@ function MachineTimelineRow({
         const startOffset = preciseDayOffset(timelineStart, start);
         const duration = preciseDayDuration(start, end);
         const left = Math.max(0, startOffset) * colWidth;
-        const width = Math.max(12, Math.min(duration, totalDays - Math.max(0, startOffset)) * colWidth - 4);
+        // Clip both edges: left edge (startOffset < 0) and right edge (beyond range end)
+        const visibleDuration = duration + Math.min(0, startOffset);
+        const clampedDuration = Math.min(visibleDuration, totalDays - Math.max(0, startOffset));
+        const width = Math.max(12, clampedDuration * colWidth - 4);
 
         return { item, left, width };
       })
