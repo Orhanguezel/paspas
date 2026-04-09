@@ -10,6 +10,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network-first strategy - pass through to network
+  // Navigation requests (HTML pages) — let browser handle directly
+  if (event.request.mode === 'navigate') return;
+  // Other requests — pass through to network
   event.respondWith(fetch(event.request));
 });

@@ -83,11 +83,6 @@ export default function SatisSiparisleriClient() {
 
   const summary = useMemo(() => {
     const toplam = items.length;
-    const uretimde = items.filter((s) => s.uretimDurumu === 'uretimde').length;
-    const uretimTamamlandi = items.filter((s) => s.uretimDurumu === 'tamamlandi').length;
-    const sevkBekleyen = items.filter((s) => s.uretimDurumu === 'tamamlandi' && s.sevkDurumu !== 'tamamlandi').length;
-    const kismenSevk = items.filter((s) => s.sevkDurumu === 'kismen_sevk').length;
-    const tamamlandi = items.filter((s) => s.durum === 'tamamlandi' || s.durum === 'kapali').length;
     const terminRiskli = items.filter((s) => {
       if (!s.terminTarihi || s.durum === 'tamamlandi' || s.durum === 'kapali' || s.durum === 'iptal') return false;
       const termin = new Date(s.terminTarihi);
@@ -95,7 +90,7 @@ export default function SatisSiparisleriClient() {
       const farkGun = Math.ceil((termin.getTime() - bugun.getTime()) / (1000 * 60 * 60 * 24));
       return farkGun <= 3;
     }).length;
-    return { toplam, uretimde, uretimTamamlandi, sevkBekleyen, kismenSevk, tamamlandi, terminRiskli };
+    return { toplam, terminRiskli };
   }, [items]);
 
   function openCreate() { setEditing(null); setFormOpen(true); }
@@ -137,52 +132,16 @@ export default function SatisSiparisleriClient() {
         </div>
       </div>
 
-      {/* Ozet Kartlari */}
+      {/* Özet Kartları (Rev4: Temel Giriş Bilgileri) */}
       {!isLoading && items.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <ShoppingCart className="size-4" />
-                <span className="text-xs font-medium uppercase tracking-wide">Toplam</span>
+                <span className="text-xs font-medium uppercase tracking-wide">Toplam Sipariş</span>
               </div>
               <p className="mt-2 text-2xl font-semibold">{summary.toplam}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-blue-600">
-                <Factory className="size-4" />
-                <span className="text-xs font-medium uppercase tracking-wide">Uretimde</span>
-              </div>
-              <p className="mt-2 text-2xl font-semibold">{summary.uretimde}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-emerald-600">
-                <CheckCircle2 className="size-4" />
-                <span className="text-xs font-medium uppercase tracking-wide">Uretim Bitti</span>
-              </div>
-              <p className="mt-2 text-2xl font-semibold">{summary.uretimTamamlandi}</p>
-            </CardContent>
-          </Card>
-          <Card className={summary.sevkBekleyen > 0 ? 'border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950' : ''}>
-            <CardContent className="p-4">
-              <div className={`flex items-center gap-2 ${summary.sevkBekleyen > 0 ? 'text-orange-600' : 'text-muted-foreground'}`}>
-                <Truck className="size-4" />
-                <span className="text-xs font-medium uppercase tracking-wide">Sevk Bekleyen</span>
-              </div>
-              <p className="mt-2 text-2xl font-semibold">{summary.sevkBekleyen}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Truck className="size-4" />
-                <span className="text-xs font-medium uppercase tracking-wide">Kismen Sevk</span>
-              </div>
-              <p className="mt-2 text-2xl font-semibold">{summary.kismenSevk}</p>
             </CardContent>
           </Card>
           <Card className={summary.terminRiskli > 0 ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950' : ''}>
@@ -241,8 +200,7 @@ export default function SatisSiparisleriClient() {
               <TableHead>{t('admin.erp.satisSiparisleri.columns.musteriId')}</TableHead>
               <TableHead>{t('admin.erp.satisSiparisleri.columns.siparisTarihi')}</TableHead>
               <TableHead>{t('admin.erp.satisSiparisleri.columns.termin')}</TableHead>
-              <TableHead>{t('admin.erp.satisSiparisleri.columns.uretim')}</TableHead>
-              <TableHead>{t('admin.erp.satisSiparisleri.columns.sevk')}</TableHead>
+              <TableHead className="text-right">Toplam (KDV Hariç)</TableHead>
               <TableHead>{t('admin.erp.satisSiparisleri.columns.durum')}</TableHead>
               <TableHead className="w-28" />
             </TableRow>
@@ -250,14 +208,14 @@ export default function SatisSiparisleriClient() {
           <TableBody>
             {isLoading && Array.from({ length: 5 }).map((_, i) => (
               <TableRow key={i}>
-                {Array.from({ length: 8 }).map((__, j) => (
+                {Array.from({ length: 7 }).map((__, j) => (
                   <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                 ))}
               </TableRow>
             ))}
             {!isLoading && items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                   {t('admin.erp.satisSiparisleri.notFound')}
                 </TableCell>
               </TableRow>
@@ -270,22 +228,10 @@ export default function SatisSiparisleriClient() {
                 </TableCell>
                 <TableCell>{s.siparisTarihi}</TableCell>
                 <TableCell>{s.terminTarihi ?? '—'}</TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <Badge variant={URETIM_DURUMU_BADGE[s.uretimDurumu]}>
-                      {URETIM_DURUMU_LABELS[s.uretimDurumu]}
-                    </Badge>
-                    {s.uretimPlanlananMiktar > 0 && (
-                      <div className="text-xs text-muted-foreground tabular-nums">
-                        {s.uretimTamamlananMiktar.toLocaleString('tr-TR')}/{s.uretimPlanlananMiktar.toLocaleString('tr-TR')}
-                      </div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={SEVK_DURUMU_BADGE[s.sevkDurumu]}>
-                    {SEVK_DURUMU_LABELS[s.sevkDurumu]}
-                  </Badge>
+                <TableCell className="text-right tabular-nums text-sm">
+                  {s.toplamFiyat > 0
+                    ? s.toplamFiyat.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })
+                    : '—'}
                 </TableCell>
                 <TableCell>
                   <Badge variant={BADGE_VARIANT[s.durum]}>

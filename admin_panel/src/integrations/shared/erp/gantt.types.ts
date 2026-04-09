@@ -25,6 +25,7 @@ export interface GanttBarDto {
   planlananMiktar: number;
   uretilenMiktar: number;
   durum: string;
+  duraklatmaZamani: string | null;
 }
 
 export interface GanttBlockDto {
@@ -89,6 +90,7 @@ export function normalizeGanttBar(raw: unknown): GanttBarDto {
     planlananMiktar: toNum(r.planlananMiktar),
     uretilenMiktar: toNum(r.uretilenMiktar),
     durum: toStr(r.durum, "bekliyor"),
+    duraklatmaZamani: r.duraklatmaZamani != null ? toStr(r.duraklatmaZamani) : null,
   };
 }
 

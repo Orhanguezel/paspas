@@ -57,6 +57,7 @@ import { registerMalKabul } from '@/modules/mal_kabul/router';
 
 // Storage config (site_settings + env)
 import { getStorageSettings } from '@/modules/siteSettings/service';
+import { getByUrl as getStorageAssetByUrl } from '@/modules/storage/repository';
 
 function parseCorsOrigins(v?: string | string[]): boolean | string[] {
   if (!v) return true;
@@ -162,6 +163,31 @@ export async function createApp() {
     root: uploadsRoot,
     prefix: uploadsPrefix,
     decorateReply: false,
+  });
+
+  // Fix Content-Type for extensionless local uploads (e.g. PDFs saved without extension).
+  // @fastify/static falls back to application/octet-stream → browser downloads the file.
+  // This hook looks up the real MIME from storage_assets and sets Content-Disposition: inline
+  // so the browser renders the file (PDF, video, etc.) instead of downloading it.
+  app.addHook('onSend', async (req, reply, payload) => {
+    const ct = String(reply.getHeader('content-type') ?? '');
+    if (!ct.startsWith('application/octet-stream')) return payload;
+
+    // Only intercept requests to the local uploads path
+    const rawUrl = req.url.split('?')[0];
+    if (!rawUrl.startsWith(uploadsPrefix.slice(0, -1))) return payload;
+
+    try {
+      const asset = await getStorageAssetByUrl(rawUrl);
+      if (asset?.mime && !asset.mime.startsWith('application/octet-stream')) {
+        reply.header('content-type', asset.mime);
+        reply.header('content-disposition', `inline; filename="${asset.name ?? path.basename(rawUrl)}"`);
+      }
+    } catch {
+      // ignore lookup failure — serve as-is
+    }
+
+    return payload;
   });
 
   // Multipart

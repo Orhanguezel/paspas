@@ -13,7 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog,
@@ -54,6 +56,8 @@ export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogPro
   // Hammadde uyarı onay dialog state
   const [hammaddeUyarilar, setHammaddeUyarilar] = useState<HammaddeUyari[]>([]);
   const [showHammaddeOnay, setShowHammaddeOnay] = useState(false);
+  const [customStartTimeEnabled, setCustomStartTimeEnabled] = useState(false);
+  const [customStartTime, setCustomStartTime] = useState("");
 
   // Collect unique kalipIds from all operations
   const kalipIds = emir?.operasyonlar
@@ -114,11 +118,12 @@ export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogPro
     const montajMakineId = isMultiOp && montajOpId ? selections[montajOpId] : undefined;
     try {
       for (const op of emir.operasyonlar) {
-        await ata({
-          emirOperasyonId: op.id,
-          makineId: selections[op.id],
-          ...(montajMakineId ? { montajMakineId } : {}),
-        }).unwrap();
+          await ata({
+            emirOperasyonId: op.id,
+            makineId: selections[op.id],
+            ...(montajMakineId ? { montajMakineId } : {}),
+            ...(customStartTimeEnabled && customStartTime ? { planlananBaslangic: new Date(customStartTime).toISOString() } : {}),
+          }).unwrap();
       }
       toast.success(t('kuyrukYonetimi.atama.basarili'));
       onClose();
@@ -243,6 +248,25 @@ export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogPro
                 </div>
               );
             })}
+
+            {/* Custom Start Time (Rev4 UE-2) */}
+            <div className="rounded-md border p-3 space-y-3 bg-amber-50/20">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">Özel Başlangıç Saati (İstisnai)</Label>
+                <Switch checked={customStartTimeEnabled} onCheckedChange={setCustomStartTimeEnabled} />
+              </div>
+              {customStartTimeEnabled && (
+                <div className="space-y-1">
+                  <Input 
+                    type="datetime-local" 
+                    value={customStartTime} 
+                    onChange={(e) => setCustomStartTime(e.target.value)} 
+                    className="text-sm"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Normalde son üretimin peşine eklenir. Bu kutu açıksa girdiğiniz saatte başlatılır (öncekileri kaydırır).</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

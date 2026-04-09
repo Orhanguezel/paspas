@@ -50,6 +50,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   emri: UretimEmriDto | null;
+  initialKaynak?: 'manuel' | 'siparis';
 }
 
 // Group adaylar by urunId for display
@@ -63,7 +64,7 @@ function groupByUrun(adaylar: UretimEmriAdayDto[]): Map<string, UretimEmriAdayDt
   return map;
 }
 
-export default function UretimEmriForm({ open, onClose, emri }: Props) {
+export default function UretimEmriForm({ open, onClose, emri, initialKaynak = 'siparis' }: Props) {
   const { t } = useLocaleContext();
   const isEdit = !!emri;
   const [kaynakTipi, setKaynakTipi] = useState<'manuel' | 'siparis'>('siparis');
@@ -154,7 +155,7 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
         musteriDetay:    emri.musteriDetay ?? '',
       });
     } else {
-      setKaynakTipi('siparis');
+      setKaynakTipi(initialKaynak);
       setSelectedKalemIds(new Set());
       reset({
         emirNo: nextNoData?.emirNo ?? '',
@@ -168,7 +169,7 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
         planlananMiktar: 0,
       });
     }
-  }, [open, emri, reset, nextNoData]);
+  }, [open, emri, reset, nextNoData, initialKaynak]);
 
   function handleKaynakTipiChange(value: 'manuel' | 'siparis') {
     setKaynakTipi(value);
@@ -255,7 +256,12 @@ export default function UretimEmriForm({ open, onClose, emri }: Props) {
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent side="right" className="w-full p-0 sm:max-w-2xl flex flex-col">
         <SheetHeader className="border-b px-4 py-4 sm:px-6">
-          <SheetTitle>{isEdit ? t('admin.erp.uretimEmirleri.editItem') : t('admin.erp.uretimEmirleri.newItem')}</SheetTitle>
+          <SheetTitle>
+            {isEdit 
+              ? t('admin.erp.uretimEmirleri.editItem') 
+              : (kaynakTipi === 'manuel' ? 'Yeni Stoka Üretim Emri' : 'Siparişe Dayalı Üretim Emri')
+            }
+          </SheetTitle>
         </SheetHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
           <input type="hidden" {...register('urunId')} />

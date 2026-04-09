@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================
-// FILE: src/app/(main)/admin/uretim-emirleri/_components/uretim-emirleri-client.tsx
+// FILE: uretim-emirleri-client.tsx
 // Paspas ERP — Üretim Emirleri liste sayfası
 // =============================================================
 
@@ -9,7 +9,7 @@ import { useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import { AlertTriangle, Eye, Pencil, Plus, RefreshCcw, Search, Trash2 } from "lucide-react";
+import { AlertTriangle, Eye, Factory, Package, Pencil, Plus, RefreshCcw, Search, Trash2, Wrench, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -36,12 +36,20 @@ import {
   useDeleteUretimEmriAdminMutation,
   useListUretimEmirleriAdminQuery,
 } from "@/integrations/endpoints/admin/erp/uretim_emirleri_admin.endpoints";
+import {
+  useKuyrukCikarAdminMutation,
+  useListKuyrukAdminQuery,
+} from "@/integrations/endpoints/admin/erp/makine_havuzu_admin.endpoints";
 import type { UretimEmriDto, UretimEmriDurum } from "@/integrations/shared/erp/uretim_emirleri.types";
 import { EMIR_DURUM_BADGE } from "@/integrations/shared/erp/uretim_emirleri.types";
 import { useCheckYeterlilikAdminQuery } from "@/integrations/endpoints/admin/erp/stoklar_admin.endpoints";
 
 import UretimEmriForm from "./uretim-emri-form";
+import { MalzemeYeterlilikModal } from "./malzeme-yeterlilik-modal";
+import { ReceteDetayModal } from "./recete-detay-modal";
+import { MakineAtaSheet } from "./makine-ata-sheet";
 
+// ── MalzemeBadge ─────────────────────────────────────────────
 function MalzemeBadge({ urunId, miktar, receteId }: { urunId: string; miktar: number; receteId: string | null }) {
   const { data, isLoading } = useCheckYeterlilikAdminQuery(
     { urunId, miktar },
@@ -79,6 +87,7 @@ function MalzemeBadge({ urunId, miktar, receteId }: { urunId: string; miktar: nu
   );
 }
 
+// ── Ana Bileşen ───────────────────────────────────────────────
 export default function UretimEmirleriClient() {
   const { t } = useLocaleContext();
   const [search, setSearch] = useState("");
@@ -87,7 +96,12 @@ export default function UretimEmirleriClient() {
   const [sortBy, setSortBy] = useState("bitis_tarihi");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<UretimEmriDto | null>(null);
+  const [formInitialKaynak, setFormInitialKaynak] = useState<"manuel" | "siparis">("manuel");
   const [deleteTarget, setDelete] = useState<UretimEmriDto | null>(null);
+  const [selectedEmirForMalzeme, setSelectedEmirForMalzeme] = useState<string | null>(null);
+  const [selectedEmirForRecete, setSelectedEmirForRecete] = useState<string | null>(null);
+  const [makineAtaTarget, setMakineAtaTarget] = useState<UretimEmriDto | null>(null);
+  const [cikarTarget, setCikarTarget] = useState<UretimEmriDto | null>(null);
 
   const DURUM_OPTIONS: Array<{ value: UretimEmriDurum | "hepsi"; label: string }> = [
     { value: "hepsi", label: t("admin.erp.uretimEmirleri.statuses.hepsi") },
@@ -115,11 +129,11 @@ export default function UretimEmirleriClient() {
 
   const { data, isLoading, isFetching, refetch } = useListUretimEmirleriAdminQuery(params);
   const [deleteEmri, deleteState] = useDeleteUretimEmriAdminMutation();
+  const { data: kuyruklar = [], isFetching: kuyrukFetching } = useListKuyrukAdminQuery(undefined, { skip: !cikarTarget });
+  const [kuyrukCikar, { isLoading: cikarLoading }] = useKuyrukCikarAdminMutation();
 
   const rawItems = data?.items ?? [];
 
-  // Client-side sort by planlananBitisTarihi (computed field, not a DB column)
-  // NULL values (atanmamış — no machine assigned) go to the end
   const items = useMemo(() => {
     if (sortBy !== "bitis_tarihi") return rawItems;
     return [...rawItems].sort((a, b) => {
@@ -136,20 +150,12 @@ export default function UretimEmirleriClient() {
     const terminRiskli = items.filter((item) => item.terminRiski && item.durum !== "tamamlandi").length;
     const aktif = items.filter((item) => item.durum === "planlandi" || item.durum === "uretimde").length;
     const tamamlanan = items.filter((item) => item.durum === "tamamlandi").length;
-    return {
-      toplam: data?.total ?? 0,
-      terminRiskli,
-      aktif,
-      tamamlanan,
-    };
+    return { toplam: data?.total ?? 0, terminRiskli, aktif, tamamlanan };
   }, [data?.total, items]);
 
   function openCreate() {
     setEditing(null);
-    setFormOpen(true);
-  }
-  function openEdit(e: UretimEmriDto) {
-    setEditing(e);
+    setFormInitialKaynak("manuel");
     setFormOpen(true);
   }
 
@@ -170,6 +176,44 @@ export default function UretimEmirleriClient() {
     }
   }
 
+  async function confirmCikar() {
+    if (!cikarTarget) return;
+    const allItems = kuyruklar.flatMap((g) => g.kuyruk);
+    const emirItems = allItems.filter((k) => k.uretimEmriId === cikarTarget.id);
+
+    if (emirItems.length === 0) {
+      toast.error("Bu emrin kuyrukta atanmış operasyonu bulunamadı.");
+      setCikarTarget(null);
+      return;
+    }
+
+    // Aktif veya duraklatılmış operasyonlar çıkarılamaz
+    const aktifler = emirItems.filter((k) => k.durum === 'calisiyor' || k.durum === 'duraklatildi');
+    if (aktifler.length > 0) {
+      toast.error("Aktif veya duraklatılmış operasyonlar çıkarılamaz. Önce operasyonu durdurun.");
+      setCikarTarget(null);
+      return;
+    }
+
+    const cikarilacaklar = emirItems.filter((k) => k.durum === 'bekliyor');
+    if (cikarilacaklar.length === 0) {
+      toast.error("Bu emrin çıkarılabilir operasyonu bulunamadı.");
+      setCikarTarget(null);
+      return;
+    }
+
+    try {
+      for (const item of cikarilacaklar) {
+        await kuyrukCikar(item.id).unwrap();
+      }
+      toast.success(`${cikarilacaklar.length} operasyon makineden çıkarıldı.`);
+    } catch {
+      toast.error("Makineden çıkarma sırasında hata oluştu.");
+    } finally {
+      setCikarTarget(null);
+    }
+  }
+
   function ilerlemeYuzde(e: UretimEmriDto) {
     if (!e.planlananMiktar) return 0;
     return Math.min(100, Math.round((e.uretilenMiktar / e.planlananMiktar) * 100));
@@ -185,28 +229,15 @@ export default function UretimEmirleriClient() {
     setSortBy("bitis_tarihi");
   }
 
-  function formatDate(value: string | null | undefined) {
-    if (!value) return "—";
+  function formatDateShort(value: string | null | undefined) {
+    if (!value) return null;
     try {
       const d = new Date(value);
-      if (Number.isNaN(d.getTime())) return String(value);
-      const tarih = d.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
-      const saat = d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
-      return { tarih, saat };
+      if (Number.isNaN(d.getTime())) return null;
+      return d.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" });
     } catch {
-      return String(value);
+      return null;
     }
-  }
-
-  function renderDate(value: string | null | undefined) {
-    const result = formatDate(value);
-    if (typeof result === "string") return <span>{result}</span>;
-    return (
-      <div>
-        <div>{result.tarih}</div>
-        <div className="text-muted-foreground text-xs">{result.saat}</div>
-      </div>
-    );
   }
 
   function renderDeleteButton(e: UretimEmriDto) {
@@ -214,11 +245,11 @@ export default function UretimEmirleriClient() {
       <Button
         variant="ghost"
         size="icon"
-        className="text-destructive hover:text-destructive disabled:text-muted-foreground"
+        className="size-7 text-destructive hover:text-destructive disabled:text-muted-foreground"
         onClick={() => setDelete(e)}
         disabled={!e.silinebilir}
       >
-        <Trash2 className="size-4" />
+        <Trash2 className="size-3.5" />
       </Button>
     );
 
@@ -226,9 +257,7 @@ export default function UretimEmirleriClient() {
       return (
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <span>{button}</span>
-            </TooltipTrigger>
+            <TooltipTrigger asChild><span>{button}</span></TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-xs">
               <p className="whitespace-pre-line text-xs">{e.silmeNedeni}</p>
             </TooltipContent>
@@ -236,12 +265,12 @@ export default function UretimEmirleriClient() {
         </TooltipProvider>
       );
     }
-
     return button;
   }
 
   return (
     <div className="space-y-4">
+      {/* Başlık */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-semibold text-lg">{t("admin.erp.uretimEmirleri.title")}</h1>
@@ -262,215 +291,268 @@ export default function UretimEmirleriClient() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-muted-foreground text-xs">{t("admin.erp.uretimEmirleri.summary.total")}</div>
-            <div className="mt-1 font-semibold text-2xl tabular-nums">{ozet.toplam}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-muted-foreground text-xs">{t("admin.erp.uretimEmirleri.summary.active")}</div>
-            <div className="mt-1 font-semibold text-2xl tabular-nums">{ozet.aktif}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-muted-foreground text-xs">{t("admin.erp.uretimEmirleri.summary.terminRiskli")}</div>
-            <div className={`mt-1 font-semibold text-2xl tabular-nums ${ozet.terminRiskli > 0 ? "text-destructive" : ""}`}>
-              {ozet.terminRiskli}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-muted-foreground text-xs">{t("admin.erp.uretimEmirleri.summary.completed")}</div>
-            <div className="mt-1 font-semibold text-2xl tabular-nums text-emerald-600">{ozet.tamamlanan}</div>
-          </CardContent>
-        </Card>
+      {/* Özet Kartlar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: t("admin.erp.uretimEmirleri.summary.total"), value: ozet.toplam, color: "" },
+          { label: t("admin.erp.uretimEmirleri.summary.active"), value: ozet.aktif, color: "text-blue-600" },
+          { label: t("admin.erp.uretimEmirleri.summary.terminRiskli"), value: ozet.terminRiskli, color: ozet.terminRiskli > 0 ? "text-destructive" : "" },
+          { label: t("admin.erp.uretimEmirleri.summary.completed"), value: ozet.tamamlanan, color: "text-emerald-600" },
+        ].map((s) => (
+          <Card key={s.label} className="shadow-none">
+            <CardContent className="pt-4 pb-3 px-4">
+              <p className="text-xs text-muted-foreground">{s.label}</p>
+              <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="relative min-w-48 max-w-xs flex-1">
-          <Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
+      {/* Filtreler */}
+      <div className="flex flex-wrap items-center gap-2 justify-end">
+        <div className="relative w-full max-w-50">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
-            className="pl-9"
+            className="pl-8 h-8 text-xs"
             placeholder={t("admin.erp.uretimEmirleri.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <Select value={durum} onValueChange={(v) => setDurum(v as UretimEmriDurum | "hepsi")}>
-          <SelectTrigger className="w-44">
-            <SelectValue />
-          </SelectTrigger>
+          <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             {DURUM_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
+              <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
+          <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             {SORT_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
+              <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <Button variant="ghost" size="sm" onClick={resetFilters}>
+        <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={resetFilters}>
           {t("admin.erp.uretimEmirleri.resetFilters")}
         </Button>
         <Button
           variant={showCompleted ? "secondary" : "outline"}
           size="sm"
+          className="h-8 px-3 text-xs"
           onClick={() => setShowCompleted((v) => !v)}
         >
           {showCompleted ? "Tamamlananları Gizle" : "Tamamlananları Göster"}
         </Button>
       </div>
 
-      <div className="rounded-md border">
+      {/* Tablo */}
+      <div className="rounded-md border bg-white shadow-sm overflow-hidden">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-muted/30">
             <TableRow>
-              <TableHead>{t("admin.erp.uretimEmirleri.columns.emirNo")}</TableHead>
-              <TableHead>{t("admin.erp.uretimEmirleri.columns.urunId")}</TableHead>
-              <TableHead>{t("admin.erp.uretimEmirleri.columns.musteri")}</TableHead>
-              <TableHead>{t("admin.erp.uretimEmirleri.columns.planlanan")}</TableHead>
-              <TableHead>{t("admin.erp.uretimEmirleri.columns.ilerleme")}</TableHead>
-              <TableHead>{t("admin.erp.uretimEmirleri.columns.takvim")}</TableHead>
-              <TableHead>{t("admin.erp.uretimEmirleri.columns.malzeme")}</TableHead>
-              <TableHead>{t("admin.erp.uretimEmirleri.columns.durum")}</TableHead>
-              <TableHead className="w-24" />
+              <TableHead className="w-32">{t("admin.erp.uretimEmirleri.columns.emirNo")}</TableHead>
+              <TableHead className="min-w-40">{t("admin.erp.uretimEmirleri.columns.urunId")}</TableHead>
+              <TableHead className="w-36">Müşteri</TableHead>
+              <TableHead className="w-32">{t("admin.erp.uretimEmirleri.columns.bitis")}</TableHead>
+              <TableHead className="w-24 text-right">{t("admin.erp.uretimEmirleri.columns.planlanan")}</TableHead>
+              <TableHead className="w-36">{t("admin.erp.uretimEmirleri.columns.ilerleme")}</TableHead>
+              <TableHead className="w-24 text-center">{t("admin.erp.uretimEmirleri.columns.malzeme")}</TableHead>
+              <TableHead className="w-48">Makine</TableHead>
+              <TableHead className="w-24 text-right pr-4" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading &&
               Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={`uretim-emri-skeleton-row-${i + 1}`}>
+                <TableRow key={`ue-skel-${i + 1}`}>
                   {Array.from({ length: 9 }).map((__, j) => (
-                    <TableCell key={`uretim-emri-skeleton-cell-${i + 1}-${j + 1}`}>
-                      <Skeleton className="h-4 w-full" />
-                    </TableCell>
+                    <TableCell key={`ue-skel-${i + 1}-${j + 1}`}><Skeleton className="h-5 w-full" /></TableCell>
                   ))}
                 </TableRow>
               ))}
             {!isLoading && items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="py-10 text-center text-muted-foreground text-sm">
+                <TableCell colSpan={9} className="py-16 text-center text-muted-foreground">
                   {t("admin.erp.uretimEmirleri.notFound")}
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading &&
-              items.map((e) => (
-                <TableRow key={e.id} className={e.terminRiski ? "bg-destructive/5" : undefined}>
-                  <TableCell className="font-medium font-mono">{e.emirNo}</TableCell>
+            {!isLoading && items.map((e) => {
+              const planlananBitis = formatDateShort(e.planlananBitisTarihi);
+              const ilerleYuzde = ilerlemeYuzde(e);
+              const atanmamis = e.makineAtamaSayisi === 0;
+
+              return (
+                <TableRow
+                  key={e.id}
+                  className={`group hover:bg-slate-50/80 transition-colors ${e.terminRiski && e.durum !== "tamamlandi" ? "bg-destructive/5" : ""}`}
+                >
+                  {/* Emir No + Durum */}
                   <TableCell>
-                    <div className="min-w-[180px]">
-                      <div className="font-medium">{e.urunAd ?? e.urunId}</div>
-                      <div className="text-muted-foreground text-xs">{e.urunKod ?? e.urunId}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="min-w-[140px]">
-                      <div className="font-medium">
-                        {e.musteriOzetTipi === "toplam" && e.musteriDetay ? (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="cursor-help border-muted-foreground border-b border-dashed">
-                                  {e.musteriAd ?? t("admin.erp.uretimEmirleri.form.toplamSiparis")}
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent side="bottom" className="max-w-xs">
-                                <p className="whitespace-pre-line text-xs">
-                                  {e.musteriDetay.replace(/\s*\|\s*/g, "\n")}
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ) : (
-                          (e.musteriAd ??
-                          (e.musteriOzetTipi === "manuel" ? t("admin.erp.uretimEmirleri.form.kaynakManuel") : "—"))
-                        )}
-                      </div>
-                      <div className="text-muted-foreground text-xs">
-                        {e.siparisNo
-                          ? `${t("admin.erp.uretimEmirleri.form.siparisInfo")}: ${e.siparisNo}`
-                          : t("admin.erp.uretimEmirleri.siparissiz")}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{e.planlananMiktar}</TableCell>
-                  <TableCell className="min-w-[120px]">
-                    <div className="flex items-center gap-2">
-                      <Progress value={ilerlemeYuzde(e)} className="h-2 flex-1" />
-                      <span className="w-8 text-right text-muted-foreground text-xs">{ilerlemeYuzde(e)}%</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="min-w-[170px] space-y-2 text-xs">
-                      <div>
-                        <div className="text-muted-foreground">{t("admin.erp.uretimEmirleri.columns.termin")}</div>
-                        <div className="flex items-center gap-1">
-                          {e.terminRiski && <AlertTriangle className="size-3.5 text-destructive" />}
-                          <span className={e.terminRiski ? "font-medium text-destructive" : undefined}>
-                            {renderDate(e.terminTarihi)}
-                          </span>
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground">{t("admin.erp.uretimEmirleri.columns.bitis")}</div>
-                        <div>
-                          {e.makineAtamaSayisi > 0 ? (
-                            renderDate(e.planlananBitisTarihi ?? e.bitisTarihi)
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <MalzemeBadge urunId={e.urunId} miktar={e.planlananMiktar} receteId={e.receteId} />
-                  </TableCell>
-                  <TableCell>
+                    <div className="font-bold font-mono text-sm text-slate-900 leading-none">{e.emirNo}</div>
                     <Badge
+                      className="mt-1 px-2 py-0 text-[10px] font-semibold"
                       variant={e.terminRiski && e.durum !== "tamamlandi" ? "destructive" : EMIR_DURUM_BADGE[e.durum]}
                     >
                       {getDurumLabel(e.durum)}
                     </Badge>
                   </TableCell>
+
+                  {/* Ürün */}
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" asChild>
+                    <div className="font-medium text-sm text-slate-900 line-clamp-1">{e.urunAd ?? e.urunId}</div>
+                    {e.urunKod && <div className="text-xs text-muted-foreground font-mono">{e.urunKod}</div>}
+                    {e.siparisNo && (
+                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                        Sipariş: {e.siparisNo}
+                      </div>
+                    )}
+                  </TableCell>
+
+                  {/* Müşteri */}
+                  <TableCell>
+                    {e.musteriAd ? (
+                      <div
+                        className="text-sm text-slate-700 truncate max-w-32 font-medium"
+                        title={e.musteriDetay || undefined}
+                      >
+                        {e.musteriAd}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">
+                        {t("admin.erp.uretimEmirleri.siparissiz")}
+                      </span>
+                    )}
+                  </TableCell>
+
+                  {/* Planlanan Bitiş */}
+                  <TableCell>
+                    {planlananBitis ? (
+                      <div className="text-sm font-medium text-slate-700">{planlananBitis}</div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                    {e.terminRiski && e.durum !== "tamamlandi" && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <AlertTriangle className="size-3 text-destructive" />
+                        <span className="text-[10px] text-destructive font-medium">Termin riski</span>
+                      </div>
+                    )}
+                  </TableCell>
+
+                  {/* Planlanan Miktar */}
+                  <TableCell className="text-right">
+                    <span className="font-bold text-sm text-slate-900">
+                      {e.planlananMiktar.toLocaleString("tr-TR")}
+                    </span>
+                  </TableCell>
+
+                  {/* İlerleme */}
+                  <TableCell>
+                    <div className="text-xs text-muted-foreground mb-1">
+                      {e.uretilenMiktar.toLocaleString("tr-TR")} / {e.planlananMiktar.toLocaleString("tr-TR")}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Progress value={ilerleYuzde} className="h-1.5 flex-1 max-w-20" />
+                      <span className="text-[10px] font-bold text-slate-500 tabular-nums">{ilerleYuzde}%</span>
+                    </div>
+                  </TableCell>
+
+                  {/* Malzeme */}
+                  <TableCell className="text-center">
+                    <MalzemeBadge urunId={e.urunId} miktar={e.planlananMiktar} receteId={e.receteId} />
+                  </TableCell>
+
+                  {/* Makine */}
+                  <TableCell>
+                    {atanmamis ? (
+                      <div className="space-y-1">
+                        <span className="text-xs text-muted-foreground">Atanmamış</span>
+                        <div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs px-2 gap-1"
+                            onClick={() => setMakineAtaTarget(e)}
+                          >
+                            <Factory className="size-3" />
+                            Makine Ata
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-slate-700 flex items-center gap-1">
+                          <Factory className="size-3 text-slate-400 shrink-0" />
+                          <span className="truncate max-w-30">{e.makineAdlari}</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 text-[11px] px-1.5 text-destructive hover:text-destructive gap-1"
+                          onClick={() => setCikarTarget(e)}
+                        >
+                          <X className="size-3" />
+                          Makineden Çıkar
+                        </Button>
+                      </div>
+                    )}
+                  </TableCell>
+
+                  {/* Aksiyonlar */}
+                  <TableCell className="text-right pr-3">
+                    <div className="flex justify-end items-center gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 text-amber-600"
+                        title="Malzeme Yeterlilik"
+                        onClick={() => setSelectedEmirForMalzeme(e.id)}
+                      >
+                        <Package className="size-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 text-indigo-600"
+                        title="Reçete Detayı"
+                        onClick={() => setSelectedEmirForRecete(e.id)}
+                      >
+                        <Wrench className="size-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="size-7" asChild>
                         <Link href={`/admin/uretim-emirleri/${e.id}`}>
-                          <Eye className="size-4" />
+                          <Eye className="size-3.5" />
                         </Link>
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(e)}>
-                        <Pencil className="size-4" />
+                      <Button variant="ghost" size="icon" className="size-7" onClick={() => { setEditing(e); setFormOpen(true); }}>
+                        <Pencil className="size-3.5" />
                       </Button>
                       {renderDeleteButton(e)}
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              );
+            })}
           </TableBody>
         </Table>
       </div>
 
-      <UretimEmriForm open={formOpen} onClose={() => setFormOpen(false)} emri={editing} />
+      {/* Form Sheet */}
+      <UretimEmriForm open={formOpen} onClose={() => setFormOpen(false)} emri={editing} initialKaynak={formInitialKaynak} />
 
+      {/* Makine Ata Sheet */}
+      <MakineAtaSheet
+        emirId={makineAtaTarget?.id ?? null}
+        emirNo={makineAtaTarget?.emirNo ?? ""}
+        open={!!makineAtaTarget}
+        onClose={() => setMakineAtaTarget(null)}
+      />
+
+      {/* Sil Onayı */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -491,6 +573,37 @@ export default function UretimEmirleriClient() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Makineden Çıkar Onayı */}
+      <AlertDialog open={!!cikarTarget} onOpenChange={(v) => !v && setCikarTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Makineden Çıkar</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{cikarTarget?.emirNo}</strong> emrinin tüm makine atamaları kaldırılacak. Devam edilsin mi?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmCikar}
+              disabled={cikarLoading || kuyrukFetching}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cikarLoading ? "Çıkarılıyor…" : kuyrukFetching ? "Yükleniyor…" : "Evet, Çıkar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <MalzemeYeterlilikModal
+        emirId={selectedEmirForMalzeme}
+        onOpenChange={(open) => !open && setSelectedEmirForMalzeme(null)}
+      />
+      <ReceteDetayModal
+        emirId={selectedEmirForRecete}
+        onOpenChange={(open) => !open && setSelectedEmirForRecete(null)}
+      />
     </div>
   );
 }

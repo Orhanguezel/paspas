@@ -6,8 +6,8 @@ import { db } from '@/db/client';
 import { makineler } from '@/modules/makine_havuzu/schema';
 import { recalcAllActiveMachines } from '@/modules/_shared/planlama';
 
-import { kaliplar, kalipUyumluMakineler, tatilMakineler, tatiller, vardiyalar, durusNedenleri, haftaSonuPlanlari, type KalipRow, type TatilRow, type VardiyaRow, type DurusNedeniRow, type HaftaSonuPlanDtoRow, type HaftaSonuPlanRow } from './schema';
-import type { CreateKalipBody, CreateTatilBody, PatchKalipBody, PatchTatilBody, SetKalipUyumluMakinelerBody, CreateVardiyaBody, PatchVardiyaBody, CreateDurusNedeniBody, PatchDurusNedeniBody, CreateHaftaSonuPlanBody, PatchHaftaSonuPlanBody } from './validation';
+import { birimler, kaliplar, kalipUyumluMakineler, tatilMakineler, tatiller, vardiyalar, durusNedenleri, haftaSonuPlanlari, type BirimRow, type KalipRow, type TatilRow, type VardiyaRow, type DurusNedeniRow, type HaftaSonuPlanDtoRow, type HaftaSonuPlanRow } from './schema';
+import type { CreateBirimBody, CreateKalipBody, CreateTatilBody, PatchBirimBody, PatchKalipBody, PatchTatilBody, SetKalipUyumluMakinelerBody, CreateVardiyaBody, PatchVardiyaBody, CreateDurusNedeniBody, PatchDurusNedeniBody, CreateHaftaSonuPlanBody, PatchHaftaSonuPlanBody } from './validation';
 
 function toDateOnly(value: Date | string): string {
   return value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
@@ -428,4 +428,42 @@ export async function repoGetHaftaSonuPlanByDate(
 
   if (rows.length === 0) return null;
   return { calisiyor: rows.some((row) => row.makine_id === makineId) };
+}
+
+// ── Birimler ──────────────────────────────────────────────────────
+
+export async function repoListBirimler(): Promise<BirimRow[]> {
+  return db.select().from(birimler).orderBy(asc(birimler.sira), asc(birimler.kod));
+}
+
+export async function repoGetBirimById(id: string): Promise<BirimRow | null> {
+  const rows = await db.select().from(birimler).where(eq(birimler.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function repoCreateBirim(body: CreateBirimBody): Promise<BirimRow> {
+  const id = randomUUID();
+  await db.insert(birimler).values({
+    id,
+    kod:       body.kod,
+    ad:        body.ad,
+    sira:      body.sira ?? 0,
+    is_active: body.isActive === false ? 0 : 1,
+  });
+  return (await repoGetBirimById(id))!;
+}
+
+export async function repoUpdateBirim(id: string, body: PatchBirimBody): Promise<BirimRow | null> {
+  const set: Record<string, unknown> = {};
+  if (body.kod      !== undefined) set.kod       = body.kod;
+  if (body.ad       !== undefined) set.ad        = body.ad;
+  if (body.sira     !== undefined) set.sira      = body.sira;
+  if (body.isActive !== undefined) set.is_active = body.isActive ? 1 : 0;
+  if (Object.keys(set).length === 0) return repoGetBirimById(id);
+  await db.update(birimler).set(set).where(eq(birimler.id, id));
+  return repoGetBirimById(id);
+}
+
+export async function repoDeleteBirim(id: string): Promise<void> {
+  await db.delete(birimler).where(eq(birimler.id, id));
 }

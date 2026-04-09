@@ -20,6 +20,8 @@ export type GanttBarDto = {
   planlananMiktar: number;
   uretilenMiktar: number;
   durum: string;
+  duraklatmaZamani: string | null;
+  duruslar?: GanttBlockDto[];
 };
 
 export type GanttBlockDto = {

@@ -13,6 +13,7 @@ import type {
   UretimEmriPatchPayload,
   HammaddeKontrolResponse,
   UretimKarsilastirma,
+  HammaddeYeterlilikResponse,
 } from '@/integrations/shared/erp/uretim_emirleri.types';
 import { normalizeUretimEmri, normalizeUretimEmriAday, normalizeUretimEmriCreateResponse, normalizeUretimEmriList } from '@/integrations/shared/erp/uretim_emirleri.types';
 
@@ -80,6 +81,9 @@ export const uretimEmirleriAdminApi = baseApi.injectEndpoints({
     getUretimKarsilastirmaAdmin: b.query<UretimKarsilastirma, string>({
       query: (id) => ({ url: `${BASE}/${id}/uretim-karsilastirma` }),
     }),
+    getHammaddeYeterlilikAdmin: b.query<HammaddeYeterlilikResponse, string>({
+      query: (id) => ({ url: `${BASE}/${id}/hammadde-yeterlilik` }),
+    }),
 
     deleteUretimEmriAdmin: b.mutation<void, string>({
       query: (id) => ({ url: `${BASE}/${id}`, method: 'DELETE' }),
@@ -107,4 +111,6 @@ export const {
   useDeleteUretimEmriAdminMutation,
   useLazyCheckHammaddeAdminQuery,
   useLazyGetUretimKarsilastirmaAdminQuery,
+  useGetHammaddeYeterlilikAdminQuery,
+  useLazyGetHammaddeYeterlilikAdminQuery,
 } = uretimEmirleriAdminApi;

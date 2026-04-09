@@ -27,8 +27,8 @@ export type StokDto = {
 };
 
 function getStokDurumu(stok: number, kritikStok: number): 'yeterli' | 'kritik' | 'yetersiz' {
-  if (stok <= 0) return 'yetersiz';
-  if (stok <= kritikStok) return 'kritik';
+  if (kritikStok > 0 && stok <= 0) return 'yetersiz';
+  if (kritikStok > 0 && stok <= kritikStok) return 'kritik';
   return 'yeterli';
 }
 

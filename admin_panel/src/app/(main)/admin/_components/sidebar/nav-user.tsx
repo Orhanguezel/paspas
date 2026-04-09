@@ -90,14 +90,6 @@ export function NavUser({
                   {t('admin.sidebar.user.account')}
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                {t('admin.sidebar.user.billing')}
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <MessageSquareDot />
-                {t('admin.sidebar.user.notifications')}
-              </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onLogout} disabled={isLoading}>

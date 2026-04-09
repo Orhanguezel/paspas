@@ -23,6 +23,7 @@ export const stoklarAdminApi = baseApi.injectEndpoints({
           kategori?: string;
           durum?: "yeterli" | "kritik" | "yetersiz";
           kritikOnly?: boolean;
+          stokluOnly?: boolean;
           sort?: "ad" | "kod" | "stok" | "kritik_stok";
           order?: "asc" | "desc";
         }

@@ -28,7 +28,6 @@ import {
   LayoutList,
   LayoutGrid,
   RefreshCcw,
-  Trash2,
   Wrench,
   User,
 } from 'lucide-react';
@@ -36,12 +35,10 @@ import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
 import {
-  useDeleteIsYukuAdminMutation,
   useListIsYukleriAdminQuery,
   useUpdateIsYukuAdminMutation,
 } from '@/integrations/endpoints/admin/erp/is_yukler_admin.endpoints';
@@ -86,11 +83,9 @@ function findGroupId(groups: MakineGrubu[], itemId: string) {
 
 function ListRow({
   item,
-  onRemove,
-  isBusy,
+  isBusy: _isBusy,
 }: {
   item: IsYukuDto;
-  onRemove: (item: IsYukuDto) => void;
   isBusy: boolean;
 }) {
   const isRunning = item.durum === 'calisiyor';
@@ -118,75 +113,87 @@ function ListRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 rounded-md border px-3 py-2.5 text-sm leading-normal transition ${
+      className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm leading-normal transition ${
         isDragging ? 'opacity-60' : ''
       } ${rowBorder}`}
     >
+      {/* Grip */}
       <button
         type="button"
         className={`shrink-0 ${isLocked ? 'text-muted-foreground/30 cursor-not-allowed' : 'text-muted-foreground hover:text-foreground'}`}
         {...attributes}
         {...(isLocked ? {} : listeners)}
       >
-        <GripVertical className="size-3" />
+        <GripVertical className="size-4" />
       </button>
 
-      <span className="w-5 shrink-0 text-center font-mono text-muted-foreground">{item.sira}</span>
+      {/* Sıra */}
+      <span className="w-5 shrink-0 text-center font-mono text-xs text-muted-foreground">{item.sira}</span>
 
+      {/* Emir No */}
       <Link
         href={`/admin/uretim-emirleri/${item.uretimEmriId}`}
-        className="w-24 shrink-0 truncate font-mono font-semibold text-xs hover:underline"
+        className="w-30 shrink-0 truncate font-mono font-semibold text-xs hover:underline"
       >
         {item.emirNo}
       </Link>
 
-      <span className="w-20 shrink-0 truncate font-mono text-xs text-muted-foreground">{item.urunKod}</span>
+      {/* Orta: Ürün adı + Operasyon adı — boşluğu dolduran alan */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {item.urunKod && (
+            <span className="hidden sm:inline shrink-0 font-mono text-xs text-muted-foreground">{item.urunKod}</span>
+          )}
+          <span className="min-w-0 truncate font-bold uppercase text-xs">
+            {item.urunAd ?? item.operasyonAdi ?? '—'}
+          </span>
+          {item.montaj && (
+            <Badge variant="secondary" className="shrink-0 px-1.5 py-0 text-[10px] gap-0.5 bg-amber-100 text-amber-800 border-amber-300">
+              <Wrench className="size-3" />
+              Montaj
+            </Badge>
+          )}
+        </div>
+        {item.operasyonAdi && (
+          <div className="truncate text-xs text-muted-foreground leading-tight mt-0.5">
+            {item.operasyonAdi}
+          </div>
+        )}
+      </div>
 
-      <span className="min-w-0 flex-1 truncate font-bold uppercase">{item.operasyonAdi}</span>
+      {/* Miktar */}
+      <span className="w-16 shrink-0 text-right font-mono text-xs tabular-nums">{item.planlananMiktar?.toLocaleString('tr-TR')}</span>
 
-      <span className="w-14 shrink-0 text-right font-mono tabular-nums">{item.planlananMiktar?.toLocaleString('tr-TR')}</span>
+      {/* Müşteri — md ve üstünde göster */}
+      <span className="hidden md:block w-32 shrink-0 truncate text-xs text-muted-foreground">{item.musteriAd ?? '—'}</span>
 
-      {item.musteriAd && (
-        <span className="w-28 shrink-0 truncate text-muted-foreground">{item.musteriAd}</span>
-      )}
-
-      <span className="w-14 shrink-0 text-right text-muted-foreground tabular-nums">
-        <Clock3 className="mr-0.5 inline size-2.5" />
+      {/* Süre */}
+      <span className="hidden sm:flex w-16 shrink-0 items-center justify-end gap-0.5 text-xs text-muted-foreground tabular-nums">
+        <Clock3 className="size-3" />
         {fmtDuration(item.hazirlikSuresiDk + item.planlananSureDk)}
       </span>
 
-      <span className={`w-14 shrink-0 text-right tabular-nums ${terminRiski ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
+      {/* Termin */}
+      <span className={`hidden sm:block w-14 shrink-0 text-right text-xs tabular-nums ${terminRiski ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
         {fmtOnlyDate(item.terminTarihi)}
-        {terminRiski && <AlertTriangle className="ml-0.5 inline size-2.5" />}
+        {terminRiski && <AlertTriangle className="ml-0.5 inline size-3" />}
       </span>
 
-      <span className="w-28 shrink-0 text-right text-muted-foreground tabular-nums text-[10px] leading-tight">
+      {/* Planlanan başlangıç / bitiş — sadece lg üstünde */}
+      <span className="hidden lg:block w-28 shrink-0 text-right text-xs text-muted-foreground tabular-nums leading-tight">
         <span>{fmtDate(item.planlananBaslangic)}</span>
         <br />
         <span>{fmtDate(item.planlananBitis)}</span>
       </span>
 
-      <div className="flex w-16 shrink-0 items-center justify-end gap-0.5">
-        {item.montaj && (
-          <Badge variant="secondary" className="px-1.5 py-0.5 text-[10px] gap-0.5 bg-amber-100 text-amber-800 border-amber-300">
-            <Wrench className="size-3" />
-            Montaj
+      {/* Durum badge */}
+      <div className="w-16 shrink-0 flex items-center justify-end">
+        {item.durum !== 'bekliyor' && (
+          <Badge variant={IS_YUKU_DURUM_BADGE[item.durum] ?? 'outline'} className="px-1.5 py-0 text-xs">
+            {IS_YUKU_DURUM_LABELS[item.durum] ?? item.durum}
           </Badge>
         )}
-        <Badge variant={IS_YUKU_DURUM_BADGE[item.durum] ?? 'outline'} className="px-1 py-0 text-[9px]">
-          {IS_YUKU_DURUM_LABELS[item.durum] ?? item.durum}
-        </Badge>
       </div>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        className="size-5 shrink-0 text-destructive hover:text-destructive"
-        onClick={() => onRemove(item)}
-        disabled={isBusy || isRunning}
-      >
-        <Trash2 className="size-2.5" />
-      </Button>
     </div>
   );
 }
@@ -195,11 +202,9 @@ function ListRow({
 
 function GridRow({
   item,
-  onRemove,
-  isBusy,
+  isBusy: _isBusy,
 }: {
   item: IsYukuDto;
-  onRemove: (item: IsYukuDto) => void;
   isBusy: boolean;
 }) {
   const isRunning = item.durum === 'calisiyor';
@@ -221,7 +226,7 @@ function GridRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`rounded-md border px-2.5 py-2 text-xs transition ${
+      className={`rounded-md border px-2.5 py-1.5 text-[11px] transition ${
         isDragging ? 'opacity-50' : ''
       } ${cardBorder}`}
     >
@@ -244,32 +249,25 @@ function GridRow({
             Montaj
           </Badge>
         )}
-        <Badge variant={IS_YUKU_DURUM_BADGE[item.durum] ?? 'outline'} className="ml-auto px-1.5 py-0 text-[9px]">
-          {IS_YUKU_DURUM_LABELS[item.durum] ?? item.durum}
-        </Badge>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-5 shrink-0 text-destructive hover:text-destructive"
-          onClick={() => onRemove(item)}
-          disabled={isBusy || isRunning}
-        >
-          <Trash2 className="size-2.5" />
-        </Button>
+        {item.durum !== 'bekliyor' && (
+          <Badge variant={IS_YUKU_DURUM_BADGE[item.durum] ?? 'outline'} className="ml-auto px-1.5 py-0 text-[10px]">
+            {IS_YUKU_DURUM_LABELS[item.durum] ?? item.durum}
+          </Badge>
+        )}
       </div>
-      <div className="ml-6 space-y-0.5 text-xs">
-        <div className="flex items-center gap-1">
-          <span className="font-mono text-muted-foreground">{item.urunKod}</span>
-          {item.operasyonAdi && <span className="font-bold uppercase">{item.operasyonAdi}</span>}
+      <div className="ml-6 space-y-0.5">
+        <div className="flex items-center gap-1.5">
+          <span className="font-mono text-muted-foreground text-[10px]">{item.urunKod}</span>
+          {item.operasyonAdi && <span className="font-bold uppercase text-xs">{item.operasyonAdi}</span>}
         </div>
-        <div className="flex flex-wrap gap-x-3 text-muted-foreground">
+        <div className="flex flex-wrap gap-x-3 text-muted-foreground text-[10px]">
           <span>Miktar: <span className="font-mono text-foreground">{item.planlananMiktar?.toLocaleString('tr-TR')}</span></span>
           <span><Clock3 className="inline size-2.5 mr-0.5" />{fmtDuration(item.hazirlikSuresiDk + item.planlananSureDk)}</span>
           {item.terminTarihi && <span>Termin: <span className="font-mono text-foreground">{fmtOnlyDate(item.terminTarihi)}</span></span>}
           {item.musteriAd && <span><User className="inline size-2.5 mr-0.5" />{item.musteriAd}</span>}
         </div>
         {(item.planlananBaslangic || item.planlananBitis) && (
-          <div className="flex gap-x-3 text-muted-foreground">
+          <div className="flex gap-x-3 text-muted-foreground text-[10px]">
             {item.planlananBaslangic && <span>Başlangıç: <span className="font-mono text-foreground">{fmtDate(item.planlananBaslangic)}</span></span>}
             {item.planlananBitis && <span>Bitiş: <span className="font-mono text-foreground">{fmtDate(item.planlananBitis)}</span></span>}
           </div>
@@ -283,12 +281,10 @@ function GridRow({
 
 function MakineGrubuPanel({
   group,
-  onRemove,
   isBusy,
   viewMode,
 }: {
   group: MakineGrubu;
-  onRemove: (item: IsYukuDto) => void;
   isBusy: boolean;
   viewMode: ViewMode;
 }) {
@@ -305,9 +301,9 @@ function MakineGrubuPanel({
 
   return (
     <div className="rounded-lg border">
-      <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-1.5">
-        <span className="font-mono text-sm font-semibold">{group.makineKod}</span>
-        <span className="text-xs text-muted-foreground">{group.makineAd}</span>
+      <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-1">
+        <span className="font-mono text-sm font-bold text-slate-800">{group.makineKod}</span>
+        <span className="text-sm font-medium">{group.makineAd}</span>
         <div className="ml-auto flex items-center gap-3 text-[11px]">
           <div className="text-center">
             <div className="text-muted-foreground">İş</div>
@@ -340,7 +336,7 @@ function MakineGrubuPanel({
             <div className="py-4 text-center text-xs text-muted-foreground">Kuyruk boş</div>
           ) : (
             group.items.map((item) => (
-              <RowComp key={item.kuyrukId} item={item} onRemove={onRemove} isBusy={isBusy} />
+              <RowComp key={item.kuyrukId} item={item} isBusy={isBusy} />
             ))
           )}
         </SortableContext>
@@ -366,7 +362,6 @@ export default function IsYukleriClient() {
   );
   const { data: makineler } = useListMakinelerAdminQuery({});
   const [updateIsYuku, updateState] = useUpdateIsYukuAdminMutation();
-  const [deleteIsYuku, deleteState] = useDeleteIsYukuAdminMutation();
 
   const [localGroups, setLocalGroups] = useState<MakineGrubu[]>([]);
   const summary = useMemo(() => {
@@ -394,15 +389,6 @@ export default function IsYukleriClient() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-
-  async function handleRemove(item: IsYukuDto) {
-    try {
-      await deleteIsYuku(item.kuyrukId).unwrap();
-      toast.success(t('admin.erp.isYukler.messages.removed'));
-    } catch {
-      toast.error(t('admin.erp.isYukler.messages.removeError'));
-    }
-  }
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -565,8 +551,7 @@ export default function IsYukleriClient() {
               <MakineGrubuPanel
                 key={group.makineId}
                 group={group}
-                onRemove={handleRemove}
-                isBusy={updateState.isLoading || deleteState.isLoading}
+                isBusy={updateState.isLoading}
                 viewMode={viewMode}
               />
             ))}

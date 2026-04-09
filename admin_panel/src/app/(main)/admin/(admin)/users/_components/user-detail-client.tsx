@@ -185,9 +185,9 @@ export default function UserDetailClient({ id }: { id: string }) {
     }
   }
 
-  // ✅ tekil rol seçimi – payload array olarak kaydedilir
+  // çoklu rol seçimi – payload array olarak kaydedilir
   function chooseRole(r: UserRoleName) {
-    setRolesLocal([r]);
+    setRolesLocal((prev) => prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]);
   }
 
   if (userQ.isError) {
@@ -218,8 +218,6 @@ export default function UserDetailClient({ id }: { id: string }) {
       </div>
     );
   }
-
-  const currentRole = (roles[0] ?? 'operator') as UserRoleName;
 
   return (
     <div className="space-y-6">
@@ -366,7 +364,7 @@ export default function UserDetailClient({ id }: { id: string }) {
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
             {ALL_ROLES.map((r) => {
-              const checked = currentRole === r;
+              const checked = roles.includes(r);
               return (
                 <Button
                   key={r}
@@ -382,11 +380,16 @@ export default function UserDetailClient({ id }: { id: string }) {
             })}
           </div>
 
-          <div className="text-sm text-muted-foreground">
-            {t('admin.users.detail.roles.currentRole')}{' '}
-            <Badge className="ml-1" variant={currentRole === 'admin' ? 'default' : 'secondary'}>
-              {roleLabel(currentRole)}
-            </Badge>
+          <div className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+            {t('admin.users.detail.roles.currentRole')}
+            {roles.length === 0
+              ? <Badge className="ml-1" variant="secondary">—</Badge>
+              : roles.map((r) => (
+                  <Badge key={r} className="ml-1" variant={r === 'admin' ? 'default' : 'secondary'}>
+                    {roleLabel(r as UserRoleName)}
+                  </Badge>
+                ))
+            }
           </div>
 
           <div className="flex justify-end">

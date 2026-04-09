@@ -2,22 +2,25 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Check, PackagePlus, RefreshCcw, Search, Trash2, X, AlertTriangle } from 'lucide-react';
+import { Check, PackagePlus, PackageCheck, RefreshCcw, Search, Trash2, X, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
 import {
   useListMalKabulAdminQuery,
   useDeleteMalKabulAdminMutation,
   useUpdateMalKabulAdminMutation,
 } from '@/integrations/endpoints/admin/erp/mal_kabul_admin.endpoints';
+import type { MalKabulDto } from '@/integrations/shared/erp/mal_kabul.types';
 import {
   KAYNAK_TIPI_LABELS,
   KAYNAK_TIPI_BADGE,
@@ -49,14 +52,18 @@ export default function MalKabulClient() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [q, setQ] = useState('');
   const [kaynakTipi, setKaynakTipi] = useState('hepsi');
-  const [kaliteDurumu, setKaliteDurumu] = useState('hepsi');
+  const [kaliteDurumu, setKaliteDurumu] = useState('bekliyor');
+  const [showAll, setShowAll] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [teslimAlRow, setTeslimAlRow] = useState<MalKabulDto | null>(null);
+  const [teslimMiktar, setTeslimMiktar] = useState('');
+  const [teslimNotlar, setTeslimNotlar] = useState('');
 
   const params = {
     ...(q ? { q } : {}),
     ...(kaynakTipi !== 'hepsi' ? { kaynakTipi } : {}),
-    ...(kaliteDurumu !== 'hepsi' ? { kaliteDurumu } : {}),
+    ...(!showAll ? { kaliteDurumu: 'bekliyor' } : kaliteDurumu !== 'hepsi' ? { kaliteDurumu } : {}),
     ...(dateFrom ? { dateFrom } : {}),
     ...(dateTo ? { dateTo } : {}),
     limit: 100,
@@ -66,7 +73,6 @@ export default function MalKabulClient() {
   const [deleteMalKabul] = useDeleteMalKabulAdminMutation();
   const [updateMalKabul] = useUpdateMalKabulAdminMutation();
   const items = data?.items ?? [];
-  const summary = data?.summary;
 
   async function handleKaliteGuncelle(id: string, kaliteDurumu: string) {
     try {
@@ -88,6 +94,31 @@ export default function MalKabulClient() {
     }
   }
 
+  function openTeslimAl(row: MalKabulDto) {
+    setTeslimMiktar(String(row.gelenMiktar));
+    setTeslimNotlar('');
+    setTeslimAlRow(row);
+  }
+
+  async function confirmTeslimAl() {
+    if (!teslimAlRow) return;
+    const miktar = Number.parseFloat(teslimMiktar);
+    if (!Number.isFinite(miktar) || miktar <= 0) {
+      toast.error('Geçerli bir miktar girin');
+      return;
+    }
+    try {
+      await updateMalKabul({
+        id: teslimAlRow.id,
+        body: { gelenMiktar: miktar, kaliteDurumu: 'kabul', notlar: teslimNotlar.trim() || undefined },
+      }).unwrap();
+      toast.success('Teslim alındı');
+      setTeslimAlRow(null);
+    } catch {
+      toast.error(t('admin.erp.common.operationFailed'));
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -98,6 +129,13 @@ export default function MalKabulClient() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant={showAll ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setShowAll((v) => !v)}
+          >
+            {showAll ? 'Tümü Göster' : 'Bekleyenler'}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCcw className={`size-4${isFetching ? ' animate-spin' : ''}`} />
           </Button>
@@ -107,21 +145,6 @@ export default function MalKabulClient() {
           </Button>
         </div>
       </div>
-
-      {summary && (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <SummaryCard title={t('admin.erp.malKabul.summary.total')} value={String(summary.toplamKayit)} />
-          <SummaryCard title={t('admin.erp.malKabul.summary.totalMiktar')} value={summary.toplamMiktar.toFixed(2)} />
-          <SummaryCard
-            title={t('admin.erp.malKabul.summary.satinAlma')}
-            value={`${summary.satinAlmaAdet} (${summary.satinAlmaMiktar.toFixed(2)})`}
-          />
-          <SummaryCard
-            title={t('admin.erp.malKabul.summary.fason')}
-            value={`${summary.fasonAdet} (${summary.fasonMiktar.toFixed(2)})`}
-          />
-        </div>
-      )}
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1.4fr)_180px_160px_150px_150px]">
         <div className="relative">
@@ -162,7 +185,7 @@ export default function MalKabulClient() {
               <TableHead>{t('admin.erp.malKabul.columns.kaynakTipi')}</TableHead>
               <TableHead>{t('admin.erp.malKabul.columns.tedarikci')}</TableHead>
               <TableHead>{t('admin.erp.malKabul.columns.miktar')}</TableHead>
-              <TableHead>{t('admin.erp.malKabul.columns.partiNo')}</TableHead>
+              <TableHead>Notlar</TableHead>
               <TableHead>{t('admin.erp.malKabul.columns.kaliteDurumu')}</TableHead>
               <TableHead>{t('admin.erp.malKabul.columns.operator')}</TableHead>
               <TableHead>İşlem</TableHead>
@@ -204,7 +227,7 @@ export default function MalKabulClient() {
                   +{row.gelenMiktar.toFixed(4).replace(/\.?0+$/, '')}
                   {row.urunBirim ? <span className="ml-1 text-xs text-muted-foreground">{row.urunBirim}</span> : null}
                 </TableCell>
-                <TableCell className="text-sm font-mono">{row.partiNo ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground max-w-32 truncate">{row.notlar ?? '—'}</TableCell>
                 <TableCell>
                   <Badge variant={KALITE_DURUMU_BADGE[row.kaliteDurumu] ?? 'outline'}>
                     {KALITE_DURUMU_LABELS[row.kaliteDurumu] ?? row.kaliteDurumu}
@@ -217,11 +240,11 @@ export default function MalKabulClient() {
                       <>
                         <Button
                           size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => handleKaliteGuncelle(row.id, 'kabul')}
+                          className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                          onClick={() => openTeslimAl(row)}
                         >
-                          <Check className="mr-1 size-3" />
-                          Onayla
+                          <PackageCheck className="mr-1 size-3" />
+                          Teslim Al
                         </Button>
                         <Button
                           size="sm"
@@ -258,19 +281,51 @@ export default function MalKabulClient() {
       </div>
 
       <CreateMalKabulSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />
+
+      {/* Teslim Al Sheet */}
+      <Sheet open={!!teslimAlRow} onOpenChange={(v) => !v && setTeslimAlRow(null)}>
+        <SheetContent side="right" className="w-full p-0 sm:max-w-sm">
+          <SheetHeader className="border-b px-4 py-4">
+            <SheetTitle className="flex items-center gap-2">
+              <PackageCheck className="size-5 text-emerald-600" />
+              Teslim Al
+            </SheetTitle>
+          </SheetHeader>
+          <div className="space-y-4 px-4 py-4">
+            {teslimAlRow && (
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">{teslimAlRow.urunAd ?? teslimAlRow.urunId}</span>
+                {teslimAlRow.tedarikciAd && <> · {teslimAlRow.tedarikciAd}</>}
+              </p>
+            )}
+            <div className="space-y-1">
+              <Label>Teslim Alınan Miktar {teslimAlRow?.urunBirim ? `(${teslimAlRow.urunBirim})` : ''}</Label>
+              <Input
+                type="number"
+                step="0.0001"
+                min={0}
+                value={teslimMiktar}
+                onChange={(e) => setTeslimMiktar(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Notlar <span className="text-muted-foreground">(opsiyonel)</span></Label>
+              <Textarea rows={2} value={teslimNotlar} onChange={(e) => setTeslimNotlar(e.target.value)} />
+            </div>
+          </div>
+          <SheetFooter className="border-t px-4 py-4 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => setTeslimAlRow(null)}>İptal</Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={confirmTeslimAl}
+            >
+              <Check className="mr-1 size-4" />
+              Onayla ve Kaydet
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
 
-function SummaryCard({ title, value }: { title: string; value: string }) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-semibold">{value}</div>
-      </CardContent>
-    </Card>
-  );
-}

@@ -10,6 +10,8 @@ import type {
   SatisSiparisCreatePayload,
   SatisSiparisPatchPayload,
   SiparisDurum,
+  KalemUretimDurumu,
+  SiparisIslemSatiri,
 } from '@/integrations/shared/erp/satis_siparisleri.types';
 import {
   normalizeSatisSiparis,
@@ -17,6 +19,19 @@ import {
 } from '@/integrations/shared/erp/satis_siparisleri.types';
 
 const BASE = '/admin/satis-siparisleri';
+
+export interface SiparisIslemleriParams {
+  q?: string;
+  musteriId?: string;
+  urunId?: string;
+  uretimDurumu?: KalemUretimDurumu;
+  gorunum?: 'duz' | 'musteri' | 'urun';
+  gizleTamamlanan?: boolean;
+  limit?: number;
+  offset?: number;
+  sort?: string;
+  order?: 'asc' | 'desc';
+}
 
 export interface SatisSiparisListParams {
   q?: string;
@@ -79,6 +94,21 @@ export const satisSiparisleriAdminApi = baseApi.injectEndpoints({
       ],
     }),
 
+    listSiparisIslemleriAdmin: b.query<SiparisIslemSatiri[], SiparisIslemleriParams | void>({
+      query: (params) => ({ url: `${BASE}/islemler`, params: params ?? undefined }),
+      providesTags: [{ type: 'SatisSiparisleri' as const, id: 'ISLEMLER' }],
+    }),
+
+    uretimeAktarAdmin: b.mutation<{ message: string; emirler: string[]; atlananSayisi: number }, { kalemIds: string[]; birlestir: boolean }>({
+      query: (body) => ({ url: `${BASE}/islemler/uretime-aktar`, method: 'POST', body }),
+      invalidatesTags: [
+        { type: 'SatisSiparisleri', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'ISLEMLER' },
+        { type: 'UretimEmirleri', id: 'LIST' },
+        { type: 'UretimEmirleri', id: 'ADAYLAR' },
+      ],
+    }),
+
     getNextSiparisNoAdmin: b.query<{ siparisNo: string }, void>({
       query: () => ({ url: `${BASE}/next-no` }),
     }),
@@ -88,6 +118,8 @@ export const satisSiparisleriAdminApi = baseApi.injectEndpoints({
 
 export const {
   useListSatisSiparisleriAdminQuery,
+  useListSiparisIslemleriAdminQuery,
+  useUretimeAktarAdminMutation,
   useGetSatisSiparisiAdminQuery,
   useCreateSatisSiparisiAdminMutation,
   useUpdateSatisSiparisiAdminMutation,

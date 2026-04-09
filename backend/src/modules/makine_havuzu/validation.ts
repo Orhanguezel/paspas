@@ -41,6 +41,8 @@ export const ataSchema = z.object({
   emirOperasyonId: z.string().min(1),
   makineId: z.string().min(1),
   montajMakineId: z.string().min(1).optional(),
+  montaj: z.boolean().optional(),
+  planlananBaslangic: z.string().datetime({ offset: true }).optional(),
 });
 
 export const kuyrukSiralaSchema = z.object({

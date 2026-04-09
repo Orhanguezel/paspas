@@ -12,6 +12,9 @@ import { urunler } from '@/modules/urunler/schema';
 import { recalcMakineKuyrukTarihleri, isMakineWorkingDay } from '@/modules/_shared/planlama';
 
 import { durusKayitlari } from '@/modules/operator/schema';
+import { getKalemIdsByUretimEmriId } from '@/modules/satis_siparisleri/repository';
+import { transitionMultipleKalemDurum } from '@/modules/satis_siparisleri/kalem-durum.service';
+import { siparisKalemleri } from '@/modules/satis_siparisleri/schema';
 
 import { makineler, makineKuyrugu, type MakineRow } from './schema';
 import type { AtaBody, CreateBody, KuyrukSiralaBody, ListQuery, PatchBody } from './validation';
@@ -277,7 +280,7 @@ export async function repoListKuyruklar(): Promise<KuyrukGrubuDto[]> {
     .innerJoin(uretimEmirleri, eq(makineKuyrugu.uretim_emri_id, uretimEmirleri.id))
     .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
     .leftJoin(uretimEmriOperasyonlari, eq(makineKuyrugu.emir_operasyon_id, uretimEmriOperasyonlari.id))
-    .where(inArray(makineKuyrugu.durum, ['bekliyor', 'calisiyor']))
+    .where(inArray(makineKuyrugu.durum, ['bekliyor', 'calisiyor', 'duraklatildi']))
     .orderBy(asc(makineKuyrugu.makine_id), asc(makineKuyrugu.sira));
 
   // Makine bilgileri
@@ -343,7 +346,7 @@ export async function repoListKuyruklar(): Promise<KuyrukGrubuDto[]> {
 
 /** Operasyonu makineye ata */
 export async function repoAtaOperasyon(data: AtaBody): Promise<void> {
-  const { emirOperasyonId, makineId, montajMakineId } = data;
+  const { emirOperasyonId, makineId, montajMakineId, montaj: montajSecim, planlananBaslangic } = data;
 
   // Emir operasyonunu bul
   const [opRow] = await db
@@ -417,12 +420,16 @@ export async function repoAtaOperasyon(data: AtaBody): Promise<void> {
       );
     }
 
-    // 1. Emir operasyonunda makine_id guncelle
+    // 1. Emir operasyonunda makine_id + montaj guncelle
     const updatePayload: Partial<typeof uretimEmriOperasyonlari.$inferInsert> = {
       makine_id: makineId,
     };
     if (montajMakineId) {
       updatePayload.montaj_makine_id = montajMakineId;
+    }
+    // Kullanici montaj tarafini kendisi secer (Rev4 karari)
+    if (montajSecim !== undefined) {
+      updatePayload.montaj = montajSecim ? 1 : 0;
     }
     await tx
       .update(uretimEmriOperasyonlari)
@@ -438,6 +445,8 @@ export async function repoAtaOperasyon(data: AtaBody): Promise<void> {
       sira: insertSira,
       planlanan_sure_dk: planlananSureDk,
       hazirlik_suresi_dk: opRow.hazirlik_suresi_dk,
+      planlanan_baslangic: planlananBaslangic ? new Date(planlananBaslangic) : null,
+      is_locked: planlananBaslangic ? 1 : 0,
       durum: 'bekliyor',
     });
 
@@ -468,6 +477,10 @@ export async function repoAtaOperasyon(data: AtaBody): Promise<void> {
     await ensureCriticalStockDrafts(
       emirInfo?.emirNo ? `Üretim emri ${emirInfo.emirNo} için hammadde eksikliği` : undefined,
     );
+
+    // Siparis kalemlerinin durumunu makineye_atandi yap
+    const kalemIds = await getKalemIdsByUretimEmriId(opRow.uretim_emri_id);
+    await transitionMultipleKalemDurum(kalemIds, 'makineye_atandi');
   }
 
   // Tarih hesapla
@@ -529,6 +542,19 @@ export async function repoKuyrukCikar(kuyruguId: string): Promise<void> {
       .where(eq(makineKuyrugu.uretim_emri_id, affectedEmriId));
     if (Number(check?.count ?? 0) === 0) {
       await stokGeriAl(affectedEmriId);
+      // Sadece makineye_atandi durumundaki kalemleri geri al.
+      // uretiliyor/duraklatildi gibi ilerlemiş durumlara dokunma.
+      const allKalemIds = await getKalemIdsByUretimEmriId(affectedEmriId);
+      if (allKalemIds.length > 0) {
+        const geriAlinacaklar = await db
+          .select({ id: siparisKalemleri.id })
+          .from(siparisKalemleri)
+          .where(and(inArray(siparisKalemleri.id, allKalemIds), eq(siparisKalemleri.uretim_durumu, 'makineye_atandi')));
+        const kalemIds = geriAlinacaklar.map((r) => r.id);
+        if (kalemIds.length > 0) {
+          await transitionMultipleKalemDurum(kalemIds, 'uretime_aktarildi');
+        }
+      }
     }
   }
 

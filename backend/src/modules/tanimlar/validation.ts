@@ -139,3 +139,19 @@ export const patchHaftaSonuPlanSchema = haftaSonuPlanFieldsSchema
 
 export type CreateHaftaSonuPlanBody = z.infer<typeof createHaftaSonuPlanSchema>;
 export type PatchHaftaSonuPlanBody = z.infer<typeof patchHaftaSonuPlanSchema>;
+
+// ── Birimler ──────────────────────────────────────────────────────
+
+export const createBirimSchema = z.object({
+  kod:      z.string().trim().min(1).max(32),
+  ad:       z.string().trim().min(1).max(64),
+  sira:     z.coerce.number().int().min(0).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const patchBirimSchema = createBirimSchema
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, { message: 'en_az_bir_alan_gonderilmeli' });
+
+export type CreateBirimBody = z.infer<typeof createBirimSchema>;
+export type PatchBirimBody  = z.infer<typeof patchBirimSchema>;

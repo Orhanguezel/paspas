@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS `satis_siparisleri` (
   `termin_tarihi` date DEFAULT NULL,
   `durum` varchar(32) NOT NULL DEFAULT 'taslak',
   `aciklama` varchar(500) DEFAULT NULL,
+  `ekstra_indirim_orani` decimal(5,2) NOT NULL DEFAULT 0.00,
   `is_active` tinyint unsigned NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

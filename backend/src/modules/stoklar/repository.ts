@@ -35,6 +35,10 @@ function buildWhere(query: ListQuery): SQL | undefined {
     conditions.push(sql`${stokUrunler.stok} <= ${stokUrunler.kritik_stok}`);
   }
 
+  if (query.stokluOnly) {
+    conditions.push(sql`${stokUrunler.stok} > 0`);
+  }
+
   if (query.durum === 'yetersiz') {
     conditions.push(sql`${stokUrunler.stok} <= 0`);
   }

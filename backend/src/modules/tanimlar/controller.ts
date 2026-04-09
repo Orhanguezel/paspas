@@ -2,17 +2,22 @@ import type { FastifyReply, RouteHandler } from 'fastify';
 
 import { kalipRowToDto, tatilRowToDto, vardiyaRowToDto, durusNedeniRowToDto, haftaSonuPlanRowToDto } from './schema';
 import {
+  repoCreateBirim,
   repoCreateKalip,
   repoCreateTatil,
+  repoDeleteBirim,
   repoDeleteKalip,
   repoDeleteTatil,
+  repoGetBirimById,
   repoGetKalipById,
   repoGetTatilById,
+  repoListBirimler,
   repoListKaliplar,
   repoListMakineler,
   repoListTatiller,
   repoListUyumluMakineler,
   repoSetUyumluMakineler,
+  repoUpdateBirim,
   repoUpdateKalip,
   repoUpdateTatil,
   repoListVardiyalar,
@@ -32,8 +37,10 @@ import {
   repoDeleteHaftaSonuPlan,
 } from './repository';
 import {
+  createBirimSchema,
   createKalipSchema,
   createTatilSchema,
+  patchBirimSchema,
   patchKalipSchema,
   patchTatilSchema,
   setKalipUyumluMakinelerSchema,
@@ -387,6 +394,73 @@ export const deleteHaftaSonuPlan: RouteHandler = async (req, reply) => {
     return reply.code(204).send();
   } catch (error) {
     req.log.error({ error }, 'delete_hafta_sonu_plan_failed');
+    return sendInternalError(reply);
+  }
+};
+
+// ── Birimler ──────────────────────────────────────────────────────
+
+function birimRowToDto(row: { id: string; kod: string; ad: string; sira: number; is_active: number }) {
+  return { id: row.id, kod: row.kod, ad: row.ad, sira: row.sira, isActive: row.is_active === 1 };
+}
+
+export const listBirimler: RouteHandler = async (req, reply) => {
+  try {
+    const rows = await repoListBirimler();
+    return rows.map(birimRowToDto);
+  } catch (error) {
+    req.log.error({ error }, 'list_birimler_failed');
+    return sendInternalError(reply);
+  }
+};
+
+export const getBirim: RouteHandler = async (req, reply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const row = await repoGetBirimById(id);
+    if (!row) return reply.code(404).send({ error: { message: 'birim_bulunamadi' } });
+    return birimRowToDto(row);
+  } catch (error) {
+    req.log.error({ error }, 'get_birim_failed');
+    return sendInternalError(reply);
+  }
+};
+
+export const createBirim: RouteHandler = async (req, reply) => {
+  try {
+    const parsed = createBirimSchema.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: { message: 'invalid_body', issues: parsed.error.flatten() } });
+    const row = await repoCreateBirim(parsed.data);
+    return reply.code(201).send(birimRowToDto(row));
+  } catch (error) {
+    req.log.error({ error }, 'create_birim_failed');
+    return sendInternalError(reply);
+  }
+};
+
+export const updateBirim: RouteHandler = async (req, reply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const parsed = patchBirimSchema.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: { message: 'invalid_body', issues: parsed.error.flatten() } });
+    const row = await repoUpdateBirim(id, parsed.data);
+    if (!row) return reply.code(404).send({ error: { message: 'birim_bulunamadi' } });
+    return birimRowToDto(row);
+  } catch (error) {
+    req.log.error({ error }, 'update_birim_failed');
+    return sendInternalError(reply);
+  }
+};
+
+export const deleteBirim: RouteHandler = async (req, reply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const existing = await repoGetBirimById(id);
+    if (!existing) return reply.code(404).send({ error: { message: 'birim_bulunamadi' } });
+    await repoDeleteBirim(id);
+    return reply.code(204).send();
+  } catch (error) {
+    req.log.error({ error }, 'delete_birim_failed');
     return sendInternalError(reply);
   }
 };

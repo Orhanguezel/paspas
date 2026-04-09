@@ -19,14 +19,22 @@ CREATE TABLE IF NOT EXISTS `makine_kuyrugu` (
   `id` char(36) NOT NULL,
   `makine_id` char(36) NOT NULL,
   `uretim_emri_id` char(36) NOT NULL,
+  `emir_operasyon_id` char(36) DEFAULT NULL,
   `sira` int unsigned NOT NULL DEFAULT 0,
   `planlanan_sure_dk` int unsigned NOT NULL DEFAULT 0,
+  `hazirlik_suresi_dk` int unsigned NOT NULL DEFAULT 0,
+  `planlanan_baslangic` datetime DEFAULT NULL,
+  `planlanan_bitis` datetime DEFAULT NULL,
+  `is_locked` tinyint unsigned NOT NULL DEFAULT 0,
+  `gercek_baslangic` datetime DEFAULT NULL,
+  `gercek_bitis` datetime DEFAULT NULL,
   `durum` varchar(32) NOT NULL DEFAULT 'bekliyor',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_makine_kuyrugu_makine_sira` (`makine_id`,`sira`),
   KEY `idx_makine_kuyrugu_emir` (`uretim_emri_id`),
+  KEY `idx_makine_kuyrugu_emir_op` (`emir_operasyon_id`),
   CONSTRAINT `fk_makine_kuyrugu_makine`
     FOREIGN KEY (`makine_id`) REFERENCES `makineler` (`id`)
     ON DELETE CASCADE

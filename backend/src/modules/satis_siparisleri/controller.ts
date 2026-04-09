@@ -10,9 +10,17 @@ import {
   repoGetNextSiparisNo,
   repoGetSiparisOzetleri,
   repoList,
+  repoListIslemler,
   repoUpdate,
 } from './repository';
-import { createSchema, listQuerySchema, patchSchema } from './validation';
+import { createSchema, islemlerQuerySchema, listQuerySchema, patchSchema, uretimeAktarSchema } from './validation';
+import { repoCreate as ueRepoCreate, repoGetNextEmirNo } from '@/modules/uretim_emirleri/repository';
+import { db } from '@/db/client';
+import { siparisKalemleri } from './schema';
+import { urunler } from '@/modules/urunler/schema';
+import { musteriler } from '@/modules/musteriler/schema';
+import { satisSiparisleri } from './schema';
+import { eq, inArray } from 'drizzle-orm';
 
 function sendInternalError(reply: FastifyReply) {
   return reply.code(500).send({ error: { message: 'sunucu_hatasi' } });
@@ -31,6 +39,7 @@ export const listSatisSiparisleri: RouteHandler = async (req, reply) => {
       const ozet = ozetler.get(item.id) ?? {
         kalemSayisi: 0,
         toplamMiktar: 0,
+        toplamFiyat: 0,
         uretimeAktarilanKalemSayisi: 0,
         uretimPlanlananMiktar: 0,
         uretimTamamlananMiktar: 0,
@@ -158,6 +167,113 @@ export const deleteSatisSiparisi: RouteHandler = async (req, reply) => {
     req.log.error({ error }, 'delete_satis_siparisi_failed');
     const err = error as { message?: string };
     if (err.message === 'siparis_kilitli') return reply.code(409).send({ error: { message: 'siparis_kilitli' } });
+    return sendInternalError(reply);
+  }
+};
+
+export const listSiparisIslemleri: RouteHandler = async (req, reply) => {
+  try {
+    const parsed = islemlerQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: { message: 'gecersiz_sorgu_parametreleri', issues: parsed.error.flatten() } });
+    }
+    const { items, total } = await repoListIslemler(parsed.data);
+    reply.header('x-total-count', String(total));
+    return reply.send(items);
+  } catch (error) {
+    req.log.error({ error }, 'list_siparis_islemleri_failed');
+    return sendInternalError(reply);
+  }
+};
+
+/** POST /satis-siparisleri/islemler/uretime-aktar */
+export const uretimeAktar: RouteHandler = async (req, reply) => {
+  try {
+    const parsed = uretimeAktarSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: { message: 'gecersiz_body', issues: parsed.error.flatten() } });
+    }
+    const { kalemIds, birlestir } = parsed.data;
+
+    // Kalemleri al — urun, musteri bilgileriyle
+    const kalemRows = await db
+      .select({
+        id: siparisKalemleri.id,
+        urunId: siparisKalemleri.urun_id,
+        miktar: siparisKalemleri.miktar,
+        uretimDurumu: siparisKalemleri.uretim_durumu,
+        siparisId: siparisKalemleri.siparis_id,
+        musteriAd: musteriler.ad,
+      })
+      .from(siparisKalemleri)
+      .innerJoin(satisSiparisleri, eq(siparisKalemleri.siparis_id, satisSiparisleri.id))
+      .innerJoin(musteriler, eq(satisSiparisleri.musteri_id, musteriler.id))
+      .where(inArray(siparisKalemleri.id, kalemIds));
+
+    // Sadece beklemede olanlar aktarilabilir — digerleri sessizce atlanir
+    const aktarilacaklar = kalemRows.filter((k) => k.uretimDurumu === 'beklemede');
+    const atlananSayisi = kalemRows.length - aktarilacaklar.length;
+
+    if (aktarilacaklar.length === 0) {
+      return reply.code(409).send({
+        error: { message: 'kalem_zaten_uretimde', detail: 'Seçili kalemlerin tamamı zaten üretime aktarılmış.' },
+      });
+    }
+
+    const olusturulanEmirler: string[] = [];
+
+    if (birlestir) {
+      // Ayni urune sahip kalemleri grupla
+      const gruplar = new Map<string, typeof aktarilacaklar>();
+      for (const k of aktarilacaklar) {
+        if (!gruplar.has(k.urunId)) gruplar.set(k.urunId, []);
+        gruplar.get(k.urunId)!.push(k);
+      }
+
+      for (const [urunId, kalemleri] of gruplar) {
+        const toplamMiktar = kalemleri.reduce((acc, k) => acc + Number(k.miktar), 0);
+        const musteriAdlari = [...new Set(kalemleri.map((k) => k.musteriAd))];
+        const emirNo = await repoGetNextEmirNo();
+        const result = await ueRepoCreate({
+          emirNo,
+          urunId,
+          planlananMiktar: toplamMiktar,
+          uretilenMiktar: 0,
+          durum: 'atanmamis',
+          siparisKalemIds: kalemleri.map((k) => k.id),
+          musteriOzet: musteriAdlari.length === 1 ? musteriAdlari[0] : `${musteriAdlari.length} müşteri`,
+          musteriDetay: musteriAdlari.join(', '),
+        });
+        olusturulanEmirler.push(result.row.emir_no);
+      }
+    } else {
+      // Her kalem icin ayri UE
+      for (const k of aktarilacaklar) {
+        const emirNo = await repoGetNextEmirNo();
+        const result = await ueRepoCreate({
+          emirNo,
+          urunId: k.urunId,
+          planlananMiktar: Number(k.miktar),
+          uretilenMiktar: 0,
+          durum: 'atanmamis',
+          siparisKalemIds: [k.id],
+          musteriOzet: k.musteriAd,
+        });
+        olusturulanEmirler.push(result.row.emir_no);
+      }
+    }
+
+    const atlamaUyarisi = atlananSayisi > 0
+      ? ` (${atlananSayisi} kalem zaten üretime aktarılmıştı, atlandı)`
+      : '';
+
+    return reply.code(201).send({
+      message: `${olusturulanEmirler.length} üretim emri oluşturuldu.${atlamaUyarisi}`,
+      emirler: olusturulanEmirler,
+      atlananSayisi,
+    });
+  } catch (error) {
+    req.log.error({ error }, 'uretime_aktar_failed');
     return sendInternalError(reply);
   }
 };

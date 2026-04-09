@@ -188,7 +188,7 @@ export default function SatinAlmaDetayClient({ id }: Props) {
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Aşağıdaki kalemlerden &quot;Teslim Al&quot; butonuyla mal kabul kaydı oluşturun.
+                Aşağıdaki kalemlerden &quot;Kabul Emri&quot; butonuyla mal kabul kaydı oluşturun.
                 Durum ve stok otomatik güncellenir.
               </p>
             )}
@@ -289,7 +289,7 @@ export default function SatinAlmaDetayClient({ id }: Props) {
                             onClick={() => setTeslimKalem(k)}
                           >
                             <PackageCheck className="mr-1 size-3.5" />
-                            Teslim Al
+                            Kabul Emri
                           </Button>
                         )}
                       </TableCell>
@@ -391,7 +391,7 @@ function TeslimAlSheet({
         <SheetHeader className="border-b px-4 py-4 sm:px-6">
           <SheetTitle className="flex items-center gap-2">
             <PackageCheck className="size-5 text-emerald-600" />
-            Teslim Al
+            Kabul Emri
           </SheetTitle>
         </SheetHeader>
         <div className="space-y-4 px-4 py-4 sm:px-6">
@@ -462,7 +462,7 @@ function TeslimAlSheet({
             disabled={createState.isLoading}
             className="bg-emerald-600 hover:bg-emerald-700 text-white"
           >
-            {createState.isLoading ? 'Kaydediliyor…' : 'Teslim Al'}
+            {createState.isLoading ? 'Kaydediliyor…' : 'Kabul Emrini Kaydet'}
           </Button>
         </SheetFooter>
       </SheetContent>

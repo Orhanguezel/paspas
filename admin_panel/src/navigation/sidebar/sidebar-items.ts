@@ -24,6 +24,7 @@ import {
   LayoutDashboard,
   Package,
   Play,
+  Ruler,
   Settings,
   ShoppingCart,
   Timer,
@@ -108,6 +109,7 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
           { key: 'makineler',       url: '/admin/makineler',                     icon: Timer,      roles: ['admin'] },
           { key: 'kaliplar',        url: '/admin/tanimlar?tab=kaliplar',         icon: Fence,      roles: ['admin'] },
           { key: 'durus_nedenleri', url: '/admin/tanimlar?tab=durus-nedenleri',  icon: CircleOff,  roles: ['admin'] },
+          { key: 'birimler',        url: '/admin/tanimlar?tab=birimler',         icon: Ruler,      roles: ['admin'] },
         ],
       },
       {
@@ -130,9 +132,7 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
     items: [
       { key: 'satis_siparisleri', url: '/admin/satis-siparisleri', icon: ShoppingCart, roles: ['admin', 'nakliyeci'] },
       { key: 'uretim_emirleri',   url: '/admin/uretim-emirleri',   icon: Factory,     roles: ['admin'] },
-      { key: 'makine_havuzu',     url: '/admin/makine-havuzu',     icon: Timer,       roles: ['admin'] },
       { key: 'is_yukler',         url: '/admin/is-yukler',         icon: Cpu,         roles: ['admin'] },
-      { key: 'operator',          url: '/admin/operator',          icon: Play,        roles: ['admin', 'operator'] },
       { key: 'gantt',             url: '/admin/gantt',             icon: Calendar,    roles: ['admin', 'operator', 'nakliyeci'] },
     ],
   },
@@ -190,6 +190,7 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   tanimlar:          'Tanımlar',
   vardiyalar:        'Vardiyalar',
   durus_nedenleri:   'Duruş Nedenleri',
+  birimler:          'Birimler',
   hafta_sonu_planlari: 'Hafta Sonu Planları',
   calisma_planlari:  'Çalışma Planları',
   uretim_tanimlari:  'Üretim Tanımları',

@@ -74,6 +74,7 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
   const urunler = urunlerData?.items ?? [];
 
   const [kalemler, setKalemler] = useState<KalemRow[]>([]);
+  const [kdvOrani, setKdvOrani] = useState(20);
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -314,11 +315,40 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
                 </div>
               ))}
 
-              {kalemler.length > 0 && (
-                <div className="flex justify-end text-sm text-muted-foreground">
-                  Toplam: {kalemler.reduce((s, k) => s + (Number(k.miktar) || 0) * (Number(k.birimFiyat) || 0), 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
-                </div>
-              )}
+              {kalemler.length > 0 && (() => {
+                const dipToplam = kalemler.reduce((s, k) => s + (Number(k.miktar) || 0) * (Number(k.birimFiyat) || 0), 0);
+                const kdvTutari = dipToplam * (kdvOrani / 100);
+                const genelToplam = dipToplam + kdvTutari;
+                return (
+                  <div className="space-y-1.5 border-t pt-3 mt-2">
+                    <div className="flex items-center gap-2 justify-end">
+                      <Label className="text-xs text-muted-foreground">KDV Oranı:</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        className="h-7 w-20 text-xs text-right"
+                        value={kdvOrani}
+                        onChange={(e) => setKdvOrani(Number(e.target.value) || 0)}
+                      />
+                      <span className="text-xs text-muted-foreground">%</span>
+                    </div>
+                    <div className="flex justify-end text-sm text-muted-foreground gap-x-2">
+                      <span>Ara Toplam:</span>
+                      <span className="tabular-nums">{dipToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</span>
+                    </div>
+                    <div className="flex justify-end text-sm text-muted-foreground gap-x-2">
+                      <span>KDV (%{kdvOrani}):</span>
+                      <span className="tabular-nums">{kdvTutari.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</span>
+                    </div>
+                    <div className="flex justify-end text-sm font-semibold gap-x-2">
+                      <span>Genel Toplam:</span>
+                      <span className="tabular-nums">{genelToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
           <SheetFooter className="border-t px-4 py-4 sm:flex-row sm:justify-end sm:px-6">

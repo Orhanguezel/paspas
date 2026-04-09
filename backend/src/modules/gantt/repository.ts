@@ -37,6 +37,7 @@ type QueryRow = {
   montaj: number | boolean | null;
   operasyonAdi: string | null;
   sira: number;
+  duraklatmaZamani: Date | string | null;
 };
 
 function buildWhere(query: ListQuery): SQL | undefined {
@@ -114,6 +115,7 @@ export async function repoList(query: ListQuery): Promise<{ items: GanttMachineD
         montaj: uretimEmriOperasyonlari.montaj,
         operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
         sira: makineKuyrugu.sira,
+        duraklatmaZamani: sql<Date | string | null>`max(case when ${durusKayitlari.bitis} is null then ${durusKayitlari.baslangic} else null end)`,
       })
       .from(makineKuyrugu)
       .innerJoin(makineler, eq(makineKuyrugu.makine_id, makineler.id))
@@ -124,6 +126,7 @@ export async function repoList(query: ListQuery): Promise<{ items: GanttMachineD
       .leftJoin(siparisKalemleri, eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemleri.id))
       .leftJoin(satisSiparisleri, eq(siparisKalemleri.siparis_id, satisSiparisleri.id))
       .leftJoin(musteriler, eq(satisSiparisleri.musteri_id, musteriler.id))
+      .leftJoin(durusKayitlari, eq(durusKayitlari.makine_kuyruk_id, makineKuyrugu.id))
       .where(where)
       .orderBy(asc(makineler.kod), asc(makineKuyrugu.sira), asc(makineKuyrugu.planlanan_baslangic))
       .limit(query.limit)
@@ -379,6 +382,7 @@ function rowToDto(row: QueryRow): GanttBarDto {
     planlananMiktar: Number(row.planlanan_miktar ?? 0),
     uretilenMiktar: Number(row.uretilen_miktar ?? 0),
     durum: row.durum,
+    duraklatmaZamani: toDateTimeString(row.duraklatmaZamani),
   };
 }
 

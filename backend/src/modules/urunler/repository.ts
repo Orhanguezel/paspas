@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, desc, eq, like, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull, isNull, like, or, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { categories } from '@/modules/categories/schema';
+import { storageAssets } from '@/modules/storage/schema';
 
 import { inArray } from 'drizzle-orm';
 
@@ -487,28 +488,66 @@ export async function repoListBirimDonusumleri(urunId: string): Promise<BirimDon
 
 // -- Urun CRUD --
 
+/** storage_assets.mime → urun_medya.tip düzeltici */
+function mimeToTip(mime: string | null | undefined, fallback: string): string {
+  if (!mime) return fallback;
+  if (mime.startsWith('application/pdf')) return 'pdf';
+  if (mime.startsWith('video/')) return 'video';
+  return fallback;
+}
+
 export async function repoListMedya(urunId: string): Promise<UrunMedyaRow[]> {
-  return db
-    .select()
+  const rows = await db
+    .select({ medya: urunMedya, assetMime: storageAssets.mime })
     .from(urunMedya)
+    .leftJoin(
+      storageAssets,
+      or(
+        // storage_asset_id bağlıysa direkt eşleştir
+        and(isNotNull(urunMedya.storage_asset_id), eq(urunMedya.storage_asset_id, storageAssets.id)),
+        // bağlı değilse URL üzerinden bul (eski kayıtlar için)
+        and(isNull(urunMedya.storage_asset_id), eq(storageAssets.url, urunMedya.url)),
+      ),
+    )
     .where(eq(urunMedya.urun_id, urunId))
     .orderBy(asc(urunMedya.sira), asc(urunMedya.created_at));
+
+  return rows.map(({ medya, assetMime }) => ({
+    ...medya,
+    tip: mimeToTip(assetMime, medya.tip),
+  }));
 }
 
 export async function repoSaveMedya(urunId: string, items: MedyaItem[]): Promise<UrunMedyaRow[]> {
   await db.delete(urunMedya).where(eq(urunMedya.urun_id, urunId));
 
   if (items.length > 0) {
-    const values = items.map((item, idx) => ({
-      id: item.id || randomUUID(),
-      urun_id: urunId,
-      tip: item.tip,
-      url: item.url,
-      storage_asset_id: item.storageAssetId ?? null,
-      baslik: item.baslik ?? null,
-      sira: item.sira ?? idx,
-      is_cover: item.isCover ? 1 : 0,
-    }));
+    // storage_asset_id eksik olan item'lar için URL üzerinden asset'i bul
+    const urlsToLink = items.filter((i) => !i.storageAssetId && i.url).map((i) => i.url);
+    const assetByUrl = new Map<string, { id: string; mime: string }>();
+    if (urlsToLink.length > 0) {
+      const assets = await db
+        .select({ id: storageAssets.id, url: storageAssets.url, mime: storageAssets.mime })
+        .from(storageAssets)
+        .where(inArray(storageAssets.url, urlsToLink));
+      for (const a of assets) {
+        if (a.url) assetByUrl.set(a.url, { id: a.id, mime: a.mime });
+      }
+    }
+
+    const values = items.map((item, idx) => {
+      const linked = !item.storageAssetId ? assetByUrl.get(item.url) : undefined;
+      return {
+        id: item.id || randomUUID(),
+        urun_id: urunId,
+        tip: linked ? mimeToTip(linked.mime, item.tip) : item.tip,
+        url: item.url,
+        storage_asset_id: item.storageAssetId ?? linked?.id ?? null,
+        baslik: item.baslik ?? null,
+        sira: item.sira ?? idx,
+        is_cover: item.isCover ? 1 : 0,
+      };
+    });
     await db.insert(urunMedya).values(values);
   }
 

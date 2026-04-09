@@ -28,6 +28,7 @@ import type { PanelRole } from '@/navigation/permissions';
 
 import { useMemo } from 'react';
 import { NavMain } from './nav-main';
+import { NavUser } from './nav-user';
 import { useAdminSettings } from '../admin-settings-provider';
 import { useStatusQuery, useGetMyProfileQuery } from '@/integrations/hooks';
 
@@ -45,34 +46,14 @@ type SidebarMe = {
 function SidebarCompanyFooter({
   title,
   subtitle,
-  email,
-  phone,
 }: {
   title: string;
   subtitle: string;
-  email: string;
-  phone: string;
 }) {
-  const infoLines = [
-    { icon: Mail, value: email },
-    { icon: Phone, value: phone },
-  ].filter((item) => item.value);
-
   return (
     <div className="mx-3 mb-3 border-t border-sidebar-border/60 px-1 pt-3 group-data-[collapsible=icon]:hidden">
       <div className="truncate text-sm font-semibold text-sidebar-foreground">{title}</div>
       <div className="mt-1 line-clamp-2 text-[11px] leading-4 text-muted-foreground">{subtitle}</div>
-
-      {infoLines.length ? (
-        <div className="mt-3 space-y-1.5">
-          {infoLines.map(({ icon: Icon, value }) => (
-            <div key={value} className="flex items-center gap-2 text-[11px] text-muted-foreground">
-              <Icon className="size-3.5 shrink-0" />
-              <span className="truncate">{value}</span>
-            </div>
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -221,10 +202,10 @@ export function AppSidebar({
         <SidebarCompanyFooter
           title={companyInfo.sidebarTitle || panelLabel}
           subtitle={companyInfo.sidebarSubtitle || panelSub}
-          email={companyInfo.email}
-          phone={companyInfo.phone}
         />
+        <NavUser user={currentUser} />
       </SidebarFooter>
     </Sidebar>
   );
 }
+

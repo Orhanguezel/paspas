@@ -37,6 +37,7 @@ type QueueJoinRow = {
   createdAt: Date | string;
   updatedAt: Date | string;
   emirOperasyonId: string | null;
+  isMultiOp: number | boolean;
 };
 
 function toDateTimeString(value: Date | string | null | undefined): string | null {
@@ -74,6 +75,7 @@ function toDto(row: QueueJoinRow): IsYukuDto {
     planlananBaslangic: toDateTimeString(row.planlananBaslangic),
     planlananBitis: toDateTimeString(row.planlananBitis),
     durum: row.durum,
+    isMultiOp: row.isMultiOp === 1 || row.isMultiOp === true,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -106,6 +108,7 @@ function selectQueue(where?: SQL) {
       createdAt: makineKuyrugu.created_at,
       updatedAt: makineKuyrugu.updated_at,
       emirOperasyonId: makineKuyrugu.emir_operasyon_id,
+      isMultiOp: sql<number>`(SELECT COUNT(*) FROM uretim_emri_operasyonlari WHERE uretim_emri_id = ${uretimEmirleri.id}) > 1`,
     })
     .from(makineKuyrugu)
     .innerJoin(makineler, eq(makineKuyrugu.makine_id, makineler.id))

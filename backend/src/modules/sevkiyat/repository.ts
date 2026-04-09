@@ -508,7 +508,7 @@ export async function repoPatchSevkEmri(id: string, patch: SevkEmriPatch, operat
         hareket_tipi: 'cikis',
         referans_tipi: 'sevkiyat',
         referans_id: sevkiyatId,
-        miktar: String(existing.miktar),
+        miktar: String(-Math.abs(Number(existing.miktar))),
         aciklama: `Sevkiyat: ${sevkNo}`,
         created_by_user_id: operatorUserId,
       });

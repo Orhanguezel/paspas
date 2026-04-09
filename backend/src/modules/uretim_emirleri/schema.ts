@@ -56,6 +56,7 @@ export type UretimEmriDto = {
   musteriOzetTipi: 'manuel' | 'tekil' | 'toplam';
   terminRiski: boolean;
   makineAtamaSayisi: number;
+  makineAdlari: string | null;
   silinebilir: boolean;
   silmeNedeni: string | null;
   durum: string;
@@ -77,6 +78,7 @@ type UretimEmriDtoRow = UretimEmriRow & {
   musteriOzetTipi?: 'manuel' | 'tekil' | 'toplam' | null;
   terminRiski?: boolean | number | null;
   makineAtamaSayisi?: number | string | null;
+  makineAdlari?: string | null;
   silinebilir?: boolean | number | null;
   silmeNedeni?: string | null;
 };
@@ -105,6 +107,7 @@ export function rowToDto(row: UretimEmriDtoRow): UretimEmriDto {
     musteriOzetTipi: row.musteriOzetTipi ?? (hasSiparis ? 'tekil' : 'manuel'),
     terminRiski: Boolean(row.terminRiski),
     makineAtamaSayisi: Number(row.makineAtamaSayisi ?? 0),
+    makineAdlari: row.makineAdlari ?? null,
     silinebilir: Boolean(row.silinebilir ?? true),
     silmeNedeni: row.silmeNedeni ?? null,
     durum: row.durum,

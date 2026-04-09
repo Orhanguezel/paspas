@@ -6,6 +6,7 @@
 export type SiparisDurum = 'taslak' | 'planlandi' | 'onaylandi' | 'uretimde' | 'kismen_sevk' | 'tamamlandi' | 'kapali' | 'iptal';
 export type UretimDurumu = 'beklemede' | 'planlandi' | 'uretimde' | 'tamamlandi';
 export type SevkDurumu = 'sevk_edilmedi' | 'kismen_sevk' | 'tamamlandi';
+export type KalemUretimDurumu = 'beklemede' | 'uretime_aktarildi' | 'makineye_atandi' | 'uretiliyor' | 'duraklatildi' | 'uretim_tamamlandi';
 
 export interface SiparisKalemDto {
   id: string;
@@ -18,6 +19,25 @@ export interface SiparisKalemDto {
   uretilenMiktar: number;
   sevkEdilenMiktar: number;
   sira: number;
+  uretimDurumu: KalemUretimDurumu;
+}
+
+export interface SiparisIslemSatiri {
+  kalemId: string;
+  siparisId: string;
+  siparisNo: string;
+  musteriId: string;
+  musteriAd: string;
+  urunId: string;
+  urunAd: string;
+  urunKod: string;
+  miktar: number;
+  birimFiyat: number;
+  uretimDurumu: KalemUretimDurumu;
+  sevkEdilenMiktar: number;
+  uretimEmriId: string | null;
+  planlananBitis: string | null;
+  terminTarihi: string | null;
 }
 
 export interface SatisSiparisDto {
@@ -26,6 +46,7 @@ export interface SatisSiparisDto {
   musteriId: string;
   musteriAd: string | null;
   musteriIskonto: number;
+  ekstraIndirimOrani: number;
   siparisTarihi: string;
   terminTarihi: string | null;
   durum: SiparisDurum;
@@ -35,6 +56,7 @@ export interface SatisSiparisDto {
   isActive: boolean;
   kalemSayisi: number;
   toplamMiktar: number;
+  toplamFiyat: number;
   uretimeAktarilanKalemSayisi: number;
   uretimPlanlananMiktar: number;
   uretimTamamlananMiktar: number;
@@ -64,6 +86,7 @@ export interface SatisSiparisCreatePayload {
   terminTarihi?: string;
   durum?: SiparisDurum;
   aciklama?: string;
+  ekstraIndirimOrani?: number;
   isActive?: boolean;
   items: SiparisKalemPayload[];
 }
@@ -75,6 +98,7 @@ export interface SatisSiparisPatchPayload {
   terminTarihi?: string;
   durum?: SiparisDurum;
   aciklama?: string;
+  ekstraIndirimOrani?: number;
   isActive?: boolean;
   items?: SiparisKalemPayload[];
 }
@@ -127,6 +151,24 @@ export const SEVK_DURUMU_BADGE: Record<SevkDurumu, 'default' | 'secondary' | 'de
   tamamlandi:    'default',
 };
 
+export const KALEM_URETIM_DURUMU_LABELS: Record<KalemUretimDurumu, string> = {
+  beklemede:          'Beklemede',
+  uretime_aktarildi:  'Üretime Aktarıldı',
+  makineye_atandi:    'Makineye Atandı',
+  uretiliyor:         'Üretiliyor',
+  duraklatildi:       'Duraklatıldı',
+  uretim_tamamlandi:  'Üretim Tamamlandı',
+};
+
+export const KALEM_URETIM_DURUMU_BADGE: Record<KalemUretimDurumu, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  beklemede:          'secondary',
+  uretime_aktarildi:  'secondary',
+  makineye_atandi:    'outline',
+  uretiliyor:         'default',
+  duraklatildi:       'destructive',
+  uretim_tamamlandi:  'default',
+};
+
 function toStr(v: unknown, d = ''): string { return typeof v === 'string' ? v.trim() : d; }
 function toNum(v: unknown, d = 0): number { const n = Number(v); return Number.isFinite(n) ? n : d; }
 function toBool(v: unknown, d = true): boolean {
@@ -152,6 +194,7 @@ export function normalizeSiparisKalem(raw: unknown): SiparisKalemDto {
     uretilenMiktar: toNum(r.uretilenMiktar),
     sevkEdilenMiktar: toNum(r.sevkEdilenMiktar),
     sira:       toNum(r.sira),
+    uretimDurumu: (toStr(r.uretimDurumu, 'beklemede')) as KalemUretimDurumu,
   };
 }
 
@@ -169,9 +212,11 @@ export function normalizeSatisSiparis(raw: unknown): SatisSiparisDto {
     uretimDurumu:  (toStr(r.uretimDurumu, 'beklemede')) as UretimDurumu,
     sevkDurumu:    (toStr(r.sevkDurumu, 'sevk_edilmedi')) as SevkDurumu,
     aciklama:      r.aciklama != null ? toStr(r.aciklama) : null,
+    ekstraIndirimOrani: toNum(r.ekstraIndirimOrani),
     isActive:      toBool(r.isActive),
     kalemSayisi:   toNum(r.kalemSayisi),
     toplamMiktar:  toNum(r.toplamMiktar),
+    toplamFiyat:   toNum(r.toplamFiyat),
     uretimeAktarilanKalemSayisi: toNum(r.uretimeAktarilanKalemSayisi),
     uretimPlanlananMiktar: toNum(r.uretimPlanlananMiktar),
     uretimTamamlananMiktar: toNum(r.uretimTamamlananMiktar),

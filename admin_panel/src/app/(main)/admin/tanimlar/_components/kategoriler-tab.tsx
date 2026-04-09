@@ -36,6 +36,7 @@ import {
   useListCategoriesAdminQuery,
   useUpdateCategoryAdminMutation,
 } from "@/integrations/endpoints/admin/categories_admin.endpoints";
+import { useListBirimlerAdminQuery } from "@/integrations/endpoints/admin/erp/tanimlar_admin.endpoints";
 import {
   useCreateSubCategoryAdminMutation,
   useDeleteSubCategoryAdminMutation,
@@ -48,7 +49,6 @@ import type { SubCategoryDto } from "@/integrations/shared/subcategory.types";
 const KATEGORI_KEYS = ["urun", "yarimamul", "hammadde"] as const;
 const TEDARIK_OPTIONS = ["uretim", "satin_alma", "fason"] as const;
 const OPERASYON_TIPI_OPTIONS = ["tek_tarafli", "cift_tarafli"] as const;
-const BIRIM_OPTIONS = ["adet", "takim", "kg", "metre", "litre", "koli", "palet", "m2", "ton"] as const;
 
 // ── Category Form ────────────────────────────────────────────────
 
@@ -79,6 +79,8 @@ function CategoryForm({ open, onClose, category }: CategoryFormProps) {
   const [create, createState] = useCreateCategoryAdminMutation();
   const [update, updateState] = useUpdateCategoryAdminMutation();
   const busy = createState.isLoading || updateState.isLoading;
+  const { data: birimlerData } = useListBirimlerAdminQuery(undefined, { skip: !open });
+  const birimler = birimlerData?.items ?? [];
   const tK = (key: string, params?: Record<string, string>) => t(`admin.erp.tanimlar.kategoriler.${key}`, params);
 
   const handleNameChange = (v: string) => {
@@ -178,9 +180,9 @@ function CategoryForm({ open, onClose, category }: CategoryFormProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {BIRIM_OPTIONS.map((o) => (
-                    <SelectItem key={o} value={o}>
-                      {tK(`unitLabel.${o}`)}
+                  {birimler.map((b) => (
+                    <SelectItem key={b.kod} value={b.kod}>
+                      {b.ad}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -34,9 +34,10 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { useLocaleContext } from "@/i18n/LocaleProvider";
 import { useListCategoriesAdminQuery } from "@/integrations/endpoints/admin/categories_admin.endpoints";
-import { useListKaliplarAdminQuery } from "@/integrations/endpoints/admin/erp/tanimlar_admin.endpoints";
+import { useListBirimlerAdminQuery, useListKaliplarAdminQuery } from "@/integrations/endpoints/admin/erp/tanimlar_admin.endpoints";
 import {
   useCreateUrunAdminMutation,
   useDeleteUrunReceteAdminMutation,
@@ -133,7 +134,6 @@ interface UrunFormProps {
 
 const TEDARIK_OPTIONS: TedarikTipi[] = ["uretim", "satin_alma", "fason"];
 const OPERASYON_OPTIONS: OperasyonTipi[] = ["tek_tarafli", "cift_tarafli"];
-const BIRIM_OPTIONS = ["adet", "takim", "kg", "metre", "litre", "koli", "palet", "m2", "ton"] as const;
 
 // ── Component ─────────────────────────────────────────────────
 export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
@@ -152,8 +152,11 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
 
   const { data: kalipData } = useListKaliplarAdminQuery({});
   const { data: categoryData } = useListCategoriesAdminQuery({ limit: 50, sort: "display_order", order: "asc" });
+  const { data: birimlerData } = useListBirimlerAdminQuery();
   const kaliplar = kalipData?.items ?? [];
   const categories = (categoryData ?? []) as CategoryDto[];
+  const birimler = birimlerData?.items ?? [];
+  const birimKodlari = birimler.map((b) => b.kod);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -628,13 +631,22 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                       <SelectValue placeholder={tForm("birimPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {BIRIM_OPTIONS.map((b) => (
-                        <SelectItem key={b} value={b}>
-                          {b.charAt(0).toUpperCase() + b.slice(1)}
+                      {birimler.map((b) => (
+                        <SelectItem key={b.kod} value={b.kod}>
+                          {b.ad}
                         </SelectItem>
                       ))}
+                      <SelectItem value="custom">{tForm("digerBirim")}</SelectItem>
                     </SelectContent>
                   </Select>
+                  {!birimKodlari.includes(form.watch("birim")) && (
+                    <Input
+                      className="mt-1"
+                      placeholder={tForm("ozelBirimAdi")}
+                      value={form.watch("birim")}
+                      onChange={(e) => form.setValue("birim", e.target.value, { shouldDirty: true })}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -649,12 +661,8 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                 )}
               </div>
 
-              {/* Açıklama + Ürün Grubu */}
+              {/* Ürün Grubu + Renk */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <Label>{tForm("aciklama")}</Label>
-                  <Input {...form.register("aciklama")} placeholder={tForm("aciklamaPlaceholder")} />
-                </div>
                 <div className="space-y-1">
                   <Label>{tForm("urunGrubu")}</Label>
                   <Select
@@ -679,12 +687,10 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              {/* Renk */}
-              <div className="space-y-1">
-                <Label>{tForm("renk")}</Label>
-                <Input {...form.register("renk")} placeholder={tForm("renkPlaceholder")} />
+                <div className="space-y-1">
+                  <Label>{tForm("renk")}</Label>
+                  <Input {...form.register("renk")} placeholder={tForm("renkPlaceholder")} />
+                </div>
               </div>
 
               {/* Stok + Kritik Stok */}
@@ -731,6 +737,16 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                 </div>
               </div>
 
+              {/* Açıklama */}
+              <div className="space-y-1">
+                <Label>{tForm("aciklama")}</Label>
+                <Textarea
+                  {...form.register("aciklama")}
+                  placeholder={tForm("aciklamaPlaceholder")}
+                  className="min-h-[150px] resize-y"
+                />
+              </div>
+
               {/* Birim Dönüşümleri */}
               <Separator />
               <div className="space-y-3">
@@ -743,7 +759,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => appendDonusum({ hedefBirim: watchKategori === "urun" ? "takim" : "", carpan: 1 })}
+                    onClick={() => appendDonusum({ hedefBirim: watchKategori === "urun" ? "koli" : "", carpan: 1 })}
                   >
                     <Plus className="mr-1 size-3" /> {tForm("donusumEkle")}
                   </Button>
@@ -769,9 +785,9 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                               <SelectValue placeholder={tForm("hedefBirimPlaceholder")} />
                             </SelectTrigger>
                             <SelectContent>
-                              {BIRIM_OPTIONS.filter((b) => b !== anaBirim).map((b) => (
-                                <SelectItem key={b} value={b}>
-                                  {b}
+                              {birimler.filter((b) => b.kod !== anaBirim).map((b) => (
+                                <SelectItem key={b.kod} value={b.kod}>
+                                  {b.ad}
                                 </SelectItem>
                               ))}
                               <SelectItem value="custom">{tForm("digerBirim")}</SelectItem>
@@ -1003,6 +1019,10 @@ function MedyaSection({ urunId }: MedyaSectionProps) {
 
   // Derive URLs and cover from server data
   const serverUrls = useMemo(() => (medyaData ?? []).map((m) => m.url).filter(Boolean), [medyaData]);
+  const serverValueTypes = useMemo(
+    () => Object.fromEntries((medyaData ?? []).map((m) => [m.url, m.tip])),
+    [medyaData],
+  );
   const serverCover = useMemo(
     () => (medyaData ?? []).find((m) => m.isCover)?.url ?? serverUrls[0] ?? "",
     [medyaData, serverUrls],
@@ -1088,6 +1108,7 @@ function MedyaSection({ urunId }: MedyaSectionProps) {
         bucket="public"
         folder="product-media"
         values={uiUrls}
+        valueTypes={serverValueTypes}
         onChangeMultiple={handleGalleryChange}
         coverValue={uiCover}
         onSelectAsCover={handleCoverChange}

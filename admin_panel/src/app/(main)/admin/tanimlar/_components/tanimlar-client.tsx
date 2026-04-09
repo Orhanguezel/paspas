@@ -54,6 +54,7 @@ import {
   type VardiyaDto,
 } from "@/integrations/shared/erp/tanimlar.types";
 
+import BirimlerTab from "./birimler-tab";
 import DurusNedeniForm from "./durus-nedeni-form";
 import HaftaSonuPlanForm from "./hafta-sonu-plan-form";
 import KalipForm from "./kalip-form";
@@ -96,14 +97,16 @@ export default function TanimlarClient() {
     if (tab === "durus-nedenleri") return "durus-nedenleri";
     if (tab === "hafta-sonu-planlari") return "hafta-sonu-planlari";
     if (tab === "kategoriler") return "kategoriler";
+    if (tab === "birimler") return "birimler";
     return "kaliplar";
   }, [searchParams]);
-  const isKaliplar      = activeTab === "kaliplar";
-  const isTatiller      = activeTab === "tatiller";
-  const isVardiyalar    = activeTab === "vardiyalar";
+  const isKaliplar       = activeTab === "kaliplar";
+  const isTatiller       = activeTab === "tatiller";
+  const isVardiyalar     = activeTab === "vardiyalar";
   const isDurusNedenleri = activeTab === "durus-nedenleri";
   const isHaftaSonuPlanlari = activeTab === "hafta-sonu-planlari";
-  const isKategoriler = activeTab === "kategoriler";
+  const isKategoriler    = activeTab === "kategoriler";
+  const isBirimler       = activeTab === "birimler";
 
   const [kalipFormOpen, setKalipFormOpen] = useState(false);
   const [editingKalip, setEditingKalip] = useState<KalipDto | null>(null);
@@ -268,7 +271,9 @@ export default function TanimlarClient() {
                   ? t("admin.erp.tanimlar.tabs.haftaSonuPlanlari")
                   : isKategoriler
                     ? t("admin.erp.tanimlar.tabs.kategoriler")
-                    : t("admin.erp.tanimlar.tabs.durusNedenleri")}
+                    : isBirimler
+                      ? "Birimler"
+                      : t("admin.erp.tanimlar.tabs.durusNedenleri")}
         </h1>
         <p className="text-sm text-muted-foreground">
           {isKaliplar
@@ -281,7 +286,9 @@ export default function TanimlarClient() {
                 ? t("admin.erp.tanimlar.haftaSonuPlanlari.pageDescription")
                 : isKategoriler
                   ? t("admin.erp.tanimlar.kategoriler.pageDescription")
-                  : t("admin.erp.tanimlar.durusNedenleri.pageDescription")}
+                  : isBirimler
+                    ? "Ürünlerde kullanılan ölçü birimleri"
+                    : t("admin.erp.tanimlar.durusNedenleri.pageDescription")}
         </p>
       </div>
 
@@ -749,6 +756,8 @@ export default function TanimlarClient() {
         </div>
       ) : isKategoriler ? (
         <KategorilerTab />
+      ) : isBirimler ? (
+        <BirimlerTab />
       ) : (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">

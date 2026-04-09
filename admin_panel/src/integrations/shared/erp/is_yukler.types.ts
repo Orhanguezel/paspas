@@ -25,6 +25,7 @@ export interface IsYukuDto {
   planlananBaslangic: string | null;
   planlananBitis: string | null;
   durum: string;
+  isMultiOp: boolean;
 }
 
 export interface IsYukuPatchPayload {
@@ -40,7 +41,7 @@ export interface IsYukuListResponse {
 }
 
 export const IS_YUKU_DURUM_LABELS: Record<string, string> = {
-  bekliyor: "Bekliyor",
+  bekliyor: "",
   devam_ediyor: "Devam Ediyor",
   tamamlandi: "Tamamlandı",
   iptal: "İptal",
@@ -88,6 +89,7 @@ export function normalizeIsYuku(raw: unknown): IsYukuDto {
     planlananBaslangic: r.planlananBaslangic != null ? toStr(r.planlananBaslangic) : null,
     planlananBitis: r.planlananBitis != null ? toStr(r.planlananBitis) : null,
     durum: toStr(r.durum, "bekliyor"),
+    isMultiOp: typeof r.isMultiOp === "boolean" ? r.isMultiOp : r.isMultiOp === 1 || r.isMultiOp === "1",
   };
 }
 

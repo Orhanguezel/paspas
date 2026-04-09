@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import { ChevronRight, Pencil, Plus, RefreshCcw, Search, Trash2 } from "lucide-react";
+import { ChevronRight, FileText, Pencil, Plus, RefreshCcw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -465,17 +465,30 @@ function ExpandableProductRow({
         <TableCell className="whitespace-nowrap font-mono text-xs">{u.kod}</TableCell>
         <TableCell>
           {u.imageUrl ? (
-            // biome-ignore lint/performance/noImgElement: thumbnail source can be arbitrary media URLs from storage and legacy records.
-            <img
-              src={resolveMediaUrl(u.imageUrl)}
-              alt={u.imageAlt || u.ad}
-              className="h-10 w-10 cursor-pointer rounded border object-cover transition-transform hover:scale-110 active:scale-95"
-              loading="lazy"
-              onClick={(e) => {
-                e.stopPropagation();
-                onShowImage(u.imageUrl!);
-              }}
-            />
+            u.imageUrl.toLowerCase().endsWith(".pdf") ? (
+              <div 
+                className="h-10 w-10 flex items-center justify-center rounded border bg-slate-50 cursor-pointer hover:bg-blue-50 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(resolveMediaUrl(u.imageUrl!), "_blank");
+                }}
+                title="PDF Dokümanı Aç"
+              >
+                <FileText className="size-6 text-blue-600" />
+              </div>
+            ) : (
+              // biome-ignore lint/performance/noImgElement: thumbnail source can be arbitrary media URLs from storage and legacy records.
+              <img
+                src={resolveMediaUrl(u.imageUrl)}
+                alt={u.imageAlt || u.ad}
+                className="h-10 w-10 cursor-pointer rounded border object-cover transition-transform hover:scale-110 active:scale-95"
+                loading="lazy"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShowImage(u.imageUrl!);
+                }}
+              />
+            )
           ) : (
             <span className="text-muted-foreground">—</span>
           )}

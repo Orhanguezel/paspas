@@ -54,9 +54,14 @@ export default function StokDetayDialog({ stok }: { stok: StokDto }) {
   const [adjustStok, adjustState] = useAdjustStokAdminMutation();
 
   async function handleAdjust() {
-    const miktarDegisimi = Number(miktar);
-    if (!Number.isFinite(miktarDegisimi) || miktarDegisimi === 0) {
-      toast.error("Geçerli bir stok değişimi girin");
+    const gercekMiktar = Number(miktar);
+    if (!Number.isFinite(gercekMiktar) || gercekMiktar < 0) {
+      toast.error("Geçerli bir miktar girin");
+      return;
+    }
+    const miktarDegisimi = gercekMiktar - detail.stok;
+    if (miktarDegisimi === 0) {
+      toast.error("Mevcut stokla aynı miktar girdiniz");
       return;
     }
 
@@ -122,6 +127,11 @@ export default function StokDetayDialog({ stok }: { stok: StokDto }) {
                   <div className="mt-1 font-semibold text-xl">
                     {formatAmount(detail.kritikStok)} {detail.birim}
                   </div>
+                  {detail.kritikStok > 0 && detail.stok < detail.kritikStok && (
+                    <div className="mt-1 text-xs text-destructive font-medium">
+                      Eksik: {formatAmount(detail.kritikStok - detail.stok)} {detail.birim}
+                    </div>
+                  )}
                 </div>
                 <div className="rounded-lg border p-3">
                   <div className="text-muted-foreground text-xs">Açık Üretim İhtiyacı</div>
@@ -209,18 +219,28 @@ export default function StokDetayDialog({ stok }: { stok: StokDto }) {
             </TabsContent>
 
             <TabsContent value="duzelt" className="space-y-4">
+              <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+                <span className="text-muted-foreground">Mevcut Stok:</span>{" "}
+                <span className="font-semibold">{formatAmount(detail.stok)} {detail.birim}</span>
+              </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor={`stok-miktar-${stok.urunId}`}>Miktar Değişimi</Label>
+                  <Label htmlFor={`stok-miktar-${stok.urunId}`}>Gerçek Miktar</Label>
                   <Input
                     id={`stok-miktar-${stok.urunId}`}
-                    placeholder="Örn: 150 veya -20"
+                    type="number"
+                    placeholder="Sayılan/gerçek stok miktarı"
                     value={miktar}
                     onChange={(event) => setMiktar(event.target.value)}
                   />
-                  <p className="text-muted-foreground text-xs">
-                    Pozitif değer giriş, negatif değer çıkış/düzeltme olarak uygulanır.
-                  </p>
+                  {miktar !== "" && Number.isFinite(Number(miktar)) && (
+                    <p className="text-xs">
+                      <span className="text-muted-foreground">Fark: </span>
+                      <span className={Number(miktar) - detail.stok >= 0 ? "text-emerald-600 font-medium" : "text-destructive font-medium"}>
+                        {Number(miktar) - detail.stok >= 0 ? "+" : ""}{formatAmount(Number(miktar) - detail.stok)} {detail.birim}
+                      </span>
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor={`stok-aciklama-${stok.urunId}`}>Açıklama</Label>

@@ -241,6 +241,8 @@ export const tags = [
   'DurusNedenleri',
   'HaftaSonuPlan',
   'HaftaSonuPlanlar',
+  'Birim',
+  'Birimler',
   'Tedarikci',
   'TedarikciList',
   'Gorev',

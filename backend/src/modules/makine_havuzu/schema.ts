@@ -24,6 +24,7 @@ export const makineKuyrugu = mysqlTable('makine_kuyrugu', {
   hazirlik_suresi_dk: int('hazirlik_suresi_dk', { unsigned: true }).notNull().default(0),
   planlanan_baslangic: datetime('planlanan_baslangic'),
   planlanan_bitis: datetime('planlanan_bitis'),
+  is_locked: tinyint('is_locked', { unsigned: true }).notNull().default(0),
   gercek_baslangic: datetime('gercek_baslangic'),
   gercek_bitis: datetime('gercek_bitis'),
   durum: varchar('durum', { length: 32 }).notNull().default('bekliyor'),

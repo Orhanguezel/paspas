@@ -303,6 +303,8 @@ export async function recalcMakineKuyrukTarihleri(makineId: string): Promise<voi
       durum: makineKuyrugu.durum,
       gercekBaslangic: makineKuyrugu.gercek_baslangic,
       gercekBitis: makineKuyrugu.gercek_bitis,
+      isLocked: makineKuyrugu.is_locked,
+      planlananBaslangic: makineKuyrugu.planlanan_baslangic,
       emirOperasyonId: makineKuyrugu.emir_operasyon_id,
     })
     .from(makineKuyrugu)
@@ -333,6 +335,10 @@ export async function recalcMakineKuyrukTarihleri(makineId: string): Promise<voi
     if (item.durum === 'calisiyor') {
       // Calisan is: gercek baslangic varsa onu kullan
       baslangic = item.gercekBaslangic ? new Date(item.gercekBaslangic) : cursor;
+      bitis = addWorkingMinutes(baslangic, totalDk, config, holidays, weekendPlans);
+    } else if (item.isLocked === 1 && item.planlananBaslangic) {
+      // MANUEL LOCKED ITEM: Use its own set start time
+      baslangic = new Date(item.planlananBaslangic);
       bitis = addWorkingMinutes(baslangic, totalDk, config, holidays, weekendPlans);
     } else {
       // Bekleyen is: onceki isin bitisinden baslat, calisma gunu kontrolu yap

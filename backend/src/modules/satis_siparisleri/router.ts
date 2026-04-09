@@ -8,7 +8,9 @@ import {
   getNextSiparisNo,
   getSatisSiparisi,
   listSatisSiparisleri,
+  listSiparisIslemleri,
   updateSatisSiparisi,
+  uretimeAktar,
 } from './controller';
 
 export async function registerSatisSiparisleri(app: FastifyInstance) {
@@ -16,6 +18,8 @@ export async function registerSatisSiparisleri(app: FastifyInstance) {
   const guard = makeAdminPermissionGuard('admin.satis_siparisleri');
 
   app.get(`${BASE}`, { preHandler: guard }, listSatisSiparisleri);
+  app.get(`${BASE}/islemler`, { preHandler: guard }, listSiparisIslemleri);
+  app.post(`${BASE}/islemler/uretime-aktar`, { preHandler: guard }, uretimeAktar);
   app.get(`${BASE}/next-no`, { preHandler: guard }, getNextSiparisNo);
   app.get(`${BASE}/:id`, { preHandler: guard }, getSatisSiparisi);
   app.post(`${BASE}`, { preHandler: guard }, createSatisSiparisi);

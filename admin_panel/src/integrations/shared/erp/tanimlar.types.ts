@@ -272,3 +272,47 @@ export function normalizeHaftaSonuPlanList(res: unknown): HaftaSonuPlanListRespo
   const rawItems = Array.isArray(r.items) ? r.items : Array.isArray(res) ? res : [];
   return { items: (rawItems as unknown[]).map(normalizeHaftaSonuPlan), total: toNum(r.total, rawItems.length) };
 }
+
+// ── Birimler ──────────────────────────────────────────────────────
+
+export interface BirimDto {
+  id: string;
+  kod: string;
+  ad: string;
+  sira: number;
+  isActive: boolean;
+}
+
+export interface BirimListResponse {
+  items: BirimDto[];
+}
+
+export interface BirimCreatePayload {
+  kod: string;
+  ad: string;
+  sira?: number;
+  isActive?: boolean;
+}
+
+export interface BirimPatchPayload {
+  kod?: string;
+  ad?: string;
+  sira?: number;
+  isActive?: boolean;
+}
+
+export function normalizeBirim(res: unknown): BirimDto {
+  const r = isRecord(res) ? res : {};
+  return {
+    id:       toStr(r.id),
+    kod:      toStr(r.kod),
+    ad:       toStr(r.ad),
+    sira:     toNum(r.sira, 0),
+    isActive: toBool(r.isActive, true),
+  };
+}
+
+export function normalizeBirimList(res: unknown): BirimListResponse {
+  const rawItems = Array.isArray(res) ? res : (isRecord(res) && Array.isArray((res as any).items) ? (res as any).items : []);
+  return { items: (rawItems as unknown[]).map(normalizeBirim) };
+}

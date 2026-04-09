@@ -26,8 +26,14 @@ import type {
   HaftaSonuPlanListResponse,
   HaftaSonuPlanCreatePayload,
   HaftaSonuPlanPatchPayload,
+  BirimDto,
+  BirimListResponse,
+  BirimCreatePayload,
+  BirimPatchPayload,
 } from "@/integrations/shared/erp/tanimlar.types";
 import {
+  normalizeBirim,
+  normalizeBirimList,
   normalizeKalip,
   normalizeKalipList,
   normalizeTatil,
@@ -246,6 +252,33 @@ export const tanimlarAdminApi = baseApi.injectEndpoints({
         { type: "HaftaSonuPlanlar", id: "LIST" },
       ],
     }),
+
+    // ── Birimler ──────────────────────────────────────────────
+    listBirimlerAdmin: b.query<BirimListResponse, void>({
+      query: () => ({ url: `${BASE}/birimler` }),
+      transformResponse: (res: unknown) => normalizeBirimList(res),
+      providesTags: (result) =>
+        result
+          ? [...result.items.map((b) => ({ type: "Birim" as const, id: b.id })), { type: "Birimler" as const, id: "LIST" }]
+          : [{ type: "Birimler" as const, id: "LIST" }],
+    }),
+
+    createBirimAdmin: b.mutation<BirimDto, BirimCreatePayload>({
+      query: (body) => ({ url: `${BASE}/birimler`, method: "POST", body }),
+      transformResponse: (res: unknown) => normalizeBirim(res),
+      invalidatesTags: [{ type: "Birimler", id: "LIST" }],
+    }),
+
+    updateBirimAdmin: b.mutation<BirimDto, { id: string; body: BirimPatchPayload }>({
+      query: ({ id, body }) => ({ url: `${BASE}/birimler/${id}`, method: "PATCH", body }),
+      transformResponse: (res: unknown) => normalizeBirim(res),
+      invalidatesTags: (_r, _e, { id }) => [{ type: "Birim", id }, { type: "Birimler", id: "LIST" }],
+    }),
+
+    deleteBirimAdmin: b.mutation<void, string>({
+      query: (id) => ({ url: `${BASE}/birimler/${id}`, method: "DELETE" }),
+      invalidatesTags: (_r, _e, id) => [{ type: "Birim", id }, { type: "Birimler", id: "LIST" }],
+    }),
   }),
   overrideExisting: true,
 });
@@ -273,4 +306,8 @@ export const {
   useCreateHaftaSonuPlanAdminMutation,
   useUpdateHaftaSonuPlanAdminMutation,
   useDeleteHaftaSonuPlanAdminMutation,
+  useListBirimlerAdminQuery,
+  useCreateBirimAdminMutation,
+  useUpdateBirimAdminMutation,
+  useDeleteBirimAdminMutation,
 } = tanimlarAdminApi;

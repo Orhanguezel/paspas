@@ -9,6 +9,7 @@ export const satisSiparisleri = mysqlTable('satis_siparisleri', {
   termin_tarihi: date('termin_tarihi'),
   durum: varchar('durum', { length: 32 }).notNull().default('taslak'),
   aciklama: varchar('aciklama', { length: 500 }),
+  ekstra_indirim_orani: decimal('ekstra_indirim_orani', { precision: 5, scale: 2 }).notNull().default('0.00'),
   is_active: tinyint('is_active', { unsigned: true }).notNull().default(1),
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updated_at: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
@@ -21,9 +22,20 @@ export const siparisKalemleri = mysqlTable('siparis_kalemleri', {
   miktar: decimal('miktar', { precision: 12, scale: 4 }).notNull(),
   birim_fiyat: decimal('birim_fiyat', { precision: 12, scale: 2 }).notNull().default('0.00'),
   sira: int('sira', { unsigned: true }).notNull().default(0),
+  uretim_durumu: varchar('uretim_durumu', { length: 32 }).notNull().default('beklemede'),
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updated_at: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
 });
+
+export const KALEM_URETIM_DURUMLARI = [
+  'beklemede',
+  'uretime_aktarildi',
+  'makineye_atandi',
+  'uretiliyor',
+  'duraklatildi',
+  'uretim_tamamlandi',
+] as const;
+export type KalemUretimDurumu = typeof KALEM_URETIM_DURUMLARI[number];
 
 export type SatisSiparisRow = typeof satisSiparisleri.$inferSelect;
 export type SiparisKalemRow = typeof siparisKalemleri.$inferSelect;
@@ -36,6 +48,7 @@ export type EnrichedSiparisKalemRow = SiparisKalemRow & {
   urun_ad?: string | null;
   urun_kod?: string | null;
   kdv_orani?: string | null;
+  uretim_durumu?: string;
 };
 
 export type SiparisKalemDto = {
@@ -48,6 +61,7 @@ export type SiparisKalemDto = {
   birimFiyat: number;
   sevkEdilenMiktar: number;
   sira: number;
+  uretimDurumu: KalemUretimDurumu;
 };
 
 export type UretimDurumu = 'beklemede' | 'planlandi' | 'uretimde' | 'tamamlandi';
@@ -68,6 +82,7 @@ export type SatisSiparisDto = {
   isActive: boolean;
   kalemSayisi: number;
   toplamMiktar: number;
+  toplamFiyat: number;
   uretimeAktarilanKalemSayisi: number;
   uretimPlanlananMiktar: number;
   uretimTamamlananMiktar: number;
@@ -117,6 +132,7 @@ export function siparisRowToDto(row: EnrichedSatisSiparisRow): SatisSiparisDto {
     uretimPlanlananMiktar: 0,
     uretimTamamlananMiktar: 0,
     sevkEdilenMiktar: 0,
+    toplamFiyat: 0,
     kilitli: false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -134,5 +150,6 @@ export function siparisKalemRowToDto(row: EnrichedSiparisKalemRow): SiparisKalem
     birimFiyat: Number(row.birim_fiyat ?? 0),
     sevkEdilenMiktar: 0,
     sira: row.sira,
+    uretimDurumu: (row.uretim_durumu as KalemUretimDurumu) ?? 'beklemede',
   };
 }

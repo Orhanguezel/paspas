@@ -48,6 +48,7 @@ const schema = z.object({
   siparisTarihi: z.string().min(1, "Tarih zorunlu"),
   terminTarihi: z.string().optional(),
   durum: z.enum(durumValues).default("taslak"),
+  ekstraIndirimOrani: z.coerce.number().min(0).max(100).default(0),
   aciklama: z.string().optional(),
   items: z.array(kalemSchema).min(1, "En az bir kalem ekleyin"),
 });
@@ -102,6 +103,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
       siparisTarihi: "",
       terminTarihi: "",
       durum: "taslak",
+      ekstraIndirimOrani: 0,
       aciklama: "",
       items: [{ urunId: "", miktar: 1, birimFiyat: 0, sira: 0 }],
     },
@@ -129,6 +131,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
         siparisTarihi: siparisDetail.siparisTarihi,
         terminTarihi: siparisDetail.terminTarihi ?? "",
         durum: siparisDetail.durum,
+        ekstraIndirimOrani: siparisDetail.ekstraIndirimOrani,
         aciklama: siparisDetail.aciklama ?? "",
         items: siparisDetail.items?.map((k) => ({
           urunId: k.urunId,
@@ -156,30 +159,37 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
 
   // JSON.stringify ile deep comparison — watch referansı shallow olduğu için useMemo tetiklenmiyor
   const itemsJson = JSON.stringify(watchedItems);
+  const selectedEkstraIskonto = form.watch("ekstraIndirimOrani");
+
   const totals = useMemo(() => {
     const items = JSON.parse(itemsJson) as typeof watchedItems;
     const araToplam = items.reduce(
       (sum: number, item: { miktar: number; birimFiyat: number }) => sum + (Number(item.miktar) || 0) * (Number(item.birimFiyat) || 0),
       0,
     );
-    const iskontoOrani = selectedMusteriIskonto;
-    const iskontoTutar = iskontoOrani > 0 ? araToplam * (iskontoOrani / 100) : 0;
-    const iskontoluToplam = araToplam - iskontoTutar;
+    
+    const mIskontoOrani = selectedMusteriIskonto / 100;
+    const eIskontoOrani = selectedEkstraIskonto / 100;
+
+    // Sirali indirim: AraToplam * (1 - m) * (1 - e)
+    const indirimSonrasi = araToplam * (1 - mIskontoOrani) * (1 - eIskontoOrani);
+    const toplamIndirimTutar = araToplam - indirimSonrasi;
+
     const kdvToplam = items.reduce((sum: number, item: { urunId: string; miktar: number; birimFiyat: number }) => {
       const urun = urunler.find((urunItem) => urunItem.id === item.urunId);
       const kdvOrani = urun?.kdvOrani ?? 20;
-      const satirNet = (Number(item.miktar) || 0) * (Number(item.birimFiyat) || 0) * (1 - iskontoOrani / 100);
+      const satirNet = (Number(item.miktar) || 0) * (Number(item.birimFiyat) || 0) * (1 - mIskontoOrani) * (1 - eIskontoOrani);
       return sum + satirNet * (kdvOrani / 100);
     }, 0);
 
     return {
       araToplam,
-      iskontoTutar,
+      iskontoTutar: toplamIndirimTutar,
       kdvToplam,
-      genelToplam: iskontoluToplam + kdvToplam,
+      genelToplam: indirimSonrasi + kdvToplam,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMusteriIskonto, urunler, itemsJson]);
+  }, [selectedMusteriIskonto, selectedEkstraIskonto, urunler, itemsJson]);
 
   // Müşteri değiştiğinde birim fiyat güncellenmez — fiyat her zaman indirimsiz baz fiyattır.
   // İskonto, toplam hesaplamasında ayrıca gösterilir.
@@ -265,21 +275,16 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
             )}
           </div>
 
-          {/* Müşteri */}
+          {/* Müşteri — SP-1: arama kutusu */}
           <div className="space-y-1">
             <Label>{t("admin.erp.satisSiparisleri.form.musteri")} *</Label>
-            <Select value={selectedMusteriId} onValueChange={(v) => form.setValue("musteriId", v)}>
-              <SelectTrigger disabled={isLocked}>
-                <SelectValue placeholder={t("admin.erp.satisSiparisleri.form.musteriPlaceholder")} />
-              </SelectTrigger>
-              <SelectContent>
-                {musteriler.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.ad}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MusteriCombobox
+              musteriler={musteriler}
+              value={selectedMusteriId}
+              onChange={(v) => form.setValue("musteriId", v)}
+              placeholder={t("admin.erp.satisSiparisleri.form.musteriPlaceholder")}
+              disabled={isLocked}
+            />
             {form.formState.errors.musteriId && (
               <p className="text-xs text-destructive">{form.formState.errors.musteriId.message}</p>
             )}
@@ -383,14 +388,27 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
             ))}
           </div>
 
-          {/* Açıklama */}
-          <div className="space-y-1">
-            <Label>{t("admin.erp.satisSiparisleri.form.aciklama")}</Label>
+          {/* İskonto ve Açıklama */}
+          <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-4">
+            <div className="space-y-1">
+              <Label>Ekstra İskonto %</Label>
               <Input
-                {...form.register("aciklama")}
-                placeholder={t("admin.erp.satisSiparisleri.form.aciklamaPlaceholder")}
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                {...form.register("ekstraIndirimOrani")}
                 disabled={isLocked}
               />
+            </div>
+            <div className="space-y-1">
+              <Label>{t("admin.erp.satisSiparisleri.form.aciklama")}</Label>
+                <Input
+                  {...form.register("aciklama")}
+                  placeholder={t("admin.erp.satisSiparisleri.form.aciklamaPlaceholder")}
+                  disabled={isLocked}
+                />
+            </div>
           </div>
 
           <div className="rounded-md border bg-muted/30 p-3">
@@ -436,6 +454,57 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
         </form>
       </SheetContent>
     </Sheet>
+  );
+}
+
+// -- Müşteri arama Combobox (SP-1) --
+
+interface MusteriComboboxProps {
+  musteriler: { id: string; ad: string }[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  disabled?: boolean;
+}
+
+function MusteriCombobox({ musteriler, value, onChange, placeholder, disabled }: MusteriComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const selected = musteriler.find((m) => m.id === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-9 w-full justify-between text-sm font-normal"
+          disabled={disabled}
+        >
+          <span className="truncate">{selected ? selected.ad : placeholder}</span>
+          <ChevronsUpDown className="ml-2 size-3.5 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Müşteri ara..." />
+          <CommandList>
+            <CommandEmpty>Müşteri bulunamadı.</CommandEmpty>
+            <CommandGroup>
+              {musteriler.map((m) => (
+                <CommandItem
+                  key={m.id}
+                  value={m.ad}
+                  onSelect={() => { onChange(m.id); setOpen(false); }}
+                >
+                  <Check className={`mr-2 size-4 ${value === m.id ? "opacity-100" : "opacity-0"}`} />
+                  {m.ad}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
 

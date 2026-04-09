@@ -7,7 +7,9 @@ import { PackageSearch, RefreshCcw, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,12 +26,14 @@ export default function StoklarClient() {
   const [search, setSearch] = useState("");
   const [kategori, setKategori] = useState<string>("all");
   const [durum, setDurum] = useState<"all" | StokDto["durum"]>("all");
+  const [stokluOnly, setStokluOnly] = useState(false);
   const { data: categories = [] } = useListCategoriesAdminQuery({ limit: 50, sort: "display_order", order: "asc" });
 
   const query = {
     ...(search ? { q: search } : {}),
     ...(kategori !== "all" ? { kategori } : {}),
     ...(durum !== "all" ? { durum, kritikOnly: durum !== "yeterli" } : {}),
+    ...(stokluOnly ? { stokluOnly: true } : {}),
     sort: durum === "all" ? "ad" : "kritik_stok",
     order: durum === "all" ? "asc" : "desc",
   } as const;
@@ -113,6 +117,10 @@ export default function StoklarClient() {
               <SelectItem value="yetersiz">{t("admin.erp.stoklar.status.yetersiz")}</SelectItem>
             </SelectContent>
           </Select>
+          <div className="flex items-center gap-2 ml-auto">
+            <Switch id="stoklu-only" checked={stokluOnly} onCheckedChange={setStokluOnly} />
+            <Label htmlFor="stoklu-only" className="text-sm cursor-pointer">Sadece Stokta Olanlar</Label>
+          </div>
         </div>
 
         <Tabs value={kategori} onValueChange={(value) => setKategori(value as typeof kategori)}>
@@ -138,8 +146,7 @@ export default function StoklarClient() {
                 <TableHead className="text-right">Rezerve</TableHead>
                 <TableHead className="text-right">Açık İhtiyaç</TableHead>
                 <TableHead className="text-right">Serbest</TableHead>
-                <TableHead className="text-right">{t("admin.erp.stoklar.columns.kritikStok")}</TableHead>
-                <TableHead className="text-right">{t("admin.erp.stoklar.columns.kritikAcik")}</TableHead>
+                <TableHead className="text-right">Üretim Eksik</TableHead>
                 <TableHead>{t("admin.erp.stoklar.columns.durum")}</TableHead>
                 <TableHead className="w-24" />
               </TableRow>
@@ -148,7 +155,7 @@ export default function StoklarClient() {
               {isLoading &&
                 Array.from({ length: 6 }).map((_, index) => (
                   <TableRow key={`stok-skeleton-row-${index + 1}`}>
-                    {Array.from({ length: 12 }).map((__, cellIndex) => (
+                    {Array.from({ length: 11 }).map((__, cellIndex) => (
                       <TableCell key={`stok-skeleton-cell-${index + 1}-${cellIndex + 1}`}>
                         <Skeleton className="h-4 w-full" />
                       </TableCell>
@@ -158,7 +165,7 @@ export default function StoklarClient() {
 
               {!isLoading && items.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={12} className="py-10 text-center text-muted-foreground text-sm">
+                  <TableCell colSpan={11} className="py-10 text-center text-muted-foreground text-sm">
                     <div className="flex flex-col items-center gap-2">
                       <PackageSearch className="size-5" />
                       <span>{t("admin.erp.stoklar.notFound")}</span>
@@ -211,8 +218,15 @@ export default function StoklarClient() {
                     <TableCell className="text-right tabular-nums">
                       {item.serbestStok > 0 ? formatAmount(item.serbestStok) : "—"}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{formatAmount(item.kritikStok)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatAmount(item.kritikAcik)}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {Math.max(0, item.acikUretimIhtiyaci - item.stok) > 0 ? (
+                        <span className="text-destructive font-medium">
+                          {formatAmount(Math.max(0, item.acikUretimIhtiyaci - item.stok))}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell>{durumBadge(item.durum)}</TableCell>
                     <TableCell>
                       <StokDetayDialog stok={item} />

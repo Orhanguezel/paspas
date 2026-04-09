@@ -87,6 +87,16 @@ export async function getByIds(ids: string[]) {
     .where(inArray(storageAssets.id, ids));
 }
 
+/** url ile getir (local dosyalar için /uploads/… URL'den MIME lookup) */
+export async function getByUrl(url: string) {
+  const rows = await db
+    .select()
+    .from(storageAssets)
+    .where(eq(storageAssets.url, url))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
 /** bucket+path ile getir */
 export async function getByBucketPath(bucket: string, path: string) {
   const rows = await db

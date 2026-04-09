@@ -20,6 +20,7 @@ export type IsYukuDto = {
   planlananBaslangic: string | null;
   planlananBitis: string | null;
   durum: string;
+  isMultiOp: boolean;
   createdAt: Date | string;
   updatedAt: Date | string;
 };

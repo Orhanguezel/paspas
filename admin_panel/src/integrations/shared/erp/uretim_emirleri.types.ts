@@ -26,12 +26,14 @@ export interface UretimEmriDto {
   musteriOzetTipi: "manuel" | "tekil" | "toplam";
   terminRiski: boolean;
   makineAtamaSayisi: number;
+  makineAdlari: string | null;
   silinebilir: boolean;
   silmeNedeni: string | null;
   durum: UretimEmriDurum;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  urunGorsel: string | null;
 }
 
 export interface UretimEmriListResponse {
@@ -81,6 +83,23 @@ export interface UretimKarsilastirma {
   toplamFire: number;
   netUretilen: number;
   fark: number;
+}
+
+export interface HammaddeYeterlilikItemDto {
+  urunId: string;
+  urunKod: string | null;
+  urunAd: string | null;
+  urunGorsel: string | null;
+  gerekliMiktar: number;
+  toplamStok: number;
+  rezerveKuyruk: number;
+  kalanSerbest: number;
+  eksikMiktar: number;
+}
+
+export interface HammaddeYeterlilikResponse {
+  yeterli: boolean;
+  items: HammaddeYeterlilikItemDto[];
 }
 
 export interface UretimEmriAdayDto {
@@ -154,12 +173,14 @@ export function normalizeUretimEmri(raw: unknown): UretimEmriDto {
     musteriOzetTipi: toStr(r.musteriOzetTipi, "manuel") as "manuel" | "tekil" | "toplam",
     terminRiski: toBool(r.terminRiski, false),
     makineAtamaSayisi: toNum(r.makineAtamaSayisi, 0),
+    makineAdlari: r.makineAdlari != null ? toStr(r.makineAdlari) : null,
     silinebilir: toBool(r.silinebilir, true),
     silmeNedeni: r.silmeNedeni != null ? toStr(r.silmeNedeni) : null,
     durum: toStr(r.durum, "atanmamis") as UretimEmriDurum,
     isActive: toBool(r.isActive),
     createdAt: toStr(r.createdAt),
     updatedAt: toStr(r.updatedAt),
+    urunGorsel: r.urunGorsel != null ? toStr(r.urunGorsel) : null,
   };
 }
 

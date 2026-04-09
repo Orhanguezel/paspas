@@ -1,5 +1,17 @@
 import { sql } from 'drizzle-orm';
-import { char, date, datetime, mysqlTable, tinyint, varchar } from 'drizzle-orm/mysql-core';
+import { char, date, datetime, int, mysqlTable, tinyint, varchar } from 'drizzle-orm/mysql-core';
+
+export const birimler = mysqlTable('birimler', {
+  id:         char('id',  { length: 36 }).primaryKey().notNull(),
+  kod:        varchar('kod',  { length: 32 }).notNull(),
+  ad:         varchar('ad',   { length: 64 }).notNull(),
+  sira:       int('sira').notNull().default(0),
+  is_active:  tinyint('is_active', { unsigned: true }).notNull().default(1),
+  created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updated_at: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
+});
+
+export type BirimRow = typeof birimler.$inferSelect;
 
 export const vardiyalar = mysqlTable('vardiyalar', {
   id: char('id', { length: 36 }).primaryKey().notNull(),

@@ -43,14 +43,29 @@ async function dropAndCreate(root: mysql.Connection) {
     `CREATE DATABASE \`${env.DB.name}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
   );
   // DROP DATABASE silince DB-specific GRANT'lar da siliniyor.
-  // Yeni DB icin kullaniciya yetki ver, yoksa sonraki baglanti basarisiz olur.
-  await root.query(
-    `GRANT ALL PRIVILEGES ON \`${env.DB.name}\`.* TO '${env.DB.user}'@'localhost';`
-  );
-  await root.query(
-    `GRANT ALL PRIVILEGES ON \`${env.DB.name}\`.* TO '${env.DB.user}'@'%';`
-  );
-  await root.query(`FLUSH PRIVILEGES;`);
+  // Yeni DB icin kullaniciya yetki ver. Eger baglanti GRANT OPTION tasimiyorsa
+  // (ornek: TCP ile app@% baglaniyorsa) uyari ver ama devam et —
+  // kullanicinin *.* uzerinde zaten yetki varsa seed calismaya devam eder.
+  try {
+    await root.query(
+      `GRANT ALL PRIVILEGES ON \`${env.DB.name}\`.* TO '${env.DB.user}'@'localhost';`
+    );
+    await root.query(
+      `GRANT ALL PRIVILEGES ON \`${env.DB.name}\`.* TO '${env.DB.user}'@'%';`
+    );
+    await root.query(`FLUSH PRIVILEGES;`);
+  } catch (err: unknown) {
+    const code = typeof err === 'object' && err && 'code' in err ? String((err as any).code) : '';
+    if (code === 'ER_DBACCESS_DENIED_ERROR' || code === 'ER_ACCESS_DENIED_ERROR') {
+      logStep(
+        `⚠️  GRANT atlanamadı (${code}): bağlantı kullanıcısının GRANT OPTION yetkisi yok. ` +
+        `Kullanıcı zaten *.* üzerinde yetkiliyse seed devam eder. ` +
+        `Kalıcı çözüm: mysql -u root -p -e "GRANT ALL PRIVILEGES ON *.* TO '${env.DB.user}'@'%' WITH GRANT OPTION; FLUSH PRIVILEGES;"`
+      );
+    } else {
+      throw err;
+    }
+  }
 }
 
 async function createRoot(): Promise<mysql.Connection> {

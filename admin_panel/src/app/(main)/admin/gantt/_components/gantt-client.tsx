@@ -6,7 +6,6 @@ import { ChevronLeft, ChevronRight, RefreshCcw, Search, Wrench } from "lucide-re
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,6 +20,8 @@ const DAY_MS = 86_400_000;
 const ROW_H = 56;
 const LABEL_W = 260;
 const PRESET_COL_W: Record<RangePreset, number> = {
+  gun: 400,
+  uc_gun: 180,
   week: 140,
   month: 42,
   quarter: 14,
@@ -84,6 +85,8 @@ const DURUM_LABELS: Record<string, string> = {
 
 const ALL_DURUMLAR = ["bekliyor", "calisiyor", "duraklatildi", "tamamlandi", "iptal"] as const;
 const RANGE_PRESETS = {
+  gun: 1,
+  uc_gun: 3,
   week: 7,
   month: 30,
   quarter: 90,
@@ -215,15 +218,16 @@ export default function GanttClient() {
   const totalBarCount = useMemo(() => groups.reduce((sum, group) => sum + group.items.length, 0), [groups]);
   const summary = useMemo(() => {
     const bars = groups.flatMap((group) => group.items);
+    const endDates = bars.map((b) => toDate(b.bitisTarihi)).filter((d): d is Date => d !== null);
+    const latestEnd = endDates.length > 0 ? new Date(Math.max(...endDates.map((d) => d.getTime()))) : null;
+    const maxDays = latestEnd ? Math.max(0, daysBetween(today, latestEnd)) : 0;
+
     return {
       makineSayisi: groups.length,
       toplamIs: bars.length,
-      calisan: bars.filter((item) => item.durum === "calisiyor").length,
-      bekleyen: bars.filter((item) => item.durum === "bekliyor").length,
-      durdu: bars.filter((item) => item.durum === "duraklatildi").length,
-      montajli: bars.filter((item) => item.montaj).length,
+      maxDays,
     };
-  }, [groups]);
+  }, [groups, today]);
 
   const { timelineStart, totalDays, columns } = useMemo(() => {
     const start = startOfDay(new Date(baslangic));
@@ -304,18 +308,24 @@ export default function GanttClient() {
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 rounded-md border p-1">
+              <Button variant={rangePreset === "gun" ? "default" : "ghost"} size="sm" onClick={() => applyPreset("gun")}>
+                Günlük
+              </Button>
+              <Button variant={rangePreset === "uc_gun" ? "default" : "ghost"} size="sm" onClick={() => applyPreset("uc_gun")}>
+                3 Gün
+              </Button>
               <Button variant={rangePreset === "week" ? "default" : "ghost"} size="sm" onClick={() => applyPreset("week")}>
-                Haftalik
+                Haftalık
               </Button>
               <Button variant={rangePreset === "month" ? "default" : "ghost"} size="sm" onClick={() => applyPreset("month")}>
-                Aylik
+                Aylık
               </Button>
               <Button
                 variant={rangePreset === "quarter" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => applyPreset("quarter")}
               >
-                3 Aylik
+                3 Aylık
               </Button>
             </div>
             <Button variant="outline" size="sm" onClick={() => shiftRange(-RANGE_PRESETS[rangePreset])}>
@@ -333,13 +343,10 @@ export default function GanttClient() {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
-          <SummaryCard label="Makine" value={summary.makineSayisi} />
-          <SummaryCard label="Toplam İş" value={summary.toplamIs} />
-          <SummaryCard label="Çalışan" value={summary.calisan} valueClassName="text-indigo-600" />
-          <SummaryCard label="Bekleyen" value={summary.bekleyen} valueClassName="text-amber-600" />
-          <SummaryCard label="Durdu" value={summary.durdu} valueClassName="text-orange-600" />
-          <SummaryCard label="Montajlı" value={summary.montajli} valueClassName="text-emerald-600" />
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <span><span className="font-semibold text-foreground">{summary.makineSayisi}</span> makine</span>
+          <span><span className="font-semibold text-foreground">{summary.toplamIs}</span> iş emri</span>
+          <span className="text-indigo-600 font-semibold">{summary.maxDays} günlük iş</span>
         </div>
 
         <div className="flex flex-wrap items-end gap-3">
@@ -421,27 +428,7 @@ export default function GanttClient() {
           <Button variant="ghost" size="sm" onClick={resetFilters}>
             {t("admin.erp.gantt.filters.reset")}
           </Button>
-          <div className="ml-auto flex items-center gap-3 pb-1">
-            {ALL_DURUMLAR.map((durum) => (
-              <div key={durum} className="flex items-center gap-1.5">
-                <span className={`inline-block size-3 rounded-sm ${DURUM_STYLES[durum].dot}`} />
-                <span className="text-xs text-muted-foreground">{DURUM_LABELS[durum]}</span>
-              </div>
-            ))}
-            <div className="flex items-center gap-1.5">
-              <span className="inline-flex size-3 items-center justify-center rounded-full bg-amber-500 text-[6px] font-bold text-white">!</span>
-              <span className="text-xs text-muted-foreground">H.Sonu Bitiş</span>
-            </div>
-            {(["hafta_sonu", "tatil", "durus"] as const).map((tip) => (
-              <div key={tip} className="flex items-center gap-1.5">
-                <span
-                  className={`inline-block size-3 rounded-sm border ${BLOCK_STYLES[tip]}`}
-                  style={blockPatternStyle(tip)}
-                />
-                <span className="text-xs text-muted-foreground">{BLOCK_LABELS[tip]}</span>
-              </div>
-            ))}
-          </div>
+
         </div>
 
         {isLoading ? (
@@ -526,17 +513,6 @@ export default function GanttClient() {
   );
 }
 
-function SummaryCard({ label, value, valueClassName }: { label: string; value: number; valueClassName?: string }) {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="text-xs text-muted-foreground">{label}</div>
-        <div className={`mt-1 text-2xl font-semibold tabular-nums ${valueClassName ?? ""}`}>{value}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function MachineTimelineRow({
   group,
   timelineStart,
@@ -588,22 +564,7 @@ function MachineTimelineRow({
         ))}
       </div>
 
-      {/* Layer 1: Weekend stripes — ALWAYS visible on all weekends for all machines */}
-      <div className="absolute inset-0 z-1 flex pointer-events-none">
-        {columns.map((col) =>
-          col.isWeekend ? (
-            <div
-              key={`wk-${col.date.toISOString()}`}
-              className="h-full"
-              style={{ width: colWidth, ...blockPatternStyle("hafta_sonu") }}
-            />
-          ) : (
-            <div key={`wk-${col.date.toISOString()}`} style={{ width: colWidth }} />
-          ),
-        )}
-      </div>
-
-      {/* Layer 2: Work bars (z-[5]) — on top of weekend stripes */}
+      {/* Layer 2: Work bars (z-[5]) */}
       {bars.length === 0 ? (
         <div className="absolute inset-y-0 left-3 z-5 flex items-center text-xs text-muted-foreground">
           Bu makinede seçili aralıkta planlı iş yok
@@ -614,7 +575,7 @@ function MachineTimelineRow({
         ))
       )}
 
-      {/* Layer 3: Non-working hafta sonu + tatil blocks (z-10) — bar'ların üstünde */}
+      {/* Layer 3: Non-working hafta sonu + tatil blocks — thin top stripe on bar area only */}
       {group.blocks
         .filter((block) => block.tip !== "durus")
         .map((block) => {
@@ -625,8 +586,8 @@ function MachineTimelineRow({
             <Tooltip key={block.id}>
               <TooltipTrigger asChild>
                 <div
-                  className="absolute inset-y-0 z-10 border-x border-background/50"
-                  style={{ left: rect.left, width: rect.width, ...blockPatternStyle(block.tip) }}
+                  className="absolute top-0 z-10 rounded-sm border-x border-background/50"
+                  style={{ left: rect.left, width: rect.width, height: 5, ...blockPatternStyle(block.tip) }}
                 />
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
@@ -679,6 +640,20 @@ function GanttBar({ item, left, top, width }: { item: GanttBarDto; left: number;
   const bitisDate = toDate(item.bitisTarihi);
   const isWeekendBitis = bitisDate ? bitisDate.getDay() === 0 || bitisDate.getDay() === 6 : false;
 
+  // GN-5: Pause indicator — striped overlay from pause time to now
+  const pauseOverlay = useMemo(() => {
+    if (item.durum !== "duraklatildi" || !item.duraklatmaZamani) return null;
+    const startMs = toDate(item.baslangicTarihi)?.getTime();
+    const endMs = toDate(item.bitisTarihi)?.getTime();
+    const pauseMs = toDate(item.duraklatmaZamani)?.getTime();
+    const nowMs = Date.now();
+    if (!startMs || !endMs || !pauseMs || endMs <= startMs) return null;
+    const span = endMs - startMs;
+    const pausePct = Math.min(100, Math.max(0, ((pauseMs - startMs) / span) * 100));
+    const nowPct = Math.min(100, Math.max(pausePct, ((nowMs - startMs) / span) * 100));
+    return { pausePct, nowPct };
+  }, [item.durum, item.duraklatmaZamani, item.baslangicTarihi, item.bitisTarihi]);
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -690,6 +665,25 @@ function GanttBar({ item, left, top, width }: { item: GanttBarDto; left: number;
               <div className={`absolute inset-y-0 left-0 ${style.fill}`} style={{ width: `${pct}%` }} />
             )}
             {isCancelled && <div className={`absolute inset-0 opacity-35 ${style.fill}`} />}
+            {pauseOverlay && (
+              <>
+                {/* Striped downtime area */}
+                <div
+                  className="absolute inset-y-0 z-10"
+                  style={{
+                    left: `${pauseOverlay.pausePct}%`,
+                    width: `${pauseOverlay.nowPct - pauseOverlay.pausePct}%`,
+                    backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(0,0,0,0.12) 3px, rgba(0,0,0,0.12) 6px)",
+                    backgroundColor: "rgba(251,146,60,0.25)",
+                  }}
+                />
+                {/* Pause start line */}
+                <div
+                  className="absolute inset-y-0 z-20 w-0.5 bg-orange-500"
+                  style={{ left: `${pauseOverlay.pausePct}%` }}
+                />
+              </>
+            )}
             <div className={`absolute inset-0 flex items-center gap-1 px-2 text-[10px] font-medium ${style.text}`}>
               <span className="truncate">{item.operasyonAdi ?? item.emirNo}</span>
               {item.musteriOzet && width > 120 && <span className="shrink-0 text-muted-foreground">· {item.musteriOzet}</span>}
@@ -714,6 +708,9 @@ function GanttBar({ item, left, top, width }: { item: GanttBarDto; left: number;
           {item.musteriOzet && <div>Müşteri: {item.musteriOzet}</div>}
           <div>Başlangıç: {formatDateTime(item.baslangicTarihi)}</div>
           <div>Bitiş: {formatDateTime(item.bitisTarihi)}</div>
+          {item.duraklatmaZamani && (
+            <div className="font-medium text-orange-600">⏸ Duraklatıldı: {formatDateTime(item.duraklatmaZamani)}</div>
+          )}
           {isWeekendBitis && (
             <div className="font-medium text-amber-600">⚠ Bitiş hafta sonuna denk geliyor</div>
           )}

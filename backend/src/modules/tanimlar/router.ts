@@ -3,6 +3,11 @@ import type { FastifyInstance } from 'fastify';
 import { makeAdminPermissionGuard } from '@/common/middleware/permissions';
 
 import {
+  listBirimler,
+  getBirim,
+  createBirim,
+  updateBirim,
+  deleteBirim,
   createKalip,
   createTatil,
   deleteKalip,
@@ -38,6 +43,12 @@ export async function registerTanimlar(app: FastifyInstance) {
   const guard = makeAdminPermissionGuard('admin.tanimlar');
 
   app.get(`${BASE}/makineler`, { preHandler: guard }, listMakinelerForTanim);
+
+  app.get(`${BASE}/birimler`,      { preHandler: guard }, listBirimler);
+  app.get(`${BASE}/birimler/:id`,  { preHandler: guard }, getBirim);
+  app.post(`${BASE}/birimler`,     { preHandler: guard }, createBirim);
+  app.patch(`${BASE}/birimler/:id`,{ preHandler: guard }, updateBirim);
+  app.delete(`${BASE}/birimler/:id`,{ preHandler: guard }, deleteBirim);
 
   app.get(`${BASE}/kaliplar`, { preHandler: guard }, listKaliplar);
   app.get(`${BASE}/kaliplar/:id`, { preHandler: guard }, getKalip);

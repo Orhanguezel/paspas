@@ -120,10 +120,10 @@ function KuyrukItem({
         >
           <GripVertical className="size-4" />
         </button>
-        <span className="font-mono text-muted-foreground w-5 text-center shrink-0">
+        <span className="font-mono text-muted-foreground w-6 text-center shrink-0 text-sm">
           {item.sira}
         </span>
-        <span className="font-mono font-semibold">{item.emirNo}</span>
+        <span className="font-mono font-bold text-sm tracking-tight">{item.emirNo}</span>
         {isCalisyor && (
           <Badge variant="default" className="text-[10px] px-1.5 py-0">
             {t('kuyrukYonetimi.kuyruklar.calisiyor')}
@@ -149,13 +149,13 @@ function KuyrukItem({
       </div>
 
       {/* Row 2: Product + Operation */}
-      <div className="ml-11 space-y-1">
-        <div className="flex items-center gap-1.5 text-foreground">
-          <Package className="size-3 text-muted-foreground shrink-0" />
-          <span className="font-mono text-muted-foreground">{item.urunKod}</span>
-          <span className="truncate">{item.urunAd}</span>
-          <span className="text-muted-foreground">—</span>
-          <span className="truncate">{item.operasyonAdi}</span>
+      <div className="ml-11 space-y-1.5">
+        <div className="flex items-center gap-2 text-foreground">
+          <Package className="size-4 text-slate-400 shrink-0" />
+          <span className="font-mono text-muted-foreground text-[11px]">{item.urunKod}</span>
+          <span className="truncate font-semibold text-sm">{item.urunAd}</span>
+          <span className="text-slate-300">—</span>
+          <span className="truncate font-medium text-slate-700">{item.operasyonAdi}</span>
         </div>
 
         {/* Row 3: Quantities */}
@@ -389,9 +389,9 @@ export default function MakineKuyrukTab({ t }: MakineKuyrukTabProps) {
             <CardHeader className="pb-2">
               <div className="flex flex-wrap items-start gap-3">
                 <div>
-                  <CardTitle className="flex items-center gap-2 text-sm">
-                    <span className="font-mono font-semibold">{grup.makineKod}</span>
-                    <span className="font-normal text-muted-foreground">{grup.makineAd}</span>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <span className="font-mono font-bold text-primary">{grup.makineKod}</span>
+                    <span className="font-semibold text-slate-700">{grup.makineAd}</span>
                   </CardTitle>
                 </div>
                 <div className="ml-auto grid min-w-[220px] gap-2 sm:grid-cols-3">

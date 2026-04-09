@@ -14,10 +14,12 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Copy, Image as ImageIcon, Library, Upload, Star, Trash2, X } from 'lucide-react';
+import { Copy, FileText, Image as ImageIcon, Library, Upload, Star, Trash2, X } from 'lucide-react';
 
 import { useCreateAssetAdminMutation, useListAssetsAdminQuery } from '@/integrations/hooks';
 import { resolveMediaUrl } from '@/lib/media-url';
+import { BASE_URL } from '@/integrations/apiBase';
+import type { StorageAsset } from '@/integrations/shared';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -26,6 +28,12 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Sheet,
   SheetContent,
@@ -52,6 +60,9 @@ export type AdminImageUploadFieldProps = {
 
   onSelectAsCover?: (url: string) => void;
   coverValue?: string;
+
+  /** URL → medya tipi haritası. URL uzantısından tespit edilemeyen PDF'ler için. */
+  valueTypes?: Record<string, string>;
 
   disabled?: boolean;
 
@@ -81,6 +92,30 @@ const isSvgUrl = (raw: string | undefined | null): boolean => {
 
   // raw/upload + uzantısız (favicon gibi) artık svg değil
   return false;
+};
+
+const isPdfUrl = (raw: string | undefined | null): boolean => {
+  const s = norm(raw);
+  if (!s) return false;
+  const base = s.toLowerCase().split('?')[0].split('#')[0];
+  return base.endsWith('.pdf');
+};
+
+/**
+ * Cloudinary PDF → ilk sayfa JPEG thumbnail URL'i.
+ * Sadece resource_type="image" ile yüklenen PDF'lerde çalışır.
+ * /raw/upload/ veya Cloudinary dışı URL'lerde null döner.
+ */
+const cloudinaryPdfThumbUrl = (raw: string): string | null => {
+  const s = norm(raw);
+  if (!s || !s.includes('res.cloudinary.com')) return null;
+  if (s.includes('/raw/upload/')) return null;
+  const marker = '/upload/';
+  const idx = s.indexOf(marker);
+  if (idx < 0) return null;
+  const before = s.slice(0, idx + marker.length);
+  const after = s.slice(idx + marker.length);
+  return `${before}f_jpg,pg_1/${after}`;
 };
 
 const withCloudinarySanitizeIfSvg = (raw: string): string => {
@@ -157,6 +192,63 @@ const ratioOf = (aspect: '16x9' | '4x3' | '1x1') => {
   return 16 / 9;
 };
 
+/** Encode path segments for URL */
+const encodeAssetPath = (p: string | null | undefined): string => {
+  const s = norm(p);
+  if (!s) return '';
+  return s.split('/').map(encodeURIComponent).join('/');
+};
+
+/**
+ * Resolve preview URL for a storage asset.
+ * Prefers Cloudinary/absolute URLs, falls back to /storage/{bucket}/{path}
+ * which does a 302 redirect on the backend — works for both local and cloudinary.
+ */
+const getAdminAssetPreviewUrl = (asset: Pick<StorageAsset, 'url' | 'bucket' | 'path'>): string => {
+  const rawUrl = norm(asset.url);
+
+  // Absolute URLs (Cloudinary etc.) — use directly
+  if (rawUrl && /^https?:\/\//i.test(rawUrl)) return rawUrl;
+
+  // Fallback: /storage/{bucket}/{path} endpoint (does 302 redirect)
+  const bucket = norm(asset.bucket);
+  const path = encodeAssetPath(asset.path);
+  if (bucket && path) {
+    const base = BASE_URL.replace(/\/+$/, '');
+    return `${base}/storage/${encodeURIComponent(bucket)}/${path}`;
+  }
+
+  // Last resort: try resolveMediaUrl on the raw url
+  if (rawUrl) return resolveMediaUrl(rawUrl);
+
+  return '';
+};
+
+/** PDF thumbnail: önce Cloudinary'den ilk sayfa JPEG dene, başarısızsa PDF ikonu göster. */
+const PdfPreviewCell: React.FC<{ url: string }> = ({ url }) => {
+  const thumb = cloudinaryPdfThumbUrl(url);
+  const [thumbOk, setThumbOk] = React.useState(!!thumb);
+
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-muted/30">
+      {thumbOk && thumb ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={thumb}
+          alt="PDF önizleme"
+          className="h-full w-full object-contain"
+          onError={() => setThumbOk(false)}
+        />
+      ) : (
+        <>
+          <FileText className="size-10 text-muted-foreground" />
+          <span className="text-xs font-medium text-muted-foreground">PDF</span>
+        </>
+      )}
+    </div>
+  );
+};
+
 const UrlLine: React.FC<{ url: string; disabled?: boolean }> = ({ url, disabled }) => {
   const safe = norm(url);
   if (!safe) return null;
@@ -209,6 +301,7 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
   onChangeMultiple,
   onSelectAsCover,
   coverValue,
+  valueTypes,
 
   disabled,
   openLibraryHref,
@@ -220,6 +313,9 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [createAssetAdmin, { isLoading: isUploading }] = useCreateAssetAdminMutation();
+
+  // PDF inline preview dialog
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -421,6 +517,7 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
     }
 
     const svg = isSvgUrl(value);
+    const pdf = isPdfUrl(value) || valueTypes?.[value] === 'pdf';
     const previewUrlRaw = svg ? withCloudinarySanitizeIfSvg(value) : value;
     const previewUrl = resolveMediaUrl(previewUrlRaw);
 
@@ -430,7 +527,9 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
 
         <div className="overflow-hidden rounded-md border bg-background">
           <AspectRatio ratio={aspect}>
-            {svg ? (
+            {pdf ? (
+              <PdfPreviewCell url={value} />
+            ) : svg ? (
               <object
                 data={previewUrl}
                 type="image/svg+xml"
@@ -472,6 +571,18 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
           </AspectRatio>
         </div>
 
+        {pdf && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setPdfPreviewUrl(resolveMediaUrl(value))}
+          >
+            <FileText className="mr-2 size-4" />
+            PDF'i Görüntüle
+          </Button>
+        )}
+
         {/* Full URL display */}
         <div className="rounded-md border bg-muted/50 p-2">
           <div className="mb-1 text-xs font-medium text-muted-foreground">URL:</div>
@@ -502,6 +613,7 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
           {gallery.map((u, idx) => {
             const isCover = !!coverValue && norm(coverValue) === u;
             const svg = isSvgUrl(u);
+            const pdf = isPdfUrl(u) || valueTypes?.[u] === 'pdf';
             const previewUrlRaw = svg ? withCloudinarySanitizeIfSvg(u) : u;
             const previewUrl = resolveMediaUrl(previewUrlRaw);
 
@@ -514,7 +626,9 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
                   <div className="w-35 shrink-0">
                     <div className="overflow-hidden rounded-md border bg-background">
                       <AspectRatio ratio={16 / 9}>
-                        {svg ? (
+                        {pdf ? (
+                          <PdfPreviewCell url={u} />
+                        ) : svg ? (
                           <object
                             data={previewUrl}
                             type="image/svg+xml"
@@ -559,7 +673,7 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium" title={u}>
-                          {isCover ? 'Kapak' : `Görsel ${idx + 1}`}
+                          {pdf ? 'PDF' : isCover ? 'Kapak' : `Görsel ${idx + 1}`}
                         </div>
                         {isCover ? (
                           <Badge variant="secondary" className="mt-1">
@@ -569,7 +683,18 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
                       </div>
 
                       <div className="flex shrink-0 items-center gap-2">
-                        {onSelectAsCover ? (
+                        {pdf ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            title="PDF'i görüntüle"
+                            onClick={() => setPdfPreviewUrl(resolveMediaUrl(u))}
+                          >
+                            <FileText className="mr-2 size-4" />
+                            Görüntüle
+                          </Button>
+                        ) : onSelectAsCover ? (
                           <Button
                             type="button"
                             variant={isCover ? 'default' : 'outline'}
@@ -727,17 +852,17 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
                 ) : (
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
                     {assetsData.items.map((asset) => {
-                      const rawUrl = asset.url || '';
-                      const resolvedUrl = resolveMediaUrl(rawUrl);
+                      const previewUrl = getAdminAssetPreviewUrl(asset);
+                      const selectUrl = previewUrl || asset.url || '';
                       const isSelected = multiple
-                        ? gallery.includes(rawUrl)
-                        : value === rawUrl;
+                        ? gallery.some((g) => g === asset.url || g === previewUrl)
+                        : (value === asset.url || value === previewUrl);
 
                       return (
                         <button
                           key={asset.id}
                           type="button"
-                          onClick={() => handleSelectFromLibrary(rawUrl, asset.id)}
+                          onClick={() => handleSelectFromLibrary(selectUrl, asset.id)}
                           disabled={busy}
                           className={cn(
                             'group relative overflow-hidden rounded-lg border transition-all hover:border-primary',
@@ -745,11 +870,35 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
                           )}
                         >
                           <AspectRatio ratio={1}>
-                            <img
-                              src={resolvedUrl}
-                              alt={asset.name || 'Asset'}
-                              className="size-full object-cover transition-transform group-hover:scale-105"
-                            />
+                            {isPdfUrl(selectUrl) ? (
+                              <div className="flex size-full flex-col items-center justify-center gap-1 bg-muted/30">
+                                <FileText className="size-8 text-muted-foreground transition-colors group-hover:text-primary" />
+                                <span className="truncate px-1 text-xs text-muted-foreground">PDF</span>
+                              </div>
+                            ) : (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={previewUrl}
+                                alt={asset.name || 'Asset'}
+                                className="size-full object-cover transition-transform group-hover:scale-105"
+                                onError={(e) => {
+                                  const img = e.currentTarget as HTMLImageElement;
+                                  img.style.display = 'none';
+                                  const parent = img.parentElement;
+                                  if (parent && !parent.querySelector('.error-placeholder')) {
+                                    const errorDiv = document.createElement('div');
+                                    errorDiv.className =
+                                      'error-placeholder absolute inset-0 flex items-center justify-center bg-muted/50';
+                                    errorDiv.innerHTML = `
+                                      <svg class="size-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                    `;
+                                    parent.appendChild(errorDiv);
+                                  }
+                                }}
+                              />
+                            )}
                           </AspectRatio>
                           {isSelected && (
                             <div className="absolute inset-0 flex items-center justify-center bg-primary/20">
@@ -793,6 +942,22 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
             </Tabs>
           </SheetContent>
         </Sheet>
+
+        {/* PDF Inline Preview Dialog */}
+        <Dialog open={!!pdfPreviewUrl} onOpenChange={(open) => { if (!open) setPdfPreviewUrl(null); }}>
+          <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
+            <DialogHeader className="px-4 py-3 border-b shrink-0">
+              <DialogTitle className="text-sm font-medium">PDF Önizleme</DialogTitle>
+            </DialogHeader>
+            {pdfPreviewUrl && (
+              <iframe
+                src={pdfPreviewUrl}
+                className="flex-1 w-full border-0"
+                title="PDF önizleme"
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

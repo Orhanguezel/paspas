@@ -63,12 +63,10 @@ export default function Layout({ children }: Readonly<{ children: ReactNode }>) 
                   <AdminBrandTitle />
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <LayoutControls />
-                  <ThemeSwitcher />
-                  {/* AccountSwitcher me bilgisini AdminAuthGate hydrate edecek; burada placeholder */}
-                  <AccountSwitcher me={{ id: 'me', email: 'admin', role: 'admin' }} />
-                </div>
+                  <div className="flex items-center gap-2">
+                    <LayoutControls />
+                    <ThemeSwitcher />
+                  </div>
               </div>
             </header>
 

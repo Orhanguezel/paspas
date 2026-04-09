@@ -1,10 +1,13 @@
 // =============================================================
 // FILE: src/modules/storage/controller.ts
 // =============================================================
+import { createReadStream, existsSync } from "node:fs";
+import nodePath from "node:path";
 import type { RouteHandler } from "fastify";
 import { randomUUID } from "node:crypto";
 import type { MultipartFile } from "@fastify/multipart";
 
+import { env } from "@/core/env";
 import { getCloudinaryConfig, uploadBufferAuto } from "./cloudinary";
 import { buildPublicUrl, stripLeadingSlashes } from "./util";
 
@@ -66,6 +69,38 @@ export const publicServe: RouteHandler<{
   }
 
   const cfg = await getCloudinaryConfig();
+
+  // Local files: stream directly with correct MIME so browser renders inline
+  if (row.provider === "local") {
+    const localRoot =
+      cfg?.localRoot ||
+      env.LOCAL_STORAGE_ROOT ||
+      nodePath.join(process.cwd(), "uploads");
+    const rel = (row.provider_public_id ?? row.path ?? "").replace(/^\/+/, "");
+    const absPath = nodePath.join(localRoot, rel);
+
+    if (!existsSync(absPath)) {
+      req.log.warn(
+        { bucket, path, absPath },
+        "storage_public_serve_local_file_missing",
+      );
+      return reply.code(404).send({ message: "file_not_found" });
+    }
+
+    const mime = row.mime || "application/octet-stream";
+    const filename = row.name || nodePath.basename(rel);
+
+    req.log.info(
+      { bucket, path, absPath, mime },
+      "storage_public_serve_local_stream",
+    );
+
+    reply.type(mime);
+    reply.header("Content-Disposition", `inline; filename="${filename}"`);
+    reply.header("Cache-Control", "public, max-age=31536000, immutable");
+    return reply.send(createReadStream(absPath));
+  }
+
   const redirectUrl = buildPublicUrl(bucket, path, row.url, cfg ?? undefined);
 
   req.log.info(
