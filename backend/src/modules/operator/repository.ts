@@ -665,35 +665,36 @@ export async function repoUretimBitir(
       kayit_tarihi: now,
     });
 
-    // Apply stock correction (reconcile measurements vs actual)
-    if (stokFarki !== 0 && kqRow.uretim_emri_id) {
-      // OP-1c: Only assembly (Montaj) or single-sided jobs should affect stock
-      let hasStockImpact = false;
-      if (kqRow.emir_operasyon_id) {
-        const [opCount] = await tx
-          .select({ count: sql<number>`count(*)` })
-          .from(uretimEmriOperasyonlari)
-          .where(eq(uretimEmriOperasyonlari.uretim_emri_id, kqRow.uretim_emri_id));
-        
-        const isSingleSided = Number(opCount?.count ?? 0) <= 1;
-        const [opRow] = await tx
-          .select({ montaj: uretimEmriOperasyonlari.montaj })
-          .from(uretimEmriOperasyonlari)
-          .where(eq(uretimEmriOperasyonlari.id, kqRow.emir_operasyon_id))
-          .limit(1);
-        
-        hasStockImpact = isSingleSided || (opRow?.montaj === 1);
-      } else {
-        hasStockImpact = true; // Legacy support
-      }
+    // OP-10: Determine stock impact upfront — used for both stock update AND parent qty.
+    // For dual-sided (çift taraflı) products only the montaj operation affects stock & progress.
+    // Single-sided or legacy (no emir_operasyon_id) always affect stock.
+    let hasStockImpact = true;
+    if (kqRow.emir_operasyon_id && kqRow.uretim_emri_id) {
+      const [opCount] = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(uretimEmriOperasyonlari)
+        .where(eq(uretimEmriOperasyonlari.uretim_emri_id, kqRow.uretim_emri_id));
+      const isSingleSided = Number(opCount?.count ?? 0) <= 1;
 
+      const [opRow] = await tx
+        .select({ montaj: uretimEmriOperasyonlari.montaj })
+        .from(uretimEmriOperasyonlari)
+        .where(eq(uretimEmriOperasyonlari.id, kqRow.emir_operasyon_id))
+        .limit(1);
+
+      hasStockImpact = isSingleSided || (Number(opRow?.montaj ?? 0) === 1);
+    }
+
+    // Apply stock correction (reconcile measurements vs actual)
+    // Only for montaj or single-sided operations.
+    if (stokFarki !== 0 && kqRow.uretim_emri_id && hasStockImpact) {
       const [emirRow] = await tx
         .select({ urun_id: uretimEmirleri.urun_id, recete_id: uretimEmirleri.recete_id })
         .from(uretimEmirleri)
         .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id))
         .limit(1);
 
-      if (emirRow?.urun_id && hasStockImpact) {
+      if (emirRow?.urun_id) {
         await tx
           .update(urunler)
           .set({ stok: sql`${urunler.stok} + ${stokFarki.toFixed(4)}` })
@@ -712,7 +713,7 @@ export async function repoUretimBitir(
           created_by_user_id: operatorUserId ?? null,
         });
 
-        // Also consume raw materials for the delta
+        // Consume raw materials for the delta
         await consumeRecipeMaterials(tx, kqRow.uretim_emri_id, stokFarki, operatorUserId);
       }
     }
@@ -731,6 +732,9 @@ export async function repoUretimBitir(
     }
 
     // Update parent emir
+    // uretilen_miktar is only updated from the montaj (or single-sided) operation.
+    // Non-montaj ops in a dual-sided product don't define the finished quantity.
+    // bitis_tarihi and durum are always updated when all ops finish.
     if (kqRow.uretim_emri_id) {
       const pendingOps = await tx
         .select({ count: sql<number>`count(*)` })
@@ -744,19 +748,14 @@ export async function repoUretimBitir(
 
       const remaining = Number(pendingOps[0]?.count ?? 0);
 
-      if (remaining <= 0) {
+      const emirUpdate: Record<string, unknown> = {};
+      if (hasStockImpact) emirUpdate.uretilen_miktar = body.uretilenMiktar.toFixed(4);
+      if (remaining <= 0) { emirUpdate.durum = 'tamamlandi'; emirUpdate.bitis_tarihi = now; }
+
+      if (Object.keys(emirUpdate).length > 0) {
         await tx
           .update(uretimEmirleri)
-          .set({
-            uretilen_miktar: body.uretilenMiktar.toFixed(4),
-            durum: 'tamamlandi',
-            bitis_tarihi: now,
-          })
-          .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id));
-      } else {
-        await tx
-          .update(uretimEmirleri)
-          .set({ uretilen_miktar: body.uretilenMiktar.toFixed(4) })
+          .set(emirUpdate)
           .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id));
       }
     }
