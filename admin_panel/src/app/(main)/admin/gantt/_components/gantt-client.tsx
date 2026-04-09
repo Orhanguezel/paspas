@@ -149,16 +149,17 @@ function preciseDayDuration(start: Date, end: Date): number {
 function blockPatternStyle(tip: GanttBlockDto["tip"]): React.CSSProperties {
   if (tip === "durus") {
     return {
-      backgroundColor: "rgba(251,146,60,0.25)", // orange-400/25 — semi-transparent, bars show through
+      backgroundColor: "rgba(251,146,60,0.25)",
       backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(251,146,60,0.3) 4px, rgba(251,146,60,0.3) 8px)",
     };
   }
   if (tip === "tatil") {
-    // Full-height holiday block — rose tint, bars (z-5) render on top
-    return { backgroundColor: "rgba(254,202,202,0.55)" }; // rose-200/55
+    // Full-height, z-6 — renders ABOVE work bars (z-5): holiday day is always blocked
+    return { backgroundColor: "rgba(254,202,202,0.82)" };
   }
-  // hafta_sonu — full-height, bars (z-5) render on top when machine works weekends
-  return { backgroundColor: "rgba(148,163,184,0.22)" }; // slate-400/22
+  // hafta_sonu — full-height, z-6 — renders ABOVE work bars (z-5) when machine doesn't work weekends.
+  // Machines that work on weekends won't have a hafta_sonu block, so their bars stay visible.
+  return { backgroundColor: "rgba(203,213,225,0.82)" }; // slate-300/82
 }
 
 function getBlockRect(block: GanttBlockDto, timelineStart: Date, totalDays: number, colWidth: number) {
@@ -492,7 +493,7 @@ export default function GanttClient() {
                           col.isToday
                             ? "bg-blue-100 font-semibold text-blue-700"
                             : col.isWeekend
-                              ? "bg-slate-200/70 text-slate-500"
+                              ? "bg-slate-300/60 text-slate-600 font-semibold"
                               : "text-muted-foreground"
                         }`}
                         style={{ width: colWidth }}
@@ -569,14 +570,15 @@ function MachineTimelineRow({
         {columns.map((col) => (
           <div
             key={col.date.toISOString()}
-            className={`h-full border-r ${
-              col.isToday
-                ? "bg-blue-50/40"
+            className="h-full border-r"
+            style={{
+              width: colWidth,
+              backgroundColor: col.isToday
+                ? "rgba(219,234,254,0.45)"   // blue-200/45 — today
                 : col.isWeekend
-                  ? "bg-slate-100/60"
-                  : ""
-            }`}
-            style={{ width: colWidth }}
+                  ? "rgba(226,232,240,0.55)" // slate-200/55 — weekend baseline
+                  : undefined,
+            }}
           />
         ))}
       </div>
@@ -592,7 +594,9 @@ function MachineTimelineRow({
         ))
       )}
 
-      {/* Layer 1: Non-working hafta sonu + tatil blocks — full-height, z-1 so work bars (z-5) render on top */}
+      {/* Layer 6: Non-working hafta sonu + tatil blocks — full-height, z-6 (ABOVE work bars z-5).
+           Machines that work weekends won't have a hafta_sonu block, so their bars remain visible.
+           Machines that don't work weekends: this overlay covers any misplaced bars. */}
       {group.blocks
         .filter((block) => block.tip !== "durus")
         .map((block) => {
@@ -603,7 +607,7 @@ function MachineTimelineRow({
             <Tooltip key={block.id}>
               <TooltipTrigger asChild>
                 <div
-                  className="absolute inset-y-0 z-1"
+                  className="absolute inset-y-0 z-6"
                   style={{ left: rect.left, width: rect.width, ...blockPatternStyle(block.tip) }}
                 />
               </TooltipTrigger>
