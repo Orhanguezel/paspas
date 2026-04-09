@@ -44,13 +44,14 @@ function buildWhere(query: ListQuery): SQL | undefined {
   const conditions: SQL[] = [];
   if (query.dateFrom) {
     const from = new Date(`${query.dateFrom}T00:00:00`);
-    // Check both planned and actual end dates (completed items may only have actual dates in range)
     conditions.push(
       or(
         gte(makineKuyrugu.planlanan_bitis, from),
         gte(makineKuyrugu.gercek_bitis, from),
-        // Also include items with no end date yet (active/paused)
+        // Active/paused with no real end — always include
         sql`${makineKuyrugu.gercek_bitis} IS NULL AND ${makineKuyrugu.durum} IN ('calisiyor', 'duraklatildi')`,
+        // Queued items with no end date yet — always include (preceding job may be delayed)
+        sql`${makineKuyrugu.durum} = 'bekliyor' AND ${makineKuyrugu.gercek_bitis} IS NULL`,
       ) as SQL,
     );
   }
@@ -60,6 +61,8 @@ function buildWhere(query: ListQuery): SQL | undefined {
       or(
         lte(makineKuyrugu.planlanan_baslangic, to),
         lte(makineKuyrugu.gercek_baslangic, to),
+        // Queued items with no gercek_baslangic yet — include if planned start ≤ dateTo or no plan at all
+        sql`${makineKuyrugu.durum} = 'bekliyor' AND ${makineKuyrugu.gercek_baslangic} IS NULL`,
       ) as SQL,
     );
   }
@@ -375,16 +378,35 @@ function rowToDto(row: QueryRow): GanttBarDto {
     operasyonAdi: row.operasyonAdi ?? null,
     montaj: Number(row.montaj ?? 0) > 0,
     sira: Number(row.sira ?? 0),
-    baslangicTarihi: toDateTimeString(row.gercek_baslangic ?? row.planlanan_baslangic),
-    bitisTarihi: (() => {
-      // Active/paused jobs with no real end → always extend bar to now
-      // Never show planlanan_bitis as end for ongoing jobs (misleading)
+    ...(() => {
+      const now = new Date();
+      // Active/paused: extend bar to now (real end unknown)
       if (!row.gercek_bitis && (row.durum === 'calisiyor' || row.durum === 'duraklatildi')) {
-        return new Date().toISOString();
+        return {
+          baslangicTarihi: toDateTimeString(row.gercek_baslangic ?? row.planlanan_baslangic),
+          bitisTarihi: now.toISOString(),
+          acikDurus: true,
+        };
       }
-      return toDateTimeString(row.gercek_bitis ?? row.planlanan_bitis);
+      // Bekliyor: if planned start is in the past (preceding job delayed), push bar to now
+      if (row.durum === 'bekliyor' && !row.gercek_baslangic && row.planlanan_baslangic) {
+        const plannedStart = row.planlanan_baslangic instanceof Date ? row.planlanan_baslangic : new Date(String(row.planlanan_baslangic));
+        if (plannedStart < now) {
+          const plannedEnd = row.planlanan_bitis instanceof Date ? row.planlanan_bitis : (row.planlanan_bitis ? new Date(String(row.planlanan_bitis)) : null);
+          const durationMs = plannedEnd ? plannedEnd.getTime() - plannedStart.getTime() : 4 * 3_600_000; // fallback 4h
+          return {
+            baslangicTarihi: now.toISOString(),
+            bitisTarihi: new Date(now.getTime() + durationMs).toISOString(),
+            acikDurus: false,
+          };
+        }
+      }
+      return {
+        baslangicTarihi: toDateTimeString(row.gercek_baslangic ?? row.planlanan_baslangic),
+        bitisTarihi: toDateTimeString(row.gercek_bitis ?? row.planlanan_bitis),
+        acikDurus: false,
+      };
     })(),
-    acikDurus: !row.gercek_bitis && (row.durum === 'calisiyor' || row.durum === 'duraklatildi'),
     planlananBaslangicTarihi: toDateTimeString(row.planlanan_baslangic),
     planlananBitisTarihi: toDateTimeString(row.planlanan_bitis),
     terminTarihi: toDateString(row.termin_tarihi),
