@@ -380,7 +380,12 @@ export default function IsYukleriClient() {
       .map((machine) => ({ makineId: machine.id, makineKod: machine.kod, makineAd: machine.ad }));
     const nextGroups = machineList.map((machine) => ({
       ...machine,
-      items: (data?.items ?? []).filter((item) => item.makineId === machine.makineId).sort((a, b) => a.sira - b.sira),
+      items: (data?.items ?? [])
+          .filter((item) => item.makineId === machine.makineId)
+          .sort((a, b) => {
+            const p = (d: string) => (d === 'calisiyor' || d === 'duraklatildi' ? 0 : d === 'bekliyor' ? 1 : 2);
+            return p(a.durum) !== p(b.durum) ? p(a.durum) - p(b.durum) : a.sira - b.sira;
+          }),
     }));
     setLocalGroups(makineId !== 'hepsi' ? nextGroups : nextGroups.filter((g) => g.items.length > 0));
   }, [data?.items, makineler?.items, makineId]);
@@ -481,7 +486,12 @@ export default function IsYukleriClient() {
         .map((machine) => ({ makineId: machine.id, makineKod: machine.kod, makineAd: machine.ad }));
       const rollback = machineList.map((machine) => ({
         ...machine,
-        items: (data?.items ?? []).filter((item) => item.makineId === machine.makineId).sort((a, b) => a.sira - b.sira),
+        items: (data?.items ?? [])
+          .filter((item) => item.makineId === machine.makineId)
+          .sort((a, b) => {
+            const p = (d: string) => (d === 'calisiyor' || d === 'duraklatildi' ? 0 : d === 'bekliyor' ? 1 : 2);
+            return p(a.durum) !== p(b.durum) ? p(a.durum) - p(b.durum) : a.sira - b.sira;
+          }),
       }));
       setLocalGroups(makineId !== 'hepsi' ? rollback : rollback.filter((g) => g.items.length > 0));
     }
