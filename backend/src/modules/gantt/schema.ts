@@ -21,6 +21,7 @@ export type GanttBarDto = {
   uretilenMiktar: number;
   durum: string;
   duraklatmaZamani: string | null;
+  acikDurus: boolean; // true = calisiyor/duraklatildi, gercek_bitis yok
   duruslar?: GanttBlockDto[];
 };
 
@@ -30,6 +31,7 @@ export type GanttBlockDto = {
   baslangicTarihi: string;
   bitisTarihi: string;
   etiket: string;
+  acik?: boolean; // true = bitis=NULL, devam eden duruş
 };
 
 export type GanttMachineDto = {

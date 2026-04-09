@@ -624,12 +624,22 @@ function MachineTimelineRow({
             <Tooltip key={block.id}>
               <TooltipTrigger asChild>
                 <div
-                  className={`absolute inset-y-0 z-3 border-x border-orange-300`}
-                  style={{ left: rect.left, width: rect.width, ...blockPatternStyle(block.tip) }}
+                  className="absolute inset-y-0 z-3 border-l border-orange-400"
+                  style={{
+                    left: rect.left,
+                    width: rect.width,
+                    borderRight: block.acik ? "2px dashed rgb(251,146,60)" : "1px solid rgb(251,146,60)",
+                    ...blockPatternStyle(block.tip),
+                  }}
                 />
               </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs">
-                {BLOCK_LABELS[block.tip]}: {formatDateTime(block.baslangicTarihi)} → {formatDateTime(block.bitisTarihi)}
+              <TooltipContent side="top" className="text-xs space-y-0.5">
+                <div className="font-medium text-orange-600">⚠ {block.etiket || BLOCK_LABELS[block.tip]}</div>
+                <div>Başlangıç: {formatDateTime(block.baslangicTarihi)}</div>
+                {block.acik
+                  ? <div className="font-semibold text-orange-600">Bitiş: Devam Ediyor</div>
+                  : <div>Bitiş: {formatDateTime(block.bitisTarihi)}</div>
+                }
               </TooltipContent>
             </Tooltip>
           );
@@ -713,7 +723,10 @@ function GanttBar({ item, left, top, width }: { item: GanttBarDto; left: number;
           {item.operasyonAdi && <div className="font-medium">{item.operasyonAdi}</div>}
           {item.musteriOzet && <div>Müşteri: {item.musteriOzet}</div>}
           <div>Başlangıç: {formatDateTime(item.baslangicTarihi)}</div>
-          <div>Bitiş: {formatDateTime(item.bitisTarihi)}</div>
+          {item.acikDurus
+            ? <div className="font-semibold text-orange-600">Bitiş: Devam Ediyor</div>
+            : <div>Bitiş: {formatDateTime(item.bitisTarihi)}</div>
+          }
           {item.duraklatmaZamani && (
             <div className="font-medium text-orange-600">⏸ Duraklatıldı: {formatDateTime(item.duraklatmaZamani)}</div>
           )}

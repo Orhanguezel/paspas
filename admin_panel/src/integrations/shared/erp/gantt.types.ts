@@ -26,6 +26,7 @@ export interface GanttBarDto {
   uretilenMiktar: number;
   durum: string;
   duraklatmaZamani: string | null;
+  acikDurus: boolean; // true = calisiyor/duraklatildi, gercek_bitis yok
 }
 
 export interface GanttBlockDto {
@@ -34,6 +35,7 @@ export interface GanttBlockDto {
   baslangicTarihi: string;
   bitisTarihi: string;
   etiket: string;
+  acik?: boolean; // true = bitis=NULL, devam eden arıza
 }
 
 export interface GanttMachineDto {
@@ -91,6 +93,7 @@ export function normalizeGanttBar(raw: unknown): GanttBarDto {
     uretilenMiktar: toNum(r.uretilenMiktar),
     durum: toStr(r.durum, "bekliyor"),
     duraklatmaZamani: r.duraklatmaZamani != null ? toStr(r.duraklatmaZamani) : null,
+    acikDurus: toBool(r.acikDurus),
   };
 }
 
@@ -113,6 +116,7 @@ export function normalizeGanttMachine(raw: unknown): GanttMachineDto {
         baslangicTarihi: toStr(b.baslangicTarihi),
         bitisTarihi: toStr(b.bitisTarihi),
         etiket: toStr(b.etiket),
+        acik: toBool(b.acik),
       };
     }),
     items: rawItems.map(normalizeGanttBar),

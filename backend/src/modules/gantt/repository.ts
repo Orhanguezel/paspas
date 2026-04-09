@@ -337,6 +337,7 @@ async function loadMachineBlocks(machineIds: string[], rangeStart: Date, rangeEn
       baslangicTarihi: row.baslangic instanceof Date ? row.baslangic.toISOString() : String(row.baslangic),
       bitisTarihi: row.bitis instanceof Date ? row.bitis.toISOString() : row.bitis ? String(row.bitis) : rangeEnd.toISOString(),
       etiket: row.neden,
+      acik: !row.bitis, // bitis=NULL → devam eden arıza
     });
   }
 
@@ -376,15 +377,14 @@ function rowToDto(row: QueryRow): GanttBarDto {
     sira: Number(row.sira ?? 0),
     baslangicTarihi: toDateTimeString(row.gercek_baslangic ?? row.planlanan_baslangic),
     bitisTarihi: (() => {
-      // Active/paused jobs with no real end: extend bar to now if planned end is in the past
+      // Active/paused jobs with no real end → always extend bar to now
+      // Never show planlanan_bitis as end for ongoing jobs (misleading)
       if (!row.gercek_bitis && (row.durum === 'calisiyor' || row.durum === 'duraklatildi')) {
-        const planned = row.planlanan_bitis ? new Date(String(row.planlanan_bitis)) : null;
-        const now = new Date();
-        if (!planned || planned < now) return now.toISOString();
-        return toDateTimeString(planned);
+        return new Date().toISOString();
       }
       return toDateTimeString(row.gercek_bitis ?? row.planlanan_bitis);
     })(),
+    acikDurus: !row.gercek_bitis && (row.durum === 'calisiyor' || row.durum === 'duraklatildi'),
     planlananBaslangicTarihi: toDateTimeString(row.planlanan_baslangic),
     planlananBitisTarihi: toDateTimeString(row.planlanan_bitis),
     terminTarihi: toDateString(row.termin_tarihi),
