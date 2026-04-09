@@ -4,14 +4,15 @@ import { and, asc, desc, eq, getTableColumns, inArray, like, sql } from 'drizzle
 import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
-import { makineKuyrugu } from '@/modules/makine_havuzu/schema';
+import { makineler, makineKuyrugu } from '@/modules/makine_havuzu/schema';
 import { recalcMakineKuyrukTarihleri } from '@/modules/_shared/planlama';
 import { musteriler } from '@/modules/musteriler/schema';
 import { operatorGunlukKayitlari } from '@/modules/operator/schema';
 import { receteler } from '@/modules/receteler/schema';
 import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/schema';
-import { refreshSiparisDurum, getSiparisIdsByUretimEmriId } from '@/modules/satis_siparisleri/repository';
-import { urunler, urunOperasyonlari } from '@/modules/urunler/schema';
+import { refreshSiparisDurum, getSiparisIdsByUretimEmriId, getKalemIdsByUretimEmriId } from '@/modules/satis_siparisleri/repository';
+import { transitionMultipleKalemDurum } from '@/modules/satis_siparisleri/kalem-durum.service';
+import { urunler, urunOperasyonlari, hammaddeRezervasyonlari } from '@/modules/urunler/schema';
 
 import {
   emirOperasyonRowToDto,
@@ -43,8 +44,10 @@ type EnrichedUretimEmriRow = UretimEmriRow & {
   planlanan_bitis_tarihi: Date | string | null;
   terminRiski: boolean;
   makineAtamaSayisi: number;
+  makineAdlari: string | null;
   silinebilir: boolean;
   silmeNedeni: string | null;
+  urunGorsel: string | null;
 };
 
 type EmirOperasyonPlanRow = {
@@ -297,8 +300,10 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
         uretimEmriId: makineKuyrugu.uretim_emri_id,
         planlananBitisTarihi: sql<Date | string | null>`max(${makineKuyrugu.planlanan_bitis})`,
         makineAtamaSayisi: sql<number>`count(*)`,
+        makineAdlari: sql<string | null>`group_concat(distinct ${makineler.ad} order by ${makineler.ad} separator ', ')`,
       })
       .from(makineKuyrugu)
+      .leftJoin(makineler, eq(makineKuyrugu.makine_id, makineler.id))
       .where(inArray(makineKuyrugu.uretim_emri_id, emirIds))
       .groupBy(makineKuyrugu.uretim_emri_id),
     db
@@ -322,7 +327,8 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
     db
       .select({
         uretimEmriId: operatorGunlukKayitlari.uretim_emri_id,
-        kayitSayisi: sql<number>`count(*)`,
+        // Only count records with actual production — start logs (net_miktar=0) must not block deletion
+        kayitSayisi: sql<number>`sum(case when ${operatorGunlukKayitlari.net_miktar} > 0 or ${operatorGunlukKayitlari.ek_uretim_miktari} > 0 then 1 else 0 end)`,
       })
       .from(operatorGunlukKayitlari)
       .where(inArray(operatorGunlukKayitlari.uretim_emri_id, emirIds))
@@ -348,7 +354,7 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
   const queueMap = new Map(
     queueRows.map((row) => [
       row.uretimEmriId,
-      { planlananBitisTarihi: row.planlananBitisTarihi, makineAtamaSayisi: Number(row.makineAtamaSayisi ?? 0) },
+      { planlananBitisTarihi: row.planlananBitisTarihi, makineAtamaSayisi: Number(row.makineAtamaSayisi ?? 0), makineAdlari: row.makineAdlari ?? null },
     ]),
   );
 
@@ -423,9 +429,11 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
       planlanan_bitis_tarihi: planlananBitis,
       terminRiski,
       makineAtamaSayisi: q?.makineAtamaSayisi ?? 0,
+      makineAdlari: q?.makineAdlari ?? null,
       silinebilir: deleteState.silinebilir,
       silmeNedeni: deleteState.silmeNedeni,
       musteriOzetTipi: hasSiparis ? j!.musteriOzetTipi : 'manuel',
+      urunGorsel: (row as EnrichedUretimEmriRow).urunGorsel ?? null,
     } satisfies EnrichedUretimEmriRow;
   });
 }
@@ -439,6 +447,7 @@ export async function repoList(query: ListQuery): Promise<ListResult> {
         ...getTableColumns(uretimEmirleri),
         urunKod: urunler.kod,
         urunAd: urunler.ad,
+        urunGorsel: urunler.image_url,
         receteAd: receteler.ad,
       })
       .from(uretimEmirleri)
@@ -459,6 +468,7 @@ export async function repoGetById(id: string): Promise<EnrichedUretimEmriRow | n
       ...getTableColumns(uretimEmirleri),
       urunKod: urunler.kod,
       urunAd: urunler.ad,
+      urunGorsel: urunler.image_url,
       receteAd: receteler.ad,
     })
     .from(uretimEmirleri)
@@ -490,6 +500,8 @@ export async function repoCreate(data: CreateBody): Promise<CreateResult> {
   await db.insert(uretimEmirleri).values(payload);
   if (data.siparisKalemIds && data.siparisKalemIds.length > 0) {
     await syncJunctionRows(payload.id, data.siparisKalemIds, data.urunId);
+    // Siparis kalemlerinin durumunu uretime_aktarildi yap
+    await transitionMultipleKalemDurum(data.siparisKalemIds, 'uretime_aktarildi');
   }
   // Urun operasyonlarindan emir operasyonlarini otomatik olustur
   await autoPopulateOperasyonlar(payload.id, data.urunId, data.planlananMiktar.toFixed(4));
@@ -577,9 +589,18 @@ export async function repoDelete(id: string): Promise<void> {
   }
   // Hammadde rezervasyonlarını geri al
   await iptalRezervasyon(id);
+  // Siparis kalemlerinin durumunu beklemede'ye geri al (tersine guncelleme)
+  const kalemIds = await getKalemIdsByUretimEmriId(id);
   await db.delete(uretimEmriSiparisKalemleri).where(eq(uretimEmriSiparisKalemleri.uretim_emri_id, id));
   await db.delete(uretimEmriOperasyonlari).where(eq(uretimEmriOperasyonlari.uretim_emri_id, id));
   await db.delete(uretimEmirleri).where(eq(uretimEmirleri.id, id));
+  // Junction silindikten sonra kalemleri beklemede'ye dondur
+  for (const kalemId of kalemIds) {
+    await db
+      .update(siparisKalemleri)
+      .set({ uretim_durumu: 'beklemede' })
+      .where(eq(siparisKalemleri.id, kalemId));
+  }
 }
 
 export async function repoGetNextEmirNo(): Promise<string> {
@@ -655,6 +676,23 @@ export type UretimKarsilastirma = {
   fark: number;
 };
 
+export type HammaddeYeterlilikItemDto = {
+  urunId: string;
+  urunKod: string | null;
+  urunAd: string | null;
+  urunGorsel: string | null;
+  gerekliMiktar: number;
+  toplamStok: number;
+  rezerveKuyruk: number;
+  kalanSerbest: number;
+  eksikMiktar: number;
+};
+
+export type HammaddeYeterlilikDto = {
+  yeterli: boolean;
+  items: HammaddeYeterlilikItemDto[];
+};
+
 /**
  * İş emri kapanışında planlanan miktar ile vardiya kayıtlarından
  * toplanan gerçek üretim miktarını karşılaştırır.
@@ -684,5 +722,111 @@ export async function repoGetUretimKarsilastirma(id: string): Promise<UretimKars
     toplamFire,
     netUretilen,
     fark: netUretilen - planlananMiktar,
+  };
+}
+
+export async function repoGetHammaddeYeterlilik(id: string): Promise<HammaddeYeterlilikDto | null> {
+  const target = await repoGetById(id);
+  if (!target) return null;
+
+  // 1. Get our requirements
+  const myRez = await db
+    .select({
+      urunId: hammaddeRezervasyonlari.urun_id,
+      miktar: hammaddeRezervasyonlari.miktar,
+    })
+    .from(hammaddeRezervasyonlari)
+    .where(and(eq(hammaddeRezervasyonlari.uretim_emri_id, id), eq(hammaddeRezervasyonlari.durum, 'rezerve')));
+
+  if (myRez.length === 0) return { yeterli: true, items: [] };
+
+  const uniqueUrunIds = Array.from(new Set(myRez.map((r) => r.urunId)));
+
+  // 2. Get all active reservations for these materials (except ours)
+  const others = await db
+    .select({
+      uretimEmriId: hammaddeRezervasyonlari.uretim_emri_id,
+      urunId: hammaddeRezervasyonlari.urun_id,
+      miktar: hammaddeRezervasyonlari.miktar,
+      planBitis: sql<string | null>`(
+        SELECT MAX(planlanan_bitis) FROM makine_kuyrugu
+        WHERE uretim_emri_id = ${hammaddeRezervasyonlari.uretim_emri_id}
+      )`,
+      altBitis: uretimEmirleri.bitis_tarihi,
+      createdAt: uretimEmirleri.created_at,
+    })
+    .from(hammaddeRezervasyonlari)
+    .innerJoin(uretimEmirleri, eq(hammaddeRezervasyonlari.uretim_emri_id, uretimEmirleri.id))
+    .where(
+      and(
+        inArray(hammaddeRezervasyonlari.urun_id, uniqueUrunIds),
+        eq(hammaddeRezervasyonlari.durum, 'rezerve'),
+        sql`${hammaddeRezervasyonlari.uretim_emri_id} != ${id}`,
+        eq(uretimEmirleri.is_active, 1),
+      ),
+    );
+
+  // 3. Get actual stocks
+  const stocks = await db
+    .select({
+      id: urunler.id,
+      kod: urunler.kod,
+      ad: urunler.ad,
+      gorsel: urunler.image_url,
+      stok: urunler.stok,
+    })
+    .from(urunler)
+    .where(inArray(urunler.id, uniqueUrunIds));
+
+  const stockMap = new Map(stocks.map((s) => [s.id, s]));
+
+  // 4. Determine target priority date
+  const [targetPlanResult] = await db
+    .select({ val: sql<string | null>`MAX(planlanan_bitis)` })
+    .from(makineKuyrugu)
+    .where(eq(makineKuyrugu.uretim_emri_id, id));
+  
+  const targetPlanDate = targetPlanResult?.val ?? target.bitis_tarihi ?? target.created_at;
+
+  const resultItems: HammaddeYeterlilikItemDto[] = [];
+  let overallYeterli = true;
+
+  for (const urunId of uniqueUrunIds) {
+    const sInfo = stockMap.get(urunId);
+    const myNeeded = myRez.filter((r) => r.urunId === urunId).reduce((sum, r) => sum + Number(r.miktar), 0);
+    
+    // Sum "others" that end BEFORE us
+    const higherPriorityRezMiktar = others
+      .filter((o) => o.urunId === urunId)
+      .filter((o) => {
+        const oPlan = o.planBitis ?? o.altBitis ?? o.createdAt;
+        if (!oPlan) return true; 
+        if (!targetPlanDate) return false;
+        return new Date(oPlan).getTime() <= new Date(targetPlanDate).getTime();
+      })
+      .reduce((sum, o) => sum + Number(o.miktar), 0);
+
+    const totalStok = Number(sInfo?.stok ?? 0);
+    const kalanSerbest = Math.max(0, totalStok - higherPriorityRezMiktar);
+    const eksik = Math.max(0, myNeeded - kalanSerbest);
+
+    if (eksik > 0) overallYeterli = false;
+
+    resultItems.push({
+      urunId,
+      urunKod: sInfo?.kod ?? null,
+      urunAd: sInfo?.ad ?? null,
+      urunGorsel: sInfo?.gorsel ?? null,
+      gerekliMiktar: myNeeded,
+      toplamStok: totalStok,
+      rezerveKuyruk: higherPriorityRezMiktar,
+      kalanSerbest,
+      eksikMiktar: eksik,
+    });
+  }
+
+  return {
+    yeterli: overallYeterli,
+    items: resultItems,
   };
 }

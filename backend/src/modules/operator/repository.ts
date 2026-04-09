@@ -10,7 +10,9 @@ import { urunler } from '@/modules/urunler/schema';
 import { hareketler } from '@/modules/hareketler/schema';
 import { musteriler } from '@/modules/musteriler/schema';
 import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/schema';
-import { refreshSiparisDurum, getSiparisIdsByUretimEmriId } from '@/modules/satis_siparisleri/repository';
+import { refreshSiparisDurum, getSiparisIdsByUretimEmriId, getKalemIdsByUretimEmriId } from '@/modules/satis_siparisleri/repository';
+import { transitionMultipleKalemDurum } from '@/modules/satis_siparisleri/kalem-durum.service';
+import { receteler, receteKalemleri } from '@/modules/receteler/schema';
 import { repoCreate as malKabulRepoCreate } from '@/modules/mal_kabul/repository';
 import { isMakineWorkingDay } from '@/modules/_shared/planlama';
 import { hammaddeRezervasyonlari } from '@/modules/urunler/schema';
@@ -64,10 +66,73 @@ function isShiftTimeValid(now: Date, vardiyaTipi: 'gunduz' | 'gece'): boolean {
   const currentMinutes = getCurrentMinutes(now);
   const baslangic = parseClockToMinutes(VARDIYA_SAATLERI[vardiyaTipi].baslangic);
   const bitis = parseClockToMinutes(VARDIYA_SAATLERI[vardiyaTipi].bitis);
-  if (vardiyaTipi === 'gunduz') {
-    return currentMinutes >= baslangic && currentMinutes < bitis;
+
+  // Check start window (±30 mins)
+  const diffStart = Math.abs(currentMinutes - baslangic);
+  const isStartWindow = diffStart <= 30 || diffStart >= (24 * 60 - 30);
+
+  // Check end window (±30 mins)
+  const diffEnd = Math.abs(currentMinutes - bitis);
+  const isEndWindow = diffEnd <= 30 || diffEnd >= (24 * 60 - 30);
+
+  return isStartWindow || isEndWindow;
+}
+
+/**
+ * Consumes raw materials based on the job's recipe and the produced quantity.
+ * Triggered only for assembly (Montaj) or single-stage jobs (OP-1c).
+ */
+async function consumeRecipeMaterials(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  uretimEmriId: string,
+  netMiktar: number,
+  operatorUserId: string | null = null,
+): Promise<void> {
+  if (netMiktar <= 0) return;
+
+  const [emir] = await tx
+    .select({ recete_id: uretimEmirleri.recete_id })
+    .from(uretimEmirleri)
+    .where(eq(uretimEmirleri.id, uretimEmriId))
+    .limit(1);
+
+  if (!emir?.recete_id) return;
+
+  const [recHeader] = await tx
+    .select({ hedef_miktar: receteler.hedef_miktar })
+    .from(receteler)
+    .where(eq(receteler.id, emir.recete_id))
+    .limit(1);
+
+  if (!recHeader) return;
+  const targetQty = Number(recHeader.hedef_miktar ?? 1);
+  if (targetQty <= 0) return;
+
+  const lines = await tx
+    .select()
+    .from(receteKalemleri)
+    .where(eq(receteKalemleri.recete_id, emir.recete_id));
+
+  for (const line of lines) {
+    const rawQty = (Number(line.miktar) / targetQty) * netMiktar;
+    if (rawQty <= 0) continue;
+
+    await tx
+      .update(urunler)
+      .set({ stok: sql`${urunler.stok} - ${rawQty.toFixed(4)}` })
+      .where(eq(urunler.id, line.urun_id));
+
+    await tx.insert(hareketler).values({
+      id: randomUUID(),
+      urun_id: line.urun_id,
+      hareket_tipi: 'cikis',
+      referans_tipi: 'uretim',
+      referans_id: uretimEmriId,
+      miktar: rawQty.toFixed(4),
+      aciklama: `Üretim hammadde sarfı (Emir: ${uretimEmriId})`,
+      created_by_user_id: operatorUserId,
+    });
   }
-  return currentMinutes >= baslangic || currentMinutes < bitis;
 }
 
 function addMinutes(date: Date, minutes: number): Date {
@@ -500,7 +565,7 @@ export async function repoUretimBaslat(
       await tx.insert(operatorGunlukKayitlari).values({
         id: randomUUID(),
         uretim_emri_id: kqRow?.uretim_emri_id ?? '',
-        makine_id: null,
+        makine_id: target.makine_id,
         emir_operasyon_id: kqRow?.emir_operasyon_id ?? null,
         operator_user_id: operatorUserId,
         gunluk_durum: 'devam_ediyor',
@@ -521,6 +586,9 @@ export async function repoUretimBaslat(
     .where(eq(makineKuyrugu.id, body.makineKuyrukId))
     .limit(1);
   if (kqRef?.uretim_emri_id) {
+    // Kalem durumunu uretiliyor yap
+    const kalemIds = await getKalemIdsByUretimEmriId(kqRef.uretim_emri_id);
+    await transitionMultipleKalemDurum(kalemIds, 'uretiliyor');
     const sids = await getSiparisIdsByUretimEmriId(kqRef.uretim_emri_id);
     for (const sid of sids) await refreshSiparisDurum(sid);
   }
@@ -599,13 +667,33 @@ export async function repoUretimBitir(
 
     // Apply stock correction (reconcile measurements vs actual)
     if (stokFarki !== 0 && kqRow.uretim_emri_id) {
+      // OP-1c: Only assembly (Montaj) or single-sided jobs should affect stock
+      let hasStockImpact = false;
+      if (kqRow.emir_operasyon_id) {
+        const [opCount] = await tx
+          .select({ count: sql<number>`count(*)` })
+          .from(uretimEmriOperasyonlari)
+          .where(eq(uretimEmriOperasyonlari.uretim_emri_id, kqRow.uretim_emri_id));
+        
+        const isSingleSided = Number(opCount?.count ?? 0) <= 1;
+        const [opRow] = await tx
+          .select({ montaj: uretimEmriOperasyonlari.montaj })
+          .from(uretimEmriOperasyonlari)
+          .where(eq(uretimEmriOperasyonlari.id, kqRow.emir_operasyon_id))
+          .limit(1);
+        
+        hasStockImpact = isSingleSided || (opRow?.montaj === 1);
+      } else {
+        hasStockImpact = true; // Legacy support
+      }
+
       const [emirRow] = await tx
-        .select({ urun_id: uretimEmirleri.urun_id })
+        .select({ urun_id: uretimEmirleri.urun_id, recete_id: uretimEmirleri.recete_id })
         .from(uretimEmirleri)
         .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id))
         .limit(1);
 
-      if (emirRow?.urun_id) {
+      if (emirRow?.urun_id && hasStockImpact) {
         await tx
           .update(urunler)
           .set({ stok: sql`${urunler.stok} + ${stokFarki.toFixed(4)}` })
@@ -623,6 +711,9 @@ export async function repoUretimBitir(
             : `Üretim tamamlandı — stok düzeltme (fark: ${stokFarki.toFixed(0)})`,
           created_by_user_id: operatorUserId ?? null,
         });
+
+        // Also consume raw materials for the delta
+        await consumeRecipeMaterials(tx, kqRow.uretim_emri_id, stokFarki, operatorUserId);
       }
     }
 
@@ -676,11 +767,41 @@ export async function repoUretimBitir(
 
   // Auto-refresh linked sipariş durum after production complete
   const [kqRef2] = await db
-    .select({ uretim_emri_id: makineKuyrugu.uretim_emri_id })
+    .select({
+      uretim_emri_id: makineKuyrugu.uretim_emri_id,
+      emir_operasyon_id: makineKuyrugu.emir_operasyon_id,
+    })
     .from(makineKuyrugu)
     .where(eq(makineKuyrugu.id, body.makineKuyrukId))
     .limit(1);
   if (kqRef2?.uretim_emri_id) {
+    // Cift tarafli uretim kontrolu: sadece montaj operasyonu veya tek tarafli ise kalem tamamlandi
+    let shouldCompleteKalem = false;
+    if (kqRef2.emir_operasyon_id) {
+      const [op] = await db
+        .select({ montaj: uretimEmriOperasyonlari.montaj })
+        .from(uretimEmriOperasyonlari)
+        .where(eq(uretimEmriOperasyonlari.id, kqRef2.emir_operasyon_id))
+        .limit(1);
+      const isMontajOp = (op?.montaj ?? 0) === 1;
+
+      // Tek tarafli mi kontrol et
+      const [opCount] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(uretimEmriOperasyonlari)
+        .where(eq(uretimEmriOperasyonlari.uretim_emri_id, kqRef2.uretim_emri_id));
+      const isSingleSided = Number(opCount?.count ?? 0) <= 1;
+
+      shouldCompleteKalem = isMontajOp || isSingleSided;
+    } else {
+      shouldCompleteKalem = true;
+    }
+
+    if (shouldCompleteKalem) {
+      const kalemIds = await getKalemIdsByUretimEmriId(kqRef2.uretim_emri_id);
+      await transitionMultipleKalemDurum(kalemIds, 'uretim_tamamlandi');
+    }
+
     const sids = await getSiparisIdsByUretimEmriId(kqRef2.uretim_emri_id);
     for (const sid of sids) await refreshSiparisDurum(sid);
   }
@@ -800,7 +921,11 @@ export async function repoDuraklat(
       .where(eq(makineKuyrugu.id, body.makineKuyrukId));
 
     const [kqRow] = await tx
-      .select({ makine_id: makineKuyrugu.makine_id, emir_operasyon_id: makineKuyrugu.emir_operasyon_id })
+      .select({
+        makine_id: makineKuyrugu.makine_id,
+        emir_operasyon_id: makineKuyrugu.emir_operasyon_id,
+        uretim_emri_id: makineKuyrugu.uretim_emri_id,
+      })
       .from(makineKuyrugu)
       .where(eq(makineKuyrugu.id, body.makineKuyrukId))
       .limit(1);
@@ -824,6 +949,17 @@ export async function repoDuraklat(
       baslangic: now,
     });
   });
+
+  // Kalem durumunu duraklatildi yap
+  const [kqRefD] = await db
+    .select({ uretim_emri_id: makineKuyrugu.uretim_emri_id })
+    .from(makineKuyrugu)
+    .where(eq(makineKuyrugu.id, body.makineKuyrukId))
+    .limit(1);
+  if (kqRefD?.uretim_emri_id) {
+    const kalemIds = await getKalemIdsByUretimEmriId(kqRefD.uretim_emri_id);
+    await transitionMultipleKalemDurum(kalemIds, 'duraklatildi');
+  }
 
   return { success: true };
 }
@@ -890,14 +1026,52 @@ export async function repoDevamEt(
         kayit_tarihi: now,
       });
 
+      // Update operasyon uretilen_miktar
+      if (kqRow.emir_operasyon_id) {
+        await tx
+          .update(uretimEmriOperasyonlari)
+          .set({
+            uretilen_miktar: sql`${uretimEmriOperasyonlari.uretilen_miktar} + ${netMiktar.toFixed(4)}`,
+          })
+          .where(eq(uretimEmriOperasyonlari.id, kqRow.emir_operasyon_id));
+      }
+
+      // Update parent emir uretilen_miktar
+      await tx
+        .update(uretimEmirleri)
+        .set({
+          uretilen_miktar: sql`${uretimEmirleri.uretilen_miktar} + ${netMiktar.toFixed(4)}`,
+        })
+        .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id));
+
       if (netMiktar > 0) {
+        // OP-1c: Only assembly (Montaj) or single-sided jobs should affect stock
+        let hasStockImpact = false;
+        if (kqRow.emir_operasyon_id) {
+          const [opCount] = await tx
+            .select({ count: sql<number>`count(*)` })
+            .from(uretimEmriOperasyonlari)
+            .where(eq(uretimEmriOperasyonlari.uretim_emri_id, kqRow.uretim_emri_id));
+          
+          const isSingleSided = Number(opCount?.count ?? 0) <= 1;
+          const [opRow] = await tx
+            .select({ montaj: uretimEmriOperasyonlari.montaj })
+            .from(uretimEmriOperasyonlari)
+            .where(eq(uretimEmriOperasyonlari.id, kqRow.emir_operasyon_id))
+            .limit(1);
+          
+          hasStockImpact = isSingleSided || (opRow?.montaj === 1);
+        } else {
+          hasStockImpact = true;
+        }
+
         const [emirRow] = await tx
           .select({ urun_id: uretimEmirleri.urun_id })
           .from(uretimEmirleri)
           .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id))
           .limit(1);
 
-        if (emirRow) {
+        if (emirRow && hasStockImpact) {
           await tx
             .update(urunler)
             .set({ stok: sql`${urunler.stok} + ${netMiktar.toFixed(4)}` })
@@ -911,7 +1085,11 @@ export async function repoDevamEt(
             referans_id: kqRow.uretim_emri_id,
             miktar: netMiktar.toFixed(4),
             aciklama: `Duruş sonu artımlı üretim kaydı`,
+            created_by_user_id: operatorUserId ?? null,
           });
+
+          // Also consume raw materials
+          await consumeRecipeMaterials(tx, kqRow.uretim_emri_id, netMiktar, operatorUserId);
         }
       }
     }
@@ -932,6 +1110,17 @@ export async function repoDevamEt(
     // Shift plans since downtime changes timeline
     await shiftFollowingJobs(tx, kqRow?.makine_id ?? '', now);
   });
+
+  // Kalem durumunu uretiliyor'a geri al (duraklama bitti)
+  const [kqRefR] = await db
+    .select({ uretim_emri_id: makineKuyrugu.uretim_emri_id })
+    .from(makineKuyrugu)
+    .where(eq(makineKuyrugu.id, body.makineKuyrukId))
+    .limit(1);
+  if (kqRefR?.uretim_emri_id) {
+    const kalemIds = await getKalemIdsByUretimEmriId(kqRefR.uretim_emri_id);
+    await transitionMultipleKalemDurum(kalemIds, 'uretiliyor');
+  }
 
   return { success: true };
 }
@@ -1044,26 +1233,52 @@ export async function repoVardiyaSonu(
       });
 
       if (netMiktar > 0) {
+        // OP-1c: Only assembly (Montaj) or single-sided jobs should affect stock
+        let hasStockImpact = false;
+        if (runningJob.emir_operasyon_id) {
+          const [opCount] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(uretimEmriOperasyonlari)
+            .where(eq(uretimEmriOperasyonlari.uretim_emri_id, runningJob.uretim_emri_id));
+          
+          const isSingleSided = Number(opCount?.count ?? 0) <= 1;
+          const [opRow] = await db
+            .select({ montaj: uretimEmriOperasyonlari.montaj })
+            .from(uretimEmriOperasyonlari)
+            .where(eq(uretimEmriOperasyonlari.id, runningJob.emir_operasyon_id))
+            .limit(1);
+          
+          hasStockImpact = isSingleSided || (opRow?.montaj === 1);
+        } else {
+          hasStockImpact = true;
+        }
+
         const [emirRow] = await db
           .select({ urun_id: uretimEmirleri.urun_id })
           .from(uretimEmirleri)
           .where(eq(uretimEmirleri.id, runningJob.uretim_emri_id))
           .limit(1);
 
-        if (emirRow) {
-          await db
-            .update(urunler)
-            .set({ stok: sql`${urunler.stok} + ${netMiktar.toFixed(4)}` })
-            .where(eq(urunler.id, emirRow.urun_id));
+        if (emirRow && hasStockImpact) {
+          await db.transaction(async (tx) => {
+            await tx
+              .update(urunler)
+              .set({ stok: sql`${urunler.stok} + ${netMiktar.toFixed(4)}` })
+              .where(eq(urunler.id, emirRow.urun_id));
 
-          await db.insert(hareketler).values({
-            id: randomUUID(),
-            urun_id: emirRow.urun_id,
-            hareket_tipi: 'giris',
-            referans_tipi: 'uretim',
-            referans_id: runningJob.uretim_emri_id,
-            miktar: netMiktar.toFixed(4),
-            aciklama: `Vardiya sonu artımlı üretim kaydı`,
+            await tx.insert(hareketler).values({
+              id: randomUUID(),
+              urun_id: emirRow.urun_id,
+              hareket_tipi: 'giris',
+              referans_tipi: 'uretim',
+              referans_id: runningJob.uretim_emri_id,
+              miktar: netMiktar.toFixed(4),
+              aciklama: `Vardiya sonu artımlı üretim kaydı`,
+              created_by_user_id: operatorUserId ?? null,
+            });
+
+            // Also consume raw materials
+            await consumeRecipeMaterials(tx, runningJob.uretim_emri_id, netMiktar, operatorUserId);
           });
         }
       }
