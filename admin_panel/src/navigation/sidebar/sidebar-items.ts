@@ -133,6 +133,7 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
       { key: 'satis_siparisleri', url: '/admin/satis-siparisleri', icon: ShoppingCart, roles: ['admin', 'nakliyeci'] },
       { key: 'uretim_emirleri',   url: '/admin/uretim-emirleri',   icon: Factory,     roles: ['admin'] },
       { key: 'is_yukler',         url: '/admin/is-yukler',         icon: Cpu,         roles: ['admin'] },
+      { key: 'operator',          url: '/admin/operator',          icon: Play,        roles: ['admin', 'operator'] },
       { key: 'gantt',             url: '/admin/gantt',             icon: Calendar,    roles: ['admin', 'operator', 'nakliyeci'] },
     ],
   },
