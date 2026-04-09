@@ -10,6 +10,7 @@ import { db } from '@/db/client';
 import { and, eq, sql } from 'drizzle-orm';
 import { makineKuyrugu } from '@/modules/makine_havuzu/schema';
 import { operatorGunlukKayitlari } from '@/modules/operator/schema';
+import { uretimEmriOperasyonlari } from './schema';
 
 function sendInternalError(reply: FastifyReply) {
   return reply.code(500).send({ error: { message: 'sunucu_hatasi' } });
@@ -211,6 +212,18 @@ export const atamaGeriAl: RouteHandler = async (req, reply) => {
           eq(operatorGunlukKayitlari.uretim_emri_id, id),
           sql`${operatorGunlukKayitlari.net_miktar} = 0`,
           sql`${operatorGunlukKayitlari.ek_uretim_miktari} = 0`,
+        ),
+      );
+
+    // Emir operasyonlarini sifirla: gercek_baslangic kalirsa delete guard "baslamis" sayar
+    await db
+      .update(uretimEmriOperasyonlari)
+      .set({ durum: 'bekliyor', gercek_baslangic: null, gercek_bitis: null, makine_id: null })
+      .where(
+        and(
+          eq(uretimEmriOperasyonlari.uretim_emri_id, id),
+          sql`${uretimEmriOperasyonlari.uretilen_miktar} = 0`,
+          sql`${uretimEmriOperasyonlari.fire_miktar} = 0`,
         ),
       );
 
