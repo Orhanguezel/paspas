@@ -62,26 +62,45 @@ export default function OperatorClient() {
   const { t } = useLocaleContext();
   const now = useRealtimeClock();
 
-  const dateStr = now.toLocaleDateString("tr-TR", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-  const timeStr = now.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const timeStr = now.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+  const dateStr = now.toLocaleDateString("tr-TR", { weekday: "short", day: "numeric", month: "short" });
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold">{t("admin.erp.operator.title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("admin.erp.operator.description")}</p>
-        </div>
-        <div className="flex items-center gap-3 rounded-lg border bg-muted/30 px-4 py-2">
-          <Clock className="size-5 text-muted-foreground" />
-          <div className="text-right">
-            <div className="text-2xl font-bold tabular-nums tracking-tight">{timeStr}</div>
-            <div className="text-xs text-muted-foreground">{dateStr}</div>
+    <div className="flex flex-col gap-6 min-h-[calc(100vh-12rem)] pb-10">
+      {/* Premium Header - Industrial Glass Mode */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-900 text-white p-6 rounded-2xl shadow-xl border border-slate-800">
+        <div className="flex items-center gap-5">
+          <div className="bg-primary/20 p-4 rounded-xl border border-primary/30">
+            <Clock className="size-10 text-primary animate-pulse" />
           </div>
+          <div>
+            <div className="text-4xl font-black tracking-tighter tabular-nums leading-none mb-1">{timeStr}</div>
+            <div className="text-sm font-medium text-slate-400 uppercase tracking-widest">{dateStr}</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <VardiyaStatusBadge />
         </div>
       </div>
 
       <MakineKuyruguTab />
+    </div>
+  );
+}
+
+function VardiyaStatusBadge() {
+  const { data: vardiyaData } = useGetAcikVardiyalarAdminQuery();
+  const makineler = vardiyaData ?? [];
+  const acikSayisi = makineler.filter(m => m.acikVardiyaId).length;
+
+  return (
+    <div className="flex flex-col items-end gap-1 px-4 py-2 bg-slate-800/50 rounded-xl border border-slate-700/50">
+      <span className="text-[10px] font-bold text-slate-500 uppercase">Aktif Makineler</span>
+      <div className="flex items-center gap-2">
+        <span className="size-2.5 rounded-full bg-emerald-500 animate-ping shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+        <span className="text-xl font-bold">{acikSayisi} / {makineler.length}</span>
+      </div>
     </div>
   );
 }
@@ -104,8 +123,6 @@ function MakineKuyruguTab() {
   const [notlar, setNotlar] = useState("");
 
   const [resuming, setResuming] = useState<MakineKuyruguDetayDto | null>(null);
-  const [resumeUretim, setResumeUretim] = useState("0");
-  const [resumeFire, setResumeFire] = useState("0");
   const [resumeNotlar, setResumeNotlar] = useState("");
 
   const [pausing, setPausing] = useState<MakineKuyruguDetayDto | null>(null);
@@ -118,9 +135,10 @@ function MakineKuyruguTab() {
 
   const items = data?.items ?? [];
 
-  // Group by machine
+  // Group by machine — exclude completed jobs (tamamlandi görünmemeli)
   const grouped = new Map<string, MakineKuyruguDetayDto[]>();
   for (const item of items) {
+    if (item.durum === "tamamlandi") continue;
     const key = item.makineId;
     if (!grouped.has(key)) grouped.set(key, []);
     grouped.get(key)?.push(item);
@@ -153,26 +171,15 @@ function MakineKuyruguTab() {
   }
 
   function openResume(item: MakineKuyruguDetayDto) {
-    setResumeUretim("0");
-    setResumeFire("0");
     setResumeNotlar("");
     setResuming(item);
   }
 
   async function confirmResume() {
     if (!resuming) return;
-    const u = Number.parseFloat(resumeUretim || "0");
-    const f = Number.parseFloat(resumeFire || "0");
-    if (Number.isNaN(u) || u < 0 || Number.isNaN(f) || f < 0) {
-      toast.error(t("admin.erp.operator.invalidQuantity"));
-      return;
-    }
     try {
       await devamEt({
         makineKuyrukId: resuming.id,
-        uretilenMiktar: u > 0 ? u : undefined,
-        fireMiktar: f,
-        birimTipi: resuming.montaj ? "takim" : "adet",
         notlar: resumeNotlar.trim() || undefined,
       }).unwrap();
       toast.success(t("admin.erp.operator.resumed"));
@@ -250,132 +257,156 @@ function MakineKuyruguTab() {
     <>
       <VardiyaPanel />
 
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-          <RefreshCcw className={`size-4${isFetching ? " animate-spin" : ""}`} />
-        </Button>
-      </div>
-
-      {isLoading && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <Card key={`operator-skeleton-${index}`}>
-              <CardHeader>
-                <Skeleton className="h-5 w-32" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-4 w-full" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
       {!isLoading && items.length === 0 && (
-        <div className="py-16 text-center text-muted-foreground">
-          <p>{t("admin.erp.operator.noQueue")}</p>
+        <div className="py-24 text-center">
+          <p className="text-2xl font-light text-muted-foreground">Şu an atanmış iş bulunmuyor.</p>
         </div>
       )}
 
+      {/* Industrial Grid Layout */}
       {!isLoading && grouped.size > 0 && (
-        <div className="space-y-6">
+        <div className="grid gap-10">
           {Array.from(grouped.entries()).map(([makineId, jobs]) => {
             const first = jobs[0];
-            const hasActiveJob = jobs.some((j) => j.durum === "calisiyor" || j.durum === "duraklatildi");
+            const activeJob = jobs.find((j) => j.durum === "calisiyor" || j.durum === "duraklatildi");
             const firstBekleyenId = jobs.filter((j) => j.durum === "bekliyor").sort((a, b) => a.sira - b.sira)[0]?.id ?? null;
+            const remainingJobs = jobs.filter(j => j.id !== activeJob?.id && j.durum !== "tamamlandi");
+
             return (
-              <div key={makineId}>
-                <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
-                  {first.makineKod} — {first.makineAd}
-                </h2>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {jobs.map((job) => {
-                    const progress = pct(job.planlananMiktar, job.uretilenMiktar);
-                    const canStart = job.durum === "bekliyor" && !hasActiveJob && job.id === firstBekleyenId;
-                    return (
-                      <Card key={job.id} className="flex flex-col">
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-sm font-mono">{job.emirNo}</CardTitle>
-                            <Badge variant={DURUM_BADGE[job.durum] ?? "outline"}>
-                              {DURUM_LABEL[job.durum] ?? job.durum}
+              <div key={makineId} className="space-y-4">
+                {/* Machine Header Sticker */}
+                <div className="flex items-center gap-3">
+                  <div className="px-5 py-2 bg-slate-900 text-white rounded-t-xl text-lg font-black tracking-tight border-b-0 border border-slate-900 shadow-md">
+                    {first.makineKod}
+                  </div>
+                  <div className="text-xl font-bold text-slate-700">{first.makineAd}</div>
+                  <div className="h-px flex-1 bg-slate-200" />
+                </div>
+
+                <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                  {/* ACTIVE JOB - MEGA AREA */}
+                  {activeJob ? (
+                    <div className={`relative overflow-hidden p-8 rounded-3xl border-2 shadow-2xl transition-all ${activeJob.durum === 'duraklatildi' ? 'border-amber-400 bg-amber-50' : 'border-primary bg-white'}`}>
+                      <div className="relative z-10 grid lg:grid-cols-[1fr_auto] gap-8">
+                        <div className="space-y-6">
+                          <div className="flex items-center gap-3">
+                            <Badge className={`text-sm px-3 py-1 uppercase font-bold tracking-widest ${activeJob.durum === 'duraklatildi' ? 'bg-amber-500' : 'bg-primary animate-pulse'}`}>
+                              {activeJob.durum === 'duraklatildi' ? 'DURAKLATILDI' : 'ÜRETİMDE'}
                             </Badge>
+                            <span className="text-sm font-mono text-muted-foreground"># {activeJob.emirNo}</span>
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {job.urunKod} — {job.urunAd}
-                            {job.operasyonAdi && <span className="ml-1">({job.operasyonAdi})</span>}
+
+                          <div className="space-y-2">
+                             <div className="text-4xl font-black leading-tight text-slate-900">{activeJob.urunAd}</div>
+                             <div className="text-xl font-medium text-muted-foreground">{activeJob.urunKod} {activeJob.operasyonAdi && `· ${activeJob.operasyonAdi}`}</div>
                           </div>
-                        </CardHeader>
-                        <CardContent className="flex-1 space-y-2">
-                          <div className="grid grid-cols-3 gap-1 text-xs">
-                            <div>
-                              <span className="text-muted-foreground">{t("admin.erp.operator.planned")}</span>
-                              <div className="font-medium">{job.planlananMiktar}</div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                            <div className="bg-slate-100/50 p-4 rounded-2xl">
+                              <span className="text-xs font-bold text-slate-500 uppercase">Planlanan</span>
+                              <div className="text-3xl font-black text-slate-800 tabular-nums">{activeJob.planlananMiktar}</div>
                             </div>
-                            <div>
-                              <span className="text-muted-foreground">{t("admin.erp.operator.produced")}</span>
-                              <div className="font-medium">{job.uretilenMiktar}</div>
+                            <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
+                              <span className="text-xs font-bold text-primary uppercase">Üretilen</span>
+                              <div className="text-3xl font-black text-primary tabular-nums">{activeJob.uretilenMiktar}</div>
                             </div>
-                            <div>
-                              <span className="text-muted-foreground">{t("admin.erp.operator.scrap")}</span>
-                              <div className="font-medium">{job.fireMiktar}</div>
+                             <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100">
+                              <span className="text-xs font-bold text-rose-500 uppercase">Fire</span>
+                              <div className="text-3xl font-black text-rose-600 tabular-nums">{activeJob.fireMiktar}</div>
                             </div>
                           </div>
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>{t("admin.erp.operator.progress")}</span>
-                              <span>{progress}%</span>
+                   
+                          {/* Progress Mega Bar */}
+                          <div className="space-y-2 pt-2">
+                            <div className="flex justify-between items-end">
+                              <span className="text-sm font-bold text-slate-600">TAMAMLANMA</span>
+                              <span className="text-2xl font-black text-primary">{pct(activeJob.planlananMiktar, activeJob.uretilenMiktar)}%</span>
                             </div>
-                            <Progress value={progress} className="h-2" />
+                            <Progress value={pct(activeJob.planlananMiktar, activeJob.uretilenMiktar)} className="h-4 bg-slate-200" />
                           </div>
-                          {job.montaj && (
-                            <Badge variant="outline" className="text-xs">
-                              {t("admin.erp.operator.assembly")}
-                            </Badge>
-                          )}
-                          {job.eksikMalzemeler && job.eksikMalzemeler.length > 0 && (
-                            <div className="rounded-md border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950 p-2 space-y-1">
-                              <div className="flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400">
-                                <AlertTriangle className="size-3.5" />
-                                Eksik Malzeme
-                              </div>
-                              {job.eksikMalzemeler.map((m) => (
-                                <div key={m.urunKod} className="flex justify-between text-[11px]">
-                                  <span className="text-amber-800 dark:text-amber-300">{m.urunKod} — {m.urunAd}</span>
-                                  <span className="font-mono text-amber-600">{m.eksikMiktar} eksik</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </CardContent>
-                        <CardFooter className="gap-1 pt-0 flex-wrap">
-                          {job.durum === "bekliyor" && (
-                            <Button size="sm" className="flex-1" onClick={() => handleBaslat(job)} disabled={!canStart}>
-                              <Play className="mr-1 size-3.5" />
-                              {t("admin.erp.operator.start")}
-                            </Button>
-                          )}
-                          {job.durum === "calisiyor" && (
+                        </div>
+
+                        {/* MEGA BUTTONS AREA */}
+                        <div className="flex flex-col gap-4 min-w-60">
+                          {activeJob.durum === "calisiyor" && (
                             <>
-                              <Button size="sm" className="flex-1" onClick={() => openFinish(job)}>
-                                <Square className="mr-1 size-3.5" />
-                                {t("admin.erp.operator.finish")}
+                              <Button 
+                                className="h-32 text-2xl font-black flex-col gap-2 rounded-3xl shadow-lg hover:scale-[1.02] transition-transform" 
+                                onClick={() => openFinish(activeJob)}
+                              >
+                                <Square className="size-8" />
+                                BİTİR
                               </Button>
-                              <Button size="sm" variant="outline" onClick={() => openPause(job)}>
-                                <Pause className="size-3.5" />
+                              <Button 
+                                variant="outline" 
+                                className="h-24 text-xl font-bold flex-col gap-1 rounded-3xl border-2 hover:bg-amber-50 hover:border-amber-200 transition-all text-amber-600 border-amber-200" 
+                                onClick={() => openPause(activeJob)}
+                              >
+                                <Pause className="size-6" />
+                                DURAKLAT
                               </Button>
                             </>
                           )}
-                          {job.durum === "duraklatildi" && (
-                            <Button size="sm" className="flex-1" onClick={() => openResume(job)}>
-                              <RotateCcw className="mr-1 size-3.5" />
-                              {t("admin.erp.operator.resume")}
+                          {activeJob.durum === "duraklatildi" && (
+                            <Button 
+                              className="h-40 text-2xl font-black flex-col gap-3 rounded-3xl bg-amber-500 hover:bg-amber-600 shadow-xl" 
+                              onClick={() => openResume(activeJob)}
+                            >
+                              <RotateCcw className="size-10" />
+                              DEVAM ET
                             </Button>
                           )}
-                        </CardFooter>
-                      </Card>
-                    );
-                  })}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* EMPTY ACTIVE AREA -> SUGGEST NEXT */
+                    <div className="bg-slate-100 border-2 border-dashed border-slate-300 rounded-3xl p-12 text-center flex flex-col items-center gap-6">
+                      <div className="bg-white p-6 rounded-full shadow-inner border border-slate-200">
+                        <Play className="size-16 text-slate-300" />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-2xl font-bold text-slate-700">Şu an çalışan iş yok</h3>
+                        <p className="text-slate-500">Kuyruktaki sıradaki işi başlatabilirsiniz.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* QUEUE AREA - COLLAPSED / HORIZONTAL SCROLL */}
+                  {remainingJobs.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between px-2">
+                        <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Sıradaki İşler ({remainingJobs.length})</h4>
+                        <Button variant="ghost" size="sm" className="text-xs font-bold" onClick={() => refetch()}>YENİLE</Button>
+                      </div>
+                      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
+                        {remainingJobs.map((job) => {
+                          const canStart = job.durum === "bekliyor" && !activeJob && job.id === firstBekleyenId;
+                          return (
+                            <Card key={job.id} className={`shrink-0 w-80 snap-start border-2 transition-all ${canStart ? 'ring-2 ring-primary ring-offset-4 border-primary/30' : 'opacity-80'}`}>
+                              <CardHeader className="p-4 pb-2">
+                                <div className="flex justify-between items-start">
+                                  <div className="text-xs font-mono font-bold text-slate-400"># {job.emirNo}</div>
+                                  <Badge variant="outline" className="text-[10px]">{job.planlananMiktar} Adet</Badge>
+                                </div>
+                                <CardTitle className="text-base font-black truncate text-slate-800 mt-1">{job.urunAd}</CardTitle>
+                              </CardHeader>
+                              <CardContent className="p-4 pt-0">
+                                <p className="text-xs text-muted-foreground truncate mb-4">{job.urunKod} {job.operasyonAdi && `· ${job.operasyonAdi}`}</p>
+                                <Button 
+                                  className="w-full font-bold h-10 rounded-xl" 
+                                  disabled={!canStart} 
+                                  onClick={() => handleBaslat(job)}
+                                >
+                                  {canStart ? 'BAŞLAT' : 'SIRADA'}
+                                </Button>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -383,7 +414,6 @@ function MakineKuyruguTab() {
         </div>
       )}
 
-      {/* Finish Sheet */}
       <Sheet open={!!finishing} onOpenChange={(v) => !v && setFinishing(null)}>
         <SheetContent side="right" className="w-full p-0 sm:max-w-md">
           <SheetHeader className="border-b px-4 py-4">
@@ -397,8 +427,8 @@ function MakineKuyruguTab() {
               <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
                 <div className="font-medium">{t("admin.erp.operator.previousMeasurements")}</div>
                 <div className="grid grid-cols-2 gap-2 text-muted-foreground">
-                  <div>{t("admin.erp.operator.producedQuantity")}: <span className="font-medium text-foreground">{finishing.oncekiUretimToplam}</span></div>
-                  <div>{t("admin.erp.operator.scrapQuantity")}: <span className="font-medium text-foreground">{finishing.oncekiFireToplam}</span></div>
+                  <div>{t("admin.erp.operator.producedQuantity")}: <span className="font-medium text-foreground">{finishing.oncekiUretimToplam ?? 0}</span></div>
+                  <div>{t("admin.erp.operator.scrapQuantity")}: <span className="font-medium text-foreground">{finishing.oncekiFireToplam ?? 0}</span></div>
                 </div>
                 <p className="text-xs text-muted-foreground">{t("admin.erp.operator.finishTotalHint")}</p>
               </div>
@@ -494,28 +524,6 @@ function MakineKuyruguTab() {
             <p className="text-sm text-muted-foreground">
               <strong className="font-mono">{resuming?.emirNo}</strong> — {resuming?.urunAd}
             </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label>{t("admin.erp.operator.producedQuantity")}</Label>
-                <Input
-                  type="number"
-                  step="0.0001"
-                  min={0}
-                  value={resumeUretim}
-                  onChange={(e) => setResumeUretim(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>{t("admin.erp.operator.scrapQuantity")}</Label>
-                <Input
-                  type="number"
-                  step="0.0001"
-                  min={0}
-                  value={resumeFire}
-                  onChange={(e) => setResumeFire(e.target.value)}
-                />
-              </div>
-            </div>
             <div className="space-y-1">
               <Label>{t("admin.erp.operator.notes")}</Label>
               <Textarea rows={2} value={resumeNotlar} onChange={(e) => setResumeNotlar(e.target.value)} />
@@ -554,8 +562,13 @@ function VardiyaPanel() {
   const makineler = vardiyaData ?? [];
   const closingMakine = makineler.find((m) => m.makineId === closingMakineId) ?? null;
 
+  function autoVardiyaTipi(): "gunduz" | "gece" {
+    const mins = new Date().getHours() * 60 + new Date().getMinutes();
+    return mins >= 450 && mins < 1170 ? "gunduz" : "gece";
+  }
+
   function getVardiyaTipi(makineId: string): "gunduz" | "gece" {
-    return vardiyaTipleri[makineId] ?? "gunduz";
+    return vardiyaTipleri[makineId] ?? autoVardiyaTipi();
   }
 
   function getErrorMessage(error: unknown): string {
@@ -612,21 +625,26 @@ function VardiyaPanel() {
 
   return (
     <>
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">{t("admin.erp.operator.shiftTitle")}</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden mb-10">
+        <div className="bg-slate-50 border-b px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+             <div className="size-3 rounded-full bg-emerald-500" />
+             <h3 className="text-lg font-black tracking-tight text-slate-800 uppercase italic">Vardiya Durumu</h3>
+          </div>
+          <p className="text-xs font-bold text-slate-500 tracking-widest">Aşağıdaki makineleri üretime açın veya kapatın</p>
+        </div>
+        
+        <div className="p-4 md:p-8">
           {isLoading ? (
-            <div className="space-y-2 px-6 pb-4">
+            <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-12 w-full" />
+                <Skeleton key={i} className="h-24 w-full rounded-2xl" />
               ))}
             </div>
           ) : makineler.length === 0 ? (
-            <p className="px-6 pb-4 text-sm text-muted-foreground">Aktif makine bulunamadı.</p>
+            <div className="py-12 text-center text-slate-400 italic">Aktif makine bulunamadı.</div>
           ) : (
-            <div className="divide-y">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {makineler.map((makine) => {
                 const isAcik = makine.acikVardiyaId !== null;
                 const baslangicStr = makine.baslangic
@@ -635,27 +653,24 @@ function VardiyaPanel() {
                 const vardiyaTipiLabel = makine.vardiyaTipi === "gece" ? "Gece" : "Gündüz";
 
                 return (
-                  <div key={makine.makineId} className="flex items-center gap-3 px-6 py-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium">{makine.makineKod}</div>
-                      <div className="truncate text-xs text-muted-foreground">{makine.makineAd}</div>
+                  <div key={makine.makineId} className={`p-6 rounded-3xl border-2 transition-all flex flex-col justify-between min-h-[160px] ${isAcik ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-100 bg-white'}`}>
+                    <div>
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="px-3 py-1 bg-slate-900 text-white rounded-lg text-xs font-black font-mono shadow-sm">{makine.makineKod}</span>
+                        {isAcik && <Badge className="bg-emerald-600 font-bold">{vardiyaTipiLabel} · {baslangicStr}</Badge>}
+                      </div>
+                      <div className="text-lg font-black tracking-tight text-slate-800 truncate mb-4">{makine.makineAd}</div>
                     </div>
 
+                    <div className="flex gap-2">
                     {isAcik ? (
-                      <>
-                        <Badge className="shrink-0 bg-green-600 text-white">
-                          {vardiyaTipiLabel} {baslangicStr && `· ${baslangicStr}`}
-                        </Badge>
                         <Button
-                          size="sm"
-                          variant="outline"
+                          className="flex-1 h-14 text-lg font-black rounded-2xl bg-white border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 shadow-sm"
                           onClick={() => openShiftEnd(makine.makineId)}
                           disabled={isEnding}
                         >
-                          <Square className="mr-1 size-3" />
-                          Kapat
+                          VARDİYA KAPAT
                         </Button>
-                      </>
                     ) : (
                       <>
                         <Select
@@ -664,27 +679,27 @@ function VardiyaPanel() {
                             setVardiyaTipleri((prev) => ({ ...prev, [makine.makineId]: v as "gunduz" | "gece" }))
                           }
                         >
-                          <SelectTrigger className="h-8 w-28">
+                          <SelectTrigger className="h-14 w-28 text-lg font-bold rounded-2xl border-2">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="gunduz">{t("admin.erp.operator.dayShift")}</SelectItem>
-                            <SelectItem value="gece">{t("admin.erp.operator.nightShift")}</SelectItem>
+                          <SelectContent className="rounded-2xl">
+                            <SelectItem value="gunduz">Gündüz</SelectItem>
+                            <SelectItem value="gece">Gece</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Button size="sm" onClick={() => handleShiftStart(makine.makineId)} disabled={isStarting}>
-                          <Play className="mr-1 size-3" />
-                          Aç
+                        <Button className="flex-1 h-14 text-lg font-black rounded-2xl shadow-lg" onClick={() => handleShiftStart(makine.makineId)} disabled={isStarting}>
+                          BAŞLAT
                         </Button>
                       </>
                     )}
+                    </div>
                   </div>
                 );
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Vardiya Kapat Sheet */}
       <Sheet open={closingMakineId !== null} onOpenChange={(open) => !open && setClosingMakineId(null)}>
