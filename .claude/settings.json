@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(/home/orhan/Documents/Projeler/paspas/backend/src/db/seed/sql/105_urunler_schema.sql:*)",
       "Bash(ssh guezelwebdesign \"sudo mysql -e \"\"SHOW DATABASES;\"\"\")"
