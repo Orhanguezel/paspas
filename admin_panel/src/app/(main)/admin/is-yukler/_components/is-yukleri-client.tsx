@@ -423,12 +423,26 @@ export default function IsYukleriClient() {
       return;
     }
 
+    // Same-group: prevent any move that would shift a calisiyor item's position.
+    // arrayMove(arr, si, ti) shifts calisiyor when:
+    //   si < ci && ti >= ci  → calisiyor shifts up
+    //   si > ci && ti <= ci  → calisiyor shifts down
+    if (sourceGroupId === targetGroupId) {
+      const ci = sourceGroup.items.findIndex((i) => i.durum === 'calisiyor');
+      if (ci !== -1) {
+        if (
+          (sourceIndex < ci && targetIndex >= ci) ||
+          (sourceIndex > ci && targetIndex <= ci)
+        ) {
+          toast.warning('Çalışmakta olan üretimin konumu değiştirilemez.');
+          return;
+        }
+      }
+    }
+
     // Hedef grupta sabit (çalışan/tamamlanmış) işlerin önüne bırakılamaz
     const lockedCount = targetGroup.items.filter((i) => i.durum === 'calisiyor' || i.durum === 'tamamlandi').length;
-    const minTargetIndex = sourceGroupId === targetGroupId
-      ? lockedCount  // aynı makinede: sabit işlerden sonra
-      : lockedCount; // farklı makinede: sabit işlerden sonra
-    const safeTargetIndex = Math.max(targetIndex, minTargetIndex);
+    const safeTargetIndex = Math.max(targetIndex, lockedCount);
 
     const nextGroups = localGroups.map((g) => ({ ...g, items: [...g.items] }));
     const nextSource = nextGroups.find((g) => g.makineId === sourceGroupId);
