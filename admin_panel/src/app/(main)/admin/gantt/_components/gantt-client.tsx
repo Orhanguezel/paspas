@@ -154,10 +154,11 @@ function blockPatternStyle(tip: GanttBlockDto["tip"]): React.CSSProperties {
     };
   }
   if (tip === "tatil") {
-    return { backgroundColor: "rgba(254,205,211,0.95)" }; // rose-200
+    // Full-height holiday block — rose tint, bars (z-5) render on top
+    return { backgroundColor: "rgba(254,202,202,0.55)" }; // rose-200/55
   }
-  // hafta_sonu
-  return { backgroundColor: "rgba(226,232,240,0.95)" }; // slate-200
+  // hafta_sonu — full-height, bars (z-5) render on top when machine works weekends
+  return { backgroundColor: "rgba(148,163,184,0.22)" }; // slate-400/22
 }
 
 function getBlockRect(block: GanttBlockDto, timelineStart: Date, totalDays: number, colWidth: number) {
@@ -487,9 +488,13 @@ export default function GanttClient() {
                     {columns.map((col) => (
                       <div
                         key={col.date.toISOString()}
-                        className={`flex items-center justify-center border-r text-[10px] ${
-                          col.isToday ? "bg-blue-100 font-semibold text-blue-700" : ""
-                        } ${col.isWeekend && !col.isToday ? "bg-muted/30 text-muted-foreground" : ""}`}
+                        className={`flex items-center justify-center border-r text-[10px] font-medium ${
+                          col.isToday
+                            ? "bg-blue-100 font-semibold text-blue-700"
+                            : col.isWeekend
+                              ? "bg-slate-200/70 text-slate-500"
+                              : "text-muted-foreground"
+                        }`}
                         style={{ width: colWidth }}
                       >
                         {col.label}
@@ -559,12 +564,18 @@ function MachineTimelineRow({
 
   return (
     <div className="relative border-b" style={{ height: ROW_H }}>
-      {/* Layer 0: Column grid + today highlight */}
+      {/* Layer 0: Column grid + today/weekend highlight */}
       <div className="absolute inset-0 flex">
         {columns.map((col) => (
           <div
             key={col.date.toISOString()}
-            className={`h-full border-r ${col.isToday ? "bg-blue-50/40" : ""}`}
+            className={`h-full border-r ${
+              col.isToday
+                ? "bg-blue-50/40"
+                : col.isWeekend
+                  ? "bg-slate-100/60"
+                  : ""
+            }`}
             style={{ width: colWidth }}
           />
         ))}
@@ -581,7 +592,7 @@ function MachineTimelineRow({
         ))
       )}
 
-      {/* Layer 3: Non-working hafta sonu + tatil blocks — thin top stripe on bar area only */}
+      {/* Layer 1: Non-working hafta sonu + tatil blocks — full-height, z-1 so work bars (z-5) render on top */}
       {group.blocks
         .filter((block) => block.tip !== "durus")
         .map((block) => {
@@ -592,8 +603,8 @@ function MachineTimelineRow({
             <Tooltip key={block.id}>
               <TooltipTrigger asChild>
                 <div
-                  className="absolute top-0 z-10 rounded-sm border-x border-background/50"
-                  style={{ left: rect.left, width: rect.width, height: 5, ...blockPatternStyle(block.tip) }}
+                  className="absolute inset-y-0 z-1"
+                  style={{ left: rect.left, width: rect.width, ...blockPatternStyle(block.tip) }}
                 />
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
