@@ -148,7 +148,10 @@ function preciseDayDuration(start: Date, end: Date): number {
 
 function blockPatternStyle(tip: GanttBlockDto["tip"]): React.CSSProperties {
   if (tip === "durus") {
-    return { backgroundColor: "rgba(254,215,170,0.95)" }; // orange-200
+    return {
+      backgroundColor: "rgba(251,146,60,0.25)", // orange-400/25 — semi-transparent, bars show through
+      backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(251,146,60,0.3) 4px, rgba(251,146,60,0.3) 8px)",
+    };
   }
   if (tip === "tatil") {
     return { backgroundColor: "rgba(254,205,211,0.95)" }; // rose-200
@@ -610,7 +613,7 @@ function MachineTimelineRow({
         </div>
       )}
 
-      {/* Layer 5: Duruş blocks (z-[15]) — on top of everything */}
+      {/* Layer 5: Duruş blocks (z-[3]) — below work bars so bars remain visible */}
       {group.blocks
         .filter((block) => block.tip === "durus")
         .map((block) => {
@@ -621,7 +624,7 @@ function MachineTimelineRow({
             <Tooltip key={block.id}>
               <TooltipTrigger asChild>
                 <div
-                  className={`absolute inset-y-0 z-15 border ${BLOCK_STYLES[block.tip]}`}
+                  className={`absolute inset-y-0 z-3 border-x border-orange-300`}
                   style={{ left: rect.left, width: rect.width, ...blockPatternStyle(block.tip) }}
                 />
               </TooltipTrigger>
