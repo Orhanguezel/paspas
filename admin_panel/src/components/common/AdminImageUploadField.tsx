@@ -950,11 +950,31 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
               <DialogTitle className="text-sm font-medium">PDF Önizleme</DialogTitle>
             </DialogHeader>
             {pdfPreviewUrl && (
-              <iframe
-                src={pdfPreviewUrl}
-                className="flex-1 w-full border-0"
-                title="PDF önizleme"
-              />
+              <div className="flex-1 min-h-0">
+                <object
+                  data={pdfPreviewUrl}
+                  type="application/pdf"
+                  className="h-full w-full"
+                  aria-label="PDF önizleme"
+                >
+                  <iframe
+                    src={pdfPreviewUrl}
+                    className="h-full w-full border-0"
+                    title="PDF önizleme"
+                  />
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-6 text-center">
+                    <FileText className="size-10 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      PDF önizlemesi bu tarayıcıda gömülü açılamadı.
+                    </p>
+                    <Button asChild type="button" variant="outline">
+                      <a href={pdfPreviewUrl} target="_blank" rel="noreferrer">
+                        Yeni sekmede aç
+                      </a>
+                    </Button>
+                  </div>
+                </object>
+              </div>
             )}
           </DialogContent>
         </Dialog>

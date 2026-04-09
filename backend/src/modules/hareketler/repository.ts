@@ -35,6 +35,16 @@ function getDateRange(query: ListQuery): { start: Date; end: Date } | null {
     return { start: current, end };
   }
 
+  if (query.period === 'month') {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    end.setHours(23, 59, 59, 999);
+
+    return { start, end };
+  }
+
   if (query.period === 'today') {
     const start = new Date(now);
     start.setHours(0, 0, 0, 0);

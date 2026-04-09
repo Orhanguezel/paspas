@@ -237,7 +237,8 @@ function MalKabulWidget() {
 // ─── OZ-4: Depo Stok (paspas kategorisi) ────────────────────
 function StokWidget() {
   const { data, isLoading } = useListStoklarAdminQuery({
-    kategori: 'paspas',
+    q: 'paspas',
+    kategori: 'urun',
     sort: 'stok',
     order: 'desc',
     stokluOnly: true,

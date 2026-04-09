@@ -9,7 +9,7 @@
 import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
-import { useStatusQuery } from '@/integrations/hooks';
+import { useAuthRefreshMutation, useStatusQuery } from '@/integrations/hooks';
 import type { AuthStatusResponse } from '@/integrations/shared';
 import { normalizeMeFromStatus } from '@/integrations/shared';
 import { canAccessAdminPath, ROLE_HOME } from '@/navigation/permissions';
@@ -28,10 +28,26 @@ function resolveRole(me: ReturnType<typeof normalizeMeFromStatus>): PanelRole | 
 export default function AdminAuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const q = useStatusQuery();
+  const [bootstrapped, setBootstrapped] = React.useState(false);
+  const [refreshAuth] = useAuthRefreshMutation();
+  const q = useStatusQuery(undefined, { skip: !bootstrapped });
 
   React.useEffect(() => {
-    if (q.isFetching || q.isUninitialized) return;
+    let alive = true;
+
+    refreshAuth()
+      .catch(() => undefined)
+      .finally(() => {
+        if (alive) setBootstrapped(true);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [refreshAuth]);
+
+  React.useEffect(() => {
+    if (!bootstrapped || q.isFetching || q.isUninitialized) return;
 
     const me = normalizeMeFromStatus(q.data as AuthStatusResponse | undefined);
     const role = resolveRole(me);
@@ -45,9 +61,9 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
 
     // Yetkisiz sayfa → rolün ana sayfasına yönlendir
     router.replace(ROLE_HOME[role]);
-  }, [q.isFetching, q.isUninitialized, q.data, router, pathname]);
+  }, [bootstrapped, q.isFetching, q.isUninitialized, q.data, router, pathname]);
 
-  if (q.isFetching || q.isUninitialized) return null;
+  if (!bootstrapped || q.isFetching || q.isUninitialized) return null;
 
   const me = normalizeMeFromStatus(q.data as AuthStatusResponse | undefined);
   const role = resolveRole(me);

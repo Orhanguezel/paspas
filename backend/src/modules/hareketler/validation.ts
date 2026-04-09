@@ -4,7 +4,7 @@ const hareketTipiEnum = z.enum(['giris', 'cikis', 'duzeltme']);
 const kaynakTipiEnum = z.enum(['sevkiyat', 'mal_kabul', 'stok_duzeltme', 'manuel', 'uretim', 'fire']);
 const sortEnum = z.enum(['created_at']);
 const orderEnum = z.enum(['asc', 'desc']);
-const periodEnum = z.enum(['today', 'week', 'custom']);
+const periodEnum = z.enum(['today', 'week', 'month', 'custom']);
 const entityIdSchema = z.string().trim().min(1);
 
 export const listQuerySchema = z.object({

@@ -101,7 +101,7 @@ export const operasyonPatchSchema = z.object({
 // -- Medya --
 const medyaItemSchema = z.object({
   id: z.string().trim().max(36).optional(),
-  tip: z.enum(['image', 'video', 'url']).default('image'),
+  tip: z.enum(['image', 'video', 'url', 'pdf']).default('image'),
   url: z.string().trim().min(1).max(1024),
   storageAssetId: optionalUuid,
   baslik: optionalTrimmedStr(255),

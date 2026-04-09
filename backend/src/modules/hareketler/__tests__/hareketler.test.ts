@@ -68,6 +68,11 @@ describe("hareketler listQuerySchema", () => {
   it("rejects empty urunId", () => {
     expect(listQuerySchema.safeParse({ urunId: "" }).success).toBe(false);
   });
+
+  it("accepts month period filter", () => {
+    const parsed = listQuerySchema.parse({ period: "month" });
+    expect(parsed.period).toBe("month");
+  });
 });
 
 describe("hareketler createSchema", () => {
