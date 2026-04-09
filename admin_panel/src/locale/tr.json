@@ -5240,6 +5240,7 @@
             "cikarmaHatasi": "Kuyruktan çıkarma sırasında hata oluştu.",
             "siralamaKaydedildi": "Kuyruk sıralaması kaydedildi.",
             "siralamaHatasi": "Sıralama sırasında hata oluştu.",
+            "calisiyorUstuneTasinamaz": "Çalışmakta olan üretimin üstüne taşınamaz.",
             "ozet": {
               "makine": "Makine",
               "toplamIs": "Toplam İş",

@@ -310,6 +310,13 @@ export default function MakineKuyrukTab({ t }: MakineKuyrukTabProps) {
 
     if (oldIndex === -1 || newIndex === -1) return;
 
+    // Prevent dragging any item above a calisiyor item
+    const calisiyorIndex = grup.kuyruk.findIndex((item) => item.durum === 'calisiyor');
+    if (calisiyorIndex !== -1 && newIndex <= calisiyorIndex) {
+      toast.error(t('kuyrukYonetimi.kuyruklar.calisiyorUstuneTasinamaz'));
+      return;
+    }
+
     // Optimistic update
     const newKuyruk = arrayMove(grup.kuyruk, oldIndex, newIndex);
     const newGrup = { ...grup, kuyruk: newKuyruk };
