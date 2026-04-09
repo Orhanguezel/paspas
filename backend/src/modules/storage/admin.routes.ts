@@ -4,6 +4,7 @@ import { makeAdminPermissionGuard } from "@/common/middleware/permissions";
 import {
   adminListAssets,
   adminGetAsset,
+  adminInlineAsset,
   adminCreateAsset,
   adminPatchAsset,
   adminDeleteAsset,
@@ -29,6 +30,12 @@ export async function registerStorageAdmin(app: FastifyInstance) {
     `${BASE}/assets/:id`,
     { preHandler: guard },
     adminGetAsset
+  );
+
+  app.get<{ Params: { id: string } }>(
+    `${BASE}/assets/:id/inline`,
+    { preHandler: guard },
+    adminInlineAsset
   );
 
   app.post(

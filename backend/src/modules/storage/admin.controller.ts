@@ -3,9 +3,12 @@
 // =============================================================
 import type { RouteHandler } from "fastify";
 import { randomUUID } from "node:crypto";
+import { createReadStream, existsSync } from "node:fs";
+import nodePath from "node:path";
 import { v2 as cloudinary } from "cloudinary";
 import type { MultipartFile, MultipartValue } from "@fastify/multipart";
 import { sql as dsql } from "drizzle-orm";
+import { env } from "@/core/env";
 
 import {
   storageListQuerySchema,
@@ -114,6 +117,78 @@ export const adminGetAsset: RouteHandler<{ Params: { id: string } }> = async (
     ...row,
     url: buildPublicUrl(row.bucket, row.path, row.url, cfg ?? undefined),
   });
+};
+
+/** GET /admin/storage/assets/:id/inline */
+export const adminInlineAsset: RouteHandler<{ Params: { id: string } }> = async (
+  req,
+  reply,
+) => {
+  const row = await getById(req.params.id);
+  if (!row) return reply.code(404).send({ error: { message: "not_found" } });
+
+  const cfg = await getCloudinaryConfig();
+  const filename = row.name || nodePath.basename(row.path || "file");
+  const mime = row.mime || "application/octet-stream";
+
+  if (row.provider === "local") {
+    const localRoot =
+      cfg?.localRoot ||
+      env.LOCAL_STORAGE_ROOT ||
+      nodePath.join(process.cwd(), "uploads");
+    const rel = (row.provider_public_id ?? row.path ?? "").replace(/^\/+/, "");
+    const absPath = nodePath.join(localRoot, rel);
+
+    if (!existsSync(absPath)) {
+      return reply.code(404).send({ error: { message: "file_not_found" } });
+    }
+
+    reply.type(mime);
+    reply.header("Content-Disposition", `inline; filename="${filename}"`);
+    return reply.send(createReadStream(absPath));
+  }
+
+  const sourceUrl = buildPublicUrl(row.bucket, row.path, row.url, cfg ?? undefined);
+  let upstream = await fetch(sourceUrl);
+
+  if (
+    !upstream.ok &&
+    row.provider === "cloudinary" &&
+    row.provider_public_id &&
+    cfg?.apiKey &&
+    cfg?.apiSecret
+  ) {
+    const format =
+      row.provider_format ||
+      row.name?.split(".").pop() ||
+      (row.mime === "application/pdf" ? "pdf" : undefined);
+
+    if (format) {
+      const signedUrl = cloudinary.utils.private_download_url(
+        row.provider_public_id,
+        format,
+        {
+          resource_type: row.provider_resource_type || "image",
+          type: "upload",
+          attachment: false,
+          expires_at: Math.floor(Date.now() / 1000) + 300,
+        },
+      );
+
+      upstream = await fetch(signedUrl);
+    }
+  }
+
+  if (!upstream.ok) {
+    return reply.code(502).send({
+      error: { message: "asset_fetch_failed", status: upstream.status },
+    });
+  }
+
+  const buf = Buffer.from(await upstream.arrayBuffer());
+  reply.type(upstream.headers.get("content-type") || mime);
+  reply.header("Content-Disposition", `inline; filename="${filename}"`);
+  return reply.send(buf);
 };
 
 /** POST /admin/storage/assets (multipart single file) */

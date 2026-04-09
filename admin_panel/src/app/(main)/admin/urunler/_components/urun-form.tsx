@@ -1023,6 +1023,15 @@ function MedyaSection({ urunId }: MedyaSectionProps) {
     () => Object.fromEntries((medyaData ?? []).map((m) => [m.url, m.tip])),
     [medyaData],
   );
+  const serverValueAssetIds = useMemo(
+    () =>
+      Object.fromEntries(
+        (medyaData ?? [])
+          .filter((m) => m.storageAssetId)
+          .map((m) => [m.url, m.storageAssetId as string]),
+      ),
+    [medyaData],
+  );
   const serverCover = useMemo(
     () => (medyaData ?? []).find((m) => m.isCover)?.url ?? serverUrls[0] ?? "",
     [medyaData, serverUrls],
@@ -1109,6 +1118,7 @@ function MedyaSection({ urunId }: MedyaSectionProps) {
         folder="product-media"
         values={uiUrls}
         valueTypes={serverValueTypes}
+        valueAssetIds={serverValueAssetIds}
         onChangeMultiple={handleGalleryChange}
         coverValue={uiCover}
         onSelectAsCover={handleCoverChange}

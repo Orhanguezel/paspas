@@ -63,6 +63,8 @@ export type AdminImageUploadFieldProps = {
 
   /** URL → medya tipi haritası. URL uzantısından tespit edilemeyen PDF'ler için. */
   valueTypes?: Record<string, string>;
+  /** URL → storage asset id haritası. PDF gibi provider URL'lerini same-origin stream etmek için. */
+  valueAssetIds?: Record<string, string>;
 
   disabled?: boolean;
 
@@ -302,6 +304,7 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
   onSelectAsCover,
   coverValue,
   valueTypes,
+  valueAssetIds,
 
   disabled,
   openLibraryHref,
@@ -506,6 +509,10 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
   };
 
   const aspect = ratioOf(previewAspect);
+  const getPdfPreviewUrl = (url: string) => {
+    const assetId = valueAssetIds?.[url];
+    return assetId ? `/api/admin/storage/assets/${encodeURIComponent(assetId)}/inline` : resolveMediaUrl(url);
+  };
 
   const SinglePreview = () => {
     if (!value) {
@@ -576,7 +583,7 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => setPdfPreviewUrl(resolveMediaUrl(value))}
+            onClick={() => setPdfPreviewUrl(getPdfPreviewUrl(value))}
           >
             <FileText className="mr-2 size-4" />
             PDF'i Görüntüle
@@ -689,7 +696,7 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
                             variant="outline"
                             size="sm"
                             title="PDF'i görüntüle"
-                            onClick={() => setPdfPreviewUrl(resolveMediaUrl(u))}
+                            onClick={() => setPdfPreviewUrl(getPdfPreviewUrl(u))}
                           >
                             <FileText className="mr-2 size-4" />
                             Görüntüle
