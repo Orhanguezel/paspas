@@ -170,7 +170,10 @@ function getBlockRect(block: GanttBlockDto, timelineStart: Date, totalDays: numb
   const startOffset = preciseDayOffset(timelineStart, start);
   const duration = preciseDayDuration(start, end);
   const left = Math.max(0, startOffset) * colWidth;
-  const width = Math.max(6, Math.min(duration, totalDays - Math.max(0, startOffset)) * colWidth);
+  // Clip left edge: when block starts before viewport, subtract the invisible portion
+  const visibleDuration = duration + Math.min(0, startOffset);
+  const clampedDuration = Math.min(visibleDuration, totalDays - Math.max(0, startOffset));
+  const width = Math.max(6, clampedDuration * colWidth);
 
   return { left, width };
 }
