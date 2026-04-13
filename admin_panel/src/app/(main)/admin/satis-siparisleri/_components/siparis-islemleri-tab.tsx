@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Factory } from "lucide-react";
+import { Search, Factory, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 import {
   useListSiparisIslemleriAdminQuery,
@@ -43,13 +43,13 @@ export default function SiparisIslemleriTab() {
   const [seciliKalemler, setSeciliKalemler] = React.useState<Set<string>>(new Set());
   const [aktarDialogAcik, setAktarDialogAcik] = React.useState(false);
 
-  const { data: items = [], isLoading } = useListSiparisIslemleriAdminQuery({
+  const { data: items = [], isLoading, isFetching, refetch } = useListSiparisIslemleriAdminQuery({
     q: search || undefined,
     gorunum,
     uretimDurumu: durumFiltre !== "all" ? (durumFiltre as KalemUretimDurumu) : undefined,
     gizleTamamlanan,
     limit: 200,
-  });
+  }, { pollingInterval: 30_000 });
 
   const [uretimeAktar, { isLoading: aktarLoading }] = useUretimeAktarAdminMutation();
 
@@ -247,6 +247,10 @@ export default function SiparisIslemleriTab() {
                 Tamamlananları Gizle
               </Label>
             </div>
+
+            <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching}>
+              <RefreshCcw className={`h-4 w-4${isFetching ? " animate-spin" : ""}`} />
+            </Button>
 
             {seciliKalemler.size > 0 && (
               <Button onClick={() => setAktarDialogAcik(true)} disabled={aktarLoading} className="gap-1.5">
