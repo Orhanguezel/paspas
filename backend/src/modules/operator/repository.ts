@@ -774,9 +774,18 @@ export async function repoUretimBitir(
     .where(eq(makineKuyrugu.id, body.makineKuyrukId))
     .limit(1);
   if (kqRef2?.uretim_emri_id) {
-    // Cift tarafli uretim kontrolu: sadece montaj operasyonu veya tek tarafli ise kalem tamamlandi
-    let shouldCompleteKalem = false;
-    if (kqRef2.emir_operasyon_id) {
+    // UE tamamlandi mi? (transaction sonrası taze oku)
+    const [emirRow] = await db
+      .select({ durum: uretimEmirleri.durum })
+      .from(uretimEmirleri)
+      .where(eq(uretimEmirleri.id, kqRef2.uretim_emri_id))
+      .limit(1);
+    const isEmirTamamlandi = emirRow?.durum === 'tamamlandi';
+
+    // Cift tarafli uretim kontrolu:
+    // montaj operasyonu VEYA tek taraflı VEYA tüm operasyonlar bitti (UE tamamlandi) ise kalem tamamlandi
+    let shouldCompleteKalem = isEmirTamamlandi;
+    if (!shouldCompleteKalem && kqRef2.emir_operasyon_id) {
       const [op] = await db
         .select({ montaj: uretimEmriOperasyonlari.montaj })
         .from(uretimEmriOperasyonlari)
@@ -792,7 +801,7 @@ export async function repoUretimBitir(
       const isSingleSided = Number(opCount?.count ?? 0) <= 1;
 
       shouldCompleteKalem = isMontajOp || isSingleSided;
-    } else {
+    } else if (!shouldCompleteKalem) {
       shouldCompleteKalem = true;
     }
 
