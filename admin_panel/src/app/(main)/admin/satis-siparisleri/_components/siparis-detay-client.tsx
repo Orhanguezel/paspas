@@ -81,17 +81,22 @@ export default function SiparisDetayClient({ id }: { id: string }) {
     );
   }
 
-  const items   = data.items ?? [];
-  const iskonto = data.musteriIskonto;
+  const items = data.items ?? [];
+  const mIskontoOrani = (data.musteriIskonto ?? 0) / 100;
+  const eIskontoOrani = (data.ekstraIndirimOrani ?? 0) / 100;
 
   // Toplamlar — SP-3: KDV sadece dip toplamda
-  const iskontoluToplam = items.reduce((s, k) => s + k.miktar * k.birimFiyat, 0);
-  const araToplam = iskonto > 0
-    ? items.reduce((s, k) => s + k.miktar * (k.birimFiyat / (1 - iskonto / 100)), 0)
-    : iskontoluToplam;
-  const iskontoTutar = araToplam - iskontoluToplam;
-  const kdvToplam = items.reduce((s, k) => s + (k.miktar * k.birimFiyat * k.kdvOrani / 100), 0);
-  const genelToplam = iskontoluToplam + kdvToplam;
+  // araToplam: KDV hariç, indirimsiz brüt toplam (birimFiyat zaten baz fiyattır)
+  const araToplam = items.reduce((s, k) => s + k.miktar * k.birimFiyat, 0);
+  // Sıralı indirim: Brüt * (1 - müşteri_iskonto) * (1 - ekstra_iskonto)
+  const indirimSonrasi = araToplam * (1 - mIskontoOrani) * (1 - eIskontoOrani);
+  const iskontoTutar = araToplam - indirimSonrasi;
+  // KDV, indirim uygulanmış satır fiyatı üzerinden hesaplanır
+  const kdvToplam = items.reduce((s, k) => {
+    const satirNet = k.miktar * k.birimFiyat * (1 - mIskontoOrani) * (1 - eIskontoOrani);
+    return s + satirNet * (k.kdvOrani / 100);
+  }, 0);
+  const genelToplam = indirimSonrasi + kdvToplam;
 
   return (
     <div className="space-y-6">
@@ -124,7 +129,13 @@ export default function SiparisDetayClient({ id }: { id: string }) {
         <Card className="p-3">
           <p className="text-xs text-muted-foreground">{t('admin.erp.satisSiparisleri.columns.musteriId')}</p>
           <p className="font-semibold truncate">{data.musteriAd ?? '—'}</p>
-          {iskonto > 0 && <p className="text-xs text-muted-foreground">İsk. %{NUM(iskonto, 2)}</p>}
+          {(data.musteriIskonto > 0 || data.ekstraIndirimOrani > 0) && (
+            <p className="text-xs text-muted-foreground">
+              {data.musteriIskonto > 0 && `Müş. İsk. %${NUM(data.musteriIskonto, 2)}`}
+              {data.musteriIskonto > 0 && data.ekstraIndirimOrani > 0 && ' + '}
+              {data.ekstraIndirimOrani > 0 && `Ekstra %${NUM(data.ekstraIndirimOrani, 2)}`}
+            </p>
+          )}
         </Card>
         <Card className="p-3">
           <p className="text-xs text-muted-foreground">{t('admin.erp.common.deliveryDate')}</p>
@@ -176,7 +187,11 @@ export default function SiparisDetayClient({ id }: { id: string }) {
                 {iskontoTutar > 0 && (
                   <TableRow>
                     <TableCell colSpan={4} className="text-right font-semibold text-green-600">
-                      İskonto (%{NUM(iskonto, 2)})
+                      İskonto
+                      {data.musteriIskonto > 0 && ` (Müş. %${NUM(data.musteriIskonto, 2)}`}
+                      {data.musteriIskonto > 0 && data.ekstraIndirimOrani > 0 && ` + Ekstra %${NUM(data.ekstraIndirimOrani, 2)}`}
+                      {data.musteriIskonto === 0 && data.ekstraIndirimOrani > 0 && ` (Ekstra %${NUM(data.ekstraIndirimOrani, 2)}`}
+                      {(data.musteriIskonto > 0 || data.ekstraIndirimOrani > 0) && ')'}
                     </TableCell>
                     <TableCell className="text-right tabular-nums font-semibold text-green-600">
                       -{TRY(iskontoTutar)}
@@ -195,9 +210,12 @@ export default function SiparisDetayClient({ id }: { id: string }) {
             )}
           </Table>
         </div>
-        {iskonto > 0 && (
+        {(data.musteriIskonto > 0 || data.ekstraIndirimOrani > 0) && (
           <p className="mt-2 text-xs text-muted-foreground">
-            Müşteri İskontosu (%{NUM(iskonto, 2)}) — Satır fiyatlarına yansıtılmıştır.
+            {data.musteriIskonto > 0 && `Müşteri İskontosu %${NUM(data.musteriIskonto, 2)}`}
+            {data.musteriIskonto > 0 && data.ekstraIndirimOrani > 0 && ' + '}
+            {data.ekstraIndirimOrani > 0 && `Ekstra İskonto %${NUM(data.ekstraIndirimOrani, 2)}`}
+            {' — Sıralı indirim uygulanmıştır.'}
           </p>
         )}
       </div>
