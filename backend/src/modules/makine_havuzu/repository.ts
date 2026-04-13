@@ -542,17 +542,23 @@ export async function repoKuyrukCikar(kuyruguId: string): Promise<void> {
       .where(eq(makineKuyrugu.uretim_emri_id, affectedEmriId));
     if (Number(check?.count ?? 0) === 0) {
       await stokGeriAl(affectedEmriId);
-      // Sadece makineye_atandi durumundaki kalemleri geri al.
-      // uretiliyor/duraklatildi gibi ilerlemiş durumlara dokunma.
+      // Tüm kuyruk girişleri silindiyse, makineye_atandi + uretiliyor + duraklatildi
+      // durumundaki tüm kalemleri uretime_aktarildi'ye geri al.
+      // (Makine ataması kalmadığında "uretiliyor" takılı kalmasını önler.)
       const allKalemIds = await getKalemIdsByUretimEmriId(affectedEmriId);
       if (allKalemIds.length > 0) {
         const geriAlinacaklar = await db
           .select({ id: siparisKalemleri.id })
           .from(siparisKalemleri)
-          .where(and(inArray(siparisKalemleri.id, allKalemIds), eq(siparisKalemleri.uretim_durumu, 'makineye_atandi')));
-        const kalemIds = geriAlinacaklar.map((r) => r.id);
-        if (kalemIds.length > 0) {
-          await transitionMultipleKalemDurum(kalemIds, 'uretime_aktarildi');
+          .where(and(
+            inArray(siparisKalemleri.id, allKalemIds),
+            inArray(siparisKalemleri.uretim_durumu, ['makineye_atandi', 'uretiliyor', 'duraklatildi']),
+          ));
+        for (const kalem of geriAlinacaklar) {
+          await db
+            .update(siparisKalemleri)
+            .set({ uretim_durumu: 'uretime_aktarildi' })
+            .where(eq(siparisKalemleri.id, kalem.id));
         }
       }
     }

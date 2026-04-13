@@ -799,6 +799,22 @@ export async function repoUretimBitir(
     if (shouldCompleteKalem) {
       const kalemIds = await getKalemIdsByUretimEmriId(kqRef2.uretim_emri_id);
       await transitionMultipleKalemDurum(kalemIds, 'uretim_tamamlandi');
+    } else {
+      // Çift taraflı üretimde ara operasyon tamamlandı — kalem "uretiliyor" takılı kalmasın.
+      // Makine ataması bitti, bir sonraki operasyon için kuyruğa alınmayı bekliyor.
+      // VALID_TRANSITIONS bu yönü desteklemez, doğrudan güncelle.
+      const kalemIds = await getKalemIdsByUretimEmriId(kqRef2.uretim_emri_id);
+      if (kalemIds.length > 0) {
+        await db
+          .update(siparisKalemleri)
+          .set({ uretim_durumu: 'uretime_aktarildi' })
+          .where(
+            and(
+              inArray(siparisKalemleri.id, kalemIds),
+              inArray(siparisKalemleri.uretim_durumu, ['uretiliyor', 'duraklatildi']),
+            ),
+          );
+      }
     }
 
     const sids = await getSiparisIdsByUretimEmriId(kqRef2.uretim_emri_id);
