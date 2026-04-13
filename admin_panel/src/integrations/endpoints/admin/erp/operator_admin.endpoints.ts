@@ -49,6 +49,8 @@ export const operatorAdminApi = baseApi.injectEndpoints({
         { type: 'MakineKuyrugu', id: 'LIST' },
         { type: 'UretimEmirleri', id: 'LIST' },
         { type: 'IsYukleri', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'ISLEMLER' },
       ],
     }),
 
@@ -62,6 +64,8 @@ export const operatorAdminApi = baseApi.injectEndpoints({
         { type: 'Stoklar', id: 'LIST' },
         { type: 'GunlukGirisler', id: 'LIST' },
         { type: 'IsYukleri', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'ISLEMLER' },
       ],
     }),
 
@@ -71,6 +75,8 @@ export const operatorAdminApi = baseApi.injectEndpoints({
       invalidatesTags: [
         { type: 'MakineKuyrugu', id: 'LIST' },
         { type: 'Makineler', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'ISLEMLER' },
       ],
     }),
 
@@ -80,6 +86,8 @@ export const operatorAdminApi = baseApi.injectEndpoints({
       invalidatesTags: [
         { type: 'MakineKuyrugu', id: 'LIST' },
         { type: 'Makineler', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'ISLEMLER' },
       ],
     }),
 
@@ -103,6 +111,8 @@ export const operatorAdminApi = baseApi.injectEndpoints({
       invalidatesTags: [
         { type: 'Stoklar', id: 'LIST' },
         { type: 'Hareketler', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'ISLEMLER' },
       ],
     }),
 

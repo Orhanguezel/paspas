@@ -99,6 +99,8 @@ export const makineHavuzuAdminApi = baseApi.injectEndpoints({
         { type: 'UretimEmirleri', id: 'LIST' },
         { type: 'Gantt', id: 'LIST' },
         { type: 'Stoklar', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'ISLEMLER' },
       ],
     }),
 
@@ -110,6 +112,8 @@ export const makineHavuzuAdminApi = baseApi.injectEndpoints({
         { type: 'UretimEmirleri', id: 'LIST' },
         { type: 'Gantt', id: 'LIST' },
         { type: 'Stoklar', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'ISLEMLER' },
       ],
     }),
 

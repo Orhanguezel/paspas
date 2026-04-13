@@ -9,7 +9,7 @@ import { useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import { AlertTriangle, Eye, Factory, Package, Pencil, Plus, RefreshCcw, Search, Trash2, Wrench, X } from "lucide-react";
+import { AlertTriangle, Eye, Factory, Pencil, Plus, RefreshCcw, Search, Trash2, Wrench, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -45,7 +45,6 @@ import { EMIR_DURUM_BADGE } from "@/integrations/shared/erp/uretim_emirleri.type
 import { useCheckYeterlilikAdminQuery } from "@/integrations/endpoints/admin/erp/stoklar_admin.endpoints";
 
 import UretimEmriForm from "./uretim-emri-form";
-import { MalzemeYeterlilikModal } from "./malzeme-yeterlilik-modal";
 import { ReceteDetayModal } from "./recete-detay-modal";
 import { MakineAtaSheet } from "./makine-ata-sheet";
 
@@ -98,7 +97,6 @@ export default function UretimEmirleriClient() {
   const [editing, setEditing] = useState<UretimEmriDto | null>(null);
   const [formInitialKaynak, setFormInitialKaynak] = useState<"manuel" | "siparis">("manuel");
   const [deleteTarget, setDelete] = useState<UretimEmriDto | null>(null);
-  const [selectedEmirForMalzeme, setSelectedEmirForMalzeme] = useState<string | null>(null);
   const [selectedEmirForRecete, setSelectedEmirForRecete] = useState<string | null>(null);
   const [makineAtaTarget, setMakineAtaTarget] = useState<UretimEmriDto | null>(null);
   const [cikarTarget, setCikarTarget] = useState<UretimEmriDto | null>(null);
@@ -508,15 +506,6 @@ export default function UretimEmirleriClient() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="size-7 text-amber-600"
-                        title="Malzeme Yeterlilik"
-                        onClick={() => setSelectedEmirForMalzeme(e.id)}
-                      >
-                        <Package className="size-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
                         className="size-7 text-indigo-600"
                         title="Reçete Detayı"
                         onClick={() => setSelectedEmirForRecete(e.id)}
@@ -596,10 +585,6 @@ export default function UretimEmirleriClient() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <MalzemeYeterlilikModal
-        emirId={selectedEmirForMalzeme}
-        onOpenChange={(open) => !open && setSelectedEmirForMalzeme(null)}
-      />
       <ReceteDetayModal
         emirId={selectedEmirForRecete}
         onOpenChange={(open) => !open && setSelectedEmirForRecete(null)}
