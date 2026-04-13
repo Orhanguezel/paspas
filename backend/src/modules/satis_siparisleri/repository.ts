@@ -590,7 +590,9 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
       uretimDurumu: r.uretimDurumu,
       sevkEdilenMiktar: Number(r.sevkEdilenMiktar ?? 0),
       uretimEmriId: r.uretimEmriId ?? null,
-      planlananBitis: r.planlananBitis ?? null,
+      planlananBitis: r.planlananBitis
+        ? String(r.planlananBitis).replace(' ', 'T') + 'Z'
+        : null,
       terminTarihi: r.terminTarihi ? String(r.terminTarihi).slice(0, 10) : null,
     })),
     total: Number(countResult[0]?.count ?? 0),
