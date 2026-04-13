@@ -123,6 +123,7 @@ export type UretimEmriAdayDto = {
   urunId: string;
   urunKod: string | null;
   urunAd: string | null;
+  receteId: string | null;
   musteriAd: string;
   miktar: number;
   terminTarihi: string | null;

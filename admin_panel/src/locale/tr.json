@@ -5170,6 +5170,10 @@
           "toplamMiktar": "Toplam miktar",
           "enErkenTermin": "En erken termin",
           "manuelUretimBilgi": "Manuel üretimde sipariş bağlantısı kurulmaz. Ürün, planlanan miktar ve tarih alanlarını doğrudan doldurun."
+        },
+        "malzemeYeterlilik": {
+          "title": "Malzeme Yeterlilik Analizi",
+          "empty": "Bu üretim emri için hammadde gereksinimi bulunamadı."
         }
       },
       "makineHavuzu": {

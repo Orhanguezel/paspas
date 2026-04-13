@@ -108,6 +108,7 @@ export interface UretimEmriAdayDto {
   urunId: string;
   urunKod: string | null;
   urunAd: string | null;
+  receteId: string | null;
   musteriAd: string;
   miktar: number;
   terminTarihi: string | null;
@@ -212,6 +213,7 @@ export function normalizeUretimEmriAday(raw: unknown): UretimEmriAdayDto {
     urunId: toStr(r.urunId),
     urunKod: r.urunKod != null ? toStr(r.urunKod) : null,
     urunAd: r.urunAd != null ? toStr(r.urunAd) : null,
+    receteId: r.receteId != null ? toStr(r.receteId) : null,
     musteriAd: toStr(r.musteriAd),
     miktar: toNum(r.miktar),
     terminTarihi: r.terminTarihi != null ? toStr(r.terminTarihi) : null,

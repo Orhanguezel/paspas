@@ -438,6 +438,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
 
   async function onSubmit(values: FormValues) {
     const coverUrl = draftCoverUrl || draftMediaUrls[0];
+    const shouldWarnMissingRecipe = values.kategori === "urun";
     const payload: UrunCreatePayload = {
       ...values,
       aciklama: values.aciklama?.trim() || undefined,
@@ -476,6 +477,9 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
           }).unwrap();
         }
         toast.success(t("admin.erp.common.created", { item: t("admin.erp.urunler.singular") }));
+        if (shouldWarnMissingRecipe && validRows.length === 0) {
+          toast.warning("Urun olusturuldu. Bu urune recete olusturun.", { duration: 7000 });
+        }
         // Reset form and draft states for next create
         form.reset({
           kategori: categories[0]?.kod ?? "urun",

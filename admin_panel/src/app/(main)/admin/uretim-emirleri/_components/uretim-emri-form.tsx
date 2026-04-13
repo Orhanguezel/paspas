@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { AlertTriangle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -19,6 +20,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import {
   Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet';
@@ -29,7 +32,7 @@ import {
   useListUretimEmriAdaylariAdminQuery,
   useUpdateUretimEmriAdminMutation,
 } from '@/integrations/endpoints/admin/erp/uretim_emirleri_admin.endpoints';
-import { useListUrunlerAdminQuery } from '@/integrations/endpoints/admin/erp/urunler_admin.endpoints';
+import { useGetUrunReceteAdminQuery, useListUrunlerAdminQuery } from '@/integrations/endpoints/admin/erp/urunler_admin.endpoints';
 import type { UretimEmriAdayDto, UretimEmriDto } from '@/integrations/shared/erp/uretim_emirleri.types';
 
 const schema = z.object({
@@ -100,6 +103,9 @@ export default function UretimEmriForm({ open, onClose, emri, initialKaynak = 's
     () => adaylar.filter((a) => selectedKalemIds.has(a.siparisKalemId)),
     [adaylar, selectedKalemIds],
   );
+  const { data: selectedUrunRecete } = useGetUrunReceteAdminQuery(selectedUrunId, {
+    skip: !selectedUrunId || (kaynakTipi === 'siparis' && selectedAdaylar.length > 0),
+  });
   const selectedToplamMiktar = useMemo(
     () => selectedAdaylar.reduce((sum, aday) => sum + aday.miktar, 0),
     [selectedAdaylar],
@@ -112,6 +118,8 @@ export default function UretimEmriForm({ open, onClose, emri, initialKaynak = 's
         .sort()[0] ?? '',
     [selectedAdaylar],
   );
+  const selectedAdayReceteMissing = selectedAdaylar.length > 0 && !selectedAdaylar[0]?.receteId;
+  const manualReceteMissing = kaynakTipi === 'manuel' && !!selectedUrunId && !selectedUrunRecete;
 
   // When selections change, auto-fill form fields
   useEffect(() => {
@@ -351,6 +359,11 @@ export default function UretimEmriForm({ open, onClose, emri, initialKaynak = 's
                           <div className="bg-muted/50 px-3 py-2.5 flex items-center gap-2">
                             <span className="font-bold text-sm">{first.urunAd ?? first.urunKod ?? urunId}</span>
                             {first.urunKod && <span className="text-xs font-mono text-muted-foreground">({first.urunKod})</span>}
+                            {!first.receteId && (
+                              <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700">
+                                Recete yok
+                              </Badge>
+                            )}
                             <span className="ml-auto text-muted-foreground text-xs">{kalemleri.length} kalem</span>
                           </div>
                           {kalemleri.map((kalem) => {
@@ -408,6 +421,15 @@ export default function UretimEmriForm({ open, onClose, emri, initialKaynak = 's
                     )}
                   </div>
                 )}
+                {selectedAdayReceteMissing && (
+                  <Alert className="border-amber-300 bg-amber-50 text-amber-900">
+                    <AlertTriangle className="text-amber-700" />
+                    <AlertTitle>Reçete eksik</AlertTitle>
+                    <AlertDescription className="text-amber-800">
+                      Secili urun icin aktif recete bulunmuyor. Is emri olusturmadan once bu urune recete ekleyin.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
             )}
 
@@ -431,6 +453,15 @@ export default function UretimEmriForm({ open, onClose, emri, initialKaynak = 's
               />
               {errors.urunId && <p className="text-destructive text-xs">{errors.urunId.message}</p>}
             </div>
+            {manualReceteMissing && (
+              <Alert className="border-amber-300 bg-amber-50 text-amber-900">
+                <AlertTriangle className="text-amber-700" />
+                <AlertTitle>Reçete eksik</AlertTitle>
+                <AlertDescription className="text-amber-800">
+                  Bu urun icin aktif recete bulunmuyor. Is emri acilmadan once urune recete olusturun.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Miktar */}
             <div className="space-y-1">

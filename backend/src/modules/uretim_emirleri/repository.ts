@@ -627,6 +627,13 @@ export async function repoListAdaylar(): Promise<UretimEmriAdayDto[]> {
       urunId: siparisKalemleri.urun_id,
       urunKod: urunler.kod,
       urunAd: urunler.ad,
+      receteId: sql<string | null>`(
+        SELECT r.id
+        FROM receteler r
+        WHERE r.urun_id = ${siparisKalemleri.urun_id} AND r.is_active = 1
+        ORDER BY r.updated_at DESC, r.created_at DESC
+        LIMIT 1
+      )`,
       musteriAd: musteriler.ad,
       miktar: siparisKalemleri.miktar,
       terminTarihi: satisSiparisleri.termin_tarihi,
@@ -658,6 +665,7 @@ export async function repoListAdaylar(): Promise<UretimEmriAdayDto[]> {
     urunId: row.urunId,
     urunKod: row.urunKod ?? null,
     urunAd: row.urunAd ?? null,
+    receteId: row.receteId ?? null,
     musteriAd: row.musteriAd,
     miktar: Number(row.miktar ?? 0),
     terminTarihi: row.terminTarihi
