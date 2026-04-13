@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
@@ -100,7 +100,7 @@ function selectQueue(where?: SQL) {
       planlananMiktar: uretimEmriOperasyonlari.planlanan_miktar,
       uretilenMiktar: uretimEmriOperasyonlari.uretilen_miktar,
       fireMiktar: uretimEmriOperasyonlari.fire_miktar,
-      montaj: uretimEmriOperasyonlari.montaj,
+      montaj: sql<number>`CASE WHEN ${makineKuyrugu.makine_id} = ${uretimEmriOperasyonlari.montaj_makine_id} THEN 1 ELSE COALESCE(${uretimEmriOperasyonlari.montaj}, 0) END`,
       terminTarihi: uretimEmirleri.termin_tarihi,
       planlananBaslangic: makineKuyrugu.planlanan_baslangic,
       planlananBitis: makineKuyrugu.planlanan_bitis,
@@ -122,25 +122,45 @@ function selectQueue(where?: SQL) {
 
 // recalcMakineKuyrukTarihleri artik _shared/planlama.ts'den import ediliyor
 
-async function resequenceMakine(tx: any, makineId: string, currentIds?: string[]) {
-  const rows = currentIds
-    ? currentIds.map((id) => ({ id }))
+const TERMINAL_DURUMLAR = ['tamamlandi', 'iptal'] as const;
+
+// Aktif satirlar once (sira 1..N), terminal satirlar sonda (sira N+1..M)
+// activeIds verilirse o sira kullanilir; verilmezse DB'den mevcut sira okunur
+async function resequenceMakine(tx: any, makineId: string, activeIds?: string[]) {
+  // Terminal satirlari mevcut siraya gore oku (bunlar her zaman DB'den gelir)
+  const terminalRows = await tx
+    .select({ id: makineKuyrugu.id })
+    .from(makineKuyrugu)
+    .where(and(
+      eq(makineKuyrugu.makine_id, makineId),
+      inArray(makineKuyrugu.durum, [...TERMINAL_DURUMLAR]),
+    ))
+    .orderBy(asc(makineKuyrugu.sira));
+
+  const activeRows = activeIds
+    ? activeIds.map((id) => ({ id }))
     : await tx
         .select({ id: makineKuyrugu.id })
         .from(makineKuyrugu)
-        .where(eq(makineKuyrugu.makine_id, makineId))
+        .where(and(
+          eq(makineKuyrugu.makine_id, makineId),
+          sql`${makineKuyrugu.durum} NOT IN ('tamamlandi', 'iptal')`,
+        ))
         .orderBy(asc(makineKuyrugu.sira));
+
+  // Aktifler once, terminallar sonda
+  const allRows = [...activeRows, ...terminalRows];
 
   // Unique constraint (makine_id, sira) oldugu icin once yuksek offset'e tasi
   const offset = 10_000;
-  for (const [index, row] of rows.entries()) {
+  for (const [index, row] of allRows.entries()) {
     await tx
       .update(makineKuyrugu)
       .set({ sira: index + 1 + offset })
       .where(eq(makineKuyrugu.id, row.id));
   }
   // Sonra gercek siralara guncelle
-  for (const [index, row] of rows.entries()) {
+  for (const [index, row] of allRows.entries()) {
     await tx
       .update(makineKuyrugu)
       .set({ sira: index + 1 })
@@ -217,17 +237,25 @@ export async function repoUpdate(id: string, data: PatchBody): Promise<IsYukuDto
 
   await db.transaction(async (tx) => {
     if (movingBetweenMachines || movingInsideQueue) {
+      // Sadece aktif satirlar: terminal olanlar resequenceMakine icinde ayri islenir
       const sourceRows = await tx
         .select({ id: makineKuyrugu.id })
         .from(makineKuyrugu)
-        .where(and(eq(makineKuyrugu.makine_id, existing.makineId), sql`${makineKuyrugu.id} != ${id}`))
+        .where(and(
+          eq(makineKuyrugu.makine_id, existing.makineId),
+          sql`${makineKuyrugu.id} != ${id}`,
+          sql`${makineKuyrugu.durum} NOT IN ('tamamlandi', 'iptal')`,
+        ))
         .orderBy(asc(makineKuyrugu.sira));
 
       const targetRows = movingBetweenMachines
         ? await tx
             .select({ id: makineKuyrugu.id })
             .from(makineKuyrugu)
-            .where(eq(makineKuyrugu.makine_id, targetMakineId))
+            .where(and(
+              eq(makineKuyrugu.makine_id, targetMakineId),
+              sql`${makineKuyrugu.durum} NOT IN ('tamamlandi', 'iptal')`,
+            ))
             .orderBy(asc(makineKuyrugu.sira))
         : sourceRows;
 
