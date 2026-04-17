@@ -3,7 +3,7 @@
 // Paspas ERP — Üretim Emirleri DTO & normalizers
 // =============================================================
 
-export type UretimEmriDurum = "atanmamis" | "planlandi" | "uretimde" | "tamamlandi" | "iptal";
+export type UretimEmriDurum = "atanmamis" | "planlandi" | "uretimde" | "montaj_bekliyor" | "tamamlandi" | "iptal";
 
 export interface UretimEmriDto {
   id: string;
@@ -118,6 +118,7 @@ export const EMIR_DURUM_LABELS: Record<UretimEmriDurum, string> = {
   atanmamis: "Atanmamış",
   planlandi: "Planlandı",
   uretimde: "Üretimde",
+  montaj_bekliyor: "Montaj Bekliyor",
   tamamlandi: "Tamamlandı",
   iptal: "İptal",
 };
@@ -126,6 +127,7 @@ export const EMIR_DURUM_BADGE: Record<UretimEmriDurum, "default" | "secondary" |
   atanmamis: "secondary",
   planlandi: "outline",
   uretimde: "default",
+  montaj_bekliyor: "secondary",
   tamamlandi: "default",
   iptal: "destructive",
 };

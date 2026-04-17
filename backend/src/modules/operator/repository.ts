@@ -13,8 +13,9 @@ import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/
 import { refreshSiparisDurum, getSiparisIdsByUretimEmriId, getKalemIdsByUretimEmriId } from '@/modules/satis_siparisleri/repository';
 import { transitionMultipleKalemDurum } from '@/modules/satis_siparisleri/kalem-durum.service';
 import { receteler, receteKalemleri } from '@/modules/receteler/schema';
+import { tryMontajForUretimEmri, tryPendingMontajlarAfterStokArtis } from '@/modules/uretim_emirleri/service';
 import { repoCreate as malKabulRepoCreate } from '@/modules/mal_kabul/repository';
-import { isMakineWorkingDay } from '@/modules/_shared/planlama';
+import { isMakineWorkingDay, recalcMakineKuyrukTarihleri } from '@/modules/_shared/planlama';
 import { hammaddeRezervasyonlari } from '@/modules/urunler/schema';
 
 import {
@@ -610,6 +611,7 @@ export async function repoUretimBitir(
 ): Promise<MakineKuyruguDetayDto & { stokFarki: number }> {
   const now = new Date();
   let stokFarki = 0;
+  let tamamlananMakineId = '';
 
   await db.transaction(async (tx) => {
     // Get queue row
@@ -619,6 +621,7 @@ export async function repoUretimBitir(
       .where(eq(makineKuyrugu.id, body.makineKuyrukId))
       .limit(1);
     if (!kqRow) throw new Error('kuyruk_kaydi_bulunamadi');
+    tamamlananMakineId = kqRow.makine_id;
 
     // Update kuyruk -> tamamlandi
     await tx
@@ -760,9 +763,12 @@ export async function repoUretimBitir(
       }
     }
 
-    // Shift following jobs on same machine
-    await shiftFollowingJobs(tx, kqRow.makine_id, now);
   });
+
+  // Recalc planned dates for all pending jobs on the machine using working hours, tatil, weekends
+  if (tamamlananMakineId) {
+    await recalcMakineKuyrukTarihleri(tamamlananMakineId);
+  }
 
   // Auto-refresh linked sipariş durum after production complete
   const [kqRef2] = await db
@@ -828,6 +834,29 @@ export async function repoUretimBitir(
 
     const sids = await getSiparisIdsByUretimEmriId(kqRef2.uretim_emri_id);
     for (const sid of sids) await refreshSiparisDurum(sid);
+
+    // Yeni mimari: emir yarı mamul için ve operasyon montaj=true ise montaj denemesi.
+    // Eski mimari kayıtlarını etkilemez (sadece urunler.kategori='yarimamul' olanlara uygulanır).
+    if (kqRef2.emir_operasyon_id) {
+      const [opRow] = await db
+        .select({ montaj: uretimEmriOperasyonlari.montaj, urunId: uretimEmirleri.urun_id })
+        .from(uretimEmriOperasyonlari)
+        .innerJoin(uretimEmirleri, eq(uretimEmirleri.id, uretimEmriOperasyonlari.uretim_emri_id))
+        .where(eq(uretimEmriOperasyonlari.id, kqRef2.emir_operasyon_id))
+        .limit(1);
+      if (opRow?.urunId) {
+        const [urunRow] = await db.select({ kategori: urunler.kategori }).from(urunler).where(eq(urunler.id, opRow.urunId)).limit(1);
+        if (urunRow?.kategori === 'yarimamul') {
+          if (opRow.montaj === 1) {
+            // Montaj makinesinde üretim bitti: montaj denemesi
+            await tryMontajForUretimEmri(kqRef2.uretim_emri_id, operatorUserId);
+          } else {
+            // Stok artan yarı mamul için bekleyen montajları tara
+            await tryPendingMontajlarAfterStokArtis(opRow.urunId, operatorUserId);
+          }
+        }
+      }
+    }
   }
 
   // Return fresh data

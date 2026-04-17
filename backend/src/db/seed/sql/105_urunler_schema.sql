@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS `urunler` (
   `id` char(36) NOT NULL,
+  -- kategori: categories.kod'a refans — 'urun' (asıl ürün, montaj sonucu) | 'yarimamul' (sağ/sol/parça) | 'hammadde' (plastik, ambalaj, etiket vs.)
   `kategori` varchar(32) NOT NULL DEFAULT 'urun',
   `tedarik_tipi` varchar(32) NOT NULL DEFAULT 'uretim',
   `urun_grubu` varchar(128) DEFAULT NULL,
@@ -16,6 +17,7 @@ CREATE TABLE IF NOT EXISTS `urunler` (
   `rezerve_stok` decimal(12,4) NOT NULL DEFAULT 0.0000,
   `birim_fiyat` decimal(12,2) DEFAULT NULL,
   `kdv_orani` decimal(5,2) NOT NULL DEFAULT 20.00,
+  -- operasyon_tipi: sadece kategori='urun' için anlamlı. 'tek_tarafli' (sağ==sol, parça x2) | 'cift_tarafli' (sağ+sol). Yarı mamul/malzemede NULL.
   `operasyon_tipi` varchar(32) DEFAULT NULL,
   `is_active` tinyint unsigned NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,

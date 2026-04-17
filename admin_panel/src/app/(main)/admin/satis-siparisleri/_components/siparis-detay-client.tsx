@@ -142,9 +142,9 @@ export default function SiparisDetayClient({ id }: { id: string }) {
           <p className="font-semibold">{data.terminTarihi ?? '—'}</p>
         </Card>
         <Card className="p-3">
-          <p className="text-xs text-muted-foreground">Net Toplam (KDV Hariç)</p>
-          <p className="text-lg font-semibold tabular-nums">{TRY(indirimSonrasi)}</p>
-          <p className="text-xs text-muted-foreground">KDV dahil {TRY(genelToplam)}</p>
+          <p className="text-xs text-muted-foreground">Genel Toplam (KDV Dahil)</p>
+          <p className="text-lg font-semibold tabular-nums">{TRY(genelToplam)}</p>
+          <p className="text-xs text-muted-foreground">KDV hariç {TRY(indirimSonrasi)}</p>
         </Card>
       </div>
 

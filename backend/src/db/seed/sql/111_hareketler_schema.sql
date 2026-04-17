@@ -1,7 +1,9 @@
 CREATE TABLE IF NOT EXISTS `hareketler` (
   `id` char(36) NOT NULL,
   `urun_id` char(36) NOT NULL,
+  -- hareket_tipi: 'giris' | 'cikis' | 'duzeltme'
   `hareket_tipi` varchar(32) NOT NULL,
+  -- referans_tipi: 'uretim_emri' (yarı mamul üretim girişi) | 'montaj' (yarı mamul çıkışı, asıl ürün girişi, hammadde çıkışı) | 'siparis' (sevkiyat) | 'satin_alma' | 'sayim' | 'manuel'
   `referans_tipi` varchar(32) DEFAULT NULL,
   `referans_id` char(36) DEFAULT NULL,
   `miktar` decimal(12,4) NOT NULL,

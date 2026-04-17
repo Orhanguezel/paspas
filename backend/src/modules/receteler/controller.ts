@@ -2,6 +2,7 @@ import type { FastifyReply, RouteHandler } from 'fastify';
 
 import { receteKalemRowToDto, receteRowToDto } from './schema';
 import { repoCreate, repoDelete, repoGetById, repoList, repoUpdate } from './repository';
+import { assertReceteKategoriTutarliligi } from './service';
 import { createSchema, listQuerySchema, patchSchema } from './validation';
 
 function sendInternalError(reply: FastifyReply) {
@@ -58,6 +59,11 @@ export const createRecete: RouteHandler = async (req, reply) => {
       });
     }
 
+    const kategoriCheck = await assertReceteKategoriTutarliligi(parsed.data.urunId, parsed.data.items);
+    if (!kategoriCheck.ok) {
+      return reply.code(400).send({ error: { message: kategoriCheck.code, detay: kategoriCheck.detay } });
+    }
+
     const detail = await repoCreate(parsed.data);
     const dto = receteRowToDto(detail.recete);
     dto.items = detail.items.map(receteKalemRowToDto);
@@ -83,6 +89,19 @@ export const updateRecete: RouteHandler = async (req, reply) => {
           issues: parsed.error.flatten(),
         },
       });
+    }
+
+    if (parsed.data.items || parsed.data.urunId !== undefined) {
+      const current = await repoGetById(id);
+      if (!current) {
+        return reply.code(404).send({ error: { message: 'recete_bulunamadi' } });
+      }
+      const hedefUrunId = parsed.data.urunId !== undefined ? parsed.data.urunId : current.recete.urun_id;
+      const itemsToCheck = parsed.data.items ?? current.items.map((i) => ({ urunId: i.urun_id }));
+      const kategoriCheck = await assertReceteKategoriTutarliligi(hedefUrunId, itemsToCheck);
+      if (!kategoriCheck.ok) {
+        return reply.code(400).send({ error: { message: kategoriCheck.code, detay: kategoriCheck.detay } });
+      }
     }
 
     const detail = await repoUpdate(id, parsed.data);

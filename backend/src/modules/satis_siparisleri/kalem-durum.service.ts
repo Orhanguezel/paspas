@@ -38,6 +38,8 @@ export async function transitionKalemDurum(
   if (!kalem) throw new Error('kalem_bulunamadi');
 
   const mevcutDurum = kalem.uretim_durumu as KalemUretimDurumu;
+  if (mevcutDurum === yeniDurum) return; // idempotent: aynı duruma geçiş no-op
+
   const gecerliGecisler = VALID_TRANSITIONS[mevcutDurum];
 
   if (!gecerliGecisler?.includes(yeniDurum)) {

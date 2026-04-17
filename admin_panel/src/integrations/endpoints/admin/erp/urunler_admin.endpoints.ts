@@ -67,6 +67,36 @@ export const urunlerAdminApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: "Urunler", id: "LIST" }],
     }),
 
+    // Asıl ürün + otomatik yarı mamul(ler) + reçeteleri tek istekte oluşturur
+    createUrunFullAdmin: b.mutation<
+      {
+        urun: UrunDto;
+        yariMamuller: UrunDto[];
+        asilUrunReceteId: string | null;
+        yariMamulReceteIds: string[];
+      },
+      {
+        kod: string;
+        ad: string;
+        urunGrubu?: string;
+        aciklama?: string;
+        birim?: string;
+        renk?: string;
+        stok?: number;
+        kritikStok?: number;
+        birimFiyat?: number;
+        kdvOrani?: number;
+        operasyonTipi: "tek_tarafli" | "cift_tarafli";
+        hazirlikSuresiDk?: number;
+        cevrimSuresiSn?: number;
+        yariMamulHammaddeleri?: Array<{ urunId: string; miktar: number; fireOrani?: number; sira?: number }>;
+        asilUrunMalzemeleri?: Array<{ urunId: string; miktar: number; fireOrani?: number; sira?: number }>;
+      }
+    >({
+      query: (body) => ({ url: `${BASE}/full`, method: "POST", body }),
+      invalidatesTags: [{ type: "Urunler", id: "LIST" }, { type: "Receteler", id: "LIST" }],
+    }),
+
     updateUrunAdmin: b.mutation<UrunDto, { id: string; body: UrunUpdatePayload }>({
       query: ({ id, body }) => ({ url: `${BASE}/${id}`, method: "PATCH", body }),
       transformResponse: (res: unknown) => normalizeUrun(res),
@@ -158,6 +188,7 @@ export const {
   useListUrunlerAdminQuery,
   useGetUrunAdminQuery,
   useCreateUrunAdminMutation,
+  useCreateUrunFullAdminMutation,
   useUpdateUrunAdminMutation,
   useDeleteUrunAdminMutation,
   useListOperasyonlarAdminQuery,

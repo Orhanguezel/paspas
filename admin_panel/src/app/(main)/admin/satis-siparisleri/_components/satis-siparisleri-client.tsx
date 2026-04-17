@@ -200,7 +200,7 @@ export default function SatisSiparisleriClient() {
               <TableHead>{t('admin.erp.satisSiparisleri.columns.musteriId')}</TableHead>
               <TableHead>{t('admin.erp.satisSiparisleri.columns.siparisTarihi')}</TableHead>
               <TableHead>{t('admin.erp.satisSiparisleri.columns.termin')}</TableHead>
-              <TableHead className="text-right">Toplam (KDV Hariç)</TableHead>
+              <TableHead className="text-right">Genel Toplam (KDV Dahil)</TableHead>
               <TableHead>{t('admin.erp.satisSiparisleri.columns.durum')}</TableHead>
               <TableHead className="w-28" />
             </TableRow>

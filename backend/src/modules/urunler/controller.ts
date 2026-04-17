@@ -26,8 +26,9 @@ import {
   repoUpdate as repoUpdateRecete,
   repoDelete as repoDeleteRecete,
 } from '@/modules/receteler/repository';
-import { createSchema, listQuerySchema, patchSchema, operasyonPatchSchema, medyaSaveSchema } from './validation';
+import { createSchema, createUrunFullSchema, listQuerySchema, patchSchema, operasyonPatchSchema, medyaSaveSchema } from './validation';
 import type { PatchBody } from './validation';
+import { createUrunWithYariMamuller, KategoriTutarsizligiError, syncYariMamulIsimleri } from './service';
 import { z } from 'zod';
 import { db } from '@/db/client';
 import { categories } from '@/modules/categories/schema';
@@ -259,6 +260,42 @@ export const createUrun: RouteHandler = async (req, reply) => {
   }
 };
 
+/** POST /admin/urunler/full — asıl ürün + yarı mamul(ler) + reçeteleri tek istekte oluşturur */
+export const createUrunFull: RouteHandler = async (req, reply) => {
+  try {
+    const parsed = createUrunFullSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() },
+      });
+    }
+
+    const groupCheck = await normalizeUrunGrubuForKategori('urun', parsed.data.urunGrubu);
+    if (groupCheck.error) {
+      return reply.code(400).send({ error: { message: groupCheck.error } });
+    }
+
+    const result = await createUrunWithYariMamuller({ ...parsed.data, urunGrubu: groupCheck.normalized ?? undefined });
+
+    return reply.code(201).send({
+      urun: rowToDto(result.urun),
+      yariMamuller: result.yariMamuller.map(rowToDto),
+      asilUrunReceteId: result.asilUrunReceteId,
+      yariMamulReceteIds: result.yariMamulReceteIds,
+    });
+  } catch (error: unknown) {
+    if (error instanceof KategoriTutarsizligiError) {
+      return reply.code(400).send({ error: { message: error.code, detay: error.detay } });
+    }
+    const err = error as { code?: string; cause?: { code?: string } };
+    if (err.code === 'ER_DUP_ENTRY' || err.cause?.code === 'ER_DUP_ENTRY') {
+      return reply.code(409).send({ error: { message: 'Bu ürün kodu veya yarı mamul kodu zaten kullanılıyor.' } });
+    }
+    req.log.error({ error }, 'create_urun_full_failed');
+    return sendInternalError(reply);
+  }
+};
+
 export const updateUrun: RouteHandler = async (req, reply) => {
   try {
     const { id } = req.params as { id: string };
@@ -312,6 +349,11 @@ export const updateUrun: RouteHandler = async (req, reply) => {
     const row = await repoUpdate(id, patchBody);
     if (!row) {
       return reply.code(404).send({ error: { message: 'urun_bulunamadi' } });
+    }
+
+    // Asıl ürünün adı değiştiyse bağlı yarı mamul/operasyon/reçete adlarını senkronla
+    if (row.kategori === 'urun' && parsed.data.ad !== undefined && parsed.data.ad !== existing.ad) {
+      await syncYariMamulIsimleri(id, parsed.data.ad);
     }
 
     const [operasyonlar, birimDonusumleri] = await Promise.all([

@@ -4,6 +4,7 @@ import { makeAdminPermissionGuard } from '@/common/middleware/permissions';
 
 import {
   createUrun,
+  createUrunFull,
   deleteUrun,
   getUrun,
   getNextCode,
@@ -26,6 +27,7 @@ export async function registerUrunler(app: FastifyInstance) {
   app.get(`${BASE}/next-code`, { preHandler: guard }, getNextCode);
   app.get(`${BASE}/:id`, { preHandler: guard }, getUrun);
   app.post(`${BASE}`, { preHandler: guard }, createUrun);
+  app.post(`${BASE}/full`, { preHandler: guard }, createUrunFull);
   app.patch(`${BASE}/:id`, { preHandler: guard }, updateUrun);
   app.delete(`${BASE}/:id`, { preHandler: guard }, deleteUrun);
 

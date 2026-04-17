@@ -298,9 +298,9 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
     db
       .select({
         uretimEmriId: makineKuyrugu.uretim_emri_id,
-        planlananBitisTarihi: sql<Date | string | null>`max(${makineKuyrugu.planlanan_bitis})`,
-        makineAtamaSayisi: sql<number>`count(*)`,
-        makineAdlari: sql<string | null>`group_concat(distinct ${makineler.ad} order by ${makineler.ad} separator ', ')`,
+        planlananBitisTarihi: sql<Date | string | null>`max(case when ${makineKuyrugu.durum} in ('bekliyor', 'calisiyor', 'duraklatildi') then ${makineKuyrugu.planlanan_bitis} else null end)`,
+        makineAtamaSayisi: sql<number>`sum(case when ${makineKuyrugu.durum} in ('bekliyor', 'calisiyor', 'duraklatildi') then 1 else 0 end)`,
+        makineAdlari: sql<string | null>`group_concat(distinct case when ${makineKuyrugu.durum} in ('bekliyor', 'calisiyor', 'duraklatildi') then ${makineler.ad} else null end order by ${makineler.ad} separator ', ')`,
       })
       .from(makineKuyrugu)
       .leftJoin(makineler, eq(makineKuyrugu.makine_id, makineler.id))
@@ -485,7 +485,9 @@ export type CreateResult = {
   hammaddeUyarilari: HammaddeUyari[];
 };
 
-export async function repoCreate(data: CreateBody): Promise<CreateResult> {
+export type CreateOpts = { skipKalemUrunCheck?: boolean };
+
+export async function repoCreate(data: CreateBody, opts: CreateOpts = {}): Promise<CreateResult> {
   // receteId verilmemisse urunun aktif recetesini otomatik bul
   let effectiveReceteId = data.receteId;
   if (!effectiveReceteId) {
@@ -499,7 +501,8 @@ export async function repoCreate(data: CreateBody): Promise<CreateResult> {
   const payload = mapCreateInput({ ...data, receteId: effectiveReceteId });
   await db.insert(uretimEmirleri).values(payload);
   if (data.siparisKalemIds && data.siparisKalemIds.length > 0) {
-    await syncJunctionRows(payload.id, data.siparisKalemIds, data.urunId);
+    // Yeni mimari: sipariş kalemi asıl ürüne, emir yarı mamule bağlı olabilir — uyum kontrolünü atla
+    await syncJunctionRows(payload.id, data.siparisKalemIds, opts.skipKalemUrunCheck ? undefined : data.urunId);
     // Siparis kalemlerinin durumunu uretime_aktarildi yap
     await transitionMultipleKalemDurum(data.siparisKalemIds, 'uretime_aktarildi');
   }

@@ -1,6 +1,4 @@
 "use client";
-
-import { useMemo } from "react";
 import { AlertCircle, CheckCircle2, Package, XCircle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -34,14 +32,24 @@ export function MalzemeYeterlilikModal({ emirId, onOpenChange }: Props) {
   });
 
   const items = data?.items ?? [];
+  const titleText = t("admin.erp.uretimEmirleri.malzemeYeterlilik.title");
+  const emptyText = t("admin.erp.uretimEmirleri.malzemeYeterlilik.empty");
+  const resolvedTitle =
+    titleText === "admin.erp.uretimEmirleri.malzemeYeterlilik.title"
+      ? "Malzeme Yeterlilik Analizi"
+      : titleText;
+  const resolvedEmptyText =
+    emptyText === "admin.erp.uretimEmirleri.malzemeYeterlilik.empty"
+      ? "Bu üretim emri için hammadde gereksinimi bulunamadı."
+      : emptyText;
 
   return (
     <Dialog open={!!emirId} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-h-[90vh] w-[min(96vw,1100px)] max-w-[min(96vw,1100px)] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="size-5" />
-            {t("admin.erp.uretimEmirleri.malzemeYeterlilik.title") || "Malzeme Yeterlilik Analizi"}
+            {resolvedTitle}
           </DialogTitle>
         </DialogHeader>
 
@@ -54,7 +62,7 @@ export function MalzemeYeterlilikModal({ emirId, onOpenChange }: Props) {
             </div>
           ) : items.length === 0 ? (
             <div className="rounded-md border p-8 text-center text-muted-foreground">
-              {t("admin.erp.uretimEmirleri.malzemeYeterlilik.empty") || "Bu üretim emri için hammadde gereksinimi bulunamadı."}
+              {resolvedEmptyText}
             </div>
           ) : (
             <>
@@ -78,67 +86,69 @@ export function MalzemeYeterlilikModal({ emirId, onOpenChange }: Props) {
                 )}
               </div>
 
-              <div className="rounded-md border overflow-hidden">
-                <Table>
-                  <TableHeader className="bg-muted/50">
-                    <TableRow>
-                      <TableHead className="w-16">Görsel</TableHead>
-                      <TableHead>Malzeme</TableHead>
-                      <TableHead className="text-right">Gerekli</TableHead>
-                      <TableHead className="text-right">Toplam Stok</TableHead>
-                      <TableHead className="text-right">Öncelikli Rezerve</TableHead>
-                      <TableHead className="text-right">Serbest Stok</TableHead>
-                      <TableHead className="text-right">Durum</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((m) => (
-                      <TableRow key={m.urunId} className={m.eksikMiktar > 0 ? "bg-destructive/5" : undefined}>
-                        <TableCell>
-                          <div className="size-10 rounded border bg-slate-50 flex items-center justify-center overflow-hidden">
-                            {m.urunGorsel ? (
-                              <img src={m.urunGorsel} alt={m.urunAd || ""} className="size-full object-contain p-0.5" />
-                            ) : (
-                              <Package className="size-5 text-slate-300" />
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-semibold text-sm leading-tight">{m.urunAd}</div>
-                          <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{m.urunKod}</div>
-                        </TableCell>
-                        <TableCell className="text-right font-bold text-sm tabular-nums">
-                          {m.gerekliMiktar.toLocaleString("tr-TR")}
-                        </TableCell>
-                        <TableCell className="text-right text-sm tabular-nums text-slate-600">
-                          {m.toplamStok.toLocaleString("tr-TR")}
-                        </TableCell>
-                        <TableCell className="text-right text-sm tabular-nums text-amber-600 italic">
-                          -{m.rezerveKuyruk.toLocaleString("tr-TR")}
-                        </TableCell>
-                        <TableCell className={`text-right font-bold text-sm tabular-nums ${m.kalanSerbest < m.gerekliMiktar ? "text-destructive" : "text-emerald-600"}`}>
-                          {m.kalanSerbest.toLocaleString("tr-TR")}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {m.eksikMiktar > 0 ? (
-                            <Badge variant="destructive" className="whitespace-nowrap">
-                              Eksik: {m.eksikMiktar.toLocaleString("tr-TR")}
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                              Yeterli
-                            </Badge>
-                          )}
-                        </TableCell>
+              <div className="rounded-md border">
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[760px]">
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead className="w-16">Görsel</TableHead>
+                        <TableHead>Malzeme</TableHead>
+                        <TableHead className="text-right">Gerekli</TableHead>
+                        <TableHead className="text-right">Toplam Stok</TableHead>
+                        <TableHead className="text-right">Öncelikli Rezerve</TableHead>
+                        <TableHead className="text-right">Serbest Stok</TableHead>
+                        <TableHead className="text-right">Durum</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {items.map((m) => (
+                        <TableRow key={m.urunId} className={m.eksikMiktar > 0 ? "bg-destructive/5" : undefined}>
+                          <TableCell>
+                            <div className="size-10 rounded border bg-slate-50 flex items-center justify-center overflow-hidden">
+                              {m.urunGorsel ? (
+                                <img src={m.urunGorsel} alt={m.urunAd || ""} className="size-full object-contain p-0.5" />
+                              ) : (
+                                <Package className="size-5 text-slate-300" />
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-semibold text-sm leading-tight">{m.urunAd}</div>
+                            <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{m.urunKod}</div>
+                          </TableCell>
+                          <TableCell className="text-right font-bold text-sm tabular-nums">
+                            {m.gerekliMiktar.toLocaleString("tr-TR")}
+                          </TableCell>
+                          <TableCell className="text-right text-sm tabular-nums text-slate-600">
+                            {m.toplamStok.toLocaleString("tr-TR")}
+                          </TableCell>
+                          <TableCell className="text-right text-sm tabular-nums text-amber-600 italic">
+                            -{m.rezerveKuyruk.toLocaleString("tr-TR")}
+                          </TableCell>
+                          <TableCell className={`text-right font-bold text-sm tabular-nums ${m.kalanSerbest < m.gerekliMiktar ? "text-destructive" : "text-emerald-600"}`}>
+                            {m.kalanSerbest.toLocaleString("tr-TR")}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {m.eksikMiktar > 0 ? (
+                              <Badge variant="destructive" className="whitespace-nowrap">
+                                Eksik: {m.eksikMiktar.toLocaleString("tr-TR")}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                                Yeterli
+                              </Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
               
               <div className="flex items-start gap-2 text-[11px] text-muted-foreground bg-slate-50 p-3 rounded border border-slate-100">
                 <AlertCircle className="size-3.5 mt-0.5 shrink-0" />
-                <p>
+                <p className="leading-relaxed">
                   <b>Analiz Mantığı:</b> Bu tablo, mevcut üretim emrinin <b>Planlanan Bitiş</b> tarihine göre kuyruktaki sırasını baz alır. 
                   Sizden önce bitmesi planlanan diğer iş emirlerinin rezerve ettiği miktarlar toplam stoktan düşülerek "Serbest Stok" hesaplanır.
                 </p>

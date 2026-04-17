@@ -7,3 +7,9 @@ dist/
 *.log
 .DS_Store
 SERVER.md
+
+# DB backup'ları ve geçici analiz çıktıları
+db_backup_*.sql
+db_backup_*.xlsx
+docs/vps_dump_*.sql
+docs/vps_*.tsv

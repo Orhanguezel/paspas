@@ -16,6 +16,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { useListHareketlerAdminQuery } from '@/integrations/endpoints/admin/erp/hareketler_admin.endpoints';
+import VardiyaOzetWidget from './vardiya-ozet-widget';
 import { useListMalKabulAdminQuery } from '@/integrations/endpoints/admin/erp/mal_kabul_admin.endpoints';
 import { useListGanttAdminQuery } from '@/integrations/endpoints/admin/erp/gantt_admin.endpoints';
 import { useListSevkEmirleriAdminQuery } from '@/integrations/endpoints/admin/erp/sevkiyat_admin.endpoints';
@@ -495,7 +496,10 @@ export default function AdminDashboardClient() {
       {/* OZ-5 */}
       <UretimSevkiyatWidget />
 
-      {/* OZ-6 */}
+      {/* OZ-6 — Vardiya Özeti */}
+      <VardiyaOzetWidget />
+
+      {/* OZ-7 */}
       <MakineDurumlariWidget />
     </div>
   );

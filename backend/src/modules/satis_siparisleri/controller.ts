@@ -15,6 +15,7 @@ import {
 } from './repository';
 import { createSchema, islemlerQuerySchema, listQuerySchema, patchSchema, uretimeAktarSchema } from './validation';
 import { repoCreate as ueRepoCreate, repoGetNextEmirNo } from '@/modules/uretim_emirleri/repository';
+import { createUretimEmirleriFromSiparisKalemi, SiparisUretimEmirHatasi } from '@/modules/uretim_emirleri/service';
 import { db } from '@/db/client';
 import { siparisKalemleri } from './schema';
 import { urunler } from '@/modules/urunler/schema';
@@ -222,33 +223,20 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
 
     const olusturulanEmirler: string[] = [];
 
-    if (birlestir) {
-      // Ayni urune sahip kalemleri grupla
-      const gruplar = new Map<string, typeof aktarilacaklar>();
-      for (const k of aktarilacaklar) {
-        if (!gruplar.has(k.urunId)) gruplar.set(k.urunId, []);
-        gruplar.get(k.urunId)!.push(k);
-      }
-
-      for (const [urunId, kalemleri] of gruplar) {
-        const toplamMiktar = kalemleri.reduce((acc, k) => acc + Number(k.miktar), 0);
-        const musteriAdlari = [...new Set(kalemleri.map((k) => k.musteriAd))];
-        const emirNo = await repoGetNextEmirNo();
-        const result = await ueRepoCreate({
-          emirNo,
-          urunId,
-          planlananMiktar: toplamMiktar,
-          uretilenMiktar: 0,
-          durum: 'atanmamis',
-          siparisKalemIds: kalemleri.map((k) => k.id),
-          musteriOzet: musteriAdlari.length === 1 ? musteriAdlari[0] : `${musteriAdlari.length} müşteri`,
-          musteriDetay: musteriAdlari.join(', '),
-        });
-        olusturulanEmirler.push(result.row.emir_no);
-      }
-    } else {
-      // Her kalem icin ayri UE
-      for (const k of aktarilacaklar) {
+    // Yeni mimari: her sipariş kalemi için asıl ürün reçetesinden yarı mamul emirleri türet.
+    // Hata (reçete yok / yarımamul yok) durumunda fallback: eski asıl ürün emri açılır.
+    // Not: birlestir=true yeni mimaride uygulanmıyor — her kalem için yarı mamuller ayrı emirler açar.
+    for (const k of aktarilacaklar) {
+      try {
+        const results = await createUretimEmirleriFromSiparisKalemi(k.id);
+        for (const r of results) olusturulanEmirler.push(r.row.emir_no);
+      } catch (err) {
+        if (!(err instanceof SiparisUretimEmirHatasi)) throw err;
+        req.log.warn(
+          { error: err.code, detay: err.detay, kalemId: k.id },
+          'yari_mamul_emri_acilamadi_fallback_asil_urun',
+        );
+        // Fallback: asıl ürün için tek emir aç (reçete yok veya yarı mamul bağlı değil)
         const emirNo = await repoGetNextEmirNo();
         const result = await ueRepoCreate({
           emirNo,

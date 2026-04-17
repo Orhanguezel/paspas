@@ -103,10 +103,13 @@ export async function repoGetSiparisOzetleri(siparisIds: string[]): Promise<Map<
         siparisId: siparisKalemleri.siparis_id,
         kalemSayisi: sql<number>`count(*)`,
         toplamMiktar: sql<string>`coalesce(sum(${siparisKalemleri.miktar}), 0)`,
-        // Brut toplam (indirimsiz)
+        // Brut toplam (indirimsiz, KDV hariç)
         brutFiyat: sql<string>`coalesce(sum(${siparisKalemleri.miktar} * ${siparisKalemleri.birim_fiyat}), 0)`,
+        // KDV tutarı (indirimsiz; kdv_orani default 20 kullanılır)
+        brutKdvFiyat: sql<string>`coalesce(sum(${siparisKalemleri.miktar} * ${siparisKalemleri.birim_fiyat} * coalesce(${urunler.kdv_orani}, 20) / 100), 0)`,
       })
       .from(siparisKalemleri)
+      .leftJoin(urunler, eq(urunler.id, siparisKalemleri.urun_id))
       .where(inArray(siparisKalemleri.siparis_id, siparisIds))
       .groupBy(siparisKalemleri.siparis_id),
     db
@@ -168,9 +171,9 @@ export async function repoGetSiparisOzetleri(siparisIds: string[]): Promise<Map<
     const mIskonto = Number(s?.musteriIskonto ?? 0) / 100;
     const eIskonto = Number(s?.ekstraIndirimOrani ?? 0) / 100;
     const brut = Number(row.brutFiyat ?? 0);
-    
-    // Sirali indirim: Brut * (1 - m) * (1 - e)
-    const net = brut * (1 - mIskonto) * (1 - eIskonto);
+    const brutKdv = Number((row as any).brutKdvFiyat ?? 0);
+    // Sıralı indirim: (Brut + KDV) * (1 - m) * (1 - e) — KDV dahil genel toplam
+    const genelToplam = (brut + brutKdv) * (1 - mIskonto) * (1 - eIskonto);
 
     empty.set(row.siparisId, {
       ...(empty.get(row.siparisId) ?? {
@@ -185,7 +188,7 @@ export async function repoGetSiparisOzetleri(siparisIds: string[]): Promise<Map<
       }),
       kalemSayisi: Number(row.kalemSayisi ?? 0),
       toplamMiktar: Number(row.toplamMiktar ?? 0),
-      toplamFiyat: net,
+      toplamFiyat: genelToplam,
     });
   }
 

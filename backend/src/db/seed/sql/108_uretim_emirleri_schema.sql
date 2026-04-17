@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS `uretim_emirleri` (
   `uretilen_miktar` decimal(12,4) NOT NULL DEFAULT 0.0000,
   `baslangic_tarihi` date DEFAULT NULL,
   `bitis_tarihi` date DEFAULT NULL,
+  -- durum: 'atanmamis' | 'planlandi' | 'uretimde' | 'montaj_bekliyor' (yarı mamul üretildi, karşı taraf yetersiz) | 'tamamlandi' | 'iptal'
   `durum` varchar(32) NOT NULL DEFAULT 'planlandi',
   `is_active` tinyint unsigned NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,

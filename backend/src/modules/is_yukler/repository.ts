@@ -43,7 +43,10 @@ type QueueJoinRow = {
 function toDateTimeString(value: Date | string | null | undefined): string | null {
   if (!value) return null;
   if (value instanceof Date) return value.toISOString();
-  return String(value);
+  // MySQL dateStrings:true returns "YYYY-MM-DD HH:MM:SS" without timezone.
+  // Append 'Z' so browsers interpret it as UTC, consistent with islemler endpoint.
+  const s = String(value);
+  return s.includes('T') ? s : s.replace(' ', 'T') + 'Z';
 }
 
 function toDateString(value: Date | string | null | undefined): string | null {

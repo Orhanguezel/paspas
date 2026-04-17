@@ -44,6 +44,7 @@ import { useAuthStatusQuery } from "@/integrations/endpoints/users/auth_public.e
 import { resolveMediaUrl } from "@/lib/media-url";
 
 import UrunForm from "./urun-form";
+import UrunFullForm from "./urun-full-form";
 
 type UrunListQueryParams = {
   q?: string;
@@ -91,6 +92,7 @@ export default function UrunlerClient() {
   const [tedarikFilter, setTedarikFilter] = useState<TedarikTipi | "">("");
   const [urunGrubuFilter, setUrunGrubuFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
+  const [fullFormOpen, setFullFormOpen] = useState(false);
   const [editing, setEditing] = useState<UrunDto | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UrunDto | null>(null);
@@ -224,10 +226,47 @@ export default function UrunlerClient() {
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCcw className={`size-4${isFetching ? "animate-spin" : ""}`} />
           </Button>
+          <Button size="sm" variant="secondary" onClick={() => setFullFormOpen(true)}>
+            <Plus className="mr-1 size-4" /> Asıl Ürün + Yarı Mamul
+          </Button>
           <Button size="sm" onClick={openCreate}>
             <Plus className="mr-1 size-4" /> {t("admin.erp.urunler.newItem")}
           </Button>
         </div>
+      </div>
+
+      {/* Kategori Sekmeleri */}
+      <div className="flex flex-wrap items-center gap-2">
+        {[
+          { kod: "urun", label: "Ürünler" },
+          { kod: "yarimamul", label: "Yarımamuller" },
+          { kod: "hammadde", label: "Hammaddeler" },
+        ].map((kat) => (
+          <Button
+            key={kat.kod}
+            variant={kategoriFilter === kat.kod ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              const nextCategory = categories.find((c) => c.kod === kat.kod);
+              setKategoriFilter(kat.kod);
+              setUrunGrubuFilter("");
+              setTedarikFilter(nextCategory?.varsayilan_tedarik_tipi ?? "");
+            }}
+          >
+            {kat.label}
+          </Button>
+        ))}
+        <Button
+          variant={kategoriFilter === "" ? "default" : "ghost"}
+          size="sm"
+          onClick={() => {
+            setKategoriFilter("");
+            setUrunGrubuFilter("");
+            setTedarikFilter("");
+          }}
+        >
+          Tümü
+        </Button>
       </div>
 
       {/* Filtreler */}
@@ -367,6 +406,16 @@ export default function UrunlerClient() {
 
       {/* Form Sheet — use full product data when editing */}
       <UrunForm open={formOpen} onClose={handleFormClose} urun={editingId && fullUrun ? fullUrun : editing} />
+
+      {/* Asıl Ürün + Yarı Mamul Full Form */}
+      <UrunFullForm
+        open={fullFormOpen}
+        onClose={() => setFullFormOpen(false)}
+        onSuccess={() => {
+          refetch();
+          setKategoriFilter("urun");
+        }}
+      />
 
       {/* Silme onayı */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>

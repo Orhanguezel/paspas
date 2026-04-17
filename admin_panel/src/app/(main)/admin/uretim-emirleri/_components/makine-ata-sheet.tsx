@@ -5,7 +5,7 @@
 // Paspas ERP — Üretim Emrine makine atama sheet bileşeni
 // =============================================================
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
 import {
   useAtaOperasyonAdminMutation,
   useListAtanmamisAdminQuery,
@@ -37,27 +36,27 @@ export function MakineAtaSheet({ emirId, emirNo, open, onClose }: Props) {
 
   // opId → makineId
   const [secimler, setSecimler] = useState<Record<string, string>>({});
-  // montaj opId → montajın yapılacağı makineId (sadece 2+ farklı makine seçilince aktif)
-  const [montajHedef, setMontajHedef] = useState<string>("");
+  // Çift taraflı üretimde montaj hangi operasyonda yapılacak?
+  const [montajOpId, setMontajOpId] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       setSecimler({});
-      setMontajHedef("");
+      setMontajOpId(null);
     }
   }, [open]);
 
-  // Operasyonlara atanan benzersiz makineler
-  const seciliMakineler = useMemo(() => {
-    const ids = [...new Set(Object.values(secimler).filter(Boolean))];
-    return ids.flatMap((id) => {
-      const m = makineler.find((m) => m.id === id);
-      return m ? [m] : [];
+  useEffect(() => {
+    if (!open || operasyonlar.length <= 1) {
+      setMontajOpId(null);
+      return;
+    }
+    setMontajOpId((prev) => {
+      if (prev && operasyonlar.some((op) => op.id === prev)) return prev;
+      const mevcutMontaj = operasyonlar.find((op) => op.montaj);
+      return mevcutMontaj?.id ?? operasyonlar[0]?.id ?? null;
     });
-  }, [secimler, makineler]);
-
-  // Birden fazla farklı makine seçildi mi?
-  const cokluMakine = seciliMakineler.length > 1;
+  }, [open, operasyonlar]);
 
   const isLoading = opLoading || makineLoading;
   const atanabilir = operasyonlar.some((op) => secimler[op.id]);
@@ -68,14 +67,11 @@ export function MakineAtaSheet({ emirId, emirNo, open, onClose }: Props) {
       const makineId = secimler[op.id];
       if (!makineId) continue;
       try {
-        let montajMakineId: string | undefined;
-        if (op.montaj) {
-          // Tek makine → o makine; çoklu → kullanıcının seçtiği (seçilmediyse bu op'un makinesi)
-          montajMakineId = cokluMakine ? (montajHedef || makineId) : makineId;
-        }
+        const montajMakineId = montajOpId ? secimler[montajOpId] : undefined;
         await ataOperasyon({
           emirOperasyonId: op.id,
           makineId,
+          montaj: operasyonlar.length > 1 ? op.id === montajOpId : op.montaj,
           ...(montajMakineId ? { montajMakineId } : {}),
         }).unwrap();
         atanan++;
@@ -89,8 +85,7 @@ export function MakineAtaSheet({ emirId, emirNo, open, onClose }: Props) {
     }
   }
 
-  // Montaj operasyonu var mı?
-  const montajOp = operasyonlar.find((op) => op.montaj);
+  const ciftTarafli = operasyonlar.length > 1;
 
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -118,7 +113,7 @@ export function MakineAtaSheet({ emirId, emirNo, open, onClose }: Props) {
                   <div key={op.id} className="space-y-2 border rounded-md p-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">{op.operasyonAdi}</span>
-                      {op.montaj && (
+                      {(ciftTarafli ? montajOpId === op.id : op.montaj) && (
                         <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">
                           Montaj
                         </span>
@@ -166,49 +161,27 @@ export function MakineAtaSheet({ emirId, emirNo, open, onClose }: Props) {
                         );
                       })()}
                     </div>
+
+                    {ciftTarafli && (
+                      <button
+                        type="button"
+                        className={`flex items-center gap-2 rounded-md border px-2.5 py-2 text-xs transition-colors ${
+                          montajOpId === op.id
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-muted bg-muted/20 text-muted-foreground"
+                        }`}
+                        onClick={() => setMontajOpId(op.id)}
+                      >
+                        <span className={`flex size-3.5 items-center justify-center rounded-full border-2 ${
+                          montajOpId === op.id ? "border-primary" : "border-muted-foreground/40"
+                        }`}>
+                          {montajOpId === op.id && <span className="size-2 rounded-full bg-primary" />}
+                        </span>
+                        <span className="whitespace-nowrap">Bu tarafta montaj var</span>
+                      </button>
+                    )}
                   </div>
                 ))}
-
-              {/* Montaj yeri — montaj operasyonu varsa ve en az bir makine seçilmişse göster */}
-              {montajOp && seciliMakineler.length > 0 && (
-                <div className="border rounded-md p-3 space-y-2 bg-amber-50 border-amber-200">
-                  <Label className="text-xs font-medium text-amber-800">
-                    Montaj nerede yapılacak?
-                  </Label>
-
-                  {seciliMakineler.length === 1 ? (
-                    /* Tek makine — otomatik, sadece bilgi */
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">
-                        <span className="font-mono font-semibold">{seciliMakineler[0].kod}</span>
-                        <span className="text-muted-foreground ml-2 text-xs">{seciliMakineler[0].ad}</span>
-                      </span>
-                      <Switch checked disabled />
-                    </div>
-                  ) : (
-                    /* Birden fazla makine — kullanıcı seçer */
-                    <div className="flex flex-col gap-2">
-                      {seciliMakineler.map((m) => (
-                        <div key={m.id} className="flex items-center justify-between">
-                          <span className="text-sm">
-                            <span className="font-mono font-semibold">{m.kod}</span>
-                            <span className="text-muted-foreground ml-2 text-xs">{m.ad}</span>
-                          </span>
-                          <Switch
-                            checked={montajHedef === m.id}
-                            onCheckedChange={(checked) => setMontajHedef(checked ? m.id : "")}
-                          />
-                        </div>
-                      ))}
-                      {!montajHedef && (
-                        <p className="text-[11px] text-amber-700">
-                          Seçilmezse montaj operasyonunun makinesi kullanılır.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
             </>
           )}
         </div>

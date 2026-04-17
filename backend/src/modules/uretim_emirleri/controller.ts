@@ -3,7 +3,9 @@ import type { FastifyReply, RouteHandler } from 'fastify';
 import { rowToDto } from './schema';
 import { repoCreate, repoDelete, repoGetById, repoGetHammaddeYeterlilik, repoGetNextEmirNo, repoGetOperasyonlar, repoGetUretimKarsilastirma, repoList, repoListAdaylar, repoUpdate } from './repository';
 import { checkHammaddeYeterlilik } from './hammadde_service';
+import { createUretimEmirleriFromSiparisKalemi, SiparisUretimEmirHatasi } from './service';
 import { createSchema, listQuerySchema, patchSchema } from './validation';
+import { z } from 'zod';
 import { getSiparisIdsByUretimEmriId, refreshSiparisDurum } from '@/modules/satis_siparisleri/repository';
 import { repoKuyrukCikar } from '@/modules/makine_havuzu/repository';
 import { db } from '@/db/client';
@@ -76,6 +78,41 @@ export const createUretimEmri: RouteHandler = async (req, reply) => {
     const err = error as { code?: string; message?: string; detail?: string };
     if (err.code === 'ER_DUP_ENTRY') return reply.code(409).send({ error: { message: 'emir_no_zaten_var' } });
     if (err.message === 'urun_uyumsuzlugu') return reply.code(400).send({ error: { message: err.message, detail: err.detail } });
+    return sendInternalError(reply);
+  }
+};
+
+const siparistenOlusturSchema = z.object({
+  siparisKalemId: z.string().trim().min(1).max(36),
+  baslangicTarihi: z.string().date().optional(),
+  bitisTarihi: z.string().date().optional(),
+  terminTarihi: z.string().date().optional(),
+});
+
+/** POST /admin/uretim-emirleri/siparis-kaleminden — asıl ürün sipariş kaleminden yarı mamul emirleri türetir */
+export const createUretimEmirleriFromSiparis: RouteHandler = async (req, reply) => {
+  try {
+    const parsed = siparistenOlusturSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
+    }
+    const results = await createUretimEmirleriFromSiparisKalemi(parsed.data.siparisKalemId, {
+      baslangicTarihi: parsed.data.baslangicTarihi,
+      bitisTarihi: parsed.data.bitisTarihi,
+      terminTarihi: parsed.data.terminTarihi,
+    });
+    return reply.code(201).send({
+      emirler: results.map((r) => ({ ...rowToDto(r.row), hammaddeUyarilari: r.hammaddeUyarilari })),
+    });
+  } catch (error: unknown) {
+    if (error instanceof SiparisUretimEmirHatasi) {
+      return reply.code(400).send({ error: { message: error.code, detay: error.detay } });
+    }
+    const err = error as { code?: string };
+    if (err.code === 'ER_DUP_ENTRY') {
+      return reply.code(409).send({ error: { message: 'emir_no_zaten_var' } });
+    }
+    req.log.error({ error }, 'create_uretim_emirleri_from_siparis_failed');
     return sendInternalError(reply);
   }
 };

@@ -39,7 +39,8 @@ export type AdminNavKey =
   | 'sevkiyat'
   | 'mal_kabul'
   | 'storage'
-  | 'db_admin';
+  | 'db_admin'
+  | 'vardiya_analizi';
 
 // Her rolün varsayılan giriş sayfası (login sonrası yönlendirme)
 export const ROLE_HOME: Record<PanelRole, string> = {
@@ -85,6 +86,7 @@ const NAV_ROLES: Record<AdminNavKey, PanelRole[]> = {
   mal_kabul:         ['admin', 'satin_almaci'],
   storage:           ['admin'],
   db_admin:          ['admin'],
+  vardiya_analizi:   ['admin'],
 };
 
 export function getAdminNavRoles(key: AdminNavKey): PanelRole[] {

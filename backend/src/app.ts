@@ -54,6 +54,7 @@ import { registerGorevler } from '@/modules/gorevler/router';
 import { registerGirisAyarlari, registerPublicLoginConfig } from '@/modules/giris_ayarlari/router';
 import { registerSevkiyat } from '@/modules/sevkiyat/router';
 import { registerMalKabul } from '@/modules/mal_kabul/router';
+import { registerVardiyaAnalizi } from '@/modules/vardiya_analizi/router';
 
 // Storage config (site_settings + env)
 import { getStorageSettings } from '@/modules/siteSettings/service';
@@ -230,6 +231,7 @@ export async function createApp() {
     await api.register(registerGirisAyarlari,    { prefix: '/admin' });
     await api.register(registerSevkiyat,        { prefix: '/admin' });
     await api.register(registerMalKabul,        { prefix: '/admin' });
+    await api.register(registerVardiyaAnalizi,  { prefix: '/admin' });
 
     // --- Public modüller → /api/... ---
     await registerPublicLoginConfig(api);

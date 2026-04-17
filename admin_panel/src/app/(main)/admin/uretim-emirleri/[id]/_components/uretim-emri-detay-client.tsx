@@ -181,6 +181,25 @@ export default function UretimEmriDetayClient({ id }: Props) {
         </Card>
       </div>
 
+      {/* Montaj bekliyor uyarısı */}
+      {emri.durum === "montaj_bekliyor" && (
+        <Card className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 size-2 shrink-0 rounded-full bg-amber-500" />
+              <div className="space-y-1 text-sm">
+                <p className="font-semibold text-amber-900 dark:text-amber-200">Montaj bekliyor</p>
+                <p className="text-amber-800 dark:text-amber-300/80">
+                  Yarı mamul üretimi tamamlandı ancak montaj için gerekli karşı yarı mamul veya ambalaj
+                  malzemesi yetersiz. Diğer yarı mamul üretimi bitince montaj otomatik olarak tetiklenecek
+                  ve asıl ürün stoğu artacaktır.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Detay bilgileri */}
       <Card>
         <CardHeader>

@@ -1,9 +1,16 @@
 {
   "permissions": {
-    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(/home/orhan/Documents/Projeler/paspas/backend/src/db/seed/sql/105_urunler_schema.sql:*)",
-      "Bash(ssh guezelwebdesign \"sudo mysql -e \"\"SHOW DATABASES;\"\"\")"
-    ]
+      "Bash(ssh guezelwebdesign \"sudo mysql -e \"\"SHOW DATABASES;\"\"\")",
+      "Bash(grep -c \"^INSERT INTO \\\\`urunler\\\\`\" /home/orhan/Documents/Projeler/paspas/db_backup_20260417_2002.sql)",
+      "Bash(awk -F'`' '{print $2}')",
+      "Bash(grep -n \"^INSERT INTO \\\\`urunler\\\\`\\\\|^INSERT INTO \\\\`receteler\\\\`\\\\|^INSERT INTO \\\\`recete_kalemleri\\\\`\\\\|^INSERT INTO \\\\`urun_operasyonlari\\\\`\\\\|^INSERT INTO \\\\`urun_birim_donusumleri\\\\`\\\\|^INSERT INTO \\\\`urun_medya\\\\`\\\\|^INSERT INTO \\\\`kaliplar\\\\`\\\\|^INSERT INTO \\\\`makineler\\\\`\\\\|^INSERT INTO \\\\`categories\\\\`\" /home/orhan/Documents/Projeler/paspas/db_backup_20260417_2002.sql)",
+      "Bash(mysql -h 127.0.0.1 -u app -D promats_erp --batch --raw -e ' *)",
+      "Bash(mysql -h 127.0.0.1 -u app -D promats_erp -e ' *)",
+      "Bash(mysql -h 127.0.0.1 -u app -D promats_erp -sNe ' *)",
+      "Bash(curl -s http://localhost:8078/api/health)"
+    ],
+    "defaultMode": "bypassPermissions"
   }
 }

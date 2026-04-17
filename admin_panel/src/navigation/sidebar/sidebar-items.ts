@@ -135,6 +135,7 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
       { key: 'is_yukler',         url: '/admin/is-yukler',         icon: Cpu,         roles: ['admin'] },
       { key: 'operator',          url: '/admin/operator',          icon: Play,        roles: ['admin', 'operator'] },
       { key: 'gantt',             url: '/admin/gantt',             icon: Calendar,    roles: ['admin', 'operator', 'nakliyeci'] },
+      { key: 'vardiya_analizi',   url: '/admin/vardiya-analizi',   icon: Timer,       roles: ['admin'] },
     ],
   },
   // ─── Lojistik & Stok ───
@@ -205,6 +206,7 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   storage:           'Medyalar',
   site_settings:     'Sistem & Ayarlar',
   db_admin:          'Veritabanı',
+  vardiya_analizi:   'Vardiya Analizi',
 };
 
 export function buildAdminSidebarItems(

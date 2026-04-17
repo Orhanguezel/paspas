@@ -179,6 +179,11 @@ export async function repoGetDependentUrunIds(urunIds: string[]): Promise<Set<st
       UNION SELECT DISTINCT urun_id FROM sevkiyat_kalemleri WHERE urun_id IN (${inList})
       UNION SELECT DISTINCT urun_id FROM mal_kabul_kayitlari WHERE urun_id IN (${inList})
       UNION SELECT DISTINCT urun_id FROM satin_alma_kalemleri WHERE urun_id IN (${inList})
+      UNION SELECT DISTINCT rk.urun_id
+        FROM recete_kalemleri rk
+        JOIN receteler r ON rk.recete_id = r.id
+        WHERE rk.urun_id IN (${inList})
+          AND (r.urun_id IS NULL OR r.urun_id <> rk.urun_id)
     ) AS deps`);
   return new Set(rows.map((r) => r.urunId));
 }
@@ -263,6 +268,11 @@ export async function repoDelete(id: string): Promise<void> {
       db.select({ table_name: sql<string>`'satin_alma_kalemleri'`, cnt: sql<number>`count(*)` })
         .from(sql`satin_alma_kalemleri`)
         .where(sql`urun_id = ${id}`),
+    )
+    .unionAll(
+      db.select({ table_name: sql<string>`'recete_kalemleri_baska_urun'`, cnt: sql<number>`count(*)` })
+        .from(sql`recete_kalemleri rk JOIN receteler r ON rk.recete_id = r.id`)
+        .where(sql`rk.urun_id = ${id} AND (r.urun_id IS NULL OR r.urun_id <> rk.urun_id)`),
     );
 
   const blockingDeps = deps.filter((d) => Number(d.cnt) > 0);
@@ -274,6 +284,7 @@ export async function repoDelete(id: string): Promise<void> {
       sevkiyat_kalemleri: 'sevkiyat kalemi',
       mal_kabul_kayitlari: 'mal kabul kaydı',
       satin_alma_kalemleri: 'satın alma kalemi',
+      recete_kalemleri_baska_urun: 'başka ürünün reçete kalemi',
     };
     const reasons = blockingDeps.map((d) => `${Number(d.cnt)} ${labels[d.table_name] ?? d.table_name}`);
     throw Object.assign(new Error('urun_bagimliligi_var'), {
