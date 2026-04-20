@@ -323,7 +323,9 @@ export default function UserDetailClient({ id }: { id: string }) {
             <div className="space-y-2">
               <Label>{t('admin.users.detail.erp.atananRolOzeti')}</Label>
               <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
-                {roleLabel(currentRole)}
+                {roles.length > 0
+                  ? roles.map((r) => roleLabel(r)).join(', ')
+                  : roleLabel('operator')}
               </div>
             </div>
           </div>
