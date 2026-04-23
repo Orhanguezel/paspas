@@ -438,7 +438,7 @@ def build_products(
                 operasyon_tipi = "tek_tarafli"
                 anomalies.append(f"Master'da var ama matrix'te yok; varsayilan operasyon_tipi atandi: {kod}")
         elif kod in ym_codes:
-            kategori = "yarimamul"
+            kategori = "operasyonel_ym"
         else:
             kategori = "hammadde"
 
@@ -711,19 +711,19 @@ ON DUPLICATE KEY UPDATE
   `aciklama` = VALUES(`aciklama`),
   `is_active` = 1;
 
--- 3) XLS kapsamindaki urun/yarimamul operasyonlarini sifirla
+-- 3) XLS kapsamindaki urun/operasyonel YM operasyonlarini sifirla
 DELETE uom
 FROM `urun_operasyon_makineleri` uom
 INNER JOIN `urun_operasyonlari` uo ON uo.`id` = uom.`urun_operasyon_id`
 INNER JOIN `urunler` u ON u.`id` = uo.`urun_id`
 INNER JOIN `tmp_xls_products` p ON p.`kod` = u.`kod`
-WHERE p.`kategori` IN ('urun', 'yarimamul');
+WHERE p.`kategori` IN ('urun', 'operasyonel_ym');
 
 DELETE uo
 FROM `urun_operasyonlari` uo
 INNER JOIN `urunler` u ON u.`id` = uo.`urun_id`
 INNER JOIN `tmp_xls_products` p ON p.`kod` = u.`kod`
-WHERE p.`kategori` IN ('urun', 'yarimamul');
+WHERE p.`kategori` IN ('urun', 'operasyonel_ym');
 
 -- 4) Operasyonel YM operasyonlarini yeniden kur
 INSERT INTO `urun_operasyonlari` (
