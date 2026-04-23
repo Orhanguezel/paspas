@@ -2,9 +2,9 @@
 
 // =============================================================
 // FILE: src/app/(main)/admin/urunler/_components/urun-full-form.tsx
-// Paspas ERP — Asıl Ürün + Yarı Mamul oluşturma formu
+// Paspas ERP — Asıl Ürün + Operasyonel YM oluşturma formu
 // Kullanıcı asıl ürünü ve operasyon tipini girer; backend otomatik
-// olarak sağ/sol (çift op.) veya parça (tek op.) yarı mamullerini + reçeteleri kurar.
+// olarak sağ/sol (çift op.) veya parça (tek op.) operasyonel YM'lerini + reçeteleri kurar.
 // =============================================================
 
 import { useMemo, useState } from "react";
@@ -120,7 +120,7 @@ export default function UrunFullForm({ open, onClose, onSuccess }: Props) {
       };
       const result = await createUrunFull(payload).unwrap();
       toast.success(
-        `Asıl ürün oluşturuldu: ${result.yariMamuller.length} yarı mamul otomatik türetildi`,
+        `Asıl ürün oluşturuldu: ${result.yariMamuller.length} operasyonel YM otomatik türetildi`,
       );
       resetForm();
       onClose();
@@ -173,9 +173,9 @@ export default function UrunFullForm({ open, onClose, onSuccess }: Props) {
     >
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-2xl">
         <SheetHeader>
-          <SheetTitle>Yeni Ürün + Otomatik Yarı Mamul</SheetTitle>
+          <SheetTitle>Yeni Ürün + Otomatik Operasyonel YM</SheetTitle>
           <SheetDescription>
-            Asıl ürün bilgilerini girin; operasyon tipine göre yarı mamul(ler) + reçeteler otomatik
+            Asıl ürün bilgilerini girin; operasyon tipine göre operasyonel YM(ler) + reçeteler otomatik
             kurulur.
           </SheetDescription>
         </SheetHeader>
@@ -240,7 +240,7 @@ export default function UrunFullForm({ open, onClose, onSuccess }: Props) {
               </SelectContent>
             </Select>
             <div className="rounded border bg-muted/40 p-3 text-xs">
-              <p className="font-medium">Otomatik oluşturulacak yarı mamuller:</p>
+              <p className="font-medium">Otomatik oluşturulacak operasyonel YM'ler:</p>
               <ul className="mt-1 list-disc pl-5 text-muted-foreground">
                 {yariMamulOnizleme.map((y) => (
                   <li key={y}>{y}</li>
@@ -343,13 +343,13 @@ export default function UrunFullForm({ open, onClose, onSuccess }: Props) {
             )}
           </div>
 
-          {/* Yarı Mamul Reçetesi (Hammadde) — opsiyonel */}
+          {/* Operasyonel YM Reçetesi (Hammadde) — opsiyonel */}
           <div className="space-y-3 rounded border p-3">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-sm">Yarı Mamul Reçetesi (Hammadde)</h3>
+                <h3 className="font-semibold text-sm">Operasyonel YM Reçetesi (Hammadde)</h3>
                 <p className="text-muted-foreground text-xs">
-                  Plastik vb. hammadde girerseniz her yarı mamule aynı reçete kopyalanır.
+                  Plastik vb. hammadde girerseniz her operasyonel YM'ye aynı reçete kopyalanır.
                 </p>
               </div>
               <Switch checked={showYariMamulRecete} onCheckedChange={setShowYariMamulRecete} />

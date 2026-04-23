@@ -38,6 +38,7 @@ import {
 } from "@/integrations/endpoints/admin/erp/urunler_admin.endpoints";
 import { useListSubCategoriesAdminQuery } from "@/integrations/endpoints/admin/subcategories_admin.endpoints";
 import type { CategoryDto } from "@/integrations/shared/category.types";
+import type { ReceteKalemDto } from "@/integrations/shared/erp/receteler.types";
 import type { TedarikTipi, UrunDto } from "@/integrations/shared/erp/urunler.types";
 import type { SubCategoryDto } from "@/integrations/shared/subcategory.types";
 import { useAuthStatusQuery } from "@/integrations/endpoints/users/auth_public.endpoints";
@@ -68,6 +69,53 @@ const SKELETON_CELL_KEYS = [
   "cell-11",
   "cell-12",
 ] as const;
+
+type FlattenedReceteRow = {
+  key: string;
+  item: ReceteKalemDto;
+  depth: number;
+  effectiveMiktar: number;
+  hasChildren: boolean;
+};
+
+function getReceteSatirMaliyeti(item: ReceteKalemDto, effectiveMiktar: number) {
+  return effectiveMiktar * (1 + item.fireOrani / 100) * (item.malzemeBirimFiyat ?? 0);
+}
+
+function flattenReceteItems(
+  items: ReceteKalemDto[],
+  options: { depth?: number; multiplier?: number; lineage?: string[] } = {},
+): FlattenedReceteRow[] {
+  const depth = options.depth ?? 0;
+  const multiplier = options.multiplier ?? 1;
+  const lineage = options.lineage ?? [];
+
+  return items.flatMap((item, index) => {
+    const keyPart = item.id || `${item.urunId}-${index}`;
+    const key = [...lineage, keyPart].join(">");
+    const hasChildren = Boolean(item.altRecete?.items?.length);
+    const row: FlattenedReceteRow = {
+      key,
+      item,
+      depth,
+      effectiveMiktar: item.miktar * multiplier,
+      hasChildren,
+    };
+
+    if (!hasChildren || !item.altRecete?.items) {
+      return [row];
+    }
+
+    return [
+      row,
+      ...flattenReceteItems(item.altRecete.items, {
+        depth: depth + 1,
+        multiplier: item.miktar * multiplier,
+        lineage: [...lineage, keyPart],
+      }),
+    ];
+  });
+}
 
 function getApiErrorMessage(error: unknown): string | undefined {
   if (!error || typeof error !== "object") return undefined;
@@ -227,7 +275,7 @@ export default function UrunlerClient() {
             <RefreshCcw className={`size-4${isFetching ? "animate-spin" : ""}`} />
           </Button>
           <Button size="sm" variant="secondary" onClick={() => setFullFormOpen(true)}>
-            <Plus className="mr-1 size-4" /> Asıl Ürün + Yarı Mamul
+            <Plus className="mr-1 size-4" /> Asıl Ürün + Operasyonel YM
           </Button>
           <Button size="sm" onClick={openCreate}>
             <Plus className="mr-1 size-4" /> {t("admin.erp.urunler.newItem")}
@@ -240,6 +288,7 @@ export default function UrunlerClient() {
         {[
           { kod: "urun", label: "Ürünler" },
           { kod: "yarimamul", label: "Yarımamuller" },
+          { kod: "operasyonel_ym", label: "Operasyonel YM" },
           { kod: "hammadde", label: "Hammaddeler" },
         ].map((kat) => (
           <Button
@@ -395,7 +444,6 @@ export default function UrunlerClient() {
                       tKategori={tKategori}
                       tTedarik={tTedarik}
                       t={t}
-                      allProducts={items}
                     />
                   );
                 })}
@@ -481,7 +529,6 @@ interface ExpandableProductRowProps {
   tKategori: (k: string) => string;
   tTedarik: (k: string) => string;
   t: (key: string, params?: Record<string, string>) => string;
-  allProducts: UrunDto[];
 }
 
 function ExpandableProductRow({
@@ -495,13 +542,21 @@ function ExpandableProductRow({
   tKategori,
   tTedarik,
   t,
-  allProducts,
 }: ExpandableProductRowProps) {
   const { data: receteData, isLoading: receteLoading } = useGetUrunReceteAdminQuery(u.id, {
     skip: !isExpanded,
   });
 
   const receteItems = receteData?.items ?? [];
+  const flattenedReceteRows = useMemo(() => flattenReceteItems(receteItems), [receteItems]);
+  const receteToplamMaliyet = useMemo(
+    () =>
+      flattenedReceteRows.reduce((sum, row) => {
+        if (row.hasChildren) return sum;
+        return sum + getReceteSatirMaliyeti(row.item, row.effectiveMiktar);
+      }, 0),
+    [flattenedReceteRows],
+  );
 
   return (
     <>
@@ -611,20 +666,43 @@ function ExpandableProductRow({
                     </tr>
                   </thead>
                   <tbody>
-                    {receteItems.map((item) => {
-                      const birimFiyat = item.malzemeBirimFiyat ?? 0;
-                      const satirMaliyet = item.miktar * (1 + item.fireOrani / 100) * birimFiyat;
+                    {flattenedReceteRows.map((row) => {
+                      const birimFiyat = row.item.malzemeBirimFiyat ?? 0;
+                      const satirMaliyet = getReceteSatirMaliyeti(row.item, row.effectiveMiktar);
                       return (
-                        <tr key={item.id} className="border-muted/50 border-b">
+                        <tr
+                          key={row.key}
+                          className={`border-muted/50 border-b ${row.depth > 0 ? "bg-muted/10" : ""}`}
+                        >
                           <td className="py-1.5 pr-4">
-                            {item.malzemeKod ? `${item.malzemeKod} — ${item.malzemeAd}` : item.urunId}
+                            <div style={{ paddingLeft: `${row.depth * 18}px` }}>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span>
+                                  {row.item.malzemeKod
+                                    ? `${row.item.malzemeKod} — ${row.item.malzemeAd}`
+                                    : row.item.urunId}
+                                </span>
+                                {row.hasChildren && (
+                                  <Badge variant="outline" className="text-[10px]">
+                                    Alt Kırılım
+                                  </Badge>
+                                )}
+                                {row.item.malzemeKategori &&
+                                  row.item.malzemeKategori !== "hammadde" &&
+                                  !row.hasChildren && (
+                                    <Badge variant="secondary" className="text-[10px]">
+                                      {tKategori(row.item.malzemeKategori)}
+                                    </Badge>
+                                  )}
+                              </div>
+                            </div>
                           </td>
                           <td className="py-1.5 pr-4 text-right tabular-nums">
-                            {item.miktar.toLocaleString("tr-TR", { maximumFractionDigits: 4 })}
+                            {row.effectiveMiktar.toLocaleString("tr-TR", { maximumFractionDigits: 4 })}
                           </td>
-                          <td className="py-1.5 pr-4 text-right">{item.malzemeBirim ?? "—"}</td>
+                          <td className="py-1.5 pr-4 text-right">{row.item.malzemeBirim ?? "—"}</td>
                           <td className="py-1.5 pr-4 text-right tabular-nums">
-                            %{item.fireOrani.toLocaleString("tr-TR", { maximumFractionDigits: 2 })}
+                            %{row.item.fireOrani.toLocaleString("tr-TR", { maximumFractionDigits: 2 })}
                           </td>
                           <td className="py-1.5 pr-4 text-right tabular-nums">
                             {birimFiyat
@@ -644,11 +722,7 @@ function ExpandableProductRow({
                         {t("admin.erp.urunler.form.receteToplamMaliyet")}:
                       </td>
                       <td className="py-1.5 text-right font-semibold tabular-nums">
-                        {receteItems
-                          .reduce((sum, item) => {
-                            return sum + item.miktar * (1 + item.fireOrani / 100) * (item.malzemeBirimFiyat ?? 0);
-                          }, 0)
-                          .toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
+                        {receteToplamMaliyet.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
                       </td>
                     </tr>
                   </tfoot>

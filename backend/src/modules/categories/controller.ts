@@ -34,6 +34,18 @@ const ERP_CATEGORY_DEFAULTS = {
     varsayilan_operasyon_tipi: null,
     display_order: 20,
   },
+  operasyonel_ym: {
+    name: "Operasyonel YM",
+    slug: "operasyonel_ym",
+    varsayilan_birim: "adet",
+    varsayilan_kod_prefixi: "OYM",
+    recetede_kullanilabilir: true,
+    varsayilan_tedarik_tipi: "uretim",
+    uretim_alanlari_aktif: true,
+    operasyon_tipi_gerekli: false,
+    varsayilan_operasyon_tipi: null,
+    display_order: 30,
+  },
   hammadde: {
     name: "Hammadde",
     slug: "hammadde",
@@ -44,7 +56,7 @@ const ERP_CATEGORY_DEFAULTS = {
     uretim_alanlari_aktif: false,
     operasyon_tipi_gerekli: false,
     varsayilan_operasyon_tipi: null,
-    display_order: 30,
+    display_order: 40,
   },
 } as const;
 

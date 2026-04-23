@@ -52,7 +52,7 @@ export const subCategories = mysqlTable(
       .$onUpdateFn(() => new Date()),
   },
   (t) => ({
-    ux_slug: uniqueIndex('sub_categories_slug_uq').on(t.slug),
+    ux_category_slug: uniqueIndex('sub_categories_category_slug_uq').on(t.category_id, t.slug),
     sc_category_idx: index('sub_categories_category_idx').on(t.category_id),
     sc_active_idx: index('sub_categories_active_idx').on(t.is_active),
     sc_order_idx: index('sub_categories_order_idx').on(t.display_order),

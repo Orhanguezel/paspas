@@ -178,11 +178,14 @@ function validateErpRules(
     }
   }
 
-  if (data.kod === "yarimamul") {
+  if (data.kod === "yarimamul" || data.kod === "operasyonel_ym") {
     if (operationType === "cift_tarafli") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "yarimamul_cift_tarafli_not_supported",
+        message:
+          data.kod === "operasyonel_ym"
+            ? "operasyonel_ym_cift_tarafli_not_supported"
+            : "yarimamul_cift_tarafli_not_supported",
         path: ["varsayilan_operasyon_tipi"],
       });
     }

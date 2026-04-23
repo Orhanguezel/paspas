@@ -46,7 +46,7 @@ import {
 import type { CategoryDto } from "@/integrations/shared/category.types";
 import type { SubCategoryDto } from "@/integrations/shared/subcategory.types";
 
-const KATEGORI_KEYS = ["urun", "yarimamul", "hammadde"] as const;
+const KATEGORI_KEYS = ["urun", "yarimamul", "operasyonel_ym", "hammadde"] as const;
 const TEDARIK_OPTIONS = ["uretim", "satin_alma", "fason"] as const;
 const OPERASYON_TIPI_OPTIONS = ["tek_tarafli", "cift_tarafli"] as const;
 
@@ -298,7 +298,9 @@ function SubCategoryForm({ open, onClose, categoryId, categoryName, subCategory 
       toast.error(tK("nameRequired"));
       return;
     }
-    if (!slug.trim()) {
+
+    const generatedSlug = slug.trim() || slugify(name.trim());
+    if (!generatedSlug) {
       toast.error(tK("slugRequired"));
       return;
     }
@@ -307,14 +309,14 @@ function SubCategoryForm({ open, onClose, categoryId, categoryName, subCategory 
       if (isEdit && subCategory) {
         await update({
           id: subCategory.id,
-          patch: { name: name.trim(), slug: slug.trim(), is_active: isActive },
+          patch: { name: name.trim(), slug: generatedSlug, is_active: isActive },
         }).unwrap();
         toast.success(tK("subUpdated"));
       } else {
         await create({
           category_id: categoryId,
           name: name.trim(),
-          slug: slug.trim(),
+          slug: generatedSlug,
           is_active: isActive,
         }).unwrap();
         toast.success(tK("subCreated"));

@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 import { TrendingUp } from "lucide-react";
 import {
   CartesianGrid,
@@ -18,11 +16,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { useGetVardiyaTrendAdminQuery } from "@/integrations/endpoints/admin/erp/vardiya_analizi_admin.endpoints";
+import type { TrendResponse } from "@/integrations/endpoints/admin/erp/vardiya_analizi_admin.endpoints";
 
-export default function TrendPaneli() {
-  const [gunSayisi, setGunSayisi] = useState<7 | 30>(7);
-  const { data, isLoading } = useGetVardiyaTrendAdminQuery({ gunSayisi });
+type Props = {
+  gunSayisi: 7 | 30;
+  onGunSayisiChange: (value: 7 | 30) => void;
+  data?: TrendResponse;
+  isLoading: boolean;
+};
+
+export default function TrendPaneli({ gunSayisi, onGunSayisiChange, data, isLoading }: Props) {
 
   const gunler = data?.gunler ?? [];
   const chartData = gunler.map((g) => ({
@@ -45,7 +48,7 @@ export default function TrendPaneli() {
               size="sm"
               variant={gunSayisi === 7 ? "default" : "ghost"}
               className="h-7 px-3"
-              onClick={() => setGunSayisi(7)}
+              onClick={() => onGunSayisiChange(7)}
             >
               7 Gün
             </Button>
@@ -53,7 +56,7 @@ export default function TrendPaneli() {
               size="sm"
               variant={gunSayisi === 30 ? "default" : "ghost"}
               className="h-7 px-3"
-              onClick={() => setGunSayisi(30)}
+              onClick={() => onGunSayisiChange(30)}
             >
               30 Gün
             </Button>

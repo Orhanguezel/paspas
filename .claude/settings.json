@@ -9,7 +9,9 @@
       "Bash(mysql -h 127.0.0.1 -u app -D promats_erp --batch --raw -e ' *)",
       "Bash(mysql -h 127.0.0.1 -u app -D promats_erp -e ' *)",
       "Bash(mysql -h 127.0.0.1 -u app -D promats_erp -sNe ' *)",
-      "Bash(curl -s http://localhost:8078/api/health)"
+      "Bash(curl -s http://localhost:8078/api/health)",
+      "Bash(MYSQL_PWD='app' mysql -h 127.0.0.1 -u app -D promats_erp)",
+      "Bash(MYSQL_PWD='app' mysql -h 127.0.0.1 -u app -D promats_erp -sNe \"SELECT COUNT\\(*\\) FROM storage_assets\")"
     ],
     "defaultMode": "bypassPermissions"
   }

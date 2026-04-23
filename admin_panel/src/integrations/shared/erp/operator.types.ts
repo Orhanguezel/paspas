@@ -91,6 +91,14 @@ export interface VardiyaSonuPayload {
   notlar?: string;
 }
 
+export interface GunlukUretimPayload {
+  makineId: string;
+  uretilenMiktar: number;
+  fireMiktar?: number;
+  birimTipi?: 'adet' | 'takim';
+  notlar?: string;
+}
+
 export interface SevkiyatKalemPayload {
   musteriId: string;
   siparisId?: string;

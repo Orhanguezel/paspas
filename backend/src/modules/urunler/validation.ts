@@ -3,7 +3,7 @@ import { z } from 'zod';
 const sortEnum = z.enum(['ad', 'kod', 'created_at', 'stok', 'kritik_stok']);
 const orderEnum = z.enum(['asc', 'desc']);
 
-export const kategoriEnum = z.enum(['urun', 'yarimamul', 'hammadde']);
+export const kategoriEnum = z.enum(['urun', 'yarimamul', 'operasyonel_ym', 'hammadde']);
 export type Kategori = z.infer<typeof kategoriEnum>;
 
 const isActiveQuerySchema = z.preprocess((value) => {
@@ -116,7 +116,7 @@ export const medyaSaveSchema = z.object({
   items: z.array(medyaItemSchema).min(0).max(50),
 });
 
-// -- Yarı mamul içeren tam ürün oluşturma (asıl ürün + otomatik yarı mamul(ler) + reçeteler) --
+// -- Operasyonel YM içeren tam ürün oluşturma (asıl ürün + otomatik operasyonel YM(ler) + reçeteler) --
 
 const receteKalemItemSchema = z.object({
   urunId: z.string().trim().min(1),

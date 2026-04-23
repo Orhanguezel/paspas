@@ -16,7 +16,15 @@ type Props = {
   onClose: () => void;
   target:
     | { type: "vardiya"; vardiyaKayitId: string; title: string; subtitle: string }
-    | { type: "makine"; makineId: string; tarih: string; title: string; subtitle: string }
+    | {
+        type: "makine";
+        makineId: string;
+        tarih?: string;
+        baslangicTarih?: string;
+        bitisTarih?: string;
+        title: string;
+        subtitle: string;
+      }
     | null;
 };
 
@@ -50,7 +58,12 @@ export default function VardiyaDetaySheet({ open, onClose, target }: Props) {
     target?.type === "vardiya"
       ? { vardiyaKayitId: target.vardiyaKayitId }
       : target?.type === "makine"
-        ? { makineId: target.makineId, tarih: target.tarih }
+        ? {
+            makineId: target.makineId,
+            tarih: target.tarih,
+            baslangicTarih: target.baslangicTarih,
+            bitisTarih: target.bitisTarih,
+          }
         : { vardiyaKayitId: "skip" };
 
   const { data, isLoading } = useGetVardiyaDetayAdminQuery(query, { skip: !target || !open });

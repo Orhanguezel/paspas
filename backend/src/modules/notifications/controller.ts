@@ -6,12 +6,17 @@ import type { RouteHandler } from "fastify";
 import { randomUUID } from "crypto";
 import { db } from "@/db/client";
 import { and, desc, eq, sql } from "drizzle-orm";
+import { userRoles } from "@/modules/userRoles/schema";
 import {
   notifications,
   type NotificationRow,
   type NotificationInsert,
   type NotificationType,
 } from "./schema";
+import {
+  publishNotification,
+  subscribeToUserNotifications,
+} from "./realtime";
 import {
   notificationCreateSchema,
   notificationUpdateSchema,
@@ -26,6 +31,15 @@ function getAuthUserId(req: any): string {
   const sub = req.user?.sub ?? req.user?.id ?? null;
   if (!sub) throw new Error("unauthorized");
   return String(sub);
+}
+
+function writeSseEvent(
+  stream: NodeJS.WritableStream,
+  event: string,
+  payload: unknown
+): void {
+  stream.write(`event: ${event}\n`);
+  stream.write(`data: ${JSON.stringify(payload)}\n\n`);
 }
 
 /* ---------------------------------------------------------------
@@ -55,7 +69,32 @@ export async function createUserNotification(input: {
     .where(eq(notifications.id, insert.id))
     .limit(1);
 
+  if (row) publishNotification(row);
   return row;
+}
+
+export async function createAdminNotification(input: {
+  title: string;
+  message: string;
+  type?: NotificationType;
+}): Promise<NotificationRow[]> {
+  const adminRows = await db
+    .selectDistinct({ userId: userRoles.user_id })
+    .from(userRoles)
+    .where(eq(userRoles.role, "admin"));
+
+  if (adminRows.length === 0) return [];
+
+  return Promise.all(
+    adminRows.map(({ userId }) =>
+      createUserNotification({
+        userId,
+        title: input.title,
+        message: input.message,
+        type: input.type,
+      })
+    )
+  );
 }
 
 /* ---------------------------------------------------------------
@@ -138,6 +177,75 @@ export const getUnreadCount: RouteHandler = async (req, reply) => {
       .code(500)
       .send({ error: { message: "notifications_unread_count_failed" } });
   }
+};
+
+// GET /notifications/stream → SSE canlı bildirim akışı
+export const streamNotifications: RouteHandler = async (req, reply) => {
+  let userId = "";
+
+  try {
+    userId = getAuthUserId(req);
+  } catch (e: any) {
+    if (e?.message === "unauthorized") {
+      return reply.code(401).send({ error: { message: "unauthorized" } });
+    }
+    req.log.error(e);
+    return reply
+      .code(500)
+      .send({ error: { message: "notifications_stream_failed" } });
+  }
+
+  reply.hijack();
+  const stream = reply.raw;
+
+  stream.writeHead(200, {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
+  });
+  stream.write("retry: 5000\n\n");
+
+  const unsubscribe = subscribeToUserNotifications(userId, (notification) => {
+    try {
+      writeSseEvent(stream, "notification", notification);
+    } catch (error) {
+      req.log.warn({ error }, "notifications_stream_write_failed");
+    }
+  });
+
+  let closed = false;
+  const heartbeat = setInterval(() => {
+    if (closed || stream.writableEnded || stream.destroyed) return;
+    try {
+      writeSseEvent(stream, "ping", {
+        ts: new Date().toISOString(),
+      });
+    } catch {
+      cleanup();
+    }
+  }, 25_000);
+
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    clearInterval(heartbeat);
+    unsubscribe();
+    req.raw.off("close", cleanup);
+    req.raw.off("end", cleanup);
+    req.raw.off("error", cleanup);
+    if (!stream.writableEnded && !stream.destroyed) stream.end();
+  };
+
+  req.raw.on("close", cleanup);
+  req.raw.on("end", cleanup);
+  req.raw.on("error", cleanup);
+
+  writeSseEvent(stream, "connected", {
+    ok: true,
+    userId,
+    ts: new Date().toISOString(),
+  });
 };
 
 // POST /notifications → manuel bildirim oluşturma (örn. panelden)

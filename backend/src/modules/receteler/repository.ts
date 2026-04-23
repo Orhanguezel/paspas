@@ -163,6 +163,7 @@ export async function repoGetByUrunId(urunId: string): Promise<ReceteDetail | nu
       updated_at: receteKalemleri.updated_at,
       malzemeKod: urunler.kod,
       malzemeAd: urunler.ad,
+      malzemeKategori: urunler.kategori,
       malzemeBirim: urunler.birim,
       malzemeBirimFiyat: urunler.birim_fiyat,
     })

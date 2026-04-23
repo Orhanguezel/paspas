@@ -215,19 +215,20 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   );
   const productionFieldsEnabled = selectedCategory?.uretim_alanlari_aktif ?? false;
   const operationTypeRequired = selectedCategory?.operasyon_tipi_gerekli ?? false;
-  const isRecipeCategory = watchKategori === "urun";
+  const recipeOwnerEnabled = productionFieldsEnabled;
   const showProductionFields = productionFieldsEnabled && watchTedarikTipi === "uretim";
-  const showOperasyonTipi = operationTypeRequired && showProductionFields;
+  const isRecipeDrivenFinalProduct = watchKategori === "urun" && showProductionFields;
+  const showOperasyonTipi = operationTypeRequired && showProductionFields && !isRecipeDrivenFinalProduct;
 
   useEffect(() => {
     if (activeTab === "operasyonlar" && !showProductionFields) {
       setActiveTab("bilgiler");
       return;
     }
-    if (activeTab === "recete" && !isRecipeCategory) {
+    if (activeTab === "recete" && !recipeOwnerEnabled) {
       setActiveTab("bilgiler");
     }
-  }, [activeTab, isRecipeCategory, showProductionFields]);
+  }, [activeTab, recipeOwnerEnabled, showProductionFields]);
 
   // Auto-generate operation names for NEW products
   useEffect(() => {
@@ -438,7 +439,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
 
   async function onSubmit(values: FormValues) {
     const coverUrl = draftCoverUrl || draftMediaUrls[0];
-    const shouldWarnMissingRecipe = values.kategori === "urun";
+    const shouldWarnMissingRecipe = recipeOwnerEnabled;
     const payload: UrunCreatePayload = {
       ...values,
       aciklama: values.aciklama?.trim() || undefined,
@@ -458,9 +459,11 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
         toast.success(t("admin.erp.common.updated", { item: t("admin.erp.urunler.singular") }));
       } else {
         const created = await create(payload).unwrap();
-        const validRows = draftReceteRows
-          .filter((row) => row.urunId)
-          .map(({ key: _key, ...row }, idx) => ({ ...row, sira: idx + 1 }));
+        const validRows = recipeOwnerEnabled
+          ? draftReceteRows
+              .filter((row) => row.urunId)
+              .map(({ key: _key, ...row }, idx) => ({ ...row, sira: idx + 1 }))
+          : [];
         if (validRows.length > 0) {
           await saveDraftRecete({ urunId: created.id, items: validRows }).unwrap();
         }
@@ -554,7 +557,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                   {tForm("tabOperasyonlar")}
                 </TabsTrigger>
               )}
-              {isRecipeCategory && (
+              {recipeOwnerEnabled && (
                 <TabsTrigger value="recete" className="flex-1">
                   {tForm("tabRecete")}
                 </TabsTrigger>
@@ -848,7 +851,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
             {/* ── Tab 2: Operasyonlar ──────────────────────── */}
             {showProductionFields && (
               <TabsContent value="operasyonlar" className="mt-4 space-y-5">
-                {/* Operasyon Tipi — only for 'urun' kategori */}
+                {/* Operasyon Tipi */}
                 {showOperasyonTipi && (
                   <div className="space-y-1">
                     <Label>{tForm("operasyonTipi")}</Label>
@@ -870,6 +873,13 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                   </div>
                 )}
 
+                {isRecipeDrivenFinalProduct && (
+                  <p className="rounded-md border border-dashed bg-muted/40 px-3 py-2 text-muted-foreground text-sm">
+                    Nihai urun operasyonlari recetedeki operasyonel YM kayitlarindan otomatik beslenir. Reçeteyi
+                    kaydettiğinizde kalıp, çevrim ve operasyon sayısı buna göre güncellenir.
+                  </p>
+                )}
+
                 {/* Operasyonlar */}
                 {opFields.length > 0 && (
                   <div className="space-y-3">
@@ -879,12 +889,13 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                           <div className="space-y-1">
                             <Label className="text-xs">{tForm("operasyonAdi")}</Label>
-                            <Input {...form.register(`operasyonlar.${idx}.operasyonAdi`)} />
+                            <Input {...form.register(`operasyonlar.${idx}.operasyonAdi`)} disabled={isRecipeDrivenFinalProduct} />
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs">{tForm("kalip")}</Label>
                             <Select
                               value={form.watch(`operasyonlar.${idx}.kalipId`) || "none"}
+                              disabled={isRecipeDrivenFinalProduct}
                               onValueChange={(v) =>
                                 form.setValue(`operasyonlar.${idx}.kalipId`, v === "none" ? undefined : v, {
                                   shouldDirty: true,
@@ -908,11 +919,20 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                         <div className="grid grid-cols-3 gap-3">
                           <div className="space-y-1">
                             <Label className="text-xs">{tForm("hazirlikSuresi")}</Label>
-                            <Input type="number" {...form.register(`operasyonlar.${idx}.hazirlikSuresiDk`)} />
+                            <Input
+                              type="number"
+                              {...form.register(`operasyonlar.${idx}.hazirlikSuresiDk`)}
+                              disabled={isRecipeDrivenFinalProduct}
+                            />
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs">{tForm("cevrimSuresi")}</Label>
-                            <Input type="number" step="0.01" {...form.register(`operasyonlar.${idx}.cevrimSuresiSn`)} />
+                            <Input
+                              type="number"
+                              step="0.01"
+                              {...form.register(`operasyonlar.${idx}.cevrimSuresiSn`)}
+                              disabled={isRecipeDrivenFinalProduct}
+                            />
                           </div>
                           {/* V2: Montaj toggle — makine atama ekranında gösterilecek */}
                         </div>
@@ -928,7 +948,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
             )}
 
             {/* ── Tab 3: Reçete ────────────────────────────── */}
-            {isRecipeCategory && (
+            {recipeOwnerEnabled && (
               <TabsContent value="recete" className="mt-4">
                 {isEdit && urun ? (
                   <ReceteSection urunId={urun.id} allowedCategoryCodes={receteKategoriKodlari} />

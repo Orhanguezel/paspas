@@ -153,7 +153,13 @@ export const vardiyaAnaliziAdminApi = baseApi.injectEndpoints({
     }),
     getVardiyaDetayAdmin: b.query<
       VardiyaDetayResponse,
-      { vardiyaKayitId?: string; makineId?: string; tarih?: string }
+      {
+        vardiyaKayitId?: string;
+        makineId?: string;
+        tarih?: string;
+        baslangicTarih?: string;
+        bitisTarih?: string;
+      }
     >({
       query: (params) => ({ url: `${BASE}/detay`, params }),
     }),

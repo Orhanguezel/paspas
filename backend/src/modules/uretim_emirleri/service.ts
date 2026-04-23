@@ -17,6 +17,16 @@ type Opts = {
   terminTarihi?: string;
 };
 
+const OPERASYON_KAYNAGI_KATEGORILERI = ['operasyonel_ym', 'yarimamul'] as const;
+
+function pickOperasyonKaynakKalemler<T extends { kategori: string }>(kalemler: T[]): T[] {
+  const operasyonelYmKalemleri = kalemler.filter((kalem) => kalem.kategori === 'operasyonel_ym');
+  if (operasyonelYmKalemleri.length > 0) {
+    return operasyonelYmKalemleri;
+  }
+  return kalemler.filter((kalem) => kalem.kategori === 'yarimamul');
+}
+
 export class SiparisUretimEmirHatasi extends Error {
   constructor(public readonly code: string, public readonly detay?: string) {
     super(code);
@@ -25,7 +35,7 @@ export class SiparisUretimEmirHatasi extends Error {
 }
 
 /**
- * Bir satış siparişi kaleminden, asıl ürünün reçetesindeki yarı mamuller için
+ * Bir satış siparişi kaleminden, asıl ürünün reçetesindeki operasyonel YM'ler için
  * ayrı ayrı üretim emri oluşturur.
  *
  * Örnek: 10 adet çift op. ürün → 10 Sağ + 10 Sol (2 emir)
@@ -54,7 +64,7 @@ export async function createUretimEmirleriFromSiparisKalemi(
   const asilRecete = asilReceteRows[0];
   if (!asilRecete) throw new SiparisUretimEmirHatasi('asil_urun_recetesi_yok');
 
-  const yariMamulKalemler = await db
+  const operasyonKaynakKalemleri = await db
     .select({
       urun_id: receteKalemleri.urun_id,
       miktar: receteKalemleri.miktar,
@@ -62,7 +72,14 @@ export async function createUretimEmirleriFromSiparisKalemi(
     })
     .from(receteKalemleri)
     .innerJoin(urunler, eq(receteKalemleri.urun_id, urunler.id))
-    .where(and(eq(receteKalemleri.recete_id, asilRecete.id), eq(urunler.kategori, 'yarimamul')));
+    .where(
+      and(
+        eq(receteKalemleri.recete_id, asilRecete.id),
+        inArray(urunler.kategori, OPERASYON_KAYNAGI_KATEGORILERI as unknown as string[]),
+      ),
+    );
+
+  const yariMamulKalemler = pickOperasyonKaynakKalemler(operasyonKaynakKalemleri);
 
   if (yariMamulKalemler.length === 0) {
     throw new SiparisUretimEmirHatasi('asil_urun_yarimamul_icermiyor');
@@ -99,15 +116,15 @@ export type MontajSonuc =
   | { basarili: false; urunId: string; uretilenMiktar: number; eksikYariMamuller: Array<{ urunId: string; ad: string; gerekli: number; mevcut: number }> };
 
 /**
- * Bir yarı mamul üretim emri tamamlandığında, emirin bağlı olduğu sipariş
+ * Bir operasyonel YM üretim emri tamamlandığında, emirin bağlı olduğu sipariş
  * kaleminin asıl ürünü için montaj denemesi yapar.
  *
  * Kullanım: operatörün üretim bitirme akışında, tamamlanan operasyon
  * `montaj=true` işaretli ise çağrılır.
  *
- * Başarılı: yarı mamul stokları düş, asıl ürün stoğu art, ambalaj hammaddeleri düş,
+ * Başarılı: operasyonel YM stokları düş, asıl ürün stoğu art, ambalaj hammaddeleri düş,
  *          emir durumunu `tamamlandi` yap.
- * Yetersiz: emir durumunu `montaj_bekliyor` yap, karşı yarı mamul beklenir.
+ * Yetersiz: emir durumunu `montaj_bekliyor` yap, karşı operasyonel YM beklenir.
  */
 export async function tryMontajForUretimEmri(
   uretimEmriId: string,
@@ -117,7 +134,14 @@ export async function tryMontajForUretimEmri(
   if (!emirRow) return null;
 
   const yariMamulRow = (await db.select().from(urunler).where(eq(urunler.id, emirRow.urun_id)).limit(1))[0];
-  if (!yariMamulRow || yariMamulRow.kategori !== 'yarimamul') return null;
+  if (
+    !yariMamulRow ||
+    !OPERASYON_KAYNAGI_KATEGORILERI.includes(
+      yariMamulRow.kategori as (typeof OPERASYON_KAYNAGI_KATEGORILERI)[number],
+    )
+  ) {
+    return null;
+  }
 
   const linkedKalem = await db
     .select({ kalemId: uretimEmriSiparisKalemleri.siparis_kalem_id, urun_id: siparisKalemleri.urun_id, miktar: siparisKalemleri.miktar })
@@ -147,7 +171,7 @@ export async function tryMontajForUretimEmri(
     .innerJoin(urunler, eq(receteKalemleri.urun_id, urunler.id))
     .where(eq(receteKalemleri.recete_id, asilRecete.id));
 
-  const yariMamuller = kalemler.filter((k) => k.kategori === 'yarimamul');
+  const yariMamuller = pickOperasyonKaynakKalemler(kalemler);
   const hammaddeler = kalemler.filter((k) => k.kategori === 'hammadde');
   if (yariMamuller.length === 0) return null;
 
@@ -188,7 +212,7 @@ export async function tryMontajForUretimEmri(
         referans_tipi: 'montaj',
         referans_id: uretimEmriId,
         miktar: dus.toFixed(4),
-        aciklama: 'Montaj: yarı mamul tüketimi',
+        aciklama: 'Montaj: operasyonel YM tüketimi',
         created_by_user_id: operatorUserId ?? null,
       });
     }
@@ -227,10 +251,10 @@ export async function tryMontajForUretimEmri(
 }
 
 /**
- * Bir yarı mamulün stoğu arttıktan sonra, bu yarı mamulün karşılığında bekleyen
+ * Bir operasyonel YM'nin stoğu arttıktan sonra, bu kaynağın karşılığında bekleyen
  * montajları tarar ve her birinde tekrar `tryMontajForUretimEmri` çalıştırır.
  *
- * Kullanım: operatör bir yarı mamul üretim emri tamamlanınca (montaj olmayan tarafta)
+ * Kullanım: operatör bir operasyonel YM üretim emri tamamlanınca (montaj olmayan tarafta)
  * stok artar; bu helper ile kardeş emirlerin `montaj_bekliyor` durumu çözümlenir.
  */
 export async function tryPendingMontajlarAfterStokArtis(

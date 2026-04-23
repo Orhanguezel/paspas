@@ -13,6 +13,8 @@ export const detayQuerySchema = z.object({
   vardiyaKayitId: z.string().trim().max(36).optional(),
   makineId: z.string().trim().max(36).optional(),
   tarih: z.string().date().optional(),
+  baslangicTarih: z.string().date().optional(),
+  bitisTarih: z.string().date().optional(),
 });
 
 export type DetayQuery = z.infer<typeof detayQuerySchema>;

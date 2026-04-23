@@ -11,10 +11,7 @@ import { and, asc, desc, eq, inArray, like, or } from "drizzle-orm";
 import { hash as argonHash } from "argon2";
 import { ensureProfileRow } from "./controller";
 import { makineler } from "@/modules/makine_havuzu/schema";
-import {
-  notifications,
-  type NotificationInsert,
-} from "@/modules/notifications/schema";
+import { createUserNotification } from "@/modules/notifications/controller";
 import { sendPasswordChangedMail } from "@/modules/mail/service";
 
 /** Ortak tipler */
@@ -351,17 +348,13 @@ export function makeAdminController(_app: FastifyInstance) {
 
       // 🔔 Notification
       try {
-        const notif: NotificationInsert = {
-          id: randomUUID(),
-          user_id: id,
+        await createUserNotification({
+          userId: id,
           title: "Şifreniz güncellendi",
           message:
             "Hesap şifreniz yönetici tarafından güncellendi. Bu işlemi siz yapmadıysanız lütfen en kısa sürede bizimle iletişime geçin.",
           type: "password_changed",
-          is_read: false,
-          created_at: new Date(),
-        };
-        await db.insert(notifications).values(notif);
+        });
       } catch (err) {
         req.log?.error?.(err, "admin_password_change_notification_failed");
       }

@@ -15,8 +15,10 @@ import { transitionMultipleKalemDurum } from '@/modules/satis_siparisleri/kalem-
 import { receteler, receteKalemleri } from '@/modules/receteler/schema';
 import { tryMontajForUretimEmri, tryPendingMontajlarAfterStokArtis } from '@/modules/uretim_emirleri/service';
 import { repoCreate as malKabulRepoCreate } from '@/modules/mal_kabul/repository';
+import { createAdminNotification } from '@/modules/notifications/controller';
 import { isMakineWorkingDay, recalcMakineKuyrukTarihleri } from '@/modules/_shared/planlama';
 import { hammaddeRezervasyonlari } from '@/modules/urunler/schema';
+import { vardiyalar } from '@/modules/tanimlar/schema';
 
 import {
   durusKayitlari,
@@ -46,6 +48,7 @@ import type {
   UretimBaslatBody,
   UretimBitirBody,
   VardiyaBasiBody,
+  GunlukUretimBody,
   VardiyaSonuBody,
 } from './validation';
 
@@ -53,6 +56,29 @@ const VARDIYA_SAATLERI = {
   gunduz: { baslangic: '07:30', bitis: '19:30' },
   gece: { baslangic: '19:30', bitis: '07:30' },
 } as const;
+
+type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type VardiyaTipi = keyof typeof VARDIYA_SAATLERI;
+type VardiyaTanimi = {
+  vardiyaTipi: VardiyaTipi;
+  ad: string;
+  baslangicSaati: string;
+  bitisSaati: string;
+};
+type VardiyaPenceresi = {
+  vardiyaTipi: VardiyaTipi;
+  ad: string;
+  baslangic: Date;
+  bitis: Date;
+};
+type MakineKuyrukBildirimOzeti = {
+  emirNo: string | null;
+  makineKod: string | null;
+  makineAd: string | null;
+  urunKod: string | null;
+  urunAd: string | null;
+  operasyonAdi: string | null;
+};
 
 function parseClockToMinutes(clock: string): number {
   const [hour, minute] = clock.split(':').map(Number);
@@ -63,20 +89,156 @@ function getCurrentMinutes(now: Date): number {
   return (now.getHours() * 60) + now.getMinutes();
 }
 
-function isShiftTimeValid(now: Date, vardiyaTipi: 'gunduz' | 'gece'): boolean {
+function normalizeShiftName(value: string): string {
+  return value
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '');
+}
+
+function inferVardiyaTipi(ad: string, baslangicSaati: string, bitisSaati: string): VardiyaTipi {
+  const normalizedName = normalizeShiftName(ad);
+  if (normalizedName.includes('gece')) return 'gece';
+  if (normalizedName.includes('gunduz')) return 'gunduz';
+
+  const baslangic = parseClockToMinutes(baslangicSaati);
+  const bitis = parseClockToMinutes(bitisSaati);
+  if (baslangic > bitis) return 'gece';
+  return baslangic >= (12 * 60) ? 'gece' : 'gunduz';
+}
+
+function createDateForClock(reference: Date, clock: string): Date {
+  const [hour, minute] = clock.split(':').map(Number);
+  const date = new Date(reference);
+  date.setHours(hour, minute, 0, 0);
+  return date;
+}
+
+function buildShiftWindow(now: Date, tanim: VardiyaTanimi): VardiyaPenceresi {
   const currentMinutes = getCurrentMinutes(now);
-  const baslangic = parseClockToMinutes(VARDIYA_SAATLERI[vardiyaTipi].baslangic);
-  const bitis = parseClockToMinutes(VARDIYA_SAATLERI[vardiyaTipi].bitis);
+  const baslangicMinutes = parseClockToMinutes(tanim.baslangicSaati);
+  const bitisMinutes = parseClockToMinutes(tanim.bitisSaati);
+  const overnight = baslangicMinutes >= bitisMinutes;
 
-  // Check start window (±30 mins)
-  const diffStart = Math.abs(currentMinutes - baslangic);
-  const isStartWindow = diffStart <= 30 || diffStart >= (24 * 60 - 30);
+  const baslangic = createDateForClock(now, tanim.baslangicSaati);
+  const bitis = createDateForClock(now, tanim.bitisSaati);
 
-  // Check end window (±30 mins)
-  const diffEnd = Math.abs(currentMinutes - bitis);
-  const isEndWindow = diffEnd <= 30 || diffEnd >= (24 * 60 - 30);
+  if (overnight) {
+    if (currentMinutes >= baslangicMinutes) {
+      bitis.setDate(bitis.getDate() + 1);
+    } else {
+      baslangic.setDate(baslangic.getDate() - 1);
+    }
+  }
 
-  return isStartWindow || isEndWindow;
+  return {
+    vardiyaTipi: tanim.vardiyaTipi,
+    ad: tanim.ad,
+    baslangic,
+    bitis,
+  };
+}
+
+function isNowWithinShiftWindow(now: Date, pencere: VardiyaPenceresi): boolean {
+  return now >= pencere.baslangic && now < pencere.bitis;
+}
+
+async function listActiveVardiyaTanimlari(): Promise<VardiyaTanimi[]> {
+  const rows = await db
+    .select({
+      ad: vardiyalar.ad,
+      baslangicSaati: vardiyalar.baslangic_saati,
+      bitisSaati: vardiyalar.bitis_saati,
+    })
+    .from(vardiyalar)
+    .where(eq(vardiyalar.is_active, 1))
+    .orderBy(asc(vardiyalar.baslangic_saati), asc(vardiyalar.ad));
+
+  if (rows.length === 0) {
+    return (Object.entries(VARDIYA_SAATLERI) as [VardiyaTipi, { baslangic: string; bitis: string }][]).map(([vardiyaTipi, saatler]) => ({
+      vardiyaTipi,
+      ad: vardiyaTipi,
+      baslangicSaati: saatler.baslangic,
+      bitisSaati: saatler.bitis,
+    }));
+  }
+
+  return rows.map((row) => ({
+    vardiyaTipi: inferVardiyaTipi(row.ad, row.baslangicSaati, row.bitisSaati),
+    ad: row.ad,
+    baslangicSaati: row.baslangicSaati,
+    bitisSaati: row.bitisSaati,
+  }));
+}
+
+async function getCurrentShiftWindow(now: Date): Promise<VardiyaPenceresi | null> {
+  const tanimlar = await listActiveVardiyaTanimlari();
+  const current = tanimlar
+    .map((tanim) => buildShiftWindow(now, tanim))
+    .filter((pencere) => isNowWithinShiftWindow(now, pencere))
+    .sort((a, b) => b.baslangic.getTime() - a.baslangic.getTime());
+
+  return current[0] ?? null;
+}
+
+async function ensureAutomaticShiftForMachine(
+  tx: DbTransaction,
+  {
+    makineId,
+    operatorUserId,
+    now,
+    preferredVardiyaTipi,
+    notlar,
+    strictNoExisting,
+  }: {
+    makineId: string;
+    operatorUserId: string | null;
+    now: Date;
+    preferredVardiyaTipi?: VardiyaTipi;
+    notlar?: string | null;
+    strictNoExisting?: boolean;
+  },
+) {
+  const [openShift] = await tx
+    .select()
+    .from(vardiyaKayitlari)
+    .where(
+      and(
+        eq(vardiyaKayitlari.makine_id, makineId),
+        sql`${vardiyaKayitlari.bitis} IS NULL`,
+      ),
+    )
+    .orderBy(desc(vardiyaKayitlari.baslangic))
+    .limit(1);
+
+  if (openShift) {
+    if (strictNoExisting) throw new Error('acik_vardiya_zaten_var');
+    return openShift;
+  }
+
+  const vardiyaPenceresi = await getCurrentShiftWindow(now);
+  if (!vardiyaPenceresi) throw new Error('vardiya_tanimi_bulunamadi');
+  if (preferredVardiyaTipi && vardiyaPenceresi.vardiyaTipi !== preferredVardiyaTipi) {
+    throw new Error('vardiya_saati_gecersiz');
+  }
+
+  const calismaDurumu = await isMakineWorkingDay(makineId, now);
+  if (!calismaDurumu) {
+    throw new Error('makine_bugun_calismiyor');
+  }
+
+  const id = randomUUID();
+  await tx.insert(vardiyaKayitlari).values({
+    id,
+    makine_id: makineId,
+    operator_user_id: operatorUserId,
+    vardiya_tipi: vardiyaPenceresi.vardiyaTipi,
+    baslangic: vardiyaPenceresi.baslangic,
+    notlar: notlar ?? null,
+  });
+
+  const [createdShift] = await tx.select().from(vardiyaKayitlari).where(eq(vardiyaKayitlari.id, id)).limit(1);
+  return createdShift;
 }
 
 /**
@@ -515,6 +677,12 @@ export async function repoUretimBaslat(
       throw new Error('makine_bugun_calismiyor');
     }
 
+    await ensureAutomaticShiftForMachine(tx, {
+      makineId: target.makine_id,
+      operatorUserId,
+      now,
+    });
+
     // Ayni makinede zaten calisan veya duraklatilmis is var mi?
     const [activeJob] = await tx
       .select({ id: makineKuyrugu.id })
@@ -835,8 +1003,7 @@ export async function repoUretimBitir(
     const sids = await getSiparisIdsByUretimEmriId(kqRef2.uretim_emri_id);
     for (const sid of sids) await refreshSiparisDurum(sid);
 
-    // Yeni mimari: emir yarı mamul için ve operasyon montaj=true ise montaj denemesi.
-    // Eski mimari kayıtlarını etkilemez (sadece urunler.kategori='yarimamul' olanlara uygulanır).
+    // Yeni mimari: emir operasyonel YM/legacy yarı mamul için ve operasyon montaj=true ise montaj denemesi.
     if (kqRef2.emir_operasyon_id) {
       const [opRow] = await db
         .select({ montaj: uretimEmriOperasyonlari.montaj, urunId: uretimEmirleri.urun_id })
@@ -846,17 +1013,34 @@ export async function repoUretimBitir(
         .limit(1);
       if (opRow?.urunId) {
         const [urunRow] = await db.select({ kategori: urunler.kategori }).from(urunler).where(eq(urunler.id, opRow.urunId)).limit(1);
-        if (urunRow?.kategori === 'yarimamul') {
+        if (urunRow?.kategori === 'operasyonel_ym' || urunRow?.kategori === 'yarimamul') {
           if (opRow.montaj === 1) {
             // Montaj makinesinde üretim bitti: montaj denemesi
             await tryMontajForUretimEmri(kqRef2.uretim_emri_id, operatorUserId);
           } else {
-            // Stok artan yarı mamul için bekleyen montajları tara
+            // Stok artan operasyonel YM için bekleyen montajları tara
             await tryPendingMontajlarAfterStokArtis(opRow.urunId, operatorUserId);
           }
         }
       }
     }
+  }
+
+  try {
+    const summary = await getMakineKuyrukBildirimOzeti(body.makineKuyrukId);
+    if (summary) {
+      const machineLabel = [summary.makineKod, summary.makineAd].filter(Boolean).join(' - ');
+      const productLabel = [summary.urunKod, summary.urunAd].filter(Boolean).join(' - ');
+      const operationLabel = summary.operasyonAdi ? ` / ${summary.operasyonAdi}` : '';
+
+      await createAdminNotification({
+        title: 'Uretim tamamlandi',
+        message: `${machineLabel || 'Makine'} uzerinde ${summary.emirNo || 'uretim emri'} / ${productLabel || 'urun'}${operationLabel} tamamlandi. Gercek uretim ${body.uretilenMiktar} ${body.birimTipi}, fire ${body.fireMiktar}.`,
+        type: 'system',
+      });
+    }
+  } catch {
+    // Notification failures must not block production completion.
   }
 
   // Return fresh data
@@ -955,6 +1139,191 @@ async function shiftFollowingJobs(
 
     cursor = endTime;
   }
+}
+
+async function findActiveMachineJob(
+  tx: DbTransaction,
+  makineId: string,
+): Promise<{
+  id: string;
+  makine_id: string;
+  emir_operasyon_id: string | null;
+  uretim_emri_id: string;
+  durum: string;
+} | null> {
+  const [job] = await tx
+    .select({
+      id: makineKuyrugu.id,
+      makine_id: makineKuyrugu.makine_id,
+      emir_operasyon_id: makineKuyrugu.emir_operasyon_id,
+      uretim_emri_id: makineKuyrugu.uretim_emri_id,
+      durum: makineKuyrugu.durum,
+    })
+    .from(makineKuyrugu)
+    .where(
+      and(
+        eq(makineKuyrugu.makine_id, makineId),
+        inArray(makineKuyrugu.durum, ['calisiyor', 'duraklatildi']),
+      ),
+    )
+    .orderBy(
+      sql`case when ${makineKuyrugu.durum} = 'calisiyor' then 0 else 1 end`,
+      asc(makineKuyrugu.sira),
+    )
+    .limit(1);
+
+  return job ?? null;
+}
+
+async function hasIncrementalStockImpact(
+  tx: DbTransaction,
+  kqRow: {
+    emir_operasyon_id: string | null;
+    uretim_emri_id: string;
+  },
+): Promise<boolean> {
+  if (kqRow.emir_operasyon_id) {
+    const [opCount] = await tx
+      .select({ count: sql<number>`count(*)` })
+      .from(uretimEmriOperasyonlari)
+      .where(eq(uretimEmriOperasyonlari.uretim_emri_id, kqRow.uretim_emri_id));
+
+    const isSingleSided = Number(opCount?.count ?? 0) <= 1;
+    const [opRow] = await tx
+      .select({ montaj: uretimEmriOperasyonlari.montaj })
+      .from(uretimEmriOperasyonlari)
+      .where(eq(uretimEmriOperasyonlari.id, kqRow.emir_operasyon_id))
+      .limit(1);
+
+    return isSingleSided || (Number(opRow?.montaj ?? 0) === 1);
+  }
+
+  return true;
+}
+
+async function recordIncrementalProductionEntry(
+  tx: DbTransaction,
+  {
+    kqRow,
+    operatorUserId,
+    uretilenMiktar,
+    fireMiktar,
+    birimTipi,
+    notlar,
+    gunlukDurum = 'devam_ediyor',
+  }: {
+    kqRow: {
+      makine_id: string;
+      emir_operasyon_id: string | null;
+      uretim_emri_id: string;
+    };
+    operatorUserId: string | null;
+    uretilenMiktar: number;
+    fireMiktar: number;
+    birimTipi: 'adet' | 'takim';
+    notlar?: string | null;
+    gunlukDurum?: 'devam_ediyor' | 'yarim_kaldi' | 'tamamlandi';
+  },
+): Promise<OperatorGunlukGirisDto | null> {
+  if (uretilenMiktar <= 0) return null;
+
+  const netMiktar = uretilenMiktar - fireMiktar;
+  const kayitId = randomUUID();
+
+  await tx.insert(operatorGunlukKayitlari).values({
+    id: kayitId,
+    uretim_emri_id: kqRow.uretim_emri_id,
+    makine_id: kqRow.makine_id,
+    emir_operasyon_id: kqRow.emir_operasyon_id ?? null,
+    operator_user_id: operatorUserId ?? null,
+    gunluk_durum: gunlukDurum,
+    ek_uretim_miktari: uretilenMiktar.toFixed(4),
+    fire_miktari: fireMiktar.toFixed(4),
+    net_miktar: netMiktar.toFixed(4),
+    birim_tipi: birimTipi,
+    notlar: notlar ?? null,
+    kayit_tarihi: new Date(),
+  });
+
+  if (kqRow.emir_operasyon_id) {
+    await tx
+      .update(uretimEmriOperasyonlari)
+      .set({
+        uretilen_miktar: sql`${uretimEmriOperasyonlari.uretilen_miktar} + ${netMiktar.toFixed(4)}`,
+      })
+      .where(eq(uretimEmriOperasyonlari.id, kqRow.emir_operasyon_id));
+  }
+
+  await tx
+    .update(uretimEmirleri)
+    .set({
+      uretilen_miktar: sql`${uretimEmirleri.uretilen_miktar} + ${netMiktar.toFixed(4)}`,
+    })
+    .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id));
+
+  if (netMiktar > 0 && await hasIncrementalStockImpact(tx, kqRow)) {
+    const [emirRow] = await tx
+      .select({ urun_id: uretimEmirleri.urun_id })
+      .from(uretimEmirleri)
+      .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id))
+      .limit(1);
+
+    if (emirRow) {
+      await tx
+        .update(urunler)
+        .set({ stok: sql`${urunler.stok} + ${netMiktar.toFixed(4)}` })
+        .where(eq(urunler.id, emirRow.urun_id));
+
+      await tx.insert(hareketler).values({
+        id: randomUUID(),
+        urun_id: emirRow.urun_id,
+        hareket_tipi: 'giris',
+        referans_tipi: 'uretim',
+        referans_id: kqRow.uretim_emri_id,
+        miktar: netMiktar.toFixed(4),
+        aciklama: gunlukDurum === 'yarim_kaldi'
+          ? 'Günlük üretim girişi'
+          : 'Artımlı üretim kaydı',
+        created_by_user_id: operatorUserId ?? null,
+      });
+
+      await consumeRecipeMaterials(tx, kqRow.uretim_emri_id, netMiktar, operatorUserId);
+    }
+  }
+
+  const [row] = await tx
+    .select()
+    .from(operatorGunlukKayitlari)
+    .where(eq(operatorGunlukKayitlari.id, kayitId))
+    .limit(1);
+
+  return row ? rowToGunlukGirisDto(row) : null;
+}
+
+async function getMakineKuyrukBildirimOzeti(
+  makineKuyrukId: string,
+): Promise<MakineKuyrukBildirimOzeti | null> {
+  const [row] = await db
+    .select({
+      emirNo: uretimEmirleri.emir_no,
+      makineKod: makineler.kod,
+      makineAd: makineler.ad,
+      urunKod: urunler.kod,
+      urunAd: urunler.ad,
+      operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
+    })
+    .from(makineKuyrugu)
+    .leftJoin(makineler, eq(makineler.id, makineKuyrugu.makine_id))
+    .leftJoin(uretimEmirleri, eq(uretimEmirleri.id, makineKuyrugu.uretim_emri_id))
+    .leftJoin(urunler, eq(urunler.id, uretimEmirleri.urun_id))
+    .leftJoin(
+      uretimEmriOperasyonlari,
+      eq(uretimEmriOperasyonlari.id, makineKuyrugu.emir_operasyon_id),
+    )
+    .where(eq(makineKuyrugu.id, makineKuyrukId))
+    .limit(1);
+
+  return row ?? null;
 }
 
 // ============================================================
@@ -1062,89 +1431,15 @@ export async function repoDevamEt(
 
     // Log incremental production during downtime + update stock
     if (body.uretilenMiktar !== undefined && body.uretilenMiktar > 0 && kqRow) {
-      const netMiktar = body.uretilenMiktar - body.fireMiktar;
-
-      await tx.insert(operatorGunlukKayitlari).values({
-        id: randomUUID(),
-        uretim_emri_id: kqRow.uretim_emri_id,
-        makine_id: kqRow.makine_id,
-        emir_operasyon_id: kqRow.emir_operasyon_id ?? null,
-        operator_user_id: operatorUserId ?? null,
-        gunluk_durum: 'devam_ediyor',
-        ek_uretim_miktari: body.uretilenMiktar.toFixed(4),
-        fire_miktari: body.fireMiktar.toFixed(4),
-        net_miktar: netMiktar.toFixed(4),
-        birim_tipi: body.birimTipi,
-        notlar: body.notlar ?? null,
-        kayit_tarihi: now,
+      await recordIncrementalProductionEntry(tx, {
+        kqRow,
+        operatorUserId,
+        uretilenMiktar: body.uretilenMiktar,
+        fireMiktar: body.fireMiktar,
+        birimTipi: body.birimTipi,
+        notlar: body.notlar ?? 'Duruş sonu artımlı üretim kaydı',
+        gunlukDurum: 'devam_ediyor',
       });
-
-      // Update operasyon uretilen_miktar
-      if (kqRow.emir_operasyon_id) {
-        await tx
-          .update(uretimEmriOperasyonlari)
-          .set({
-            uretilen_miktar: sql`${uretimEmriOperasyonlari.uretilen_miktar} + ${netMiktar.toFixed(4)}`,
-          })
-          .where(eq(uretimEmriOperasyonlari.id, kqRow.emir_operasyon_id));
-      }
-
-      // Update parent emir uretilen_miktar
-      await tx
-        .update(uretimEmirleri)
-        .set({
-          uretilen_miktar: sql`${uretimEmirleri.uretilen_miktar} + ${netMiktar.toFixed(4)}`,
-        })
-        .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id));
-
-      if (netMiktar > 0) {
-        // OP-1c: Only assembly (Montaj) or single-sided jobs should affect stock
-        let hasStockImpact = false;
-        if (kqRow.emir_operasyon_id) {
-          const [opCount] = await tx
-            .select({ count: sql<number>`count(*)` })
-            .from(uretimEmriOperasyonlari)
-            .where(eq(uretimEmriOperasyonlari.uretim_emri_id, kqRow.uretim_emri_id));
-          
-          const isSingleSided = Number(opCount?.count ?? 0) <= 1;
-          const [opRow] = await tx
-            .select({ montaj: uretimEmriOperasyonlari.montaj })
-            .from(uretimEmriOperasyonlari)
-            .where(eq(uretimEmriOperasyonlari.id, kqRow.emir_operasyon_id))
-            .limit(1);
-          
-          hasStockImpact = isSingleSided || (opRow?.montaj === 1);
-        } else {
-          hasStockImpact = true;
-        }
-
-        const [emirRow] = await tx
-          .select({ urun_id: uretimEmirleri.urun_id })
-          .from(uretimEmirleri)
-          .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id))
-          .limit(1);
-
-        if (emirRow && hasStockImpact) {
-          await tx
-            .update(urunler)
-            .set({ stok: sql`${urunler.stok} + ${netMiktar.toFixed(4)}` })
-            .where(eq(urunler.id, emirRow.urun_id));
-
-          await tx.insert(hareketler).values({
-            id: randomUUID(),
-            urun_id: emirRow.urun_id,
-            hareket_tipi: 'giris',
-            referans_tipi: 'uretim',
-            referans_id: kqRow.uretim_emri_id,
-            miktar: netMiktar.toFixed(4),
-            aciklama: `Duruş sonu artımlı üretim kaydı`,
-            created_by_user_id: operatorUserId ?? null,
-          });
-
-          // Also consume raw materials
-          await consumeRecipeMaterials(tx, kqRow.uretim_emri_id, netMiktar, operatorUserId);
-        }
-      }
     }
 
     // Restore machine status if it was arizali
@@ -1186,44 +1481,15 @@ export async function repoVardiyaBasi(
   body: VardiyaBasiBody,
   operatorUserId: string | null,
 ): Promise<VardiyaKayitDto> {
-  const id = randomUUID();
   const now = new Date();
-
-  if (!isShiftTimeValid(now, body.vardiyaTipi)) {
-    throw new Error('vardiya_saati_gecersiz');
-  }
-
-  // Hafta sonu / tatil kontrolu: makine icin bugun calisma plani var mi?
-  const calismaDurumu = await isMakineWorkingDay(body.makineId, now);
-  if (!calismaDurumu) {
-    throw new Error('makine_bugun_calismiyor');
-  }
-
-  const [openShift] = await db
-    .select({ id: vardiyaKayitlari.id })
-    .from(vardiyaKayitlari)
-    .where(
-      and(
-        eq(vardiyaKayitlari.makine_id, body.makineId),
-        sql`${vardiyaKayitlari.bitis} IS NULL`,
-      ),
-    )
-    .limit(1);
-
-  if (openShift) {
-    throw new Error('acik_vardiya_zaten_var');
-  }
-
-  await db.insert(vardiyaKayitlari).values({
-    id,
-    makine_id: body.makineId,
-    operator_user_id: operatorUserId ?? null,
-    vardiya_tipi: body.vardiyaTipi,
-    baslangic: now,
+  const row = await db.transaction(async (tx) => ensureAutomaticShiftForMachine(tx, {
+    makineId: body.makineId,
+    operatorUserId: operatorUserId ?? null,
+    now,
+    preferredVardiyaTipi: body.vardiyaTipi,
     notlar: body.notlar ?? null,
-  });
-
-  const [row] = await db.select().from(vardiyaKayitlari).where(eq(vardiyaKayitlari.id, id)).limit(1);
+    strictNoExisting: true,
+  }));
   return vardiyaRowToDto(row);
 }
 
@@ -1255,91 +1521,90 @@ export async function repoVardiyaSonu(
 
   // Log incremental production at shift end + update stock
   if (body.uretilenMiktar !== undefined && body.uretilenMiktar > 0) {
-    // Find current running job on this machine
-    const [runningJob] = await db
-      .select()
-      .from(makineKuyrugu)
-      .where(
-        and(
-          eq(makineKuyrugu.makine_id, body.makineId),
-          eq(makineKuyrugu.durum, 'calisiyor'),
-        ),
-      )
-      .limit(1);
+    await db.transaction(async (tx) => {
+      const runningJob = await findActiveMachineJob(tx, body.makineId);
+      if (!runningJob) return;
 
-    if (runningJob) {
-      const netMiktar = (body.uretilenMiktar ?? 0) - body.fireMiktar;
-
-      await db.insert(operatorGunlukKayitlari).values({
-        id: randomUUID(),
-        uretim_emri_id: runningJob.uretim_emri_id,
-        makine_id: body.makineId,
-        emir_operasyon_id: runningJob.emir_operasyon_id ?? null,
-        operator_user_id: operatorUserId ?? null,
-        gunluk_durum: 'devam_ediyor',
-        ek_uretim_miktari: (body.uretilenMiktar ?? 0).toFixed(4),
-        fire_miktari: body.fireMiktar.toFixed(4),
-        net_miktar: netMiktar.toFixed(4),
-        birim_tipi: body.birimTipi,
-        notlar: body.notlar ?? null,
-        kayit_tarihi: now,
+      await recordIncrementalProductionEntry(tx, {
+        kqRow: runningJob,
+        operatorUserId,
+        uretilenMiktar: body.uretilenMiktar ?? 0,
+        fireMiktar: body.fireMiktar,
+        birimTipi: body.birimTipi,
+        notlar: body.notlar ?? 'Vardiya sonu günlük üretim girişi',
+        gunlukDurum: 'yarim_kaldi',
       });
-
-      if (netMiktar > 0) {
-        // OP-1c: Only assembly (Montaj) or single-sided jobs should affect stock
-        let hasStockImpact = false;
-        if (runningJob.emir_operasyon_id) {
-          const [opCount] = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(uretimEmriOperasyonlari)
-            .where(eq(uretimEmriOperasyonlari.uretim_emri_id, runningJob.uretim_emri_id));
-          
-          const isSingleSided = Number(opCount?.count ?? 0) <= 1;
-          const [opRow] = await db
-            .select({ montaj: uretimEmriOperasyonlari.montaj })
-            .from(uretimEmriOperasyonlari)
-            .where(eq(uretimEmriOperasyonlari.id, runningJob.emir_operasyon_id))
-            .limit(1);
-          
-          hasStockImpact = isSingleSided || (opRow?.montaj === 1);
-        } else {
-          hasStockImpact = true;
-        }
-
-        const [emirRow] = await db
-          .select({ urun_id: uretimEmirleri.urun_id })
-          .from(uretimEmirleri)
-          .where(eq(uretimEmirleri.id, runningJob.uretim_emri_id))
-          .limit(1);
-
-        if (emirRow && hasStockImpact) {
-          await db.transaction(async (tx) => {
-            await tx
-              .update(urunler)
-              .set({ stok: sql`${urunler.stok} + ${netMiktar.toFixed(4)}` })
-              .where(eq(urunler.id, emirRow.urun_id));
-
-            await tx.insert(hareketler).values({
-              id: randomUUID(),
-              urun_id: emirRow.urun_id,
-              hareket_tipi: 'giris',
-              referans_tipi: 'uretim',
-              referans_id: runningJob.uretim_emri_id,
-              miktar: netMiktar.toFixed(4),
-              aciklama: `Vardiya sonu artımlı üretim kaydı`,
-              created_by_user_id: operatorUserId ?? null,
-            });
-
-            // Also consume raw materials
-            await consumeRecipeMaterials(tx, runningJob.uretim_emri_id, netMiktar, operatorUserId);
-          });
-        }
-      }
-    }
+    });
   }
 
   const [updated] = await db.select().from(vardiyaKayitlari).where(eq(vardiyaKayitlari.id, openVardiya.id)).limit(1);
   return vardiyaRowToDto(updated);
+}
+
+export async function repoGunlukUretimGir(
+  body: GunlukUretimBody,
+  operatorUserId: string | null,
+): Promise<OperatorGunlukGirisDto> {
+  const now = new Date();
+
+  const kayit = await db.transaction(async (tx) => {
+    await ensureAutomaticShiftForMachine(tx, {
+      makineId: body.makineId,
+      operatorUserId,
+      now,
+    });
+
+    const activeJob = await findActiveMachineJob(tx, body.makineId);
+    if (!activeJob) throw new Error('aktif_uretim_bulunamadi');
+
+    return recordIncrementalProductionEntry(tx, {
+      kqRow: activeJob,
+      operatorUserId,
+      uretilenMiktar: body.uretilenMiktar,
+      fireMiktar: body.fireMiktar,
+      birimTipi: body.birimTipi,
+      notlar: body.notlar ?? 'Vardiya sonu günlük üretim girişi',
+      gunlukDurum: 'yarim_kaldi',
+    });
+  });
+
+  if (!kayit) throw new Error('gunluk_kayit_olusturulamadi');
+
+  try {
+    const [activeQueue] = await db
+      .select({ id: makineKuyrugu.id })
+      .from(makineKuyrugu)
+      .where(
+        and(
+          eq(makineKuyrugu.makine_id, body.makineId),
+          inArray(makineKuyrugu.durum, ['calisiyor', 'duraklatildi']),
+        ),
+      )
+      .orderBy(
+        sql`case when ${makineKuyrugu.durum} = 'calisiyor' then 0 else 1 end`,
+        asc(makineKuyrugu.sira),
+      )
+      .limit(1);
+
+    const summary = activeQueue
+      ? await getMakineKuyrukBildirimOzeti(activeQueue.id)
+      : null;
+    if (summary) {
+      const machineLabel = [summary.makineKod, summary.makineAd].filter(Boolean).join(' - ');
+      const productLabel = [summary.urunKod, summary.urunAd].filter(Boolean).join(' - ');
+      const operationLabel = summary.operasyonAdi ? ` / ${summary.operasyonAdi}` : '';
+
+      await createAdminNotification({
+        title: 'Gunluk uretim girisi alindi',
+        message: `${machineLabel || 'Makine'} uzerinde ${productLabel || 'urun'}${operationLabel} icin ${body.uretilenMiktar} ${body.birimTipi} uretim ve ${body.fireMiktar} fire girildi.`,
+        type: 'system',
+      });
+    }
+  } catch {
+    // Notification failures must not block production tracking.
+  }
+
+  return kayit;
 }
 
 // ============================================================
@@ -1356,6 +1621,44 @@ export type AcikVardiyaDto = {
 };
 
 export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
+  const now = new Date();
+
+  const targetMachines = await db
+    .select({
+      makineId: makineler.id,
+    })
+    .from(makineler)
+    .where(
+      and(
+        eq(makineler.is_active, 1),
+        eq(makineler.durum, 'aktif'),
+        sql`EXISTS (
+          SELECT 1 FROM makine_kuyrugu mk
+          WHERE mk.makine_id = ${makineler.id}
+            AND mk.durum IN ('bekliyor', 'calisiyor', 'duraklatildi')
+        )`,
+      ),
+    )
+    .orderBy(asc(makineler.kod));
+
+  for (const machine of targetMachines) {
+    try {
+      await db.transaction(async (tx) => {
+        await ensureAutomaticShiftForMachine(tx, {
+          makineId: machine.makineId,
+          operatorUserId: null,
+          now,
+        });
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message === 'makine_bugun_calismiyor' || message === 'vardiya_tanimi_bulunamadi') {
+        continue;
+      }
+      throw error;
+    }
+  }
+
   // Sadece kuyrukta bekliyor/devam_ediyor is emri olan makineleri getir
   const rows = await db
     .select({

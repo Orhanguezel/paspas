@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 
-import { AlertTriangle, Check, Clock, Pause, Play, RefreshCcw, RotateCcw, Square, X } from "lucide-react";
+import { AlertTriangle, Clock, Pause, Play, RefreshCcw, RotateCcw, Square, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -23,12 +23,11 @@ import { useLocaleContext } from "@/i18n/LocaleProvider";
 import {
   useDevamEtAdminMutation,
   useDuraklatAdminMutation,
+  useGunlukUretimAdminMutation,
   useGetAcikVardiyalarAdminQuery,
   useListMakineKuyruguAdminQuery,
   useUretimBaslatAdminMutation,
   useUretimBitirAdminMutation,
-  useVardiyaBasiAdminMutation,
-  useVardiyaSonuAdminMutation,
 } from "@/integrations/endpoints/admin/erp/operator_admin.endpoints";
 import { useListDurusNedenleriAdminQuery } from "@/integrations/endpoints/admin/erp/tanimlar_admin.endpoints";
 import type { MakineKuyruguDetayDto } from "@/integrations/shared/erp/operator.types";
@@ -116,11 +115,17 @@ function MakineKuyruguTab() {
   const [bitir] = useUretimBitirAdminMutation();
   const [duraklat] = useDuraklatAdminMutation();
   const [devamEt] = useDevamEtAdminMutation();
+  const [gunlukUretimGir] = useGunlukUretimAdminMutation();
 
   const [finishing, setFinishing] = useState<MakineKuyruguDetayDto | null>(null);
   const [uretilenMiktar, setUretilenMiktar] = useState("");
   const [fireMiktar, setFireMiktar] = useState("0");
   const [notlar, setNotlar] = useState("");
+
+  const [dailyEntry, setDailyEntry] = useState<MakineKuyruguDetayDto | null>(null);
+  const [dailyUretilenMiktar, setDailyUretilenMiktar] = useState("");
+  const [dailyFireMiktar, setDailyFireMiktar] = useState("0");
+  const [dailyNotlar, setDailyNotlar] = useState("");
 
   const [resuming, setResuming] = useState<MakineKuyruguDetayDto | null>(null);
   const [resumeNotlar, setResumeNotlar] = useState("");
@@ -223,6 +228,46 @@ function MakineKuyruguTab() {
       setFinishing(null);
     } catch {
       toast.error(t("admin.erp.common.operationFailed"));
+    }
+  }
+
+  function openDailyEntry(item: MakineKuyruguDetayDto) {
+    setDailyUretilenMiktar("");
+    setDailyFireMiktar("0");
+    setDailyNotlar("");
+    setDailyEntry(item);
+  }
+
+  async function confirmDailyEntry() {
+    if (!dailyEntry) return;
+    const u = parseFloat(dailyUretilenMiktar || "0");
+    const f = parseFloat(dailyFireMiktar || "0");
+    if (Number.isNaN(u) || u <= 0 || Number.isNaN(f) || f < 0) {
+      toast.error("Günlük üretim miktarı sıfırdan büyük olmalı.");
+      return;
+    }
+    try {
+      await gunlukUretimGir({
+        makineId: dailyEntry.makineId,
+        uretilenMiktar: u,
+        fireMiktar: f,
+        birimTipi: dailyEntry.montaj ? "takim" : "adet",
+        notlar: dailyNotlar.trim() || undefined,
+      }).unwrap();
+      toast.success("Günlük üretim kaydedildi.");
+      setDailyEntry(null);
+    } catch (error: unknown) {
+      const message =
+        typeof error === "object" && error && "data" in error
+          ? (error as { data?: { error?: { message?: string } } }).data?.error?.message
+          : undefined;
+      if (message === "aktif_uretim_bulunamadi") {
+        toast.error("Bu makinede günlük üretim yazılacak aktif bir iş bulunamadı.");
+      } else if (message === "makine_bugun_calismiyor") {
+        toast.error("Bu makine için bugün çalışma planı tanımlanmamış.");
+      } else {
+        toast.error(t("admin.erp.common.operationFailed"));
+      }
     }
   }
 
@@ -331,15 +376,23 @@ function MakineKuyruguTab() {
                           {activeJob.durum === "calisiyor" && (
                             <>
                               <Button 
-                                className="h-32 text-2xl font-black flex-col gap-2 rounded-3xl shadow-lg hover:scale-[1.02] transition-transform" 
+                                className="h-28 text-2xl font-black flex-col gap-2 rounded-3xl shadow-lg hover:scale-[1.02] transition-transform" 
                                 onClick={() => openFinish(activeJob)}
                               >
                                 <Square className="size-8" />
                                 BİTİR
                               </Button>
+                              <Button
+                                variant="outline"
+                                className="h-20 text-lg font-bold flex-col gap-1 rounded-3xl border-2 hover:bg-sky-50 hover:border-sky-200 transition-all text-sky-700 border-sky-200"
+                                onClick={() => openDailyEntry(activeJob)}
+                              >
+                                <Clock className="size-5" />
+                                GÜNLÜK ÜRETİM
+                              </Button>
                               <Button 
                                 variant="outline" 
-                                className="h-24 text-xl font-bold flex-col gap-1 rounded-3xl border-2 hover:bg-amber-50 hover:border-amber-200 transition-all text-amber-600 border-amber-200" 
+                                className="h-20 text-xl font-bold flex-col gap-1 rounded-3xl border-2 hover:bg-amber-50 hover:border-amber-200 transition-all text-amber-600 border-amber-200" 
                                 onClick={() => openPause(activeJob)}
                               >
                                 <Pause className="size-6" />
@@ -348,13 +401,23 @@ function MakineKuyruguTab() {
                             </>
                           )}
                           {activeJob.durum === "duraklatildi" && (
-                            <Button 
-                              className="h-40 text-2xl font-black flex-col gap-3 rounded-3xl bg-amber-500 hover:bg-amber-600 shadow-xl" 
-                              onClick={() => openResume(activeJob)}
-                            >
-                              <RotateCcw className="size-10" />
-                              DEVAM ET
-                            </Button>
+                            <>
+                              <Button 
+                                className="h-28 text-2xl font-black flex-col gap-3 rounded-3xl bg-amber-500 hover:bg-amber-600 shadow-xl" 
+                                onClick={() => openResume(activeJob)}
+                              >
+                                <RotateCcw className="size-10" />
+                                DEVAM ET
+                              </Button>
+                              <Button
+                                variant="outline"
+                                className="h-20 text-lg font-bold flex-col gap-1 rounded-3xl border-2 hover:bg-sky-50 hover:border-sky-200 transition-all text-sky-700 border-sky-200"
+                                onClick={() => openDailyEntry(activeJob)}
+                              >
+                                <Clock className="size-5" />
+                                GÜNLÜK ÜRETİM
+                              </Button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -465,6 +528,57 @@ function MakineKuyruguTab() {
         </SheetContent>
       </Sheet>
 
+      <Sheet open={!!dailyEntry} onOpenChange={(v) => !v && setDailyEntry(null)}>
+        <SheetContent side="right" className="w-full p-0 sm:max-w-md">
+          <SheetHeader className="border-b px-4 py-4">
+            <SheetTitle>Günlük Üretim Girişi</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-4 px-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              <strong className="font-mono">{dailyEntry?.emirNo}</strong> — {dailyEntry?.urunAd}
+            </p>
+            <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+              Bu alana toplam iş miktarını değil, yalnız bu vardiyada üretilen ek miktarı girin.
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label>
+                  {dailyEntry?.montaj ? "Vardiyada Üretilen Takım" : "Vardiyada Üretilen Adet"}
+                </Label>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  min={0}
+                  value={dailyUretilenMiktar}
+                  onChange={(e) => setDailyUretilenMiktar(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Vardiya Fire Miktarı</Label>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  min={0}
+                  value={dailyFireMiktar}
+                  onChange={(e) => setDailyFireMiktar(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>{t("admin.erp.operator.notes")}</Label>
+              <Textarea rows={2} value={dailyNotlar} onChange={(e) => setDailyNotlar(e.target.value)} />
+            </div>
+          </div>
+          <SheetFooter className="border-t px-4 py-4 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => setDailyEntry(null)}>
+              {t("admin.common.cancel")}
+            </Button>
+            <Button onClick={confirmDailyEntry}>Günlük Üretimi Kaydet</Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
       {/* Pause Sheet */}
       <Sheet open={!!pausing} onOpenChange={(v) => !v && setPausing(null)}>
         <SheetContent side="right" className="w-full p-0 sm:max-w-md">
@@ -545,93 +659,19 @@ function MakineKuyruguTab() {
 }
 
 function VardiyaPanel() {
-  const { t } = useLocaleContext();
   const { data: vardiyaData, isLoading } = useGetAcikVardiyalarAdminQuery();
-  const [vardiyaBasi, { isLoading: isStarting }] = useVardiyaBasiAdminMutation();
-  const [vardiyaSonu, { isLoading: isEnding }] = useVardiyaSonuAdminMutation();
-
-  // Per-machine shift type selection
-  const [vardiyaTipleri, setVardiyaTipleri] = useState<Record<string, "gunduz" | "gece">>({});
-
-  // Sheet state for closing a shift
-  const [closingMakineId, setClosingMakineId] = useState<string | null>(null);
-  const [shiftEndUretim, setShiftEndUretim] = useState("0");
-  const [shiftEndFire, setShiftEndFire] = useState("0");
-  const [shiftEndNotlar, setShiftEndNotlar] = useState("");
 
   const makineler = vardiyaData ?? [];
-  const closingMakine = makineler.find((m) => m.makineId === closingMakineId) ?? null;
-
-  function autoVardiyaTipi(): "gunduz" | "gece" {
-    const mins = new Date().getHours() * 60 + new Date().getMinutes();
-    return mins >= 450 && mins < 1170 ? "gunduz" : "gece";
-  }
-
-  function getVardiyaTipi(makineId: string): "gunduz" | "gece" {
-    return vardiyaTipleri[makineId] ?? autoVardiyaTipi();
-  }
-
-  function getErrorMessage(error: unknown): string {
-    const message =
-      typeof error === "object" && error && "data" in error
-        ? (error as { data?: { error?: { message?: string } } }).data?.error?.message
-        : undefined;
-    if (message === "vardiya_saati_gecersiz") return t("admin.erp.operator.shiftTimeInvalid");
-    if (message === "acik_vardiya_zaten_var") return t("admin.erp.operator.shiftAlreadyOpen");
-    if (message === "acik_vardiya_bulunamadi") return t("admin.erp.operator.shiftNotFound");
-    if (message === "makine_bugun_calismiyor") return "Bu makine için bugün çalışma planı tanımlanmamış.";
-    if (message === "makinede_aktif_is_var") return "Bu makinede zaten çalışan bir iş var.";
-    if (message === "sadece_bekliyor_baslatilabilir") return "Sadece bekleyen işler başlatılabilir.";
-    return t("admin.erp.common.operationFailed");
-  }
-
-  async function handleShiftStart(makineId: string) {
-    try {
-      await vardiyaBasi({ makineId, vardiyaTipi: getVardiyaTipi(makineId) }).unwrap();
-      toast.success(t("admin.erp.operator.shiftStarted"));
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    }
-  }
-
-  function openShiftEnd(makineId: string) {
-    setClosingMakineId(makineId);
-    setShiftEndUretim("0");
-    setShiftEndFire("0");
-    setShiftEndNotlar("");
-  }
-
-  async function confirmShiftEnd() {
-    if (!closingMakineId) return;
-    const u = Number.parseFloat(shiftEndUretim || "0");
-    const f = Number.parseFloat(shiftEndFire || "0");
-    if (Number.isNaN(u) || u < 0 || Number.isNaN(f) || f < 0) {
-      toast.error(t("admin.erp.operator.invalidQuantity"));
-      return;
-    }
-    try {
-      await vardiyaSonu({
-        makineId: closingMakineId,
-        uretilenMiktar: u > 0 ? u : undefined,
-        fireMiktar: f,
-        notlar: shiftEndNotlar.trim() || undefined,
-      }).unwrap();
-      toast.success(t("admin.erp.operator.shiftEnded"));
-      setClosingMakineId(null);
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    }
-  }
 
   return (
     <>
       <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden mb-10">
         <div className="bg-slate-50 border-b px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-             <div className="size-3 rounded-full bg-emerald-500" />
+            <div className="size-3 rounded-full bg-emerald-500" />
              <h3 className="text-lg font-black tracking-tight text-slate-800 uppercase italic">Vardiya Durumu</h3>
           </div>
-          <p className="text-xs font-bold text-slate-500 tracking-widest">Aşağıdaki makineleri üretime açın veya kapatın</p>
+          <p className="text-xs font-bold text-slate-500 tracking-widest">Vardiyalar sistem tarafından yönetilir, üretim takibi iş kartlarından yapılır</p>
         </div>
         
         <div className="p-4 md:p-8">
@@ -660,38 +700,19 @@ function VardiyaPanel() {
                         {isAcik && <Badge className="bg-emerald-600 font-bold">{vardiyaTipiLabel} · {baslangicStr}</Badge>}
                       </div>
                       <div className="text-lg font-black tracking-tight text-slate-800 truncate mb-4">{makine.makineAd}</div>
+                      <p className="text-sm text-slate-500">
+                        {isAcik
+                          ? "Vardiya aktif. Üretim kaydını aşağıdaki iş kartlarından yönetin."
+                          : "Uygun vardiya saatinde ve çalışma takvimi açıksa sistem otomatik açar."}
+                      </p>
                     </div>
 
-                    <div className="flex gap-2">
-                    {isAcik ? (
-                        <Button
-                          className="flex-1 h-14 text-lg font-black rounded-2xl bg-white border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 shadow-sm"
-                          onClick={() => openShiftEnd(makine.makineId)}
-                          disabled={isEnding}
-                        >
-                          VARDİYA KAPAT
-                        </Button>
-                    ) : (
-                      <>
-                        <Select
-                          value={getVardiyaTipi(makine.makineId)}
-                          onValueChange={(v) =>
-                            setVardiyaTipleri((prev) => ({ ...prev, [makine.makineId]: v as "gunduz" | "gece" }))
-                          }
-                        >
-                          <SelectTrigger className="h-14 w-28 text-lg font-bold rounded-2xl border-2">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-2xl">
-                            <SelectItem value="gunduz">Gündüz</SelectItem>
-                            <SelectItem value="gece">Gece</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button className="flex-1 h-14 text-lg font-black rounded-2xl shadow-lg" onClick={() => handleShiftStart(makine.makineId)} disabled={isStarting}>
-                          BAŞLAT
-                        </Button>
-                      </>
-                    )}
+                    <div className={`flex-1 h-14 rounded-2xl border px-4 text-sm font-medium flex items-center justify-center text-center ${
+                      isAcik
+                        ? "border-emerald-200 bg-white text-emerald-700"
+                        : "border-dashed border-slate-300 bg-slate-50 text-slate-500"
+                    }`}>
+                      {isAcik ? "Otomatik vardiya aktif" : "Otomatik vardiya bekleniyor"}
                     </div>
                   </div>
                 );
@@ -700,57 +721,6 @@ function VardiyaPanel() {
           )}
         </div>
       </div>
-
-      {/* Vardiya Kapat Sheet */}
-      <Sheet open={closingMakineId !== null} onOpenChange={(open) => !open && setClosingMakineId(null)}>
-        <SheetContent side="right" className="w-full p-0 sm:max-w-md">
-          <SheetHeader className="border-b px-4 py-4">
-            <SheetTitle>
-              {closingMakine
-                ? `${closingMakine.makineKod} — ${t("admin.erp.operator.endShift")}`
-                : t("admin.erp.operator.endShift")}
-            </SheetTitle>
-          </SheetHeader>
-          <div className="space-y-4 px-4 py-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label>{t("admin.erp.operator.producedQuantity")}</Label>
-                <Input
-                  type="number"
-                  step="0.0001"
-                  min={0}
-                  value={shiftEndUretim}
-                  onChange={(e) => setShiftEndUretim(e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>{t("admin.erp.operator.scrapQuantity")}</Label>
-                <Input
-                  type="number"
-                  step="0.0001"
-                  min={0}
-                  value={shiftEndFire}
-                  onChange={(e) => setShiftEndFire(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label>{t("admin.erp.operator.notes")}</Label>
-              <Textarea value={shiftEndNotlar} onChange={(e) => setShiftEndNotlar(e.target.value)} rows={2} />
-            </div>
-          </div>
-          <SheetFooter className="border-t px-4 py-4 sm:flex-row sm:justify-end">
-            <Button variant="outline" onClick={() => setClosingMakineId(null)}>
-              {t("admin.common.cancel")}
-            </Button>
-            <Button onClick={confirmShiftEnd} disabled={isEnding}>
-              <Check className="mr-1 size-4" />
-              {t("admin.erp.operator.endShift")}
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
     </>
   );
 }

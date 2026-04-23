@@ -164,7 +164,7 @@ export interface SubCategoryCreatePayload {
   category_id: string;
   locale?: string;
   name: string;
-  slug: string;
+  slug?: string;
   description?: string;
   image_url?: string;
   alt?: string;

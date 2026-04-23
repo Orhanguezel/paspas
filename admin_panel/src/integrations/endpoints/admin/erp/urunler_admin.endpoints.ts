@@ -153,6 +153,8 @@ export const urunlerAdminApi = baseApi.injectEndpoints({
       invalidatesTags: (_r, _e, { urunId }) => [
         { type: "Recete", id: `urun-${urunId}` },
         { type: "Receteler", id: "LIST" },
+        { type: "Urun", id: urunId },
+        { type: "Urunler", id: "LIST" },
       ],
     }),
 
@@ -161,6 +163,8 @@ export const urunlerAdminApi = baseApi.injectEndpoints({
       invalidatesTags: (_r, _e, urunId) => [
         { type: "Recete", id: `urun-${urunId}` },
         { type: "Receteler", id: "LIST" },
+        { type: "Urun", id: urunId },
+        { type: "Urunler", id: "LIST" },
       ],
     }),
 

@@ -1,6 +1,6 @@
 -- ============================================================================
 -- PASPAS ERP V1 — categories tablosu + standart ERP kategorileri
--- urun / yarimamul / hammadde
+-- urun / yarimamul / operasyonel_ym / hammadde
 -- ============================================================================
 SET NAMES utf8mb4;
 SET time_zone = '+00:00';
@@ -126,12 +126,26 @@ INSERT INTO `categories` (
     1, 0, 0, 1
   ),
   (
+    'c0000001-0000-4000-8000-000000000004',
+    'operasyonel_ym',
+    'Operasyonel YM',
+    'operasyonel_ym',
+    'Operasyonu tanimlanan yari mamuller. Sag/sol veya tek parca operasyonu bu kartta tutulur.',
+    30,
+    'adet', 'OYM', 1,
+    'uretim',
+    1,
+    0,
+    NULL,
+    1, 0, 0, 1
+  ),
+  (
     'c0000001-0000-4000-8000-000000000003',
     'hammadde',
     'Hammadde',
     'hammadde',
     'Satın alma veya fason teminli hammadde girdileri. Uretim operasyon alanlari kullanilmaz.',
-    30,
+    40,
     'kg', 'HM', 1,
     'satin_alma',
     0,

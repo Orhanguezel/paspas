@@ -29,10 +29,7 @@ import {
   sendWelcomeMail,
   sendPasswordChangedMail,
 } from "@/modules/mail/service";
-import {
-  notifications,
-  type NotificationInsert,
-} from "@/modules/notifications/schema";
+import { createUserNotification } from "@/modules/notifications/controller";
 import { z } from "zod";
 
 export type Role = "admin" | "sevkiyatci" | "operator" | "satin_almaci";
@@ -608,17 +605,13 @@ export function makeAuthController(app: FastifyInstance) {
 
       // Şifre değiştiyse notification + mail (update() ile aynı mantık)
       try {
-        const notif: NotificationInsert = {
-          id: randomUUID(),
-          user_id: u.id,
+        await createUserNotification({
+          userId: u.id,
           title: "Şifreniz güncellendi",
           message:
             "Hesap şifreniz başarıyla değiştirildi. Bu işlemi siz yapmadıysanız lütfen en kısa sürede bizimle iletişime geçin.",
           type: "password_changed",
-          is_read: false,
-          created_at: new Date(),
-        };
-        await db.insert(notifications).values(notif);
+        });
       } catch (err) {
         req.log.error({ err }, "password_change_notification_failed");
       }
@@ -733,17 +726,13 @@ export function makeAuthController(app: FastifyInstance) {
       if (passwordChanged) {
         // Notification
         try {
-          const notif: NotificationInsert = {
-            id: randomUUID(),
-            user_id: p.sub,
+          await createUserNotification({
+            userId: p.sub,
             title: "Şifreniz güncellendi",
             message:
               "Hesap şifreniz başarıyla değiştirildi. Bu işlemi siz yapmadıysanız lütfen en kısa sürede bizimle iletişime geçin.",
             type: "password_changed",
-            is_read: false,
-            created_at: new Date(),
-          };
-          await db.insert(notifications).values(notif);
+          });
         } catch (err) {
           req.log.error(
             { err },

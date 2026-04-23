@@ -18,6 +18,7 @@ import { LayoutControls } from './_components/sidebar/layout-controls';
 import { ThemeSwitcher } from './_components/sidebar/theme-switcher';
 
 import AdminAuthGate from './_components/admin-auth-gate';
+import { AdminNotificationsLive } from './_components/admin-notifications-live';
 import { AdminSettingsProvider } from './_components/admin-settings-provider';
 
 export default function Layout({ children }: Readonly<{ children: ReactNode }>) {
@@ -63,10 +64,11 @@ export default function Layout({ children }: Readonly<{ children: ReactNode }>) 
                   <AdminBrandTitle />
                 </div>
 
-                  <div className="flex items-center gap-2">
-                    <LayoutControls />
-                    <ThemeSwitcher />
-                  </div>
+                <div className="flex items-center gap-2">
+                  <AdminNotificationsLive />
+                  <LayoutControls />
+                  <ThemeSwitcher />
+                </div>
               </div>
             </header>
 

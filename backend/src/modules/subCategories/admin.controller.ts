@@ -4,11 +4,12 @@
 import type { RouteHandler } from 'fastify';
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, desc, eq, like, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, like, ne, or, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { nullIfEmpty, toBool } from '@/modules/_shared/normalizers';
 import { storageAssets } from '@/modules/storage/schema';
+import { categories } from '@/modules/categories/schema';
 import { env } from '@/core/env';
 
 import { subCategories } from './schema';
@@ -39,6 +40,48 @@ function publicUrlOf(bucket: string, path: string, providerUrl?: string | null) 
 function isDup(err: unknown) {
   const code = (err as { code?: string; errno?: number })?.code ?? (err as { errno?: number })?.errno;
   return code === 'ER_DUP_ENTRY' || code === 1062;
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function normalizeSlug(name: string, slug?: string | null) {
+  const direct = (slug ?? '').trim();
+  if (direct) return direct;
+  return slugify(name.trim());
+}
+
+async function categoryExists(categoryId: string) {
+  const rows = await db
+    .select({ id: categories.id })
+    .from(categories)
+    .where(eq(categories.id, categoryId))
+    .limit(1);
+  return Boolean(rows[0]?.id);
+}
+
+async function findSlugConflict(categoryId: string, slug: string, excludeId?: string) {
+  const rows = await db
+    .select({ id: subCategories.id })
+    .from(subCategories)
+    .where(
+      excludeId
+        ? and(eq(subCategories.category_id, categoryId), eq(subCategories.slug, slug), ne(subCategories.id, excludeId))
+        : and(eq(subCategories.category_id, categoryId), eq(subCategories.slug, slug)),
+    )
+    .limit(1);
+
+  return rows[0] ?? null;
 }
 
 // ── LIST ────────────────────────────────────────────────────────
@@ -133,11 +176,26 @@ export const adminCreateSubCategory: RouteHandler<{ Body: SubCategoryCreateInput
 
   const data = parsed.data;
   const id = data.id ?? randomUUID();
+  const normalizedName = data.name.trim();
+  const normalizedSlug = normalizeSlug(normalizedName, data.slug);
+
+  if (!normalizedSlug) {
+    return reply.code(400).send({ error: { message: 'invalid_body', detail: 'slug_required' } });
+  }
+
+  if (!(await categoryExists(data.category_id))) {
+    return reply.code(400).send({ error: { message: 'invalid_category_id' } });
+  }
+
+  if (await findSlugConflict(data.category_id, normalizedSlug)) {
+    return reply.code(409).send({ error: { message: 'duplicate_slug' } });
+  }
+
   const payload = {
     id,
     category_id: data.category_id,
-    name: data.name.trim(),
-    slug: data.slug.trim(),
+    name: normalizedName,
+    slug: normalizedSlug,
     description: (nullIfEmpty(data.description) as string | null) ?? null,
     image_url: (nullIfEmpty(data.image_url) as string | null) ?? null,
     storage_asset_id: null,
@@ -166,17 +224,33 @@ export const adminPatchSubCategory: RouteHandler<{
   Params: { id: string };
   Body: SubCategoryUpdateInput;
 }> = async (req, reply) => {
+  const existingRows = await db.select().from(subCategories).where(eq(subCategories.id, req.params.id)).limit(1);
+  const existing = existingRows[0];
+  if (!existing) return reply.code(404).send({ error: { message: 'not_found' } });
+
   const parsed = subCategoryUpdateSchema.safeParse(req.body);
   if (!parsed.success) {
     return reply.code(400).send({ error: { message: 'invalid_body', issues: parsed.error.flatten() } });
   }
 
   const patch = parsed.data;
+  const nextCategoryId = patch.category_id ?? existing.category_id;
+  const nextName = patch.name !== undefined ? patch.name.trim() : existing.name;
+  const nextSlug = patch.slug !== undefined ? normalizeSlug(nextName, patch.slug) : existing.slug;
+
+  if (!(await categoryExists(nextCategoryId))) {
+    return reply.code(400).send({ error: { message: 'invalid_category_id' } });
+  }
+
+  if (await findSlugConflict(nextCategoryId, nextSlug, req.params.id)) {
+    return reply.code(409).send({ error: { message: 'duplicate_slug' } });
+  }
+
   const set: Record<string, unknown> = { updated_at: sql`CURRENT_TIMESTAMP(3)` };
 
-  if (patch.category_id !== undefined) set.category_id = patch.category_id;
-  if (patch.name !== undefined) set.name = patch.name.trim();
-  if (patch.slug !== undefined) set.slug = patch.slug.trim();
+  if (patch.category_id !== undefined) set.category_id = nextCategoryId;
+  if (patch.name !== undefined) set.name = nextName;
+  if (patch.slug !== undefined) set.slug = nextSlug;
   if (patch.description !== undefined) set.description = nullIfEmpty(patch.description) as string | null;
   if (patch.image_url !== undefined) set.image_url = nullIfEmpty(patch.image_url) as string | null;
   if (patch.alt !== undefined) set.alt = nullIfEmpty(patch.alt) as string | null;
@@ -194,7 +268,6 @@ export const adminPatchSubCategory: RouteHandler<{
   }
 
   const rows = await db.select().from(subCategories).where(eq(subCategories.id, req.params.id)).limit(1);
-  if (!rows.length) return reply.code(404).send({ error: { message: 'not_found' } });
   return reply.send(rows[0]);
 };
 

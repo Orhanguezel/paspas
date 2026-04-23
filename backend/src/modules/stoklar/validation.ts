@@ -5,7 +5,7 @@ const orderEnum = z.enum(['asc', 'desc']);
 
 export const listQuerySchema = z.object({
   q: z.string().trim().min(1).optional(),
-  kategori: z.enum(['urun', 'yarimamul', 'hammadde']).optional(),
+  kategori: z.enum(['urun', 'yarimamul', 'operasyonel_ym', 'hammadde']).optional(),
   durum: z.enum(['yeterli', 'kritik', 'yetersiz']).optional(),
   kritikOnly: z.preprocess((value) => {
     if (value === 'true' || value === '1') return true;

@@ -2,7 +2,18 @@
 
 import { useMemo, useState } from "react";
 
-import { AlertTriangle, CheckCircle2, Clock, Factory, Package, RefreshCw, Wrench } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Factory,
+  FileSpreadsheet,
+  Package,
+  Printer,
+  RefreshCw,
+  Wrench,
+} from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,20 +24,57 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import {
   useGetVardiyaAnaliziAdminQuery,
+  useGetVardiyaTrendAdminQuery,
   type KalipRollup,
   type MakineRollup,
   type VardiyaAnalizItem,
 } from "@/integrations/endpoints/admin/erp/vardiya_analizi_admin.endpoints";
+import {
+  downloadReportAsExcel,
+  openReportAsPdf,
+  sanitizeFileNameSegment,
+  type ReportDocument,
+  type ReportMetric,
+  type ReportTable,
+} from "@/lib/erp/vardiya-analizi-export";
 
 import TrendPaneli from "./trend-paneli";
 import VardiyaDetaySheet from "./vardiya-detay-sheet";
 
 type DetayTarget =
   | { type: "vardiya"; vardiyaKayitId: string; title: string; subtitle: string }
-  | { type: "makine"; makineId: string; tarih: string; title: string; subtitle: string };
+  | {
+      type: "makine";
+      makineId: string;
+      tarih?: string;
+      baslangicTarih?: string;
+      bitisTarih?: string;
+      title: string;
+      subtitle: string;
+    };
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+function shiftIsoDate(iso: string, days: number): string {
+  const date = new Date(`${iso}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function sortIsoDates(a: string, b: string): { baslangicTarih: string; bitisTarih: string } {
+  return a <= b
+    ? { baslangicTarih: a, bitisTarih: b }
+    : { baslangicTarih: b, bitisTarih: a };
+}
+
+function formatDateLabel(iso: string): string {
+  return new Date(`${iso}T12:00:00`).toLocaleDateString("tr-TR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 function formatDk(dk: number): string {
@@ -44,22 +92,128 @@ function formatTime(iso: string | null): string {
   return d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
 }
 
+function formatDateTimeLabel(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleString("tr-TR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function vardiyaLabel(tipi: string): string {
   if (tipi === "gece") return "Gece Vardiyası";
   if (tipi === "gunduz") return "Gündüz Vardiyası";
   return tipi;
 }
 
+function viewLabel(view: ViewMode): string {
+  if (view === "makine") return "Makine Bazlı";
+  if (view === "kalip") return "Kalıp Bazlı";
+  if (view === "trend") return "Trend";
+  return "Vardiya Bazlı";
+}
+
+function ozetMetrics(ozet: NonNullable<ReturnType<typeof getOzetLike>>): ReportMetric[] {
+  return [
+    { label: "Toplam Üretim", value: ozet.toplamUretim.toLocaleString("tr-TR") },
+    { label: "Toplam Çalışma", value: formatDk(ozet.toplamCalismaDk) },
+    {
+      label: "Toplam Duruş",
+      value: `${formatDk(ozet.toplamDurusDk)} (%${Math.round(ozet.durusOrani * 100)})`,
+    },
+    { label: "Arıza", value: `${ozet.arizaSayisi} adet` },
+    { label: "Kalıp Değişimi", value: `${ozet.kalipDegisimSayisi} adet` },
+    { label: "OEE", value: `%${Math.round(ozet.oee * 100)}` },
+  ];
+}
+
+function getOzetLike(data: { ozet?: any } | undefined | null) {
+  return data?.ozet ?? null;
+}
+
+function buildTrendMetrics(gunler: Array<{
+  toplamUretim: number;
+  toplamCalismaDk: number;
+  toplamDurusDk: number;
+  arizaSayisi: number;
+  kalipDegisimSayisi: number;
+  oee: number;
+}>): ReportMetric[] {
+  const toplamUretim = gunler.reduce((sum, gun) => sum + gun.toplamUretim, 0);
+  const toplamCalismaDk = gunler.reduce((sum, gun) => sum + gun.toplamCalismaDk, 0);
+  const toplamDurusDk = gunler.reduce((sum, gun) => sum + gun.toplamDurusDk, 0);
+  const toplamAriza = gunler.reduce((sum, gun) => sum + gun.arizaSayisi, 0);
+  const toplamKalip = gunler.reduce((sum, gun) => sum + gun.kalipDegisimSayisi, 0);
+  const ortalamaOee = gunler.length > 0 ? gunler.reduce((sum, gun) => sum + gun.oee, 0) / gunler.length : 0;
+
+  return [
+    { label: "Toplam Üretim", value: toplamUretim.toLocaleString("tr-TR") },
+    { label: "Toplam Çalışma", value: formatDk(toplamCalismaDk) },
+    { label: "Toplam Duruş", value: formatDk(toplamDurusDk) },
+    { label: "Arıza", value: `${toplamAriza} adet` },
+    { label: "Kalıp Değişimi", value: `${toplamKalip} adet` },
+    { label: "Ortalama OEE", value: `%${Math.round(ortalamaOee * 100)}` },
+  ];
+}
+
 type ViewMode = "vardiya" | "makine" | "kalip" | "trend";
+type RangePreset = "gun" | "hafta" | "ay" | "ozel";
 
 export default function VardiyaAnaliziClient() {
   const [tarih, setTarih] = useState(todayIsoDate());
+  const [rangePreset, setRangePreset] = useState<RangePreset>("gun");
+  const [customBaslangic, setCustomBaslangic] = useState(shiftIsoDate(todayIsoDate(), -6));
+  const [customBitis, setCustomBitis] = useState(todayIsoDate());
   const [view, setView] = useState<ViewMode>("vardiya");
+  const [trendGunSayisi, setTrendGunSayisi] = useState<7 | 30>(7);
   const [detay, setDetay] = useState<DetayTarget | null>(null);
 
+  const range = useMemo(() => {
+    if (rangePreset === "gun") {
+      return {
+        label: "Günlük görünüm",
+        query: { tarih },
+        subtitle: formatDateLabel(tarih),
+      };
+    }
+
+    if (rangePreset === "hafta") {
+      const baslangicTarih = shiftIsoDate(tarih, -6);
+      return {
+        label: "Son 7 gün",
+        query: { baslangicTarih, bitisTarih: tarih },
+        subtitle: `${formatDateLabel(baslangicTarih)} - ${formatDateLabel(tarih)}`,
+      };
+    }
+
+    if (rangePreset === "ay") {
+      const baslangicTarih = shiftIsoDate(tarih, -29);
+      return {
+        label: "Son 30 gün",
+        query: { baslangicTarih, bitisTarih: tarih },
+        subtitle: `${formatDateLabel(baslangicTarih)} - ${formatDateLabel(tarih)}`,
+      };
+    }
+
+    const sorted = sortIsoDates(customBaslangic, customBitis);
+    return {
+      label: "Özel aralık",
+      query: sorted,
+      subtitle: `${formatDateLabel(sorted.baslangicTarih)} - ${formatDateLabel(sorted.bitisTarih)}`,
+    };
+  }, [customBaslangic, customBitis, rangePreset, tarih]);
+
   const { data, isLoading, isFetching, refetch } = useGetVardiyaAnaliziAdminQuery(
-    { tarih },
+    range.query,
     { pollingInterval: 60000 },
+  );
+  const { data: trendData, isLoading: isTrendLoading } = useGetVardiyaTrendAdminQuery(
+    { gunSayisi: trendGunSayisi },
+    { skip: view !== "trend" },
   );
 
   const vardiyalar = data?.vardiyalar ?? [];
@@ -77,6 +231,214 @@ export default function VardiyaAnaliziClient() {
     return map;
   }, [vardiyalar]);
 
+  const exportReport = useMemo<ReportDocument | null>(() => {
+    const generatedAt = new Date().toLocaleString("tr-TR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    if (view === "trend") {
+      const gunler = trendData?.gunler ?? [];
+      return {
+        title: "Vardiya Analizi Raporu",
+        subtitle: `Trend • Son ${trendGunSayisi} Gün`,
+        generatedAt,
+        metrics: buildTrendMetrics(gunler),
+        tables: [
+          {
+            title: `Trend Görünümü (${trendGunSayisi} Gün)`,
+            columns: ["Tarih", "Üretim", "Çalışma", "Duruş", "Arıza", "Kalıp Değişimi", "OEE"],
+            rows: gunler.map((gun) => [
+              formatDateLabel(gun.tarih),
+              gun.toplamUretim.toLocaleString("tr-TR"),
+              formatDk(gun.toplamCalismaDk),
+              formatDk(gun.toplamDurusDk),
+              gun.arizaSayisi,
+              gun.kalipDegisimSayisi,
+              `%${Math.round(gun.oee * 100)}`,
+            ]),
+          },
+        ],
+        note: "PDF çıktısı tarayıcının yazdırma penceresi üzerinden oluşturulur.",
+      };
+    }
+
+    if (!data || !ozet) return null;
+
+    let tables: ReportTable[] = [];
+
+    if (view === "vardiya") {
+      tables = [
+        {
+          title: "Vardiya Kayıtları",
+          columns: [
+            "Vardiya",
+            "Durum",
+            "Makine",
+            "Operatör",
+            "Başlangıç",
+            "Bitiş",
+            "Net Üretim",
+            "Fire",
+            "Çalışma",
+            "Duruş",
+            "OEE",
+            "Ürün Kırılımı",
+          ],
+          rows: vardiyalar.map((vardiya) => [
+            vardiyaLabel(vardiya.vardiyaTipi),
+            vardiya.aktif ? "Aktif" : "Tamamlandı",
+            vardiya.makineAd,
+            vardiya.operatorAd ?? "—",
+            formatDateTimeLabel(vardiya.baslangic),
+            formatDateTimeLabel(vardiya.bitis),
+            vardiya.uretim.netToplam.toLocaleString("tr-TR"),
+            vardiya.uretim.fireToplam.toLocaleString("tr-TR"),
+            formatDk(vardiya.calismaSuresiDk),
+            formatDk(vardiya.durusToplamDk),
+            `%${Math.round(vardiya.oee * 100)}`,
+            vardiya.uretim.urunKirilimi.length > 0
+              ? vardiya.uretim.urunKirilimi
+                  .map((urun) => `${urun.urunAd}: ${urun.miktar.toLocaleString("tr-TR")}`)
+                  .join(" | ")
+              : "—",
+          ]),
+        },
+      ];
+    } else if (view === "makine") {
+      tables = [
+        {
+          title: "Makine Kırılımı",
+          columns: [
+            "Makine",
+            "Vardiya",
+            "Aktif",
+            "Üretim",
+            "Çalışma",
+            "Duruş",
+            "Arıza",
+            "Kalıp Değişimi",
+            "Ort. Çevrim",
+            "Teorik Hedef",
+            "Gerçekleşme",
+            "OEE",
+          ],
+          rows: makineler.map((makine) => [
+            makine.makineAd,
+            makine.vardiyaSayisi,
+            makine.aktifVardiya,
+            makine.toplamUretim.toLocaleString("tr-TR"),
+            formatDk(makine.calismaSuresiDk),
+            formatDk(makine.durusToplamDk),
+            `${makine.arizaSayisi} (${formatDk(makine.arizaDk)})`,
+            `${makine.kalipDegisimSayisi} (${formatDk(makine.kalipDegisimDk)})`,
+            makine.ortCevrimSaniye != null ? `${makine.ortCevrimSaniye} sn` : "—",
+            makine.teorikHedef != null ? makine.teorikHedef.toLocaleString("tr-TR") : "—",
+            makine.hedefGerceklesmeYuzde != null ? `%${makine.hedefGerceklesmeYuzde}` : "—",
+            `%${Math.round(makine.oee * 100)}`,
+          ]),
+        },
+      ];
+    } else if (view === "kalip") {
+      tables = [
+        {
+          title: "Kalıp Kırılımı",
+          columns: [
+            "Kalıp Kodu",
+            "Kalıp Adı",
+            "Üretim",
+            "Çalışma",
+            "Makine Sayısı",
+            "Makineler",
+            "Ürün Sayısı",
+            "Ürünler",
+            "Kalıp Değişimi",
+          ],
+          rows: kaliplar.map((kalip) => [
+            kalip.kalipKod,
+            kalip.kalipAd,
+            kalip.toplamUretim.toLocaleString("tr-TR"),
+            formatDk(kalip.calismaDk),
+            kalip.makineSayisi,
+            kalip.makineler.join(", ") || "—",
+            kalip.urunSayisi,
+            kalip.urunler.join(", ") || "—",
+            kalip.kalipDegisimSayisi,
+          ]),
+        },
+      ];
+    }
+
+    return {
+      title: "Vardiya Analizi Raporu",
+      subtitle: `${viewLabel(view)} • ${data.tarih}`,
+      generatedAt,
+      metrics: ozetMetrics(ozet),
+      tables,
+      note: "PDF çıktısı tarayıcının yazdırma penceresi üzerinden oluşturulur.",
+    };
+  }, [data, kaliplar, makineler, ozet, trendData, trendGunSayisi, vardiyalar, view]);
+
+  const exportFileStem = useMemo(() => {
+    const sourceLabel =
+      view === "trend" ? `trend-${trendGunSayisi}-gun` : data?.tarih ?? range.subtitle;
+    return `vardiya-analizi-${sanitizeFileNameSegment(viewLabel(view))}-${sanitizeFileNameSegment(
+      sourceLabel,
+    )}`;
+  }, [data?.tarih, range.subtitle, trendGunSayisi, view]);
+
+  const exportDisabled = isLoading || isFetching || (view === "trend" && isTrendLoading) || !exportReport;
+
+  function applyPreset(next: RangePreset) {
+    if (next === "ozel") {
+      if (rangePreset !== "ozel") {
+        if ("tarih" in range.query) {
+          setCustomBaslangic(range.query.tarih);
+          setCustomBitis(range.query.tarih);
+        } else {
+          setCustomBaslangic(range.query.baslangicTarih);
+          setCustomBitis(range.query.bitisTarih);
+        }
+      }
+      setRangePreset("ozel");
+      return;
+    }
+
+    setRangePreset(next);
+  }
+
+  function resetToday() {
+    const today = todayIsoDate();
+    setTarih(today);
+    setCustomBaslangic(today);
+    setCustomBitis(today);
+  }
+
+  function handleExcelExport() {
+    if (!exportReport) {
+      toast.error("Dışa aktarılacak veri bulunamadı.");
+      return;
+    }
+    downloadReportAsExcel(exportReport, exportFileStem);
+    toast.success("Excel raporu indiriliyor.");
+  }
+
+  function handlePdfExport() {
+    if (!exportReport) {
+      toast.error("Dışa aktarılacak veri bulunamadı.");
+      return;
+    }
+    const opened = openReportAsPdf(exportReport);
+    if (!opened) {
+      toast.error("Tarayıcı yazdırma penceresini engelledi.");
+      return;
+    }
+    toast.success("PDF yazdırma penceresi açıldı.");
+  }
+
   return (
     <div className="space-y-4">
       {/* Başlık + Filtre */}
@@ -85,6 +447,9 @@ export default function VardiyaAnaliziClient() {
           <h1 className="font-semibold text-lg">Vardiya Analizi</h1>
           <p className="text-muted-foreground text-sm">
             Günlük vardiya performansı, üretim ve duruş özetleri
+          </p>
+          <p className="mt-1 text-muted-foreground text-xs">
+            {range.label} • {data?.tarih ?? range.subtitle}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -122,14 +487,73 @@ export default function VardiyaAnaliziClient() {
               Trend
             </Button>
           </div>
-          <Input
-            type="date"
-            value={tarih}
-            onChange={(e) => setTarih(e.target.value)}
-            className="w-auto"
-          />
-          <Button variant="outline" size="sm" onClick={() => setTarih(todayIsoDate())}>
+          <div className="flex rounded-md border p-0.5">
+            <Button
+              size="sm"
+              variant={rangePreset === "gun" ? "default" : "ghost"}
+              className="h-7 px-3"
+              onClick={() => applyPreset("gun")}
+            >
+              Gün
+            </Button>
+            <Button
+              size="sm"
+              variant={rangePreset === "hafta" ? "default" : "ghost"}
+              className="h-7 px-3"
+              onClick={() => applyPreset("hafta")}
+            >
+              7 Gün
+            </Button>
+            <Button
+              size="sm"
+              variant={rangePreset === "ay" ? "default" : "ghost"}
+              className="h-7 px-3"
+              onClick={() => applyPreset("ay")}
+            >
+              30 Gün
+            </Button>
+            <Button
+              size="sm"
+              variant={rangePreset === "ozel" ? "default" : "ghost"}
+              className="h-7 px-3"
+              onClick={() => applyPreset("ozel")}
+            >
+              Özel
+            </Button>
+          </div>
+          {rangePreset === "ozel" ? (
+            <>
+              <Input
+                type="date"
+                value={customBaslangic}
+                onChange={(e) => setCustomBaslangic(e.target.value)}
+                className="w-auto"
+              />
+              <Input
+                type="date"
+                value={customBitis}
+                onChange={(e) => setCustomBitis(e.target.value)}
+                className="w-auto"
+              />
+            </>
+          ) : (
+            <Input
+              type="date"
+              value={tarih}
+              onChange={(e) => setTarih(e.target.value)}
+              className="w-auto"
+            />
+          )}
+          <Button variant="outline" size="sm" onClick={resetToday}>
             Bugün
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExcelExport} disabled={exportDisabled}>
+            <FileSpreadsheet className="mr-1 size-4" />
+            Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={handlePdfExport} disabled={exportDisabled}>
+            <Printer className="mr-1 size-4" />
+            PDF
           </Button>
           <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCw className={`size-4 ${isFetching ? "animate-spin" : ""}`} />
@@ -179,7 +603,12 @@ export default function VardiyaAnaliziClient() {
 
       {/* İçerik */}
       {view === "trend" ? (
-        <TrendPaneli />
+        <TrendPaneli
+          gunSayisi={trendGunSayisi}
+          onGunSayisiChange={setTrendGunSayisi}
+          data={trendData}
+          isLoading={isTrendLoading}
+        />
       ) : isLoading ? (
         <div className="grid gap-3 md:grid-cols-2">
           <Skeleton className="h-64" />
@@ -240,13 +669,24 @@ export default function VardiyaAnaliziClient() {
                 key={m.makineId}
                 m={m}
                 onOpenDetay={() =>
-                  setDetay({
-                    type: "makine",
-                    makineId: m.makineId,
-                    tarih,
-                    title: m.makineAd,
-                    subtitle: `${m.vardiyaSayisi} vardiya · OEE %${Math.round(m.oee * 100)}`,
-                  })
+                  setDetay(
+                    "tarih" in range.query
+                      ? {
+                          type: "makine",
+                          makineId: m.makineId,
+                          tarih: range.query.tarih,
+                          title: m.makineAd,
+                          subtitle: `${m.vardiyaSayisi} vardiya · OEE %${Math.round(m.oee * 100)} · ${range.subtitle}`,
+                        }
+                      : {
+                          type: "makine",
+                          makineId: m.makineId,
+                          baslangicTarih: range.query.baslangicTarih,
+                          bitisTarih: range.query.bitisTarih,
+                          title: m.makineAd,
+                          subtitle: `${m.vardiyaSayisi} vardiya · OEE %${Math.round(m.oee * 100)} · ${range.subtitle}`,
+                        },
+                  )
                 }
               />
             ))}

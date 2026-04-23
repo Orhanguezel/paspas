@@ -13,6 +13,7 @@ export type KategoriValidationErrorCode =
   | 'hammadde_urununun_recetesi_olmaz'
   | 'urun_recetesinde_gecersiz_kalem'
   | 'yarimamul_recetesinde_sadece_hammadde_olur'
+  | 'operasyonel_ym_recetesinde_sadece_hammadde_olur'
   | 'kalem_urunu_bulunamadi';
 
 export async function assertReceteKategoriTutarliligi(
@@ -38,7 +39,12 @@ export async function assertReceteKategoriTutarliligi(
   }
 
   if (hedefKategori === 'urun') {
-    const gecersiz = kalemRows.find((r) => r.kategori !== 'yarimamul' && r.kategori !== 'hammadde');
+    const gecersiz = kalemRows.find(
+      (r) =>
+        r.kategori !== 'yarimamul' &&
+        r.kategori !== 'operasyonel_ym' &&
+        r.kategori !== 'hammadde',
+    );
     if (gecersiz) {
       return { ok: false, code: 'urun_recetesinde_gecersiz_kalem', detay: gecersiz.id };
     }
@@ -48,6 +54,13 @@ export async function assertReceteKategoriTutarliligi(
     const gecersiz = kalemRows.find((r) => r.kategori !== 'hammadde');
     if (gecersiz) {
       return { ok: false, code: 'yarimamul_recetesinde_sadece_hammadde_olur', detay: gecersiz.id };
+    }
+  }
+
+  if (hedefKategori === 'operasyonel_ym') {
+    const gecersiz = kalemRows.find((r) => r.kategori !== 'hammadde');
+    if (gecersiz) {
+      return { ok: false, code: 'operasyonel_ym_recetesinde_sadece_hammadde_olur', detay: gecersiz.id };
     }
   }
 

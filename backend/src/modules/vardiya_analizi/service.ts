@@ -166,6 +166,8 @@ export async function getVardiyaAnaliziDetay(params: {
   vardiyaKayitId?: string;
   makineId?: string;
   tarih?: string;
+  baslangicTarih?: string;
+  bitisTarih?: string;
 }): Promise<VardiyaDetayResponse | null> {
   // Aralık ve makine tespit et
   let makineId: string;
@@ -191,6 +193,17 @@ export async function getVardiyaAnaliziDetay(params: {
     makineAd = rows[0].makineAd;
     baslangic = new Date(rows[0].baslangic);
     bitis = rows[0].bitis ? new Date(rows[0].bitis) : new Date();
+  } else if (params.makineId && params.baslangicTarih && params.bitisTarih) {
+    const rows = await db
+      .select({ ad: makinelerTbl.ad })
+      .from(makinelerTbl)
+      .where(eq(makinelerTbl.id, params.makineId))
+      .limit(1);
+    if (!rows[0]) return null;
+    makineId = params.makineId;
+    makineAd = rows[0].ad;
+    baslangic = new Date(`${params.baslangicTarih}T00:00:00`);
+    bitis = new Date(`${params.bitisTarih}T23:59:59`);
   } else if (params.makineId && params.tarih) {
     const rows = await db
       .select({ ad: makinelerTbl.ad })
@@ -280,7 +293,7 @@ export async function getVardiyaAnaliziDetay(params: {
     urunId: r.urunId,
     urunAd: r.urunAd,
     urunKod: r.urunKod,
-    netMiktar: Number(r.netMiktar) + Number(r.ekMiktar ?? 0),
+    netMiktar: Number(r.netMiktar ?? 0),
     fireMiktar: Number(r.fireMiktar ?? 0),
     operatorAd: r.operatorAd ?? null,
     notlar: r.notlar ?? null,
@@ -395,7 +408,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
       urunId: r.urunId,
       urunAd: r.urunAd,
       urunKod: r.urunKod,
-      miktar: Number(r.netMiktar) + Number(r.ekMiktar),
+      miktar: Number(r.netMiktar ?? 0),
     }));
     const uretimToplam = urunKirilimi.reduce((s, u) => s + u.miktar, 0);
     const fireToplam = uretimRows.reduce((s, r) => s + Number(r.fireMiktar), 0);
@@ -618,7 +631,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
   const kalipMap = new Map<string, KalipRollup & { _makineSet: Set<string>; _urunSet: Set<string> }>();
   for (const r of kalipRows) {
     if (!r.kalipId) continue;
-    const miktar = Number(r.netMiktar ?? 0) + Number(r.ekMiktar ?? 0);
+    const miktar = Number(r.netMiktar ?? 0);
     const cevrimSn = Number(r.cevrimSn ?? 0);
     const sureDk = cevrimSn > 0 ? (miktar * cevrimSn) / 60 : 0;
     const entry = kalipMap.get(r.kalipId);
@@ -712,4 +725,3 @@ export async function getTrend(query: TrendQuery): Promise<TrendResponse> {
   }
   return { gunSayisi: query.gunSayisi, gunler };
 }
-

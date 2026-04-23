@@ -7,6 +7,7 @@ import { requireAuth } from "@/common/middleware/auth";
 import {
   listNotifications,
   getUnreadCount,
+  streamNotifications,
   createNotificationHandler,
   markNotificationRead,
   markAllRead,
@@ -23,6 +24,7 @@ export async function registerNotifications(app: FastifyInstance) {
     { preHandler: [requireAuth] },
     getUnreadCount
   );
+  app.get(`${BASE}/stream`, { preHandler: [requireAuth] }, streamNotifications);
 
   // CRUD / aksiyonlar
   app.post(BASE, { preHandler: [requireAuth] }, createNotificationHandler);

@@ -28,7 +28,14 @@ import {
 } from '@/modules/receteler/repository';
 import { createSchema, createUrunFullSchema, listQuerySchema, patchSchema, operasyonPatchSchema, medyaSaveSchema } from './validation';
 import type { PatchBody } from './validation';
-import { createUrunWithYariMamuller, KategoriTutarsizligiError, syncYariMamulIsimleri } from './service';
+import {
+  createUrunWithYariMamuller,
+  KategoriTutarsizligiError,
+  OperasyonelYmTutarsizligiError,
+  syncAsilUrunOperasyonlariFromRecete,
+  syncBagliAsilUrunOperasyonlariFromYariMamul,
+  syncYariMamulIsimleri,
+} from './service';
 import { z } from 'zod';
 import { db } from '@/db/client';
 import { categories } from '@/modules/categories/schema';
@@ -81,11 +88,14 @@ async function normalizeUrunGrubuForKategori(kategoriKod: string, urunGrubu?: st
   return { normalized: matched.name.trim() };
 }
 
-async function normalizeOperasyonTipiForKategori(
-  kategoriKod: string,
-  tedarikTipi: string,
-  operasyonTipi?: string | null,
-) {
+type CategoryBehavior = {
+  id: string;
+  productionFieldsEnabled: boolean;
+  operationTypeRequired: boolean;
+  defaultOperationType: string | null;
+};
+
+async function getCategoryBehavior(kategoriKod: string): Promise<CategoryBehavior | null> {
   const categoryRows = await db
     .select({
       id: categories.id,
@@ -97,13 +107,27 @@ async function normalizeOperasyonTipiForKategori(
     .where(eq(categories.kod, kategoriKod))
     .limit(1);
 
-  const categoryRow = categoryRows[0];
-  if (!categoryRow?.id) {
-    return { error: 'gecersiz_kategori' as const };
-  }
+  return categoryRows[0] ?? null;
+}
 
-  const showProductionFields = Boolean(categoryRow.productionFieldsEnabled) && tedarikTipi === 'uretim';
-  if (!showProductionFields || !categoryRow.operationTypeRequired) {
+function isOperationEnabledForCategory(category: CategoryBehavior | null, tedarikTipi: string) {
+  return Boolean(category?.productionFieldsEnabled) && tedarikTipi === 'uretim';
+}
+
+function isRecipeEnabledForCategory(category: CategoryBehavior | null) {
+  return Boolean(category?.productionFieldsEnabled);
+}
+
+function isOperasyonKaynagiKategori(kategoriKod: string) {
+  return kategoriKod === 'operasyonel_ym' || kategoriKod === 'yarimamul';
+}
+
+function normalizeOperasyonTipiForKategori(
+  categoryRow: CategoryBehavior,
+  tedarikTipi: string,
+  operasyonTipi?: string | null,
+) {
+  if (!isOperationEnabledForCategory(categoryRow, tedarikTipi) || !categoryRow.operationTypeRequired) {
     return { normalized: null as string | null };
   }
 
@@ -143,8 +167,38 @@ async function validateReceteItems(items: Array<{ urunId: string }>, currentUrun
   return invalidItem ? 'gecersiz_recete_malzeme' : null;
 }
 
-function isRecipeAndOperationEnabledCategory(kategoriKod: string) {
-  return kategoriKod === 'urun';
+const ALT_KIRILIM_DESTEKLI_KATEGORILER = new Set(['operasyonel_ym', 'yarimamul']);
+
+async function buildReceteDtoWithNestedBreakdown(
+  detail: NonNullable<Awaited<ReturnType<typeof repoGetReceteByUrunId>>>,
+  visitedProductIds = new Set<string>(),
+) {
+  const dto = receteRowToDto(detail.recete);
+  const nextVisited = new Set(visitedProductIds);
+  if (detail.recete.urun_id) {
+    nextVisited.add(detail.recete.urun_id);
+  }
+
+  dto.items = await Promise.all(
+    detail.items.map(async (item) => {
+      const itemDto = receteKalemRowToDto(item);
+
+      if (
+        itemDto.malzemeKategori &&
+        ALT_KIRILIM_DESTEKLI_KATEGORILER.has(itemDto.malzemeKategori) &&
+        !nextVisited.has(itemDto.urunId)
+      ) {
+        const childDetail = await repoGetReceteByUrunId(itemDto.urunId);
+        if (childDetail) {
+          itemDto.altRecete = await buildReceteDtoWithNestedBreakdown(childDetail, nextVisited);
+        }
+      }
+
+      return itemDto;
+    }),
+  );
+
+  return dto;
 }
 
 /** GET /admin/urunler/next-code?kategori=hammadde */
@@ -217,17 +271,19 @@ export const createUrun: RouteHandler = async (req, reply) => {
       return reply.code(400).send({ error: { message: groupCheck.error } });
     }
 
-    const operationTypeCheck = await normalizeOperasyonTipiForKategori(
-      parsed.data.kategori,
+    const categoryBehavior = await getCategoryBehavior(parsed.data.kategori);
+    if (!categoryBehavior?.id) {
+      return reply.code(400).send({ error: { message: 'gecersiz_kategori' } });
+    }
+
+    const operationTypeCheck = normalizeOperasyonTipiForKategori(
+      categoryBehavior,
       parsed.data.tedarikTipi,
       parsed.data.operasyonTipi,
     );
-    if (operationTypeCheck.error) {
-      return reply.code(400).send({ error: { message: operationTypeCheck.error } });
-    }
 
     if (
-      !isRecipeAndOperationEnabledCategory(parsed.data.kategori) &&
+      !isOperationEnabledForCategory(categoryBehavior, parsed.data.tedarikTipi) &&
       parsed.data.operasyonlar &&
       parsed.data.operasyonlar.length > 0
     ) {
@@ -260,7 +316,7 @@ export const createUrun: RouteHandler = async (req, reply) => {
   }
 };
 
-/** POST /admin/urunler/full — asıl ürün + yarı mamul(ler) + reçeteleri tek istekte oluşturur */
+/** POST /admin/urunler/full — asıl ürün + operasyonel YM(ler) + reçeteleri tek istekte oluşturur */
 export const createUrunFull: RouteHandler = async (req, reply) => {
   try {
     const parsed = createUrunFullSchema.safeParse(req.body);
@@ -289,7 +345,7 @@ export const createUrunFull: RouteHandler = async (req, reply) => {
     }
     const err = error as { code?: string; cause?: { code?: string } };
     if (err.code === 'ER_DUP_ENTRY' || err.cause?.code === 'ER_DUP_ENTRY') {
-      return reply.code(409).send({ error: { message: 'Bu ürün kodu veya yarı mamul kodu zaten kullanılıyor.' } });
+      return reply.code(409).send({ error: { message: 'Bu ürün kodu veya operasyonel YM kodu zaten kullanılıyor.' } });
     }
     req.log.error({ error }, 'create_urun_full_failed');
     return sendInternalError(reply);
@@ -320,20 +376,22 @@ export const updateUrun: RouteHandler = async (req, reply) => {
       return reply.code(400).send({ error: { message: groupCheck.error } });
     }
 
+    const categoryBehavior = await getCategoryBehavior(effectiveKategori);
+    if (!categoryBehavior?.id) {
+      return reply.code(400).send({ error: { message: 'gecersiz_kategori' } });
+    }
+
     const effectiveTedarikTipi = parsed.data.tedarikTipi ?? existing.tedarik_tipi;
     const effectiveOperasyonTipi =
       parsed.data.operasyonTipi !== undefined ? parsed.data.operasyonTipi : existing.operasyon_tipi;
-    const operationTypeCheck = await normalizeOperasyonTipiForKategori(
-      effectiveKategori,
+    const operationTypeCheck = normalizeOperasyonTipiForKategori(
+      categoryBehavior,
       effectiveTedarikTipi,
       effectiveOperasyonTipi,
     );
-    if (operationTypeCheck.error) {
-      return reply.code(400).send({ error: { message: operationTypeCheck.error } });
-    }
 
     if (
-      !isRecipeAndOperationEnabledCategory(effectiveKategori) &&
+      !isOperationEnabledForCategory(categoryBehavior, effectiveTedarikTipi) &&
       parsed.data.operasyonlar &&
       parsed.data.operasyonlar.length > 0
     ) {
@@ -354,6 +412,17 @@ export const updateUrun: RouteHandler = async (req, reply) => {
     // Asıl ürünün adı değiştiyse bağlı yarı mamul/operasyon/reçete adlarını senkronla
     if (row.kategori === 'urun' && parsed.data.ad !== undefined && parsed.data.ad !== existing.ad) {
       await syncYariMamulIsimleri(id, parsed.data.ad);
+      const receteDetail = await repoGetReceteByUrunId(id);
+      if (row.tedarik_tipi === 'uretim' && receteDetail) {
+        await syncAsilUrunOperasyonlariFromRecete(
+          id,
+          receteDetail.items.map((item) => ({ urunId: item.urun_id, sira: item.sira })),
+        );
+      }
+    }
+
+    if (isOperasyonKaynagiKategori(row.kategori) && row.tedarik_tipi === 'uretim' && parsed.data.operasyonlar !== undefined) {
+      await syncBagliAsilUrunOperasyonlariFromYariMamul(id);
     }
 
     const [operasyonlar, birimDonusumleri] = await Promise.all([
@@ -368,6 +437,9 @@ export const updateUrun: RouteHandler = async (req, reply) => {
     });
   } catch (error: unknown) {
     req.log.error({ error }, 'update_urun_failed');
+    if (error instanceof OperasyonelYmTutarsizligiError) {
+      return reply.code(400).send({ error: { message: error.code, detay: error.detay } });
+    }
     const err = error as { code?: string; cause?: { code?: string } };
     if (err.code === 'ER_DUP_ENTRY' || err.cause?.code === 'ER_DUP_ENTRY') {
       return reply.code(409).send({ error: { message: 'Bu ürün kodu zaten kullanılıyor.' } });
@@ -405,7 +477,8 @@ export const listOperasyonlar: RouteHandler = async (req, reply) => {
     if (!urun) {
       return reply.code(404).send({ error: { message: 'urun_bulunamadi' } });
     }
-    if (!isRecipeAndOperationEnabledCategory(urun.kategori)) {
+    const categoryBehavior = await getCategoryBehavior(urun.kategori);
+    if (!isOperationEnabledForCategory(categoryBehavior, urun.tedarik_tipi)) {
       return reply.send([]);
     }
     const rows = await repoListOperasyonlar(id);
@@ -428,7 +501,9 @@ export const patchOperasyon: RouteHandler = async (req, reply) => {
 
     const opRows = await db
       .select({
+        urunId: urunler.id,
         urunKategori: urunler.kategori,
+        urunTedarikTipi: urunler.tedarik_tipi,
       })
       .from(urunOperasyonlari)
       .innerJoin(urunler, eq(urunler.id, urunOperasyonlari.urun_id))
@@ -439,7 +514,8 @@ export const patchOperasyon: RouteHandler = async (req, reply) => {
     if (!opRow) {
       return reply.code(404).send({ error: { message: 'operasyon_bulunamadi' } });
     }
-    if (!isRecipeAndOperationEnabledCategory(opRow.urunKategori)) {
+    const categoryBehavior = await getCategoryBehavior(opRow.urunKategori);
+    if (!isOperationEnabledForCategory(categoryBehavior, opRow.urunTedarikTipi)) {
       return reply.code(400).send({ error: { message: 'urun_kategorisi_operasyon_desteklemiyor' } });
     }
 
@@ -447,10 +523,16 @@ export const patchOperasyon: RouteHandler = async (req, reply) => {
     if (!row) {
       return reply.code(404).send({ error: { message: 'operasyon_bulunamadi' } });
     }
+    if (isOperasyonKaynagiKategori(opRow.urunKategori) && opRow.urunTedarikTipi === 'uretim') {
+      await syncBagliAsilUrunOperasyonlariFromYariMamul(opRow.urunId);
+    }
     const enriched = await enrichOperasyonlar([row]);
     return reply.send(enriched[0]);
   } catch (error) {
     req.log.error({ error }, 'patch_operasyon_failed');
+    if (error instanceof OperasyonelYmTutarsizligiError) {
+      return reply.code(400).send({ error: { message: error.code, detay: error.detay } });
+    }
     return sendInternalError(reply);
   }
 };
@@ -475,7 +557,8 @@ export const getUrunRecete: RouteHandler = async (req, reply) => {
     if (!urun) {
       return reply.code(404).send({ error: { message: 'urun_bulunamadi' } });
     }
-    if (!isRecipeAndOperationEnabledCategory(urun.kategori)) {
+    const categoryBehavior = await getCategoryBehavior(urun.kategori);
+    if (!isRecipeEnabledForCategory(categoryBehavior)) {
       return reply.send({ recete: null, items: [] });
     }
     const detail = await repoGetReceteByUrunId(id);
@@ -483,8 +566,7 @@ export const getUrunRecete: RouteHandler = async (req, reply) => {
       return reply.send({ recete: null, items: [] });
     }
 
-    const dto = receteRowToDto(detail.recete);
-    dto.items = detail.items.map(receteKalemRowToDto);
+    const dto = await buildReceteDtoWithNestedBreakdown(detail);
     return reply.send(dto);
   } catch (error) {
     req.log.error({ error }, 'get_urun_recete_failed');
@@ -501,7 +583,8 @@ export const saveUrunRecete: RouteHandler = async (req, reply) => {
     if (!urun) {
       return reply.code(404).send({ error: { message: 'urun_bulunamadi' } });
     }
-    if (!isRecipeAndOperationEnabledCategory(urun.kategori)) {
+    const categoryBehavior = await getCategoryBehavior(urun.kategori);
+    if (!isRecipeEnabledForCategory(categoryBehavior)) {
       return reply.code(400).send({ error: { message: 'urun_kategorisi_recete_desteklemiyor' } });
     }
 
@@ -541,11 +624,17 @@ export const saveUrunRecete: RouteHandler = async (req, reply) => {
       return sendInternalError(reply);
     }
 
-    const dto = receteRowToDto(detail.recete);
-    dto.items = detail.items.map(receteKalemRowToDto);
+    if (urun.kategori === 'urun' && urun.tedarik_tipi === 'uretim') {
+      await syncAsilUrunOperasyonlariFromRecete(id, parsed.data.items);
+    }
+
+    const dto = await buildReceteDtoWithNestedBreakdown(detail);
     return reply.send(dto);
   } catch (error: unknown) {
     req.log.error({ error }, 'save_urun_recete_failed');
+    if (error instanceof OperasyonelYmTutarsizligiError) {
+      return reply.code(400).send({ error: { message: error.code, detay: error.detay } });
+    }
     const err = error as { code?: string; cause?: { code?: string } };
     if (err.code === 'ER_DUP_ENTRY' || err.cause?.code === 'ER_DUP_ENTRY') {
       return reply.code(409).send({ error: { message: 'recete_kodu_zaten_var' } });
@@ -561,7 +650,8 @@ export const deleteUrunRecete: RouteHandler = async (req, reply) => {
     if (!urun) {
       return reply.code(404).send({ error: { message: 'urun_bulunamadi' } });
     }
-    if (!isRecipeAndOperationEnabledCategory(urun.kategori)) {
+    const categoryBehavior = await getCategoryBehavior(urun.kategori);
+    if (!isRecipeEnabledForCategory(categoryBehavior)) {
       return reply.code(400).send({ error: { message: 'urun_kategorisi_recete_desteklemiyor' } });
     }
     const existing = await repoGetReceteByUrunId(id);
@@ -569,9 +659,15 @@ export const deleteUrunRecete: RouteHandler = async (req, reply) => {
       return reply.code(404).send({ error: { message: 'recete_bulunamadi' } });
     }
     await repoDeleteRecete(existing.recete.id);
+    if (urun.kategori === 'urun' && urun.tedarik_tipi === 'uretim') {
+      await syncAsilUrunOperasyonlariFromRecete(id, []);
+    }
     return reply.code(204).send();
   } catch (error) {
     req.log.error({ error }, 'delete_urun_recete_failed');
+    if (error instanceof OperasyonelYmTutarsizligiError) {
+      return reply.code(400).send({ error: { message: error.code, detay: error.detay } });
+    }
     return sendInternalError(reply);
   }
 };

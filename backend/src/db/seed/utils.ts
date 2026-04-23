@@ -1,21 +1,116 @@
 // src/db/seed/utils.ts
 
-// Yorumları temizle + güvenli split
+// SQL dosyasini yorum ve string sinirlarina zarar vermeden hazirla.
 export function cleanSql(input: string): string {
-  // -- satır sonuna kadar ve /* ... */ blok yorumlarını temizle
-  return input
-    .replace(/--.*?(\r?\n|$)/g, '$1')
-    .replace(/\/\*[\s\S]*?\*\//g, '');
+  return input.replace(/^\uFEFF/, '');
 }
 
-// ; ile biten cümleleri ayrıştır (stringlerin içinde ; varsa bu basit split bozulabilir
-// fakat tipik schema/seed dosyalarında sorun çıkmaz)
+function isLineCommentStart(sql: string, i: number) {
+  const ch = sql[i];
+  const next = sql[i + 1];
+  const afterNext = sql[i + 2];
+  if (ch === '#') return true;
+  if (ch !== '-' || next !== '-') return false;
+  return afterNext === undefined || /\s/.test(afterNext);
+}
+
 export function splitStatements(sql: string): string[] {
-  return sql
-    .split(/;\s*(?:\r?\n|$)/g)
-    .map(s => s.trim())
-    .filter(Boolean)
-    .map(s => s.endsWith(';') ? s : s + ';');
+  const statements: string[] = [];
+  let current = '';
+  let inSingle = false;
+  let inDouble = false;
+  let inBacktick = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  for (let i = 0; i < sql.length; i += 1) {
+    const ch = sql[i];
+    const next = sql[i + 1];
+
+    if (inLineComment) {
+      if (ch === '\n') {
+        inLineComment = false;
+        current += ch;
+      }
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (ch === '*' && next === '/') {
+        inBlockComment = false;
+        i += 1;
+      }
+      continue;
+    }
+
+    if (!inSingle && !inDouble && !inBacktick) {
+      if (isLineCommentStart(sql, i)) {
+        inLineComment = true;
+        if (ch === '-') i += 1;
+        continue;
+      }
+      if (ch === '/' && next === '*') {
+        inBlockComment = true;
+        i += 1;
+        continue;
+      }
+      if (ch === ';') {
+        const stmt = current.trim();
+        if (stmt) statements.push(stmt + ';');
+        current = '';
+        continue;
+      }
+    }
+
+    current += ch;
+
+    if (inSingle) {
+      if (ch === '\\') {
+        if (next !== undefined) {
+          current += next;
+          i += 1;
+        }
+        continue;
+      }
+      if (ch === "'" && next === "'") {
+        current += next;
+        i += 1;
+        continue;
+      }
+      if (ch === "'") inSingle = false;
+      continue;
+    }
+
+    if (inDouble) {
+      if (ch === '\\') {
+        if (next !== undefined) {
+          current += next;
+          i += 1;
+        }
+        continue;
+      }
+      if (ch === '"' && next === '"') {
+        current += next;
+        i += 1;
+        continue;
+      }
+      if (ch === '"') inDouble = false;
+      continue;
+    }
+
+    if (inBacktick) {
+      if (ch === '`') inBacktick = false;
+      continue;
+    }
+
+    if (ch === "'") inSingle = true;
+    else if (ch === '"') inDouble = true;
+    else if (ch === '`') inBacktick = true;
+  }
+
+  const tail = current.trim();
+  if (tail) statements.push(tail.endsWith(';') ? tail : tail + ';');
+  return statements;
 }
 
 export function logStep(msg: string) {

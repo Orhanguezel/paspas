@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS `sub_categories` (
   `created_at`        DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updated_at`        DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `sub_categories_slug_uq` (`slug`),
+  UNIQUE KEY `sub_categories_category_slug_uq` (`category_id`, `slug`),
   KEY `sub_categories_category_idx` (`category_id`),
   KEY `sub_categories_active_idx` (`is_active`),
   KEY `sub_categories_order_idx` (`display_order`),

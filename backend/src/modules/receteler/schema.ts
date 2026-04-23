@@ -32,11 +32,13 @@ export type ReceteKalemDto = {
   urunId: string;
   malzemeKod: string | null;
   malzemeAd: string | null;
+  malzemeKategori?: string | null;
   malzemeBirim: string | null;
   malzemeBirimFiyat: number | null;
   miktar: number;
   fireOrani: number;
   sira: number;
+  altRecete?: ReceteDto | null;
 };
 
 export type ReceteDto = {
@@ -69,6 +71,7 @@ export function receteRowToDto(row: ReceteRow): ReceteDto {
 export type EnrichedReceteKalemRow = ReceteKalemRow & {
   malzemeKod?: string | null;
   malzemeAd?: string | null;
+  malzemeKategori?: string | null;
   malzemeBirim?: string | null;
   malzemeBirimFiyat?: string | null;
 };
@@ -79,6 +82,7 @@ export function receteKalemRowToDto(row: EnrichedReceteKalemRow): ReceteKalemDto
     urunId: row.urun_id,
     malzemeKod: row.malzemeKod ?? null,
     malzemeAd: row.malzemeAd ?? null,
+    malzemeKategori: row.malzemeKategori ?? null,
     malzemeBirim: row.malzemeBirim ?? null,
     malzemeBirimFiyat: row.malzemeBirimFiyat ? Number(row.malzemeBirimFiyat) : null,
     miktar: Number(row.miktar ?? 0),

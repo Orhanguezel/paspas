@@ -8,11 +8,13 @@ export interface ReceteKalemDto {
   urunId: string;
   malzemeKod: string | null;
   malzemeAd: string | null;
+  malzemeKategori?: string | null;
   malzemeBirim: string | null;
   malzemeBirimFiyat: number | null;
   miktar: number;
   fireOrani: number;
   sira: number;
+  altRecete?: ReceteDto | null;
 }
 
 export interface ReceteDto {
@@ -77,11 +79,13 @@ export function normalizeReceteKalem(raw: unknown): ReceteKalemDto {
     urunId:            toStr(r.urunId),
     malzemeKod:        r.malzemeKod != null ? toStr(r.malzemeKod) : null,
     malzemeAd:         r.malzemeAd != null ? toStr(r.malzemeAd) : null,
+    malzemeKategori:   r.malzemeKategori != null ? toStr(r.malzemeKategori) : null,
     malzemeBirim:      r.malzemeBirim != null ? toStr(r.malzemeBirim) : null,
     malzemeBirimFiyat: r.malzemeBirimFiyat != null ? toNum(r.malzemeBirimFiyat) : null,
     miktar:            toNum(r.miktar),
     fireOrani:         toNum(r.fireOrani),
     sira:              toNum(r.sira),
+    altRecete:         r.altRecete != null ? normalizeRecete(r.altRecete) : null,
   };
 }
 

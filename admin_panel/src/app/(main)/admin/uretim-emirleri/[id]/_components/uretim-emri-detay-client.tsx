@@ -129,8 +129,10 @@ export default function UretimEmriDetayClient({ id }: Props) {
             </Link>
           </Button>
           <div>
-            <h1 className="font-mono font-semibold text-lg">{emri.emirNo}</h1>
-            <p className="text-muted-foreground text-sm">Üretim Emri Detayı</p>
+            <h1 className="font-semibold text-lg">{emri.urunAd ?? emri.urunId}</h1>
+            <p className="font-mono text-muted-foreground text-sm">
+              {emri.emirNo} · Üretim Emri Detayı
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">

@@ -56,6 +56,14 @@ export const vardiyaSonuBodySchema = z.object({
   notlar: z.string().trim().max(500).optional(),
 });
 
+export const gunlukUretimBodySchema = z.object({
+  makineId: z.string().min(1),
+  uretilenMiktar: z.coerce.number().min(0.0001),
+  fireMiktar: z.coerce.number().min(0).default(0),
+  birimTipi: z.enum(['adet', 'takim']).default('adet'),
+  notlar: z.string().trim().max(500).optional(),
+});
+
 // -- Sevkiyat --
 export const sevkiyatBodySchema = z.object({
   kalemler: z.array(z.object({
@@ -93,6 +101,7 @@ export type DuraklatBody = z.infer<typeof duraklatBodySchema>;
 export type DevamEtBody = z.infer<typeof devamEtBodySchema>;
 export type VardiyaBasiBody = z.infer<typeof vardiyaBasiBodySchema>;
 export type VardiyaSonuBody = z.infer<typeof vardiyaSonuBodySchema>;
+export type GunlukUretimBody = z.infer<typeof gunlukUretimBodySchema>;
 export type SevkiyatBody = z.infer<typeof sevkiyatBodySchema>;
 export type MalKabulBody = z.infer<typeof malKabulBodySchema>;
 export type ListGunlukGirislerQuery = z.infer<typeof listGunlukGirislerQuerySchema>;

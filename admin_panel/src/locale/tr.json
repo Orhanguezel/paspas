@@ -4821,6 +4821,7 @@
         "kategoriLabel": {
           "urun": "Ürün",
           "yarimamul": "Yarımamül",
+          "operasyonel_ym": "Operasyonel YM",
           "hammadde": "Hammadde"
         },
         "tedarikTipiLabel": {
@@ -5776,6 +5777,7 @@
           "categoryLabel": {
             "urun": "Ürün",
             "yarimamul": "Yarı Mamül",
+            "operasyonel_ym": "Operasyonel YM",
             "hammadde": "Hammadde"
           },
           "unitLabel": {

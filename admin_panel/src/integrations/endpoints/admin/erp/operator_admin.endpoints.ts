@@ -8,6 +8,7 @@ import type {
   AcikVardiyaDto,
   DevamEtPayload,
   DuraklatPayload,
+  GunlukUretimPayload,
   MakineKuyruguDetayDto,
   MalKabulDto,
   MalKabulPayload,
@@ -94,12 +95,34 @@ export const operatorAdminApi = baseApi.injectEndpoints({
     // -- Vardiya --
     vardiyaBasiAdmin: b.mutation<VardiyaKayitDto, VardiyaBasiPayload>({
       query: (body) => ({ url: `${BASE}/vardiya-basi`, method: 'POST', body }),
-      invalidatesTags: [{ type: 'GunlukGirisler', id: 'LIST' }],
+      invalidatesTags: [
+        { type: 'GunlukGirisler', id: 'LIST' },
+        { type: 'MakineKuyrugu', id: 'LIST' },
+        { type: 'Vardiyalar', id: 'LIST' },
+      ],
     }),
 
     vardiyaSonuAdmin: b.mutation<VardiyaKayitDto, VardiyaSonuPayload>({
       query: (body) => ({ url: `${BASE}/vardiya-sonu`, method: 'POST', body }),
-      invalidatesTags: [{ type: 'GunlukGirisler', id: 'LIST' }],
+      invalidatesTags: [
+        { type: 'GunlukGirisler', id: 'LIST' },
+        { type: 'MakineKuyrugu', id: 'LIST' },
+        { type: 'Vardiyalar', id: 'LIST' },
+      ],
+    }),
+
+    gunlukUretimAdmin: b.mutation<OperatorGunlukGirisDto, GunlukUretimPayload>({
+      query: (body) => ({ url: `${BASE}/gunluk-giris`, method: 'POST', body }),
+      transformResponse: (res: unknown) => normalizeGunlukGiris(res),
+      invalidatesTags: [
+        { type: 'GunlukGirisler', id: 'LIST' },
+        { type: 'MakineKuyrugu', id: 'LIST' },
+        { type: 'Vardiyalar', id: 'LIST' },
+        { type: 'Stoklar', id: 'LIST' },
+        { type: 'Hareketler', id: 'LIST' },
+        { type: 'UretimEmirleri', id: 'LIST' },
+        { type: 'Dashboard', id: 'SUMMARY' },
+      ],
     }),
 
     // -- Sevkiyat --
@@ -130,7 +153,10 @@ export const operatorAdminApi = baseApi.injectEndpoints({
     getAcikVardiyalarAdmin: b.query<AcikVardiyaDto[], void>({
       query: () => ({ url: `${BASE}/acik-vardiyalar` }),
       transformResponse: (res: unknown) => (Array.isArray(res) ? (res as AcikVardiyaDto[]) : []),
-      providesTags: [{ type: 'MakineKuyrugu' as const, id: 'LIST' }],
+      providesTags: [
+        { type: 'MakineKuyrugu' as const, id: 'LIST' },
+        { type: 'Vardiyalar' as const, id: 'LIST' },
+      ],
     }),
 
     // -- Gunluk Girisler --
@@ -157,6 +183,7 @@ export const {
   useDevamEtAdminMutation,
   useVardiyaBasiAdminMutation,
   useVardiyaSonuAdminMutation,
+  useGunlukUretimAdminMutation,
   useGetAcikVardiyalarAdminQuery,
   useSevkiyatOlusturAdminMutation,
   useMalKabulAdminMutation,
