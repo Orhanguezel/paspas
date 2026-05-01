@@ -16,7 +16,7 @@ import {
   runAnalysisRowToDto,
   type TestCenterRunAnalysisDto,
 } from './schema';
-import { callAi, getAiDefaults, type AiProvider } from './ai_provider';
+import { callAi, getAiDefaultsAsync, type AiProvider } from './ai_provider';
 
 export type AnalyzeRunOptions = {
   /** Belirli template kullanmak için. Verilmezse `kategori='test_run_analysis'` ve `is_default=1` olan kayıt seçilir. */
@@ -129,8 +129,8 @@ export async function analyzeTestRun(
     throw new Error('ai_template_bulunamadi: test_run_analysis kategorisinde varsayılan şablon yok.');
   }
 
-  // 3. Provider/model/parametreleri belirle
-  const defaults = getAiDefaults();
+  // 3. Provider/model/parametreleri belirle (DB-first, env fallback)
+  const defaults = await getAiDefaultsAsync();
   const provider: AiProvider =
     (opts.provider as AiProvider) ?? (template.provider as AiProvider) ?? defaults.provider;
   const model = opts.model ?? template.model ?? defaults.model;

@@ -7,11 +7,16 @@
 //   call({ systemPrompt, userPrompt, model, temperature, maxTokens })
 //     → { text, tokensInput, tokensOutput, costUsd?, raw }
 //
-// Varsayılan provider/model env'den okunur:
-//   AI_DEFAULT_PROVIDER=anthropic | openai | groq
-//   AI_DEFAULT_MODEL=claude-sonnet-4-5 | gpt-4o-mini | ...
-//   AI_TEMPERATURE=0.2
-//   AI_MAX_TOKENS=1024
+// Varsayılan provider/model önce site_settings tablosundan okunur,
+// boşsa env'e fallback yapılır:
+//   ai_default_provider / AI_DEFAULT_PROVIDER=anthropic | openai | groq
+//   ai_default_model    / AI_DEFAULT_MODEL=claude-sonnet-4-5 | gpt-4o-mini | ...
+//   ai_temperature      / AI_TEMPERATURE=0.2
+//   ai_max_tokens       / AI_MAX_TOKENS=1024
+//   {provider}_api_key  / {PROVIDER}_API_KEY (anthropic, openai, groq)
+// Bu sayede admin panelden API key güncellenince backend restart gerekmez.
+
+import { getLlmRuntimeSettings } from '@/modules/llm/settings';
 
 export type AiProvider = 'anthropic' | 'openai' | 'groq';
 
@@ -59,20 +64,66 @@ export type AiDefaults = {
   maxTokens: number;
 };
 
+function normalizeProvider(value: string | undefined | null): AiProvider {
+  if (value === 'anthropic' || value === 'openai' || value === 'groq') return value;
+  return 'anthropic';
+}
+
+/**
+ * Eski senkron API — env'den default okur. Geriye dönük uyumluluk için tutuldu.
+ * Yeni kod `getAiDefaultsAsync()` kullanmalı (önce DB, sonra env).
+ */
 export function getAiDefaults(): AiDefaults {
-  const provider = (process.env.AI_DEFAULT_PROVIDER ?? 'anthropic') as AiProvider;
+  const provider = normalizeProvider(process.env.AI_DEFAULT_PROVIDER);
   const model = process.env.AI_DEFAULT_MODEL ?? 'claude-sonnet-4-5';
   const temperature = process.env.AI_TEMPERATURE ? Number(process.env.AI_TEMPERATURE) : 0.2;
   const maxTokens = process.env.AI_MAX_TOKENS ? Number(process.env.AI_MAX_TOKENS) : 1024;
   return { provider, model, temperature, maxTokens };
 }
 
+/**
+ * DB-first defaults: önce site_settings, sonra env. Provider çağrı zincirinde
+ * tercih edilen yöntem.
+ */
+export async function getAiDefaultsAsync(): Promise<AiDefaults> {
+  const s = await getLlmRuntimeSettings();
+  return {
+    provider: normalizeProvider(s.defaultProvider),
+    model: s.defaultModel || 'claude-sonnet-4-5',
+    temperature: Number.isFinite(s.temperature) ? s.temperature : 0.2,
+    maxTokens: Number.isFinite(s.maxTokens) ? s.maxTokens : 1024,
+  };
+}
+
+/**
+ * DB-first API key okuma. Provider başına site_settings'ten oku,
+ * boşsa env'e fallback yap.
+ */
+async function getApiKey(provider: AiProvider): Promise<{ apiKey: string; baseUrl?: string }> {
+  const s = await getLlmRuntimeSettings();
+  switch (provider) {
+    case 'anthropic':
+      return { apiKey: s.anthropicApiKey };
+    case 'openai':
+      return {
+        apiKey: s.openaiApiKey,
+        baseUrl: s.openaiApiBase || 'https://api.openai.com/v1',
+      };
+    case 'groq':
+      return {
+        apiKey: s.groqApiKey,
+        baseUrl: s.groqApiBase || 'https://api.groq.com/openai/v1',
+      };
+  }
+}
+
 // =============================================================
 // Anthropic (Messages API)
 // =============================================================
 async function callAnthropic(input: AiCallInput): Promise<AiCallResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY env değeri yok');
+  const { apiKey } = await getApiKey('anthropic');
+  if (!apiKey)
+    throw new Error('Anthropic API key tanımlı değil — site ayarları veya ANTHROPIC_API_KEY env');
 
   const start = Date.now();
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -119,9 +170,10 @@ async function callAnthropic(input: AiCallInput): Promise<AiCallResult> {
 // OpenAI (Chat Completions)
 // =============================================================
 async function callOpenAi(input: AiCallInput): Promise<AiCallResult> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error('OPENAI_API_KEY env değeri yok');
-  const baseUrl = process.env.OPENAI_API_BASE || 'https://api.openai.com/v1';
+  const { apiKey, baseUrl: rawBaseUrl } = await getApiKey('openai');
+  if (!apiKey)
+    throw new Error('OpenAI API key tanımlı değil — site ayarları veya OPENAI_API_KEY env');
+  const baseUrl = rawBaseUrl || 'https://api.openai.com/v1';
 
   const start = Date.now();
   const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/chat/completions`, {
@@ -166,9 +218,10 @@ async function callOpenAi(input: AiCallInput): Promise<AiCallResult> {
 // Groq (OpenAI-uyumlu Chat Completions)
 // =============================================================
 async function callGroq(input: AiCallInput): Promise<AiCallResult> {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error('GROQ_API_KEY env değeri yok');
-  const baseUrl = process.env.GROQ_API_BASE || 'https://api.groq.com/openai/v1';
+  const { apiKey, baseUrl: rawBaseUrl } = await getApiKey('groq');
+  if (!apiKey)
+    throw new Error('Groq API key tanımlı değil — site ayarları veya GROQ_API_KEY env');
+  const baseUrl = rawBaseUrl || 'https://api.groq.com/openai/v1';
 
   const start = Date.now();
   const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/chat/completions`, {
