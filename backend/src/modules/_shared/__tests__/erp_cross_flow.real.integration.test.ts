@@ -15,6 +15,11 @@ import { repoCreate as repoCreateSatis, repoGetById as repoGetSatis, repoGetSipa
 import { satisSiparisleri, siparisKalemleri } from "@/modules/satis_siparisleri/schema";
 import { repoCreateSevkEmri, repoPatchSevkEmri } from "@/modules/sevkiyat/repository";
 import { sevkEmirleri } from "@/modules/sevkiyat/schema";
+import {
+  ensureMakineCalisirBugun,
+  restoreCalismaGunu,
+  type CalismaGunuYedek,
+} from "@/modules/_shared/test_calisma_gunu";
 import { vardiyalar } from "@/modules/tanimlar/schema";
 import { repoCreate as repoCreateUretimEmri } from "@/modules/uretim_emirleri/repository";
 import { uretimEmirleri, uretimEmriOperasyonlari, uretimEmriSiparisKalemleri } from "@/modules/uretim_emirleri/schema";
@@ -32,7 +37,13 @@ const ids = {
   recete: "11111111-1111-4111-8111-111111111506",
   receteKalem: "11111111-1111-4111-8111-111111111507",
   urunOperasyon: "11111111-1111-4111-8111-111111111508",
+  haftaSonuPlani: "11111111-1111-4111-8111-111111111509",
 } as const;
+
+let calismaGunuYedek: CalismaGunuYedek = {
+  silinenTatiller: [],
+  eklenenHaftaSonuPlaniId: null,
+};
 
 const codes = {
   musteri: "IT-REAL-X-MUS",
@@ -111,6 +122,8 @@ async function cleanup() {
   await db.delete(makineler).where(eq(makineler.id, ids.makine));
   await db.delete(vardiyalar).where(eq(vardiyalar.id, ids.vardiya));
   await db.delete(musteriler).where(eq(musteriler.id, ids.musteri));
+  // Tatil/hafta sonu override'lerini geri al
+  await restoreCalismaGunu(calismaGunuYedek);
 }
 
 async function seed() {
@@ -192,6 +205,8 @@ async function seed() {
     fire_orani: "0.00",
     sira: 1,
   });
+  // Tatil/hafta sonu olsa bile bu makinenin bugun calismasini garanti et.
+  calismaGunuYedek = await ensureMakineCalisirBugun(ids.makine, ids.haftaSonuPlani);
 }
 
 async function getStocks() {

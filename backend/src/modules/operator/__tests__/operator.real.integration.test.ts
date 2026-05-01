@@ -6,7 +6,12 @@ import { hareketler } from "@/modules/hareketler/schema";
 import { makineler, makineKuyrugu } from "@/modules/makine_havuzu/schema";
 import { notifications } from "@/modules/notifications/schema";
 import { receteKalemleri, receteler } from "@/modules/receteler/schema";
-import { durusNedenleri, haftaSonuPlanlari, tatiller, vardiyalar } from "@/modules/tanimlar/schema";
+import {
+  ensureMakineCalisirBugun,
+  restoreCalismaGunu,
+  type CalismaGunuYedek,
+} from "@/modules/_shared/test_calisma_gunu";
+import { durusNedenleri, vardiyalar } from "@/modules/tanimlar/schema";
 import { uretimEmirleri, uretimEmriOperasyonlari } from "@/modules/uretim_emirleri/schema";
 import { urunler, urunOperasyonlari } from "@/modules/urunler/schema";
 
@@ -42,75 +47,11 @@ const ids = {
   haftaSonuPlani: "it-real-op-hsp-000000000001",
 } as const;
 
-// Test sirasinda gecici olarak silinmis (bugune ait) tatil kayitlarinin yedegi.
-// afterEach icinde geri yuklenir.
-const yedeklenenTatiller: Array<typeof tatiller.$inferSelect> = [];
-
-function toDateStr(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-/**
- * Testin calistigi gun tatil veya hafta sonu olabilir. Bu yardimci, makine icin
- * "bugun calisma gunu" garantisi verir:
- *   1) Bugune ait tatil kayitlari varsa — yedekle ve gecici sil
- *   2) Bugun hafta sonu ise — makine icin override hafta_sonu_plani ekle
- * Cleanup, geri donuk olarak tatilleri restore edip override'i siler.
- */
-async function ensureMakineCalisirBugun(makineId: string): Promise<void> {
-  const today = new Date();
-  const todayStr = toDateStr(today);
-
-  // 1. Bugun tatil mi? Yedekle + sil
-  const holidayRows = await db
-    .select()
-    .from(tatiller)
-    .where(eq(tatiller.tarih, todayStr));
-
-  if (holidayRows.length) {
-    yedeklenenTatiller.push(...holidayRows);
-    await db.delete(tatiller).where(eq(tatiller.tarih, todayStr));
-  }
-
-  // 2. Bugun hafta sonu mu? Override ekle
-  const dayOfWeek = today.getDay(); // 0=Pzr, 1=Pzt..., 6=Cmt
-  if (dayOfWeek === 0 || dayOfWeek === 6) {
-    // Pazartesi'yi bul (hafta basi)
-    const monday = new Date(today);
-    const offset = (dayOfWeek + 6) % 7; // Pzr=6, Cmt=5, Pzt=0
-    monday.setDate(today.getDate() - offset);
-
-    await db.insert(haftaSonuPlanlari).values({
-      id: ids.haftaSonuPlani,
-      hafta_baslangic: toDateStr(monday),
-      makine_id: makineId,
-      cumartesi_calisir: dayOfWeek === 6 ? 1 : 0,
-      pazar_calisir: dayOfWeek === 0 ? 1 : 0,
-      aciklama: "IT testi: bugun makine calisir override",
-    });
-  }
-}
-
-async function restoreTatillerVeOverride(): Promise<void> {
-  if (yedeklenenTatiller.length) {
-    for (const row of yedeklenenTatiller) {
-      // INSERT IGNORE yerine sade insert: cleanup'ta zaten silinmis olmali
-      await db.insert(tatiller).values(row).onDuplicateKeyUpdate({
-        set: {
-          ad: row.ad,
-          tarih: row.tarih,
-          baslangic_saati: row.baslangic_saati,
-          bitis_saati: row.bitis_saati,
-        },
-      });
-    }
-    yedeklenenTatiller.length = 0;
-  }
-  await db.delete(haftaSonuPlanlari).where(eq(haftaSonuPlanlari.id, ids.haftaSonuPlani));
-}
+// Tatil/hafta sonu override yedegi — afterEach icinde geri yuklenir.
+let calismaGunuYedek: CalismaGunuYedek = {
+  silinenTatiller: [],
+  eklenenHaftaSonuPlaniId: null,
+};
 
 const codes = {
   durus: "IT-REAL-OP-DURUS",
@@ -138,7 +79,7 @@ async function cleanup() {
   await db.delete(durusNedenleri).where(eq(durusNedenleri.id, ids.durusNedeni));
   await db.delete(vardiyalar).where(eq(vardiyalar.id, ids.vardiya));
   // Tatil/hafta sonu override'lerini geri al
-  await restoreTatillerVeOverride();
+  await restoreCalismaGunu(calismaGunuYedek);
 }
 
 async function seed() {
@@ -257,7 +198,7 @@ async function seed() {
   });
 
   // Tatil/hafta sonu olsa bile bu makinenin bugun calismasini garanti et.
-  await ensureMakineCalisirBugun(ids.makine);
+  calismaGunuYedek = await ensureMakineCalisirBugun(ids.makine, ids.haftaSonuPlani);
 }
 
 async function getStocks() {
