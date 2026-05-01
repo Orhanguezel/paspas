@@ -248,6 +248,9 @@ export const tags = [
   'Gorev',
   'Gorevler',
   'LoginSettings',
+  'TestCenter',
+  'PageFeedback',
+  'ProjeTeklifiNot',
 ] as const;
 
 export type tag = typeof tags[number];

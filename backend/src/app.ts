@@ -31,6 +31,7 @@ import { registerSiteSettings } from '@/modules/siteSettings/router';
 import { registerSiteSettingsAdmin } from '@/modules/siteSettings/admin.routes';
 import { registerAppSettingsAdmin } from '@/modules/appSettings/router';
 import { registerDbAdmin } from '@/modules/db_admin/admin.routes';
+import { registerTestCenterAdmin } from '@/modules/test_center/admin.routes';
 import { registerAdminAudit } from '@/modules/admin_audit/router';
 import { registerDashboardAdmin } from '@/modules/dashboard/admin.routes';
 import { registerMusteriler } from '@/modules/musteriler/router';
@@ -55,6 +56,8 @@ import { registerGirisAyarlari, registerPublicLoginConfig } from '@/modules/giri
 import { registerSevkiyat } from '@/modules/sevkiyat/router';
 import { registerMalKabul } from '@/modules/mal_kabul/router';
 import { registerVardiyaAnalizi } from '@/modules/vardiya_analizi/router';
+import { registerPageFeedbackAdmin } from '@/modules/page_feedback/router';
+import { registerProjeTeklifiNotlariAdmin } from '@/modules/projeTeklifiNotlari/router';
 
 // Storage config (site_settings + env)
 import { getStorageSettings } from '@/modules/siteSettings/service';
@@ -209,6 +212,7 @@ export async function createApp() {
     await api.register(registerAppSettingsAdmin,  { prefix: '/admin' });
     await api.register(registerStorageAdmin,      { prefix: '/admin' });
     await api.register(registerDbAdmin,           { prefix: '/admin' });
+    await api.register(registerTestCenterAdmin,   { prefix: '/admin' });
     await api.register(registerAdminAudit,        { prefix: '/admin' });
     await api.register(registerDashboardAdmin,    { prefix: '/admin' });
     await api.register(registerMusteriler,        { prefix: '/admin' });
@@ -232,6 +236,8 @@ export async function createApp() {
     await api.register(registerSevkiyat,        { prefix: '/admin' });
     await api.register(registerMalKabul,        { prefix: '/admin' });
     await api.register(registerVardiyaAnalizi,  { prefix: '/admin' });
+    await api.register(registerPageFeedbackAdmin, { prefix: '/admin' });
+    await api.register(registerProjeTeklifiNotlariAdmin, { prefix: '/admin' });
 
     // --- Public modüller → /api/... ---
     await registerPublicLoginConfig(api);

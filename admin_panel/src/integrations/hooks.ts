@@ -25,6 +25,9 @@ export * from '@/integrations/endpoints/admin/users/roles_admin.endpoints';
 
 export * from '@/integrations/endpoints/admin/dashboard_admin.endpoints';
 export * from '@/integrations/endpoints/admin/db_admin.endpoints';
+export * from '@/integrations/endpoints/admin/test_center.endpoints';
+export * from '@/integrations/endpoints/admin/page_feedback.endpoints';
+export * from '@/integrations/endpoints/admin/proje_teklifi_notlari.endpoints';
 
 // Content / CMS
 export * from '@/integrations/endpoints/admin/custom_pages_admin.endpoints';

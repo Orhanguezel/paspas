@@ -39,7 +39,8 @@
         "db_admin": "Veritabanı",
         "hafta_sonu_planlari": "Hafta Sonu Planları",
         "sevkiyat": "Sevkiyat",
-        "mal_kabul": "Mal Kabul"
+        "mal_kabul": "Mal Kabul",
+        "proje_teklifi": "Proje Teklifleri"
       }
     },
     "reports": {
@@ -4761,6 +4762,7 @@
         "date": "Tarih",
         "active": "Aktif",
         "inactive": "Pasif",
+        "notSelected": "Seçilmedi",
         "required": "Zorunlu",
         "validUuid": "Geçerli UUID giriniz",
         "positive": "Pozitif olmalı",
@@ -4952,11 +4954,15 @@
         "notFound": "Müşteri bulunamadı",
         "deleteTitle": "Müşteriyi sil?",
         "columns": {
+          "tur": "Tür",
           "kod": "Kod",
           "ad": "Firma",
           "ilgiliKisi": "İlgili Kişi",
           "telefon": "Telefon",
           "email": "E-Posta",
+          "adres": "Adres",
+          "website": "Web Sitesi",
+          "bayiSegment": "Bayi Segmenti",
           "iskonto": "İskonto",
           "durum": "Durum"
         },
@@ -4984,22 +4990,53 @@
           "cariKoduPlaceholder": "CR-001",
           "sevkiyatNotu": "Sevkiyat Notu",
           "sevkiyatNotuPlaceholder": "Teslimat ve sevkiyat için kısa not",
+          "websiteUrl": "Web Sitesi",
+          "websiteUrlPlaceholder": "https://www.firma.com.tr",
+          "suggestWebsite": "Tahmin et",
+          "dealerProfile": "Bayi Profili",
+          "bayiSegment": "Bayi Segmenti",
+          "krediLimit": "Kredi Limiti",
+          "mevcutBakiye": "Mevcut Bakiye",
+          "vadeGunu": "Vade Günü",
+          "portalEnabled": "Bayi portal erişimi açık",
+          "portalStatus": "Portal Durumu",
+          "publicSignals": "Public Sinyal Kaynakları",
+          "googleMapsUrl": "Google Maps",
+          "instagramUrl": "Instagram",
+          "facebookUrl": "Facebook",
+          "publicVeriIzni": "Public veri izleme izni",
           "iskonto": "İskonto (%)",
           "iskontoPlaceholder": "0",
           "aktif": "Aktif",
           "turMusteri": "Müşteri",
           "turTedarikci": "Tedarikçi"
         },
+        "segments": {
+          "toptanci": "Toptancı",
+          "otomotiv": "Otomotiv",
+          "kucuk_bayi": "Küçük Bayi",
+          "ihracat": "İhracat",
+          "kurumsal": "Kurumsal",
+          "diger": "Diğer"
+        },
+        "portalStatuses": {
+          "not_invited": "Davet edilmedi",
+          "invited": "Davet gönderildi",
+          "active": "Aktif",
+          "suspended": "Askıda"
+        },
         "validation": {
           "kodRequired": "Kod zorunlu",
           "adRequired": "Ad zorunlu",
-          "invalidEmail": "Geçerli e-posta girin"
+          "invalidEmail": "Geçerli e-posta girin",
+          "invalidUrl": "Geçerli URL girin"
         },
         "salesOrders": "Satış Siparişleri",
         "summary": {
           "contact": "İletişim",
           "sales": "Satış Özeti",
           "status": "Durum",
+          "publicSignals": "Public Sinyal Kaynakları",
           "toplamSiparis": "Toplam Sipariş",
           "acikSiparis": "Açık Sipariş"
         }
@@ -5538,6 +5575,8 @@
         "noQueue": "Bekleyen iş yok",
         "planned": "Planlanan",
         "produced": "Üretilen",
+        "updateProduction": "Üretimi Güncelle",
+        "enterQuantity": "Miktar Gir",
         "scrap": "Fire",
         "progress": "İlerleme",
         "assembly": "Montaj",

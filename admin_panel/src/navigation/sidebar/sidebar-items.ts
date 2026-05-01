@@ -18,7 +18,9 @@ import {
   Factory,
   Fence,
   FileSearch,
+  BookOpenText,
   FolderTree,
+  Presentation,
   HardDrive,
   KeyRound,
   LayoutDashboard,
@@ -154,7 +156,10 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
     id: 4,
     key: 'system',
     items: [
-      { key: 'site_settings',     url: '/admin/sistem',           icon: Settings,   roles: ['admin'] },
+      { key: 'site_settings',     url: '/admin/sistem',           icon: Settings,     roles: ['admin'] },
+      { key: 'test_center',       url: '/admin/test-merkezi',     icon: FileSearch,   roles: ['admin'] },
+      { key: 'admin_documentation', url: '/admin/dokumantasyon',  icon: BookOpenText, roles: ['admin'] },
+      { key: 'proje_teklifi',     url: '/admin/proje-teklifi',    icon: Presentation, roles: ['admin'] },
     ],
   },
 ];
@@ -206,7 +211,10 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   storage:           'Medyalar',
   site_settings:     'Sistem & Ayarlar',
   db_admin:          'Veritabanı',
+  test_center:       'Test Merkezi',
+  admin_documentation: 'Dokumantasyon',
   vardiya_analizi:   'Vardiya Analizi',
+  proje_teklifi:     'Proje Teklifleri',
 };
 
 export function buildAdminSidebarItems(
