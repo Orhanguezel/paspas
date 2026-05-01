@@ -12,6 +12,18 @@ type RezervasyonKalem = {
   miktar: number;
 };
 
+export type ReceteIhtiyacKalemi = {
+  urunId: string;
+  miktar: number | string | null;
+  fireOrani: number | string | null;
+};
+
+export type StokAkisState = {
+  stok: number;
+  rezerveStok: number;
+  stokTakipAktif: boolean;
+};
+
 export type HammaddeUyari = {
   urunId: string;
   urunAd: string;
@@ -20,6 +32,49 @@ export type HammaddeUyari = {
   mevcutStok: number;
   eksikMiktar: number;
 };
+
+export function calculateReceteIhtiyaclari(
+  kalemler: ReceteIhtiyacKalemi[],
+  hedefMiktar: number,
+  planlananMiktar: number,
+): RezervasyonKalem[] {
+  const carpan = planlananMiktar / (hedefMiktar || 1);
+  return kalemler.map((kalem) => {
+    const baseMiktar = Number(kalem.miktar ?? 0) * carpan;
+    const fireOrani = Number(kalem.fireOrani ?? 0);
+    const rawMiktar = baseMiktar * (1 + fireOrani / 100);
+    return {
+      urunId: kalem.urunId,
+      miktar: Math.ceil(rawMiktar),
+    };
+  });
+}
+
+export function previewRezervasyonSonrasi(state: StokAkisState, miktar: number): StokAkisState {
+  if (!state.stokTakipAktif) return { ...state };
+  return {
+    ...state,
+    rezerveStok: state.rezerveStok + miktar,
+  };
+}
+
+export function previewStokDusSonrasi(state: StokAkisState, miktar: number): StokAkisState {
+  if (!state.stokTakipAktif) return { ...state };
+  return {
+    ...state,
+    stok: state.stok - miktar,
+    rezerveStok: Math.max(state.rezerveStok - miktar, 0),
+  };
+}
+
+export function previewStokGeriAlSonrasi(state: StokAkisState, miktar: number): StokAkisState {
+  if (!state.stokTakipAktif) return { ...state };
+  return {
+    ...state,
+    stok: state.stok + miktar,
+    rezerveStok: state.rezerveStok + miktar,
+  };
+}
 
 /**
  * Reçeteden hammadde ihtiyaçlarını hesaplar.
@@ -38,7 +93,6 @@ async function getReceteIhtiyaclari(
   if (!recete) return [];
 
   const hedefMiktar = Number(recete.hedefMiktar ?? 1);
-  const carpan = planlananMiktar / hedefMiktar;
 
   const kalemRows = await db
     .select({
@@ -49,16 +103,7 @@ async function getReceteIhtiyaclari(
     .from(receteKalemleri)
     .where(eq(receteKalemleri.recete_id, receteId));
 
-  return kalemRows.map((k) => {
-    const baseMiktar = Number(k.miktar ?? 0) * carpan;
-    const fireOrani = Number(k.fireOrani ?? 0);
-    const rawMiktar = baseMiktar * (1 + fireOrani / 100);
-    // Kesirli cikan miktarlari yukari yuvarla (orn: 99.6 koli → 100 koli)
-    return {
-      urunId: k.urunId,
-      miktar: Math.ceil(rawMiktar),
-    };
-  });
+  return calculateReceteIhtiyaclari(kalemRows, hedefMiktar, planlananMiktar);
 }
 
 /**
@@ -80,7 +125,14 @@ export async function rezerveHammaddeler(
   // Stok bilgilerini çek — uyarı üretmek için
   const urunIds = ihtiyaclar.map((k) => k.urunId);
   const stokRows = await db
-    .select({ id: urunler.id, ad: urunler.ad, kod: urunler.kod, stok: urunler.stok, rezerveStok: urunler.rezerve_stok })
+    .select({
+      id: urunler.id,
+      ad: urunler.ad,
+      kod: urunler.kod,
+      stok: urunler.stok,
+      rezerveStok: urunler.rezerve_stok,
+      stokTakipAktif: urunler.stok_takip_aktif,
+    })
     .from(urunler)
     .where(inArray(urunler.id, urunIds));
 
@@ -90,13 +142,18 @@ export async function rezerveHammaddeler(
 
   await db.transaction(async (tx) => {
     for (const kalem of ihtiyaclar) {
-      // rezerve_stok artır
-      await tx
-        .update(urunler)
-        .set({
-          rezerve_stok: sql`${urunler.rezerve_stok} + ${kalem.miktar.toFixed(4)}`,
-        })
-        .where(eq(urunler.id, kalem.urunId));
+      const info = stokMap.get(kalem.urunId);
+      const stokTakipAktif = info?.stokTakipAktif !== 0;
+
+      if (stokTakipAktif) {
+        // rezerve_stok artır
+        await tx
+          .update(urunler)
+          .set({
+            rezerve_stok: sql`${urunler.rezerve_stok} + ${kalem.miktar.toFixed(4)}`,
+          })
+          .where(eq(urunler.id, kalem.urunId));
+      }
 
       // Rezervasyon kaydı ekle
       await tx.insert(hammaddeRezervasyonlari).values({
@@ -108,8 +165,7 @@ export async function rezerveHammaddeler(
       });
 
       // Stok yeterlilik kontrolü
-      const info = stokMap.get(kalem.urunId);
-      if (info) {
+      if (info && stokTakipAktif) {
         const mevcutStok = Number(info.stok ?? 0) - Number(info.rezerveStok ?? 0);
         if (mevcutStok < kalem.miktar) {
           uyarilar.push({
@@ -148,6 +204,13 @@ export async function iptalRezervasyon(uretimEmriId: string): Promise<void> {
 
   await db.transaction(async (tx) => {
     for (const rez of rezervasyonlar) {
+      const [urun] = await tx
+        .select({ stokTakipAktif: urunler.stok_takip_aktif })
+        .from(urunler)
+        .where(eq(urunler.id, rez.urun_id))
+        .limit(1);
+      if (urun?.stokTakipAktif === 0) continue;
+
       // rezerve_stok azalt (negatife düşmesini engelle)
       await tx
         .update(urunler)
@@ -201,7 +264,7 @@ export async function stokDus(uretimEmriId: string): Promise<void> {
           stok: sql`${urunler.stok} - ${miktar.toFixed(4)}`,
           rezerve_stok: sql`GREATEST(${urunler.rezerve_stok} - ${miktar.toFixed(4)}, 0)`,
         })
-        .where(eq(urunler.id, rez.urun_id));
+        .where(and(eq(urunler.id, rez.urun_id), eq(urunler.stok_takip_aktif, 1)));
 
       // Hareket kaydı oluştur
       await tx.insert(hareketler).values({
@@ -257,7 +320,7 @@ export async function stokGeriAl(uretimEmriId: string): Promise<void> {
           stok: sql`${urunler.stok} + ${miktar.toFixed(4)}`,
           rezerve_stok: sql`${urunler.rezerve_stok} + ${miktar.toFixed(4)}`,
         })
-        .where(eq(urunler.id, rez.urun_id));
+        .where(and(eq(urunler.id, rez.urun_id), eq(urunler.stok_takip_aktif, 1)));
 
       // Düzeltme hareket kaydı
       await tx.insert(hareketler).values({
@@ -306,7 +369,14 @@ export async function checkHammaddeYeterlilik(uretimEmriId: string): Promise<Ham
 
   const urunIds = rezervasyonlar.map((r) => r.urunId);
   const stokRows = await db
-    .select({ id: urunler.id, ad: urunler.ad, kod: urunler.kod, stok: urunler.stok, rezerveStok: urunler.rezerve_stok })
+    .select({
+      id: urunler.id,
+      ad: urunler.ad,
+      kod: urunler.kod,
+      stok: urunler.stok,
+      rezerveStok: urunler.rezerve_stok,
+      stokTakipAktif: urunler.stok_takip_aktif,
+    })
     .from(urunler)
     .where(inArray(urunler.id, urunIds));
 
@@ -324,6 +394,7 @@ export async function checkHammaddeYeterlilik(uretimEmriId: string): Promise<Ham
   for (const [urunId, miktar] of urunBazliMiktar) {
     const info = stokMap.get(urunId);
     if (!info) continue;
+    if (info.stokTakipAktif === 0) continue;
     // mevcutStok = fiziksel stok (müşteri beklentisi: basit karşılaştırma)
     const mevcutStok = Math.max(Number(info.stok ?? 0), 0);
     const eksikMiktar = Math.max(miktar - mevcutStok, 0);

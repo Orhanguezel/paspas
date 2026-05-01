@@ -19,7 +19,7 @@ function buildWhere(query: ListQuery): SQL | undefined {
   if (query.q) {
     const pattern = `%${query.q}%`;
     conditions.push(
-      sql`(${musteriler.ad} LIKE ${pattern} OR ${musteriler.kod} LIKE ${pattern} OR ${musteriler.ilgili_kisi} LIKE ${pattern} OR ${musteriler.email} LIKE ${pattern})`,
+      sql`(${musteriler.ad} LIKE ${pattern} OR ${musteriler.kod} LIKE ${pattern} OR ${musteriler.ilgili_kisi} LIKE ${pattern} OR ${musteriler.email} LIKE ${pattern} OR ${musteriler.website_url} LIKE ${pattern} OR ${musteriler.bayi_segment} LIKE ${pattern})`,
     );
   }
   if (query.tur) {
@@ -69,6 +69,17 @@ async function mapCreateInput(data: CreateBody): Promise<typeof musteriler.$infe
     adres: data.adres,
     cari_kodu: data.cariKodu,
     sevkiyat_notu: data.sevkiyatNotu,
+    website_url: data.websiteUrl,
+    google_maps_url: data.googleMapsUrl,
+    instagram_url: data.instagramUrl,
+    facebook_url: data.facebookUrl,
+    bayi_segment: data.bayiSegment,
+    kredi_limit: typeof data.krediLimit === 'number' ? data.krediLimit.toFixed(2) : undefined,
+    mevcut_bakiye: typeof data.mevcutBakiye === 'number' ? data.mevcutBakiye.toFixed(2) : undefined,
+    vade_gunu: data.vadeGunu,
+    portal_enabled: typeof data.portalEnabled === 'boolean' ? (data.portalEnabled ? 1 : 0) : undefined,
+    portal_status: data.portalStatus,
+    public_veri_izni: typeof data.publicVeriIzni === 'boolean' ? (data.publicVeriIzni ? 1 : 0) : undefined,
     iskonto: typeof data.iskonto === 'number' ? data.iskonto.toFixed(2) : undefined,
     is_active: typeof data.isActive === 'boolean' ? (data.isActive ? 1 : 0) : undefined,
   };
@@ -85,6 +96,17 @@ function mapPatchInput(data: PatchBody): Partial<typeof musteriler.$inferInsert>
   if (data.adres !== undefined) payload.adres = data.adres;
   if (data.cariKodu !== undefined) payload.cari_kodu = data.cariKodu;
   if (data.sevkiyatNotu !== undefined) payload.sevkiyat_notu = data.sevkiyatNotu;
+  if (data.websiteUrl !== undefined) payload.website_url = data.websiteUrl;
+  if (data.googleMapsUrl !== undefined) payload.google_maps_url = data.googleMapsUrl;
+  if (data.instagramUrl !== undefined) payload.instagram_url = data.instagramUrl;
+  if (data.facebookUrl !== undefined) payload.facebook_url = data.facebookUrl;
+  if (data.bayiSegment !== undefined) payload.bayi_segment = data.bayiSegment;
+  if (data.krediLimit !== undefined) payload.kredi_limit = data.krediLimit.toFixed(2);
+  if (data.mevcutBakiye !== undefined) payload.mevcut_bakiye = data.mevcutBakiye.toFixed(2);
+  if (data.vadeGunu !== undefined) payload.vade_gunu = data.vadeGunu;
+  if (data.portalEnabled !== undefined) payload.portal_enabled = data.portalEnabled ? 1 : 0;
+  if (data.portalStatus !== undefined) payload.portal_status = data.portalStatus;
+  if (data.publicVeriIzni !== undefined) payload.public_veri_izni = data.publicVeriIzni ? 1 : 0;
   if (data.iskonto !== undefined) payload.iskonto = data.iskonto.toFixed(2);
   if (data.isActive !== undefined) payload.is_active = data.isActive ? 1 : 0;
   return payload;

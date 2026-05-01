@@ -19,6 +19,7 @@ export const receteKalemleri = mysqlTable('recete_kalemleri', {
   urun_id: char('urun_id', { length: 36 }).notNull(),
   miktar: decimal('miktar', { precision: 12, scale: 4 }).notNull(),
   fire_orani: decimal('fire_orani', { precision: 5, scale: 2 }).notNull().default('0.00'),
+  aciklama: varchar('aciklama', { length: 500 }),
   sira: int('sira', { unsigned: true }).notNull().default(0),
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updated_at: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
@@ -35,8 +36,10 @@ export type ReceteKalemDto = {
   malzemeKategori?: string | null;
   malzemeBirim: string | null;
   malzemeBirimFiyat: number | null;
+  malzemeGorselUrl: string | null;
   miktar: number;
   fireOrani: number;
+  aciklama: string | null;
   sira: number;
   altRecete?: ReceteDto | null;
 };
@@ -74,6 +77,7 @@ export type EnrichedReceteKalemRow = ReceteKalemRow & {
   malzemeKategori?: string | null;
   malzemeBirim?: string | null;
   malzemeBirimFiyat?: string | null;
+  malzemeGorselUrl?: string | null;
 };
 
 export function receteKalemRowToDto(row: EnrichedReceteKalemRow): ReceteKalemDto {
@@ -85,8 +89,10 @@ export function receteKalemRowToDto(row: EnrichedReceteKalemRow): ReceteKalemDto
     malzemeKategori: row.malzemeKategori ?? null,
     malzemeBirim: row.malzemeBirim ?? null,
     malzemeBirimFiyat: row.malzemeBirimFiyat ? Number(row.malzemeBirimFiyat) : null,
+    malzemeGorselUrl: row.malzemeGorselUrl ?? null,
     miktar: Number(row.miktar ?? 0),
     fireOrani: Number(row.fire_orani ?? 0),
+    aciklama: row.aciklama ?? null,
     sira: row.sira,
   };
 }

@@ -162,6 +162,7 @@ export interface KuyrukGrubuDto {
 export interface AtamaPayload {
   emirOperasyonId: string;
   makineId: string;
+  montaj?: boolean;
   montajMakineId?: string;
 }
 

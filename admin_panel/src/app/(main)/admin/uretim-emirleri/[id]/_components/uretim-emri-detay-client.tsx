@@ -117,6 +117,11 @@ export default function UretimEmriDetayClient({ id }: Props) {
   }
 
   const ilerleme = pct(emri.uretilenMiktar, emri.planlananMiktar);
+  const displayUrunAd = emri.siparisUrunAd ?? emri.urunAd ?? emri.urunId;
+  const displayUrunKod = emri.siparisUrunKod ?? emri.urunKod ?? emri.urunId;
+  const showOperasyonelUrun =
+    Boolean(emri.siparisUrunAd || emri.siparisUrunKod) &&
+    (emri.urunAd !== emri.siparisUrunAd || emri.urunKod !== emri.siparisUrunKod);
 
   return (
     <div className="space-y-6">
@@ -129,7 +134,7 @@ export default function UretimEmriDetayClient({ id }: Props) {
             </Link>
           </Button>
           <div>
-            <h1 className="font-semibold text-lg">{emri.urunAd ?? emri.urunId}</h1>
+            <h1 className="font-semibold text-lg">{displayUrunAd}</h1>
             <p className="font-mono text-muted-foreground text-sm">
               {emri.emirNo} · Üretim Emri Detayı
             </p>
@@ -156,8 +161,13 @@ export default function UretimEmriDetayClient({ id }: Props) {
             <Separator orientation="vertical" className="hidden h-10 sm:block" />
             <div className="min-w-0">
               <div className="text-muted-foreground text-xs">Ürün</div>
-              <div className="truncate font-medium">{emri.urunAd ?? emri.urunId}</div>
-              <div className="font-mono text-muted-foreground text-xs">{emri.urunKod ?? emri.urunId}</div>
+              <div className="truncate font-medium">{displayUrunAd}</div>
+              <div className="font-mono text-muted-foreground text-xs">{displayUrunKod}</div>
+              {showOperasyonelUrun && (
+                <div className="text-muted-foreground text-xs">
+                  Operasyonel YM: {emri.urunKod ? `${emri.urunKod} — ` : ""}{emri.urunAd ?? emri.urunId}
+                </div>
+              )}
             </div>
             <Separator orientation="vertical" className="hidden h-10 sm:block" />
             <div>

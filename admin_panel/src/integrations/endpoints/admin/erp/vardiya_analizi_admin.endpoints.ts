@@ -14,6 +14,16 @@ export type UrunKirilim = {
   miktar: number;
 };
 
+export type OperasyonKirilim = {
+  operasyonId: string | null;
+  operasyonAdi: string;
+  operasyonTipi: string | null;
+  kalipId: string | null;
+  kalipKod: string | null;
+  kalipAd: string | null;
+  miktar: number;
+};
+
 export type VardiyaAnalizItem = {
   id: string;
   makineId: string;
@@ -32,6 +42,7 @@ export type VardiyaAnalizItem = {
     netToplam: number;
     fireToplam: number;
     urunKirilimi: UrunKirilim[];
+    operasyonKirilimi: OperasyonKirilim[];
   };
   duruslar: {
     toplamDk: number;
@@ -74,6 +85,7 @@ export type MakineRollup = {
   ortCevrimSaniye: number | null;
   teorikHedef: number | null;
   hedefGerceklesmeYuzde: number | null;
+  operasyonKirilimi: OperasyonKirilim[];
   oee: number;
 };
 
@@ -120,6 +132,10 @@ export type UretimKaydi = {
   fireMiktar: number;
   operatorAd: string | null;
   notlar: string | null;
+  operasyonAdi: string | null;
+  operasyonTipi: string | null;
+  kalipKod: string | null;
+  kalipAd: string | null;
 };
 
 export type SaatlikUretim = { saat: string; miktar: number };

@@ -322,7 +322,7 @@ export async function repoList(query: ListQuery): Promise<ListResult> {
       miktar: satinAlmaKalemleri.miktar,
       birim_fiyat: satinAlmaKalemleri.birim_fiyat,
       sira: satinAlmaKalemleri.sira,
-      kabul_miktar: sql<string>`(SELECT COALESCE(SUM(m.gelen_miktar), 0) FROM mal_kabul_kayitlari m WHERE m.satin_alma_kalem_id = ${satinAlmaKalemleri.id})`,
+      kabul_miktar: sql<string>`(SELECT COALESCE(SUM(m.gelen_miktar), 0) FROM mal_kabul_kayitlari m WHERE m.satin_alma_kalem_id = ${satinAlmaKalemleri.id} AND m.kalite_durumu IN ('kabul', 'kosullu'))`,
       urun_stok: urunler.stok,
       urun_kritik_stok: urunler.kritik_stok,
       created_at: satinAlmaKalemleri.created_at,
@@ -382,7 +382,7 @@ export async function repoGetById(id: string): Promise<DetailResult | null> {
       miktar: satinAlmaKalemleri.miktar,
       birim_fiyat: satinAlmaKalemleri.birim_fiyat,
       sira: satinAlmaKalemleri.sira,
-      kabul_miktar: sql<string>`(SELECT COALESCE(SUM(m.gelen_miktar), 0) FROM mal_kabul_kayitlari m WHERE m.satin_alma_kalem_id = ${satinAlmaKalemleri.id})`,
+      kabul_miktar: sql<string>`(SELECT COALESCE(SUM(m.gelen_miktar), 0) FROM mal_kabul_kayitlari m WHERE m.satin_alma_kalem_id = ${satinAlmaKalemleri.id} AND m.kalite_durumu IN ('kabul', 'kosullu'))`,
       urun_stok: urunler.stok,
       urun_kritik_stok: urunler.kritik_stok,
       created_at: satinAlmaKalemleri.created_at,
@@ -422,6 +422,21 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<DetailRe
   if (!current) return null;
 
   const eskiDurum = current.siparis.durum;
+
+  // İptal koruması: bu satın almaya bağlı mal kabul kaydı varsa iptal edilemez.
+  // Aksi halde stok girişi yapılmış malı iptal etmek hayalet hareket bırakır.
+  if (patch.durum === 'iptal' && eskiDurum !== 'iptal') {
+    const [malKabulRow] = await db
+      .select({ id: malKabulKayitlari.id })
+      .from(malKabulKayitlari)
+      .where(eq(malKabulKayitlari.satin_alma_siparis_id, id))
+      .limit(1);
+    if (malKabulRow) {
+      const err = new Error('satin_alma_kilitli');
+      (err as any).detail = 'Bu satın alma siparişine bağlı mal kabul kaydı var; iptal edilemez. Önce mal kabul kayıtlarını iptal edin.';
+      throw err;
+    }
+  }
 
   await db.transaction(async (tx) => {
     const siparisPatch = mapSiparisPatch(patch);

@@ -1,269 +1,227 @@
-'use client';
+"use client";
 
-// =============================================================
-// FILE: src/app/(main)/admin/(admin)/site-settings/tabs/api-settings-tab.tsx
-// API & Entegrasyon Ayarları (GLOBAL)
-// - Shadcn/ui components
-// - Responsive design
-// - TypeScript safe
-// =============================================================
+import * as React from "react";
 
-import * as React from 'react';
-import { toast } from 'sonner';
-import { RefreshCcw } from 'lucide-react';
-import { useAdminTranslations } from '@/i18n';
-import { usePreferencesStore } from '@/stores/preferences/preferences-provider';
+import { RefreshCcw, Save, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useAdminTranslations } from "@/i18n";
+import { useListSiteSettingsAdminQuery, useUpdateSiteSettingAdminMutation } from "@/integrations/hooks";
 import {
-  useListSiteSettingsAdminQuery,
-  useUpdateSiteSettingAdminMutation,
-} from '@/integrations/hooks';
-
-import type { SettingValue, SiteSetting } from '@/integrations/shared';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+  API_SETTING_KEYS,
+  API_SETTING_SECTIONS,
+  type ApiSettingField,
+  type ApiSettingsForm,
+  apiSettingsToForm,
+  createEmptyApiSettingsForm,
+  parseApiSettingValue,
+} from "@/integrations/shared";
+import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
 
 export type ApiSettingsTabProps = {
   locale: string;
 };
 
-const API_KEYS = [
-  'google_client_id',
-  'google_client_secret',
-  'gtm_container_id',
-  'ga4_measurement_id',
-  'cookie_consent',
-] as const;
-
-type ApiKey = (typeof API_KEYS)[number];
-type ApiForm = Record<ApiKey, string>;
-
-const EMPTY_FORM: ApiForm = {
-  google_client_id: '',
-  google_client_secret: '',
-  gtm_container_id: '',
-  ga4_measurement_id: '',
-  cookie_consent: '',
-};
-
-function valueToString(v: unknown): string {
-  if (v === null || v === undefined) return '';
-  if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
-  try {
-    return JSON.stringify(v, null, 2);
-  } catch {
-    return String(v);
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error !== "object" || error === null) return fallback;
+  const data = "data" in error ? error.data : undefined;
+  if (typeof data === "object" && data !== null) {
+    const apiError = "error" in data ? data.error : undefined;
+    if (typeof apiError === "object" && apiError !== null) {
+      const message = "message" in apiError ? apiError.message : undefined;
+      if (typeof message === "string" && message.trim()) return message;
+    }
   }
+  const message = "message" in error ? error.message : undefined;
+  return typeof message === "string" && message.trim() ? message : fallback;
 }
 
-function toMap(settings?: any) {
-  const map = new Map<string, any>();
-  if (settings) for (const s of settings) map.set(s.key, s);
-  return map;
-}
+function FieldControl({
+  field,
+  value,
+  disabled,
+  onChange,
+}: {
+  field: ApiSettingField;
+  value: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  const commonClassName =
+    "border-border/70 bg-background/80 font-mono text-sm shadow-sm transition-colors focus-visible:border-primary/60 focus-visible:ring-primary/20";
 
-function tryParseJsonOrString(input: string): SettingValue {
-  const s = String(input ?? '').trim();
-  if (!s) return '' as any;
-  try {
-    return JSON.parse(s) as any;
-  } catch {
-    return s as any;
+  if (field.kind === "textarea") {
+    return (
+      <Textarea
+        id={field.key}
+        rows={6}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={field.placeholder}
+        disabled={disabled}
+        className={`${commonClassName} resize-y text-xs leading-5`}
+      />
+    );
   }
+
+  return (
+    <Input
+      id={field.key}
+      type={field.kind === "password" ? "password" : field.kind === "number" ? "number" : "text"}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={field.placeholder}
+      disabled={disabled}
+      className={`h-11 ${commonClassName}`}
+    />
+  );
 }
 
 export const ApiSettingsTab: React.FC<ApiSettingsTabProps> = ({ locale }) => {
+  const adminLocale = usePreferencesStore((state) => state.adminLocale);
+  const t = useAdminTranslations(adminLocale || undefined);
+  const tr = React.useCallback((key: string, fallback: string) => t(key, undefined, fallback), [t]);
+
   const {
     data: settings,
     isLoading,
     isFetching,
     refetch,
   } = useListSiteSettingsAdminQuery({
-    keys: API_KEYS as unknown as string[],
-    locale: '*', // ✅ Global settings
-  } as any);
+    keys: [...API_SETTING_KEYS],
+    locale: "*",
+  });
 
   const [updateSetting, { isLoading: isSaving }] = useUpdateSiteSettingAdminMutation();
-
-  const [form, setForm] = React.useState<ApiForm>(EMPTY_FORM);
-
-  const adminLocale = usePreferencesStore((s) => s.adminLocale);
-  const t = useAdminTranslations(adminLocale || undefined);
+  const [form, setForm] = React.useState<ApiSettingsForm>(() => createEmptyApiSettingsForm());
 
   React.useEffect(() => {
-    const map = toMap(settings);
-    const next: ApiForm = { ...EMPTY_FORM };
-    API_KEYS.forEach((k) => {
-      next[k] = valueToString(map.get(k)?.value);
-    });
-    setForm(next);
+    setForm(apiSettingsToForm(settings));
   }, [settings]);
 
   const loading = isLoading || isFetching;
   const busy = loading || isSaving;
 
-  const handleChange = (field: ApiKey, value: string) => setForm((p) => ({ ...p, [field]: value }));
+  const handleChange = (field: ApiSettingField, value: string) => {
+    setForm((previous) => ({ ...previous, [field.key]: value }));
+  };
 
   const handleSave = async () => {
     try {
-      const updates: { key: ApiKey; value: SettingValue }[] = [
-        { key: 'google_client_id', value: form.google_client_id.trim() },
-        { key: 'google_client_secret', value: form.google_client_secret.trim() },
-        { key: 'gtm_container_id', value: form.gtm_container_id.trim() },
-        { key: 'ga4_measurement_id', value: form.ga4_measurement_id.trim() },
-        { key: 'cookie_consent', value: tryParseJsonOrString(form.cookie_consent) },
-      ];
-
-      for (const u of updates) {
-        await updateSetting({ key: u.key, value: u.value, locale: '*' }).unwrap();
+      for (const section of API_SETTING_SECTIONS) {
+        for (const field of section.fields) {
+          await updateSetting({
+            key: field.key,
+            value: parseApiSettingValue(form[field.key] ?? "", field),
+            locale: "*",
+          }).unwrap();
+        }
       }
 
-      toast.success(t('admin.siteSettings.api.saved'));
+      toast.success(tr("admin.siteSettings.api.saved", "API ayarları kaydedildi."));
       await refetch();
-    } catch (err: any) {
-      const msg =
-        err?.data?.error?.message || err?.message || t('admin.siteSettings.api.saveError');
-      toast.error(msg);
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, tr("admin.siteSettings.api.saveError", "API ayarları kaydedilemedi.")));
     }
   };
 
   return (
-    <Card>
-      <CardHeader className="gap-2">
-        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-base">{t('admin.siteSettings.api.title')}</CardTitle>
+    <Card className="overflow-hidden border-border/70 bg-card/95 shadow-sm">
+      <CardHeader className="gap-4 border-b bg-muted/30">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="flex size-9 items-center justify-center rounded-md border bg-background text-primary">
+                <Sparkles className="size-4" />
+              </span>
+              <CardTitle className="text-base">{tr("admin.siteSettings.api.title", "API ve Entegrasyonlar")}</CardTitle>
+            </div>
             <CardDescription>
-              {t('admin.siteSettings.api.description')}
+              {tr(
+                "admin.siteSettings.api.description",
+                "Üçüncü parti servis bağlantılarını, analitik kodlarını ve yapay zeka anahtarlarını yönetin.",
+              )}
             </CardDescription>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{t('admin.siteSettings.api.badge')}</Badge>
-            {locale && <Badge variant="outline">{t('admin.siteSettings.api.uiBadge', { locale })}</Badge>}
-            {busy && <Badge variant="outline">{t('admin.siteSettings.messages.loading')}</Badge>}
+            <Badge variant="secondary">GLOBAL</Badge>
+            {locale ? <Badge variant="outline">UI {locale}</Badge> : null}
+            {busy ? <Badge variant="outline">{tr("admin.siteSettings.messages.loading", "Yükleniyor")}</Badge> : null}
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => refetch()}
               disabled={busy}
-              title={t('admin.siteSettings.actions.refresh')}
+              title={tr("admin.siteSettings.actions.refresh", "Yenile")}
             >
               <RefreshCcw className="size-4" />
+              {tr("admin.siteSettings.actions.refresh", "Yenile")}
             </Button>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
-        <div className="text-sm text-muted-foreground">
-          {t('admin.siteSettings.api.note')}
+      <CardContent className="space-y-8 p-6">
+        <div className="rounded-md border border-primary/20 bg-primary/5 px-4 py-3 text-muted-foreground text-sm">
+          AI anahtarları site ayarlarında global olarak saklanır. Backend yardımcı modülü önce bu kayıtları, boşsa
+          `.env` değerlerini kullanır; Test Merkezi ileride log özeti ve risk önerisi için bu hattı çağırabilir.
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Google Client ID */}
-          <div className="space-y-2">
-            <Label htmlFor="google_client_id">
-              {t('admin.siteSettings.api.googleClientId')}
-              <code className="ml-2 text-xs text-muted-foreground">(google_client_id)</code>
-            </Label>
-            <Input
-              id="google_client_id"
-              value={form.google_client_id}
-              onChange={(e) => handleChange('google_client_id', e.target.value)}
-              placeholder="Google OAuth Client ID"
-              disabled={busy}
-            />
-            <p className="text-xs text-muted-foreground">
-              {t('admin.siteSettings.api.googleClientIdHelp')}
-            </p>
-          </div>
+        {API_SETTING_SECTIONS.map((section) => (
+          <section key={section.id} className="space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b pb-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="size-2 rounded-full bg-primary/70" />
+                  <h3 className="font-semibold text-sm uppercase tracking-wide">{section.title}</h3>
+                </div>
+                <p className="text-muted-foreground text-sm">{section.description}</p>
+              </div>
+              {section.badge ? (
+                <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary">
+                  {section.badge}
+                </Badge>
+              ) : null}
+            </div>
 
-          {/* Google Client Secret */}
-          <div className="space-y-2">
-            <Label htmlFor="google_client_secret">
-              {t('admin.siteSettings.api.googleClientSecret')}
-              <code className="ml-2 text-xs text-muted-foreground">(google_client_secret)</code>
-            </Label>
-            <Input
-              id="google_client_secret"
-              type="password"
-              value={form.google_client_secret}
-              onChange={(e) => handleChange('google_client_secret', e.target.value)}
-              placeholder="Google OAuth Client Secret"
-              disabled={busy}
-            />
-            <p className="text-xs text-muted-foreground">
-              {t('admin.siteSettings.api.googleClientSecretHelp')}
-            </p>
-          </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {section.fields.map((field) => (
+                <div key={field.key} className={field.kind === "textarea" ? "space-y-2 md:col-span-2" : "space-y-2"}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Label htmlFor={field.key} className="font-medium text-xs uppercase tracking-wide">
+                      {field.label}
+                    </Label>
+                    <code className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                      {field.key}
+                    </code>
+                  </div>
+                  <FieldControl
+                    field={field}
+                    value={form[field.key] ?? ""}
+                    disabled={busy}
+                    onChange={(value) => handleChange(field, value)}
+                  />
+                  {field.help ? <p className="text-muted-foreground text-xs">{field.help}</p> : null}
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
 
-          {/* GTM Container ID */}
-          <div className="space-y-2">
-            <Label htmlFor="gtm_container_id">
-              {t('admin.siteSettings.api.gtmContainerId')}
-              <code className="ml-2 text-xs text-muted-foreground">(gtm_container_id)</code>
-            </Label>
-            <Input
-              id="gtm_container_id"
-              value={form.gtm_container_id}
-              onChange={(e) => handleChange('gtm_container_id', e.target.value)}
-              placeholder={t('admin.siteSettings.api.gtmContainerIdPlaceholder')}
-              disabled={busy}
-            />
-            <p className="text-xs text-muted-foreground">
-              {t('admin.siteSettings.api.gtmContainerIdHelp')}
-            </p>
-          </div>
-
-          {/* GA4 Measurement ID */}
-          <div className="space-y-2">
-            <Label htmlFor="ga4_measurement_id">
-              {t('admin.siteSettings.api.ga4MeasurementId')}
-              <code className="ml-2 text-xs text-muted-foreground">(ga4_measurement_id)</code>
-            </Label>
-            <Input
-              id="ga4_measurement_id"
-              value={form.ga4_measurement_id}
-              onChange={(e) => handleChange('ga4_measurement_id', e.target.value)}
-              placeholder={t('admin.siteSettings.api.ga4MeasurementIdPlaceholder')}
-              disabled={busy}
-            />
-            <p className="text-xs text-muted-foreground">
-              {t('admin.siteSettings.api.ga4MeasurementIdHelp')}
-            </p>
-          </div>
-        </div>
-
-        {/* Cookie Consent - Full Width */}
-        <div className="space-y-2">
-          <Label htmlFor="cookie_consent">
-            {t('admin.siteSettings.api.cookieConsent')}
-            <code className="ml-2 text-xs text-muted-foreground">(cookie_consent)</code>
-          </Label>
-          <Textarea
-            id="cookie_consent"
-            rows={10}
-            value={form.cookie_consent}
-            onChange={(e) => handleChange('cookie_consent', e.target.value)}
-            placeholder={t('admin.siteSettings.api.cookieConsentPlaceholder')}
-            disabled={busy}
-            className="font-mono text-xs"
-          />
-          <p className="text-xs text-muted-foreground">
-            {t('admin.siteSettings.api.cookieConsentHelp')}
-          </p>
-        </div>
-
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <Button type="button" onClick={handleSave} disabled={busy}>
-            {isSaving ? t('admin.siteSettings.actions.saving') : t('admin.siteSettings.actions.save')}
+        <div className="flex justify-end border-t pt-6">
+          <Button type="button" onClick={handleSave} disabled={busy} className="min-w-40">
+            <Save className="size-4" />
+            {isSaving
+              ? tr("admin.siteSettings.actions.saving", "Kaydediliyor")
+              : tr("admin.siteSettings.actions.save", "Tümünü Kaydet")}
           </Button>
         </div>
       </CardContent>

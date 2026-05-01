@@ -17,7 +17,10 @@
     "prepare": "husky",
     "generate:presets": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' src/scripts/generate-theme-presets.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report e2e/.report"
   },
   "lint-staged": {
     "*.{js,ts,jsx,tsx}": [
@@ -61,6 +64,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.8",
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^22.19.3",
     "@types/react": "^19.2.7",
@@ -68,6 +72,7 @@
     "@types/react-simple-maps": "^3.0.6",
     "@vitejs/plugin-react": "^5.1.4",
     "babel-plugin-react-compiler": "^1.0.0",
+    "dotenv": "^17.4.2",
     "globals": "^15.15.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.2",

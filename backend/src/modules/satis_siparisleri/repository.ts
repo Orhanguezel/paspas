@@ -10,6 +10,7 @@ import { musteriler } from '@/modules/musteriler/schema';
 import { urunler } from '@/modules/urunler/schema';
 import { sevkiyatKalemleri } from '@/modules/operator/schema';
 import { uretimEmirleri, uretimEmriSiparisKalemleri } from '@/modules/uretim_emirleri/schema';
+import { hareketler } from '@/modules/hareketler/schema';
 import { transitionMultipleKalemDurum, canEditSiparis, canDeleteSiparis, canCloseSiparis } from './kalem-durum.service';
 import type { CreateBody, IslemlerQuery, ListQuery, PatchBody } from './validation';
 
@@ -271,17 +272,38 @@ export async function repoGetKalemSevkMiktarlari(siparisId: string): Promise<Map
   return result;
 }
 
+/**
+ * Sipariş kalemleri için gerçek üretilen miktarları hesaplar.
+ *
+ * Çift taraflı üretimde aynı sipariş kalemine 2 ayrı üretim emri (sağ + sol Operasyonel YM)
+ * bağlanır. `uretim_emirleri.uretilen_miktar` sağ ve sol için ayrı ayrı tutulur, SUM
+ * çift sayımına yol açar (sağ 50 + sol 50 = 100, gerçekte 50 ana ürün üretildi).
+ *
+ * Doğru kaynak: `hareketler` tablosundaki **asıl ürünün giriş hareketleri** —
+ *   - Tek taraflıda: `referans_tipi='uretim'` ile asıl ürün stoğu artar
+ *   - Çift taraflıda: `referans_tipi='montaj'` ile asıl ürün stoğu sadece bir kez artar
+ *
+ * `urun_id = sk.urun_id` filtresi Operasyonel YM (sağ/sol) hareketlerini dışarıda bırakır.
+ */
 export async function repoGetKalemUretilenMiktarlari(siparisId: string): Promise<Map<string, number>> {
   const rows = await db
     .select({
-      siparisKalemId: uretimEmriSiparisKalemleri.siparis_kalem_id,
-      miktar: sql<string>`coalesce(sum(${uretimEmirleri.uretilen_miktar}), 0)`,
+      siparisKalemId: siparisKalemleri.id,
+      miktar: sql<string>`coalesce(sum(${hareketler.miktar}), 0)`,
     })
-    .from(uretimEmriSiparisKalemleri)
-    .innerJoin(siparisKalemleri, eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemleri.id))
-    .innerJoin(uretimEmirleri, eq(uretimEmriSiparisKalemleri.uretim_emri_id, uretimEmirleri.id))
+    .from(siparisKalemleri)
+    .leftJoin(uretimEmriSiparisKalemleri, eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemleri.id))
+    .leftJoin(
+      hareketler,
+      and(
+        eq(hareketler.referans_id, uretimEmriSiparisKalemleri.uretim_emri_id),
+        eq(hareketler.urun_id, siparisKalemleri.urun_id),
+        eq(hareketler.hareket_tipi, 'giris'),
+        inArray(hareketler.referans_tipi, ['uretim', 'montaj']),
+      ),
+    )
     .where(eq(siparisKalemleri.siparis_id, siparisId))
-    .groupBy(uretimEmriSiparisKalemleri.siparis_kalem_id);
+    .groupBy(siparisKalemleri.id);
 
   const result = new Map<string, number>();
   for (const row of rows) {
@@ -357,10 +379,18 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<DetailRe
     throw new Error('siparis_kilitli');
   }
   const currentItems = current.items.map((i) => i.uretim_durumu as any);
-  
+
   if (patch.items !== undefined && !canEditSiparis(currentItems)) {
     const err = new Error('siparis_kilitli');
     (err as any).detail = 'Üretime başlanmış sipariş kalemleri değiştirilemez.';
+    throw err;
+  }
+
+  // Üretime aktarılmış kalem varken siparişin durumu 'iptal' yapılamaz.
+  // İptal etmek için önce üretim emirleri silinmeli (kalemler beklemede'ye dönmeli).
+  if (patch.durum === 'iptal' && !canEditSiparis(currentItems)) {
+    const err = new Error('siparis_kilitli');
+    (err as any).detail = 'Üretime aktarılmış siparişin durumu iptal yapılamaz; önce üretim emirleri kaldırılmalı.';
     throw err;
   }
 
@@ -486,6 +516,7 @@ export interface SiparisIslemSatiri {
   urunAd: string;
   urunKod: string;
   miktar: number;
+  uretilenMiktar: number;
   birimFiyat: number;
   uretimDurumu: string;
   sevkEdilenMiktar: number;
@@ -524,6 +555,21 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
     WHERE sk2.siparis_kalem_id = ${siparisKalemleri.id}
   ), 0)`;
 
+  // Üretilen miktarı asıl ürünün giriş hareketleri üzerinden topla.
+  // `uretim_emirleri.uretilen_miktar` çift taraflı (sağ+sol Operasyonel YM) emirlerde
+  // aynı sipariş kalemine bağlı 2 satır olduğundan SUM çift sayar.
+  // hareketler.urun_id = sk.urun_id filtresi sadece asıl ürünün giriş kayıtlarını alır.
+  const uretilenSubquery = sql<string>`COALESCE((
+    SELECT SUM(h.miktar)
+    FROM uretim_emri_siparis_kalemleri uesk_u
+    INNER JOIN hareketler h
+      ON h.referans_id = uesk_u.uretim_emri_id
+      AND h.urun_id = ${siparisKalemleri.urun_id}
+      AND h.hareket_tipi = 'giris'
+      AND h.referans_tipi IN ('uretim', 'montaj')
+    WHERE uesk_u.siparis_kalem_id = ${siparisKalemleri.id}
+  ), 0)`;
+
   // UE id subquery
   const ueIdSubquery = sql<string>`(
     SELECT uesk.uretim_emri_id FROM uretim_emri_siparis_kalemleri uesk
@@ -551,6 +597,7 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
       urunAd: urunler.ad,
       urunKod: urunler.kod,
       miktar: siparisKalemleri.miktar,
+      uretilenMiktar: uretilenSubquery,
       birimFiyat: siparisKalemleri.birim_fiyat,
       uretimDurumu: siparisKalemleri.uretim_durumu,
       sevkEdilenMiktar: sevkSubquery,
@@ -589,6 +636,7 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
       urunAd: r.urunAd ?? '',
       urunKod: r.urunKod ?? '',
       miktar: Number(r.miktar),
+      uretilenMiktar: Number(r.uretilenMiktar ?? 0),
       birimFiyat: Number(r.birimFiyat),
       uretimDurumu: r.uretimDurumu,
       sevkEdilenMiktar: Number(r.sevkEdilenMiktar ?? 0),

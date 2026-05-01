@@ -10,9 +10,10 @@ const isActiveQuerySchema = z.preprocess((value) => {
 }, z.boolean());
 
 const receteItemSchema = z.object({
-  urunId: z.string().min(1),
+  urunId: z.string().uuid(),
   miktar: z.coerce.number().positive(),
   fireOrani: z.coerce.number().min(0).max(100).default(0),
+  aciklama: z.string().trim().max(500).optional(),
   sira: z.coerce.number().int().min(0).default(0),
 });
 
@@ -28,7 +29,7 @@ export const listQuerySchema = z.object({
 export const createSchema = z.object({
   kod: z.string().trim().min(1).max(64),
   ad: z.string().trim().min(1).max(255),
-  urunId: z.string().min(1).optional(),
+  urunId: z.string().uuid().optional(),
   aciklama: z.string().trim().max(500).optional(),
   hedefMiktar: z.coerce.number().positive().default(1),
   isActive: z.boolean().optional(),
@@ -38,7 +39,7 @@ export const createSchema = z.object({
 export const patchSchema = z.object({
   kod: z.string().trim().min(1).max(64).optional(),
   ad: z.string().trim().min(1).max(255).optional(),
-  urunId: z.string().min(1).optional(),
+  urunId: z.string().uuid().optional(),
   aciklama: z.string().trim().max(500).optional(),
   hedefMiktar: z.coerce.number().positive().optional(),
   isActive: z.boolean().optional(),

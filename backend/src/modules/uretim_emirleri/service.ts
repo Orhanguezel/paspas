@@ -5,7 +5,8 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { hareketler } from '@/modules/hareketler/schema';
 import { receteKalemleri, receteler } from '@/modules/receteler/schema';
-import { siparisKalemleri } from '@/modules/satis_siparisleri/schema';
+import { siparisKalemleri, type KalemUretimDurumu } from '@/modules/satis_siparisleri/schema';
+import { canTransitionKalem } from '@/modules/satis_siparisleri/kalem-durum.service';
 import { urunler } from '@/modules/urunler/schema';
 
 import { uretimEmirleri, uretimEmriOperasyonlari, uretimEmriSiparisKalemleri } from './schema';
@@ -19,12 +20,16 @@ type Opts = {
 
 const OPERASYON_KAYNAGI_KATEGORILERI = ['operasyonel_ym', 'yarimamul'] as const;
 
-function pickOperasyonKaynakKalemler<T extends { kategori: string }>(kalemler: T[]): T[] {
+export function pickOperasyonKaynakKalemler<T extends { kategori: string }>(kalemler: T[]): T[] {
   const operasyonelYmKalemleri = kalemler.filter((kalem) => kalem.kategori === 'operasyonel_ym');
   if (operasyonelYmKalemleri.length > 0) {
     return operasyonelYmKalemleri;
   }
   return kalemler.filter((kalem) => kalem.kategori === 'yarimamul');
+}
+
+export function calculateOperasyonKaynakPlanlananMiktar(receteKalemMiktar: number | string, siparisMiktar: number | string) {
+  return Number(receteKalemMiktar) * Number(siparisMiktar);
 }
 
 export class SiparisUretimEmirHatasi extends Error {
@@ -48,6 +53,29 @@ export async function createUretimEmirleriFromSiparisKalemi(
   const kalemRows = await db.select().from(siparisKalemleri).where(eq(siparisKalemleri.id, siparisKalemId)).limit(1);
   const kalem = kalemRows[0];
   if (!kalem) throw new SiparisUretimEmirHatasi('siparis_kalemi_bulunamadi');
+
+  // Pre-check: kalem 'uretime_aktarildi' geçişine izin veriyor mu?
+  // Aksi halde repoCreate içindeki transition sonradan hata atar ve kısmi insert yetim emirler bırakır.
+  const mevcutDurum = kalem.uretim_durumu as KalemUretimDurumu;
+  if (!canTransitionKalem(mevcutDurum, 'uretime_aktarildi')) {
+    throw new SiparisUretimEmirHatasi(`gecersiz_gecis:${mevcutDurum}_to_uretime_aktarildi`);
+  }
+
+  const aktifBagRows = await db
+    .select({ id: uretimEmriSiparisKalemleri.id })
+    .from(uretimEmriSiparisKalemleri)
+    .innerJoin(uretimEmirleri, eq(uretimEmirleri.id, uretimEmriSiparisKalemleri.uretim_emri_id))
+    .where(
+      and(
+        eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemId),
+        eq(uretimEmirleri.is_active, 1),
+        sql`${uretimEmirleri.durum} != 'iptal'`,
+      ),
+    )
+    .limit(1);
+  if (aktifBagRows.length > 0) {
+    throw new SiparisUretimEmirHatasi('siparis_kalemi_zaten_uretime_aktarildi');
+  }
 
   const urunRows = await db.select().from(urunler).where(eq(urunler.id, kalem.urun_id)).limit(1);
   const urun = urunRows[0];
@@ -89,7 +117,7 @@ export async function createUretimEmirleriFromSiparisKalemi(
   const results: CreateResult[] = [];
 
   for (const k of yariMamulKalemler) {
-    const planlananMiktar = Number(k.miktar) * kalemMiktar;
+    const planlananMiktar = calculateOperasyonKaynakPlanlananMiktar(k.miktar, kalemMiktar);
     const emirNo = await repoGetNextEmirNo();
     const created = await repoCreate(
       {
@@ -166,6 +194,7 @@ export async function tryMontajForUretimEmri(
       kategori: urunler.kategori,
       ad: urunler.ad,
       stok: urunler.stok,
+      stokTakipAktif: urunler.stok_takip_aktif,
     })
     .from(receteKalemleri)
     .innerJoin(urunler, eq(receteKalemleri.urun_id, urunler.id))
@@ -179,6 +208,7 @@ export async function tryMontajForUretimEmri(
   for (const ym of yariMamuller) {
     const gerekli = Number(ym.miktar) * kalemMiktar;
     const mevcut = Number(ym.stok);
+    if (ym.stokTakipAktif === 0) continue;
     if (mevcut + 1e-9 < gerekli) {
       eksikYariMamuller.push({ urunId: ym.urun_id, ad: ym.ad, gerekli, mevcut });
     }
@@ -192,6 +222,7 @@ export async function tryMontajForUretimEmri(
   // Hammadde eksikse de uyar (ambalaj vs.)
   for (const hm of hammaddeler) {
     const gerekli = Number(hm.miktar) * kalemMiktar;
+    if (hm.stokTakipAktif === 0) continue;
     if (Number(hm.stok) + 1e-9 < gerekli) {
       eksikYariMamuller.push({ urunId: hm.urun_id, ad: hm.ad, gerekli, mevcut: Number(hm.stok) });
     }
@@ -204,7 +235,9 @@ export async function tryMontajForUretimEmri(
   await db.transaction(async (tx) => {
     for (const ym of yariMamuller) {
       const dus = Number(ym.miktar) * kalemMiktar;
-      await tx.update(urunler).set({ stok: sql`${urunler.stok} - ${dus.toFixed(4)}` }).where(eq(urunler.id, ym.urun_id));
+      if (ym.stokTakipAktif === 1) {
+        await tx.update(urunler).set({ stok: sql`${urunler.stok} - ${dus.toFixed(4)}` }).where(eq(urunler.id, ym.urun_id));
+      }
       await tx.insert(hareketler).values({
         id: randomUUID(),
         urun_id: ym.urun_id,
@@ -219,7 +252,9 @@ export async function tryMontajForUretimEmri(
 
     for (const hm of hammaddeler) {
       const dus = Number(hm.miktar) * kalemMiktar;
-      await tx.update(urunler).set({ stok: sql`${urunler.stok} - ${dus.toFixed(4)}` }).where(eq(urunler.id, hm.urun_id));
+      if (hm.stokTakipAktif === 1) {
+        await tx.update(urunler).set({ stok: sql`${urunler.stok} - ${dus.toFixed(4)}` }).where(eq(urunler.id, hm.urun_id));
+      }
       await tx.insert(hareketler).values({
         id: randomUUID(),
         urun_id: hm.urun_id,
@@ -232,7 +267,10 @@ export async function tryMontajForUretimEmri(
       });
     }
 
-    await tx.update(urunler).set({ stok: sql`${urunler.stok} + ${kalemMiktar.toFixed(4)}` }).where(eq(urunler.id, asilUrunId));
+    await tx
+      .update(urunler)
+      .set({ stok: sql`${urunler.stok} + ${kalemMiktar.toFixed(4)}` })
+      .where(and(eq(urunler.id, asilUrunId), eq(urunler.stok_takip_aktif, 1)));
     await tx.insert(hareketler).values({
       id: randomUUID(),
       urun_id: asilUrunId,

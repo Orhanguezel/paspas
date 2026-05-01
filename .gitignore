@@ -13,3 +13,5 @@ db_backup_*.sql
 db_backup_*.xlsx
 docs/vps_dump_*.sql
 docs/vps_*.tsv
+.env.test
+.env.development

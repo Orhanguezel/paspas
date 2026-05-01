@@ -70,7 +70,7 @@ function kaynakTipiExpression() {
 }
 
 function buildWhere(query: ListQuery): SQL | undefined {
-  const conditions: SQL[] = [];
+  const conditions: SQL[] = [eq(urunler.stok_takip_aktif, 1)];
   const dateRange = getDateRange(query);
 
   if (dateRange) {
@@ -187,9 +187,11 @@ export async function repoCreate(body: CreateBody, createdByUserId: string | nul
     const nextStock = currentStock + delta;
 
     if (!urun[0]) throw new Error('urun_bulunamadi');
-    if (nextStock < 0) throw new Error('negative_stock_not_allowed');
+    if (urun[0].stok_takip_aktif === 1 && nextStock < 0) throw new Error('negative_stock_not_allowed');
 
-    await tx.update(urunler).set({ stok: nextStock.toFixed(4) }).where(eq(urunler.id, body.urunId));
+    if (urun[0].stok_takip_aktif === 1) {
+      await tx.update(urunler).set({ stok: nextStock.toFixed(4) }).where(eq(urunler.id, body.urunId));
+    }
   });
 
   const rows = await db.select().from(hareketler).where(eq(hareketler.id, id)).limit(1);

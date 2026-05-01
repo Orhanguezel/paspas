@@ -11,8 +11,10 @@ export interface ReceteKalemDto {
   malzemeKategori?: string | null;
   malzemeBirim: string | null;
   malzemeBirimFiyat: number | null;
+  malzemeGorselUrl: string | null;
   miktar: number;
   fireOrani: number;
+  aciklama: string | null;
   sira: number;
   altRecete?: ReceteDto | null;
 }
@@ -50,60 +52,61 @@ export interface ReceteKalemCreatePayload {
   urunId: string;
   miktar: number;
   fireOrani?: number;
+  aciklama?: string;
   sira?: number;
 }
 
 export type ReceteKalemUpdatePayload = Partial<ReceteKalemCreatePayload>;
 
-function toStr(v: unknown, fallback = ''): string {
-  return typeof v === 'string' ? v.trim() : fallback;
+function toStr(v: unknown, fallback = ""): string {
+  return typeof v === "string" ? v.trim() : fallback;
 }
 function toNum(v: unknown, fallback = 0): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
 }
 function toBool(v: unknown, fallback = true): boolean {
-  if (typeof v === 'boolean') return v;
-  if (v === 1 || v === '1') return true;
-  if (v === 0 || v === '0') return false;
+  if (typeof v === "boolean") return v;
+  if (v === 1 || v === "1") return true;
+  if (v === 0 || v === "0") return false;
   return fallback;
 }
 function isRecord(v: unknown): v is Record<string, unknown> {
-  return !!v && typeof v === 'object' && !Array.isArray(v);
+  return !!v && typeof v === "object" && !Array.isArray(v);
 }
 
 export function normalizeReceteKalem(raw: unknown): ReceteKalemDto {
   const r = isRecord(raw) ? raw : {};
   return {
-    id:                toStr(r.id),
-    urunId:            toStr(r.urunId),
-    malzemeKod:        r.malzemeKod != null ? toStr(r.malzemeKod) : null,
-    malzemeAd:         r.malzemeAd != null ? toStr(r.malzemeAd) : null,
-    malzemeKategori:   r.malzemeKategori != null ? toStr(r.malzemeKategori) : null,
-    malzemeBirim:      r.malzemeBirim != null ? toStr(r.malzemeBirim) : null,
+    id: toStr(r.id),
+    urunId: toStr(r.urunId),
+    malzemeKod: r.malzemeKod != null ? toStr(r.malzemeKod) : null,
+    malzemeAd: r.malzemeAd != null ? toStr(r.malzemeAd) : null,
+    malzemeKategori: r.malzemeKategori != null ? toStr(r.malzemeKategori) : null,
+    malzemeBirim: r.malzemeBirim != null ? toStr(r.malzemeBirim) : null,
     malzemeBirimFiyat: r.malzemeBirimFiyat != null ? toNum(r.malzemeBirimFiyat) : null,
-    miktar:            toNum(r.miktar),
-    fireOrani:         toNum(r.fireOrani),
-    sira:              toNum(r.sira),
-    altRecete:         r.altRecete != null ? normalizeRecete(r.altRecete) : null,
+    malzemeGorselUrl: r.malzemeGorselUrl != null ? toStr(r.malzemeGorselUrl) : null,
+    miktar: toNum(r.miktar),
+    fireOrani: toNum(r.fireOrani),
+    aciklama: r.aciklama != null ? toStr(r.aciklama) : null,
+    sira: toNum(r.sira),
+    altRecete: r.altRecete != null ? normalizeRecete(r.altRecete) : null,
   };
 }
 
 export function normalizeRecete(raw: unknown): ReceteDto {
   const r = isRecord(raw) ? raw : {};
-  const items = Array.isArray(r.items)
-    ? (r.items as unknown[]).map(normalizeReceteKalem)
-    : undefined;
+  const items = Array.isArray(r.items) ? (r.items as unknown[]).map(normalizeReceteKalem) : undefined;
   return {
-    id:          toStr(r.id),
-    kod:         toStr(r.kod),
-    ad:          toStr(r.ad),
-    urunId:      r.urunId != null ? toStr(r.urunId) : null,
-    aciklama:    r.aciklama != null ? toStr(r.aciklama) : null,
+    id: toStr(r.id),
+    kod: toStr(r.kod),
+    ad: toStr(r.ad),
+    urunId: r.urunId != null ? toStr(r.urunId) : null,
+    aciklama: r.aciklama != null ? toStr(r.aciklama) : null,
     hedefMiktar: toNum(r.hedefMiktar, 1),
-    isActive:    toBool(r.isActive),
-    createdAt:   toStr(r.createdAt),
-    updatedAt:   toStr(r.updatedAt),
+    isActive: toBool(r.isActive),
+    createdAt: toStr(r.createdAt),
+    updatedAt: toStr(r.updatedAt),
     items,
   };
 }

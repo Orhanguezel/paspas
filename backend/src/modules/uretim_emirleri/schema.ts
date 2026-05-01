@@ -40,9 +40,13 @@ export type UretimEmriDto = {
   emirNo: string;
   siparisKalemIds: string[];
   siparisNo: string | null;
+  siparisUrunKod: string | null;
+  siparisUrunAd: string | null;
+  siparisUrunGorsel: string | null;
   urunId: string;
   urunKod: string | null;
   urunAd: string | null;
+  urunGorsel: string | null;
   receteId: string | null;
   receteAd: string | null;
   planlananMiktar: number;
@@ -68,8 +72,12 @@ export type UretimEmriDto = {
 type UretimEmriDtoRow = UretimEmriRow & {
   siparisKalemIds?: string[];
   siparisNo?: string | null;
+  siparisUrunKod?: string | null;
+  siparisUrunAd?: string | null;
+  siparisUrunGorsel?: string | null;
   urunKod?: string | null;
   urunAd?: string | null;
+  urunGorsel?: string | null;
   receteAd?: string | null;
   etkinTerminTarihi?: Date | string | null;
   planlanan_bitis_tarihi?: Date | string | null;
@@ -91,9 +99,13 @@ export function rowToDto(row: UretimEmriDtoRow): UretimEmriDto {
     emirNo: row.emir_no,
     siparisKalemIds: kalemIds,
     siparisNo: row.siparisNo ?? null,
+    siparisUrunKod: row.siparisUrunKod ?? null,
+    siparisUrunAd: row.siparisUrunAd ?? null,
+    siparisUrunGorsel: row.siparisUrunGorsel ?? null,
     urunId: row.urun_id,
     urunKod: row.urunKod ?? null,
     urunAd: row.urunAd ?? null,
+    urunGorsel: row.urunGorsel ?? null,
     receteId: row.recete_id ?? null,
     receteAd: row.receteAd ?? null,
     planlananMiktar: Number(row.planlanan_miktar ?? 0),

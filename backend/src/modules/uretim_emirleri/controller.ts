@@ -67,7 +67,7 @@ export const createUretimEmri: RouteHandler = async (req, reply) => {
   try {
     const parsed = createSchema.safeParse(req.body);
     if (!parsed.success) {
-      req.log.warn({ body: req.body, issues: parsed.error.flatten() }, 'create_uretim_emri_validation_failed');
+      req.log.warn?.({ body: req.body, issues: parsed.error.flatten() }, 'create_uretim_emri_validation_failed');
       return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
     }
     const { row, hammaddeUyarilari } = await repoCreate(parsed.data);
@@ -122,7 +122,7 @@ export const updateUretimEmri: RouteHandler = async (req, reply) => {
     const { id } = req.params as { id: string };
     const parsed = patchSchema.safeParse(req.body);
     if (!parsed.success) {
-      req.log.warn({ body: req.body, issues: parsed.error.flatten() }, 'update_uretim_emri_validation_failed');
+      req.log.warn?.({ body: req.body, issues: parsed.error.flatten() }, 'update_uretim_emri_validation_failed');
       return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
     }
     const row = await repoUpdate(id, parsed.data);

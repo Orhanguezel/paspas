@@ -34,6 +34,9 @@ type ListResult = {
 type EnrichedUretimEmriRow = UretimEmriRow & {
   siparisKalemIds: string[];
   siparisNo: string | null;
+  siparisUrunKod: string | null;
+  siparisUrunAd: string | null;
+  siparisUrunGorsel: string | null;
   urunKod: string | null;
   urunAd: string | null;
   receteAd: string | null;
@@ -338,6 +341,9 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
         uretimEmriId: uretimEmriSiparisKalemleri.uretim_emri_id,
         siparisKalemIds: sql<string>`group_concat(distinct ${uretimEmriSiparisKalemleri.siparis_kalem_id})`,
         siparisNo: sql<string | null>`group_concat(distinct ${satisSiparisleri.siparis_no} order by ${satisSiparisleri.siparis_no} separator ', ')`,
+        siparisUrunKod: sql<string | null>`group_concat(distinct ${urunler.kod} order by ${urunler.kod} separator ', ')`,
+        siparisUrunAd: sql<string | null>`group_concat(distinct ${urunler.ad} order by ${urunler.ad} separator ', ')`,
+        siparisUrunGorsel: sql<string | null>`max(${urunler.image_url})`,
         musteriAd: sql<string | null>`group_concat(distinct ${musteriler.ad} order by ${musteriler.ad} separator ', ')`,
         musteriDetay: sql<string | null>`group_concat(distinct concat(${musteriler.ad}, ': ', cast(${siparisKalemleri.miktar} as char)) order by ${satisSiparisleri.siparis_no} separator ' | ')`,
         musteriSayisi: sql<number>`count(distinct ${musteriler.id})`,
@@ -347,6 +353,7 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
       .innerJoin(siparisKalemleri, eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemleri.id))
       .innerJoin(satisSiparisleri, eq(siparisKalemleri.siparis_id, satisSiparisleri.id))
       .innerJoin(musteriler, eq(satisSiparisleri.musteri_id, musteriler.id))
+      .innerJoin(urunler, eq(siparisKalemleri.urun_id, urunler.id))
       .where(inArray(uretimEmriSiparisKalemleri.uretim_emri_id, emirIds))
       .groupBy(uretimEmriSiparisKalemleri.uretim_emri_id),
   ]);
@@ -389,6 +396,9 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
       {
         siparisKalemIds: row.siparisKalemIds ? String(row.siparisKalemIds).split(',') : [],
         siparisNo: row.siparisNo,
+        siparisUrunKod: row.siparisUrunKod,
+        siparisUrunAd: row.siparisUrunAd,
+        siparisUrunGorsel: row.siparisUrunGorsel,
         musteriAd: row.musteriAd,
         musteriDetay: row.musteriDetay,
         musteriOzetTipi: (Number(row.musteriSayisi) > 1 ? 'toplam' : 'tekil') as 'tekil' | 'toplam',
@@ -420,6 +430,9 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
       ...row,
       siparisKalemIds: j?.siparisKalemIds ?? [],
       siparisNo: j?.siparisNo ?? null,
+      siparisUrunKod: j?.siparisUrunKod ?? null,
+      siparisUrunAd: j?.siparisUrunAd ?? null,
+      siparisUrunGorsel: j?.siparisUrunGorsel ?? null,
       urunKod: (row as EnrichedUretimEmriRow).urunKod ?? null,
       urunAd: (row as EnrichedUretimEmriRow).urunAd ?? null,
       receteAd: (row as EnrichedUretimEmriRow).receteAd ?? null,
@@ -538,7 +551,7 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<Enriched
     await syncJunctionRows(id, patch.siparisKalemIds ?? [], urunId ?? undefined);
   }
 
-  // Miktar degistiyse operasyonlarin planlanan_miktar'ini ve kuyruk surelerini guncelle
+  // Miktar degistiyse operasyonlarin planlanan_miktar'ini, hammadde rezervasyonlarini ve kuyruk surelerini guncelle
   if (patch.planlananMiktar !== undefined) {
     const miktarStr = patch.planlananMiktar.toFixed(4);
     // Operasyonlarin planlanan miktarini guncelle
@@ -546,6 +559,21 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<Enriched
       .update(uretimEmriOperasyonlari)
       .set({ planlanan_miktar: miktarStr })
       .where(eq(uretimEmriOperasyonlari.uretim_emri_id, id));
+
+    // Hammadde rezervasyonunu yeni miktara senkronla:
+    // mevcut rezervasyon iptal edilir (rezerve_stok düşer), yeni miktarla yeniden açılır.
+    // Reçete bağlı değilse rezervasyon işlemi atlanır (rezerveHammaddeler erken döner).
+    await iptalRezervasyon(id);
+    let receteId: string | undefined = existing.recete_id ?? undefined;
+    if (!receteId) {
+      const [aktifRecete] = await db
+        .select({ id: receteler.id })
+        .from(receteler)
+        .where(and(eq(receteler.urun_id, existing.urun_id), eq(receteler.is_active, 1)))
+        .limit(1);
+      receteId = aktifRecete?.id;
+    }
+    await rezerveHammaddeler(id, receteId, patch.planlananMiktar);
 
     // Kuyruk surelerini yeniden hesapla (cevrim_suresi * yeni miktar)
     const kuyrukRows = await db
@@ -785,6 +813,7 @@ export async function repoGetHammaddeYeterlilik(id: string): Promise<HammaddeYet
       ad: urunler.ad,
       gorsel: urunler.image_url,
       stok: urunler.stok,
+      stokTakipAktif: urunler.stok_takip_aktif,
     })
     .from(urunler)
     .where(inArray(urunler.id, uniqueUrunIds));
@@ -805,6 +834,7 @@ export async function repoGetHammaddeYeterlilik(id: string): Promise<HammaddeYet
   for (const urunId of uniqueUrunIds) {
     const sInfo = stockMap.get(urunId);
     const myNeeded = myRez.filter((r) => r.urunId === urunId).reduce((sum, r) => sum + Number(r.miktar), 0);
+    const stokTakipAktif = sInfo?.stokTakipAktif !== 0;
     
     // Sum "others" that end BEFORE us
     const higherPriorityRezMiktar = others
@@ -818,8 +848,8 @@ export async function repoGetHammaddeYeterlilik(id: string): Promise<HammaddeYet
       .reduce((sum, o) => sum + Number(o.miktar), 0);
 
     const totalStok = Number(sInfo?.stok ?? 0);
-    const kalanSerbest = Math.max(0, totalStok - higherPriorityRezMiktar);
-    const eksik = Math.max(0, myNeeded - kalanSerbest);
+    const kalanSerbest = stokTakipAktif ? Math.max(0, totalStok - higherPriorityRezMiktar) : myNeeded;
+    const eksik = stokTakipAktif ? Math.max(0, myNeeded - kalanSerbest) : 0;
 
     if (eksik > 0) overallYeterli = false;
 

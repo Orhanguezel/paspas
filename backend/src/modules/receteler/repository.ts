@@ -75,6 +75,7 @@ function mapKalemInsert(receteId: string, items: CreateBody['items'] | PatchBody
     urun_id: item.urunId,
     miktar: item.miktar.toFixed(4),
     fire_orani: item.fireOrani.toFixed(2),
+    aciklama: item.aciklama?.trim() || null,
     sira: item.sira,
   }));
 }
@@ -97,8 +98,25 @@ export async function repoGetById(id: string): Promise<ReceteDetail | null> {
   if (!recete) return null;
 
   const items = await db
-    .select()
+    .select({
+      id: receteKalemleri.id,
+      recete_id: receteKalemleri.recete_id,
+      urun_id: receteKalemleri.urun_id,
+      miktar: receteKalemleri.miktar,
+      fire_orani: receteKalemleri.fire_orani,
+      aciklama: receteKalemleri.aciklama,
+      sira: receteKalemleri.sira,
+      created_at: receteKalemleri.created_at,
+      updated_at: receteKalemleri.updated_at,
+      malzemeKod: urunler.kod,
+      malzemeAd: urunler.ad,
+      malzemeKategori: urunler.kategori,
+      malzemeBirim: urunler.birim,
+      malzemeBirimFiyat: urunler.birim_fiyat,
+      malzemeGorselUrl: urunler.image_url,
+    })
     .from(receteKalemleri)
+    .leftJoin(urunler, eq(receteKalemleri.urun_id, urunler.id))
     .where(eq(receteKalemleri.recete_id, id))
     .orderBy(asc(receteKalemleri.sira), asc(receteKalemleri.created_at));
 
@@ -158,6 +176,7 @@ export async function repoGetByUrunId(urunId: string): Promise<ReceteDetail | nu
       urun_id: receteKalemleri.urun_id,
       miktar: receteKalemleri.miktar,
       fire_orani: receteKalemleri.fire_orani,
+      aciklama: receteKalemleri.aciklama,
       sira: receteKalemleri.sira,
       created_at: receteKalemleri.created_at,
       updated_at: receteKalemleri.updated_at,
@@ -166,6 +185,7 @@ export async function repoGetByUrunId(urunId: string): Promise<ReceteDetail | nu
       malzemeKategori: urunler.kategori,
       malzemeBirim: urunler.birim,
       malzemeBirimFiyat: urunler.birim_fiyat,
+      malzemeGorselUrl: urunler.image_url,
     })
     .from(receteKalemleri)
     .leftJoin(urunler, eq(receteKalemleri.urun_id, urunler.id))

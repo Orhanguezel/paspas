@@ -1,0 +1,24 @@
+# apps/portal/.env.example
+
+# Database (ERP ile aynı)
+DATABASE_URL=postgresql://user:password@host:5432/erp_db
+
+# Auth
+JWT_SECRET=  # openssl rand -hex 32 ile üret
+SESSION_DURATION_DAYS=7
+
+# Email (Resend)
+RESEND_API_KEY=re_xxxxxxxxxxxx
+RESEND_FROM_EMAIL=siparis@firmaadi.com
+
+# WhatsApp Cloud API (Faz 2'de)
+WHATSAPP_PHONE_ID=
+WHATSAPP_TOKEN=
+WHATSAPP_VERIFY_TOKEN=
+
+# Redis (BullMQ için - opsiyonel başlangıçta)
+REDIS_URL=redis://localhost:6379
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3001
+NODE_ENV=development

@@ -114,7 +114,7 @@ function createDateForClock(reference: Date, clock: string): Date {
   return date;
 }
 
-function buildShiftWindow(now: Date, tanim: VardiyaTanimi): VardiyaPenceresi {
+export function buildShiftWindow(now: Date, tanim: VardiyaTanimi): VardiyaPenceresi {
   const currentMinutes = getCurrentMinutes(now);
   const baslangicMinutes = parseClockToMinutes(tanim.baslangicSaati);
   const bitisMinutes = parseClockToMinutes(tanim.bitisSaati);
@@ -129,6 +129,28 @@ function buildShiftWindow(now: Date, tanim: VardiyaTanimi): VardiyaPenceresi {
     } else {
       baslangic.setDate(baslangic.getDate() - 1);
     }
+  }
+
+  return {
+    vardiyaTipi: tanim.vardiyaTipi,
+    ad: tanim.ad,
+    baslangic,
+    bitis,
+  };
+}
+
+export function buildShiftWindowFromStart(start: Date, tanim: VardiyaTanimi): VardiyaPenceresi {
+  const baslangic = createDateForClock(start, tanim.baslangicSaati);
+  const bitis = createDateForClock(start, tanim.bitisSaati);
+  const baslangicMinutes = parseClockToMinutes(tanim.baslangicSaati);
+  const bitisMinutes = parseClockToMinutes(tanim.bitisSaati);
+
+  if (baslangicMinutes >= bitisMinutes) {
+    bitis.setDate(bitis.getDate() + 1);
+  }
+  if (start < baslangic) {
+    baslangic.setDate(baslangic.getDate() - 1);
+    bitis.setDate(bitis.getDate() - 1);
   }
 
   return {
@@ -181,6 +203,123 @@ async function getCurrentShiftWindow(now: Date): Promise<VardiyaPenceresi | null
   return current[0] ?? null;
 }
 
+async function closeExpiredOpenShiftForMachine(
+  tx: DbTransaction,
+  makineId: string,
+  now: Date,
+) {
+  const [openShift] = await tx
+    .select()
+    .from(vardiyaKayitlari)
+    .where(
+      and(
+        eq(vardiyaKayitlari.makine_id, makineId),
+        sql`${vardiyaKayitlari.bitis} IS NULL`,
+      ),
+    )
+    .orderBy(desc(vardiyaKayitlari.baslangic))
+    .limit(1);
+
+  if (!openShift) return null;
+
+  const tanimlar = await listActiveVardiyaTanimlari();
+  const matchingTanim = tanimlar.find((tanim) => tanim.vardiyaTipi === openShift.vardiya_tipi) ?? tanimlar[0];
+  if (!matchingTanim) return openShift;
+
+  const pencere = buildShiftWindowFromStart(new Date(openShift.baslangic), matchingTanim);
+  if (now < pencere.bitis) return openShift;
+
+  await tx
+    .update(vardiyaKayitlari)
+    .set({ bitis: pencere.bitis })
+    .where(eq(vardiyaKayitlari.id, openShift.id));
+
+  return null;
+}
+
+/**
+ * Tüm makinelerdeki süresi dolmuş açık vardiyaları kapatır (proaktif scheduler için).
+ *
+ * Lazy-close pattern (`closeExpiredOpenShiftForMachine`) sadece bir sonraki üretim
+ * girişinde tetikleniyordu. Bu fonksiyon scheduler tarafından periyodik çağrılır
+ * ve hiç üretim girişi olmasa bile vardiya bitiş saatinde kapatma yapar.
+ *
+ * @returns kapatılan vardiya sayısı
+ */
+export async function closeAllExpiredOpenShifts(now: Date = new Date()): Promise<number> {
+  const openShifts = await db
+    .select()
+    .from(vardiyaKayitlari)
+    .where(sql`${vardiyaKayitlari.bitis} IS NULL`);
+
+  if (openShifts.length === 0) return 0;
+
+  const tanimlar = await listActiveVardiyaTanimlari();
+  if (tanimlar.length === 0) return 0;
+
+  let closedCount = 0;
+  for (const openShift of openShifts) {
+    const matchingTanim =
+      tanimlar.find((t) => t.vardiyaTipi === openShift.vardiya_tipi) ?? tanimlar[0];
+    if (!matchingTanim) continue;
+
+    const pencere = buildShiftWindowFromStart(new Date(openShift.baslangic), matchingTanim);
+    if (now < pencere.bitis) continue; // henüz dolmamış
+
+    await db
+      .update(vardiyaKayitlari)
+      .set({ bitis: pencere.bitis })
+      .where(eq(vardiyaKayitlari.id, openShift.id));
+    closedCount += 1;
+  }
+
+  return closedCount;
+}
+
+async function findMostRecentClosedShiftForMachine(
+  tx: DbTransaction,
+  makineId: string,
+  now: Date,
+) {
+  const [closedShift] = await tx
+    .select()
+    .from(vardiyaKayitlari)
+    .where(
+      and(
+        eq(vardiyaKayitlari.makine_id, makineId),
+        sql`${vardiyaKayitlari.bitis} IS NOT NULL`,
+        lte(vardiyaKayitlari.bitis, now),
+      ),
+    )
+    .orderBy(desc(vardiyaKayitlari.bitis))
+    .limit(1);
+
+  return closedShift ?? null;
+}
+
+export function isRecentShiftClose(shiftEnd: Date, now: Date): boolean {
+  return now.getTime() - shiftEnd.getTime() <= 18 * 60 * 60 * 1000;
+}
+
+async function findShiftByIdForMachine(
+  tx: DbTransaction,
+  vardiyaKayitId: string,
+  makineId: string,
+) {
+  const [shift] = await tx
+    .select()
+    .from(vardiyaKayitlari)
+    .where(
+      and(
+        eq(vardiyaKayitlari.id, vardiyaKayitId),
+        eq(vardiyaKayitlari.makine_id, makineId),
+      ),
+    )
+    .limit(1);
+
+  return shift ?? null;
+}
+
 async function ensureAutomaticShiftForMachine(
   tx: DbTransaction,
   {
@@ -199,17 +338,7 @@ async function ensureAutomaticShiftForMachine(
     strictNoExisting?: boolean;
   },
 ) {
-  const [openShift] = await tx
-    .select()
-    .from(vardiyaKayitlari)
-    .where(
-      and(
-        eq(vardiyaKayitlari.makine_id, makineId),
-        sql`${vardiyaKayitlari.bitis} IS NULL`,
-      ),
-    )
-    .orderBy(desc(vardiyaKayitlari.baslangic))
-    .limit(1);
+  const openShift = await closeExpiredOpenShiftForMachine(tx, makineId, now);
 
   if (openShift) {
     if (strictNoExisting) throw new Error('acik_vardiya_zaten_var');
@@ -261,6 +390,20 @@ async function consumeRecipeMaterials(
 
   if (!emir?.recete_id) return;
 
+  // Çift düşüm koruması: bu emir için hammadde zaten `stokDus` (makine atama) ile
+  // gerçek stoktan düşürülmüşse (rezervasyon durumu 'tamamlandi'), reçete üzerinden
+  // ikinci düşüm yapma. Aksi halde hammadde 2 kez düşer.
+  const [rezervasyonStat] = await tx
+    .select({ count: sql<number>`count(*)` })
+    .from(hammaddeRezervasyonlari)
+    .where(
+      and(
+        eq(hammaddeRezervasyonlari.uretim_emri_id, uretimEmriId),
+        eq(hammaddeRezervasyonlari.durum, 'tamamlandi'),
+      ),
+    );
+  if (Number(rezervasyonStat?.count ?? 0) > 0) return;
+
   const [recHeader] = await tx
     .select({ hedef_miktar: receteler.hedef_miktar })
     .from(receteler)
@@ -272,18 +415,25 @@ async function consumeRecipeMaterials(
   if (targetQty <= 0) return;
 
   const lines = await tx
-    .select()
+    .select({
+      urun_id: receteKalemleri.urun_id,
+      miktar: receteKalemleri.miktar,
+      stokTakipAktif: urunler.stok_takip_aktif,
+    })
     .from(receteKalemleri)
+    .innerJoin(urunler, eq(receteKalemleri.urun_id, urunler.id))
     .where(eq(receteKalemleri.recete_id, emir.recete_id));
 
   for (const line of lines) {
     const rawQty = (Number(line.miktar) / targetQty) * netMiktar;
     if (rawQty <= 0) continue;
 
-    await tx
-      .update(urunler)
-      .set({ stok: sql`${urunler.stok} - ${rawQty.toFixed(4)}` })
-      .where(eq(urunler.id, line.urun_id));
+    if (line.stokTakipAktif === 1) {
+      await tx
+        .update(urunler)
+        .set({ stok: sql`${urunler.stok} - ${rawQty.toFixed(4)}` })
+        .where(eq(urunler.id, line.urun_id));
+    }
 
     await tx.insert(hareketler).values({
       id: randomUUID(),
@@ -797,11 +947,10 @@ export async function repoUretimBitir(
       .set({ durum: 'tamamlandi', gercek_bitis: now })
       .where(eq(makineKuyrugu.id, body.makineKuyrukId));
 
-    // body.uretilenMiktar = gerçek toplam üretim (tüm iş emri boyunca)
-    // body.fireMiktar = gerçek toplam fire
-    const gercekNet = body.uretilenMiktar - body.fireMiktar;
+    // Bitirme ekranındaki miktar, daha önce girilen günlük üretimin üzerine eklenecek son vardiya miktarıdır.
+    const sonEkNet = body.uretilenMiktar - body.fireMiktar;
 
-    // Sum previous incremental stock entries from measurements
+    // Sum previous incremental entries for the same operation/job.
     const opFilter = kqRow.emir_operasyon_id
       ? eq(operatorGunlukKayitlari.emir_operasyon_id, kqRow.emir_operasyon_id)
       : eq(operatorGunlukKayitlari.uretim_emri_id, kqRow.uretim_emri_id);
@@ -809,18 +958,19 @@ export async function repoUretimBitir(
     const [prevTotals] = await tx
       .select({
         onceki_net: sql<string>`COALESCE(SUM(${operatorGunlukKayitlari.net_miktar}), 0)`,
+        onceki_fire: sql<string>`COALESCE(SUM(${operatorGunlukKayitlari.fire_miktari}), 0)`,
       })
       .from(operatorGunlukKayitlari)
       .where(opFilter);
 
     const oncekiNet = Number(prevTotals?.onceki_net ?? 0);
+    const oncekiFire = Number(prevTotals?.onceki_fire ?? 0);
+    const toplamNet = oncekiNet + sonEkNet;
+    const toplamFire = oncekiFire + body.fireMiktar;
 
-    // Difference = what still needs to be added/corrected in stock
-    // positive = measurements were short, need to add more
-    // negative = measurements were over, need correction
-    stokFarki = gercekNet - oncekiNet;
+    stokFarki = sonEkNet;
 
-    // Log final günlük kayıt with the correction amount
+    // Log final günlük kayıt as one more incremental entry.
     await tx.insert(operatorGunlukKayitlari).values({
       id: randomUUID(),
       uretim_emri_id: kqRow.uretim_emri_id,
@@ -828,7 +978,7 @@ export async function repoUretimBitir(
       emir_operasyon_id: kqRow.emir_operasyon_id ?? null,
       operator_user_id: operatorUserId ?? null,
       gunluk_durum: 'tamamlandi',
-      ek_uretim_miktari: (body.uretilenMiktar - oncekiNet).toFixed(4),
+      ek_uretim_miktari: body.uretilenMiktar.toFixed(4),
       fire_miktari: body.fireMiktar.toFixed(4),
       net_miktar: stokFarki.toFixed(4),
       birim_tipi: body.birimTipi,
@@ -860,16 +1010,23 @@ export async function repoUretimBitir(
     // Only for montaj or single-sided operations.
     if (stokFarki !== 0 && kqRow.uretim_emri_id && hasStockImpact) {
       const [emirRow] = await tx
-        .select({ urun_id: uretimEmirleri.urun_id, recete_id: uretimEmirleri.recete_id })
+        .select({
+          urun_id: uretimEmirleri.urun_id,
+          recete_id: uretimEmirleri.recete_id,
+          stokTakipAktif: urunler.stok_takip_aktif,
+        })
         .from(uretimEmirleri)
+        .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
         .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id))
         .limit(1);
 
       if (emirRow?.urun_id) {
-        await tx
-          .update(urunler)
-          .set({ stok: sql`${urunler.stok} + ${stokFarki.toFixed(4)}` })
-          .where(eq(urunler.id, emirRow.urun_id));
+        if (emirRow.stokTakipAktif === 1) {
+          await tx
+            .update(urunler)
+            .set({ stok: sql`${urunler.stok} + ${stokFarki.toFixed(4)}` })
+            .where(eq(urunler.id, emirRow.urun_id));
+        }
 
         await tx.insert(hareketler).values({
           id: randomUUID(),
@@ -894,8 +1051,8 @@ export async function repoUretimBitir(
       await tx
         .update(uretimEmriOperasyonlari)
         .set({
-          uretilen_miktar: body.uretilenMiktar.toFixed(4),
-          fire_miktar: body.fireMiktar.toFixed(4),
+          uretilen_miktar: toplamNet.toFixed(4),
+          fire_miktar: toplamFire.toFixed(4),
           durum: 'tamamlandi',
           gercek_bitis: now,
         })
@@ -920,7 +1077,7 @@ export async function repoUretimBitir(
       const remaining = Number(pendingOps[0]?.count ?? 0);
 
       const emirUpdate: Record<string, unknown> = {};
-      if (hasStockImpact) emirUpdate.uretilen_miktar = body.uretilenMiktar.toFixed(4);
+      if (hasStockImpact) emirUpdate.uretilen_miktar = toplamNet.toFixed(4);
       if (remaining <= 0) { emirUpdate.durum = 'tamamlandi'; emirUpdate.bitis_tarihi = now; }
 
       if (Object.keys(emirUpdate).length > 0) {
@@ -1211,6 +1368,7 @@ async function recordIncrementalProductionEntry(
     birimTipi,
     notlar,
     gunlukDurum = 'devam_ediyor',
+    kayitTarihi,
   }: {
     kqRow: {
       makine_id: string;
@@ -1223,6 +1381,7 @@ async function recordIncrementalProductionEntry(
     birimTipi: 'adet' | 'takim';
     notlar?: string | null;
     gunlukDurum?: 'devam_ediyor' | 'yarim_kaldi' | 'tamamlandi';
+    kayitTarihi?: Date;
   },
 ): Promise<OperatorGunlukGirisDto | null> {
   if (uretilenMiktar <= 0) return null;
@@ -1242,7 +1401,7 @@ async function recordIncrementalProductionEntry(
     net_miktar: netMiktar.toFixed(4),
     birim_tipi: birimTipi,
     notlar: notlar ?? null,
-    kayit_tarihi: new Date(),
+    kayit_tarihi: kayitTarihi ?? new Date(),
   });
 
   if (kqRow.emir_operasyon_id) {
@@ -1263,16 +1422,22 @@ async function recordIncrementalProductionEntry(
 
   if (netMiktar > 0 && await hasIncrementalStockImpact(tx, kqRow)) {
     const [emirRow] = await tx
-      .select({ urun_id: uretimEmirleri.urun_id })
+      .select({
+        urun_id: uretimEmirleri.urun_id,
+        stokTakipAktif: urunler.stok_takip_aktif,
+      })
       .from(uretimEmirleri)
+      .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
       .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id))
       .limit(1);
 
     if (emirRow) {
-      await tx
-        .update(urunler)
-        .set({ stok: sql`${urunler.stok} + ${netMiktar.toFixed(4)}` })
-        .where(eq(urunler.id, emirRow.urun_id));
+      if (emirRow.stokTakipAktif === 1) {
+        await tx
+          .update(urunler)
+          .set({ stok: sql`${urunler.stok} + ${netMiktar.toFixed(4)}` })
+          .where(eq(urunler.id, emirRow.urun_id));
+      }
 
       await tx.insert(hareketler).values({
         id: randomUUID(),
@@ -1548,14 +1713,33 @@ export async function repoGunlukUretimGir(
   const now = new Date();
 
   const kayit = await db.transaction(async (tx) => {
-    await ensureAutomaticShiftForMachine(tx, {
-      makineId: body.makineId,
-      operatorUserId,
-      now,
-    });
+    const openShift = body.vardiyaKayitId
+      ? null
+      : await closeExpiredOpenShiftForMachine(tx, body.makineId, now);
 
     const activeJob = await findActiveMachineJob(tx, body.makineId);
     if (!activeJob) throw new Error('aktif_uretim_bulunamadi');
+
+    let kayitTarihi = now;
+    if (body.vardiyaKayitId) {
+      const targetShift = await findShiftByIdForMachine(tx, body.vardiyaKayitId, body.makineId);
+      if (!targetShift) throw new Error('vardiya_kaydi_bulunamadi');
+      kayitTarihi = targetShift.bitis ? new Date(targetShift.bitis) : now;
+    } else if (openShift) {
+      kayitTarihi = now;
+    } else {
+      const recentClosedShift = await findMostRecentClosedShiftForMachine(tx, body.makineId, now);
+      const recentClosedShiftEnd = recentClosedShift?.bitis ? new Date(recentClosedShift.bitis) : null;
+      if (recentClosedShiftEnd && isRecentShiftClose(recentClosedShiftEnd, now)) {
+        kayitTarihi = recentClosedShiftEnd;
+      } else {
+        await ensureAutomaticShiftForMachine(tx, {
+          makineId: body.makineId,
+          operatorUserId,
+          now,
+        });
+      }
+    }
 
     return recordIncrementalProductionEntry(tx, {
       kqRow: activeJob,
@@ -1565,6 +1749,7 @@ export async function repoGunlukUretimGir(
       birimTipi: body.birimTipi,
       notlar: body.notlar ?? 'Vardiya sonu günlük üretim girişi',
       gunlukDurum: 'yarim_kaldi',
+      kayitTarihi,
     });
   });
 

@@ -7,7 +7,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -34,6 +34,7 @@ import {
   useCreateCategoryAdminMutation,
   useDeleteCategoryAdminMutation,
   useListCategoriesAdminQuery,
+  useRepairDefaultCategoriesAdminMutation,
   useUpdateCategoryAdminMutation,
 } from "@/integrations/endpoints/admin/categories_admin.endpoints";
 import { useListBirimlerAdminQuery } from "@/integrations/endpoints/admin/erp/tanimlar_admin.endpoints";
@@ -398,6 +399,7 @@ export default function KategorilerTab() {
   const { data: subCategoriesRaw, isLoading: subLoading, refetch: refetchSubs } = useListSubCategoriesAdminQuery();
   const [deleteSubCat] = useDeleteSubCategoryAdminMutation();
   const [deleteCat] = useDeleteCategoryAdminMutation();
+  const [repairDefaultCategories, repairState] = useRepairDefaultCategoriesAdminMutation();
 
   const categories = (categoriesRaw ?? []) as CategoryDto[];
   const subCategories = (subCategoriesRaw ?? []) as SubCategoryDto[];
@@ -468,8 +470,21 @@ export default function KategorilerTab() {
       toast.success(tK("deleted"));
       setDeletingCat(null);
       refetchCats();
-    } catch {
-      toast.error(tK("deleteFailed"));
+    } catch (error: unknown) {
+      const apiError =
+        typeof error === "object" && error && "data" in error
+          ? (error as { data?: { error?: { message?: string; detail?: unknown } } }).data?.error
+          : undefined;
+      if (apiError?.message === "category_in_use") {
+        const detail = apiError.detail as { subCategoryCount?: number; productCount?: number } | undefined;
+        const subCount = detail?.subCategoryCount ?? 0;
+        const productCount = detail?.productCount ?? 0;
+        toast.error(`Kategori silinemez: ${subCount} alt kategori ve ${productCount} ürün bağlı.`);
+      } else if (apiError?.message === "record_in_use") {
+        toast.error("Kategori silinemez: bağlı kayıtlar var.");
+      } else {
+        toast.error(tK("deleteFailed"));
+      }
     }
   }
 
@@ -482,6 +497,16 @@ export default function KategorilerTab() {
       refetchSubs();
     } catch {
       toast.error(tK("deleteFailed"));
+    }
+  }
+
+  async function handleRepairDefaults() {
+    try {
+      await repairDefaultCategories().unwrap();
+      toast.success("ERP kategorileri onarıldı.");
+      refetchCats();
+    } catch {
+      toast.error("Kategori onarımı başarısız oldu.");
     }
   }
 
@@ -498,9 +523,14 @@ export default function KategorilerTab() {
                 {tK("description")}
               </CardDescription>
             </div>
-            <Button size="sm" onClick={openCreateCat}>
-              <Plus className="mr-1 size-4" /> {tK("newCategory")}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={handleRepairDefaults} disabled={repairState.isLoading}>
+                <RotateCcw className="mr-1 size-4" /> Onar
+              </Button>
+              <Button size="sm" onClick={openCreateCat}>
+                <Plus className="mr-1 size-4" /> {tK("newCategory")}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>

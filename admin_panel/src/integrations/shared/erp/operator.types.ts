@@ -93,6 +93,7 @@ export interface VardiyaSonuPayload {
 
 export interface GunlukUretimPayload {
   makineId: string;
+  vardiyaKayitId?: string;
   uretilenMiktar: number;
   fireMiktar?: number;
   birimTipi?: 'adet' | 'takim';

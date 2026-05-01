@@ -11,7 +11,6 @@ import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 
-import { AccountSwitcher } from './_components/sidebar/account-switcher';
 import { AdminFooter } from './_components/sidebar/admin-footer';
 import { AdminBrandTitle } from './_components/sidebar/admin-brand-title';
 import { LayoutControls } from './_components/sidebar/layout-controls';
@@ -20,6 +19,7 @@ import { ThemeSwitcher } from './_components/sidebar/theme-switcher';
 import AdminAuthGate from './_components/admin-auth-gate';
 import { AdminNotificationsLive } from './_components/admin-notifications-live';
 import { AdminSettingsProvider } from './_components/admin-settings-provider';
+import { PageFeedbackWidget } from './_components/page-feedback/page-feedback-widget';
 
 export default function Layout({ children }: Readonly<{ children: ReactNode }>) {
   return (
@@ -73,11 +73,12 @@ export default function Layout({ children }: Readonly<{ children: ReactNode }>) 
             </header>
 
             <div className="flex flex-1 flex-col overflow-hidden">
-              <div className="flex-1 min-w-0 overflow-auto p-4 md:p-6">
+              <div className="min-w-0 flex-1 overflow-auto p-4 md:p-6">
                 {children}
               </div>
               <AdminFooter />
             </div>
+            <PageFeedbackWidget />
           </SidebarInset>
         </SidebarProvider>
       </AdminSettingsProvider>

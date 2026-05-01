@@ -162,43 +162,9 @@ async function validateReceteItems(items: Array<{ urunId: string }>, currentUrun
   }
 
   const invalidItem = rows.find(
-    (row) => row.id === currentUrunId || !row.recetedeKullanilabilir,
+    (row) => row.id === currentUrunId || (row.kategori !== 'operasyonel_ym' && !row.recetedeKullanilabilir),
   );
   return invalidItem ? 'gecersiz_recete_malzeme' : null;
-}
-
-const ALT_KIRILIM_DESTEKLI_KATEGORILER = new Set(['operasyonel_ym', 'yarimamul']);
-
-async function buildReceteDtoWithNestedBreakdown(
-  detail: NonNullable<Awaited<ReturnType<typeof repoGetReceteByUrunId>>>,
-  visitedProductIds = new Set<string>(),
-) {
-  const dto = receteRowToDto(detail.recete);
-  const nextVisited = new Set(visitedProductIds);
-  if (detail.recete.urun_id) {
-    nextVisited.add(detail.recete.urun_id);
-  }
-
-  dto.items = await Promise.all(
-    detail.items.map(async (item) => {
-      const itemDto = receteKalemRowToDto(item);
-
-      if (
-        itemDto.malzemeKategori &&
-        ALT_KIRILIM_DESTEKLI_KATEGORILER.has(itemDto.malzemeKategori) &&
-        !nextVisited.has(itemDto.urunId)
-      ) {
-        const childDetail = await repoGetReceteByUrunId(itemDto.urunId);
-        if (childDetail) {
-          itemDto.altRecete = await buildReceteDtoWithNestedBreakdown(childDetail, nextVisited);
-        }
-      }
-
-      return itemDto;
-    }),
-  );
-
-  return dto;
 }
 
 /** GET /admin/urunler/next-code?kategori=hammadde */
@@ -543,6 +509,7 @@ const receteItemSchema = z.object({
   urunId: z.string().min(1),
   miktar: z.coerce.number().positive(),
   fireOrani: z.coerce.number().min(0).max(100).default(0),
+  aciklama: z.string().trim().max(500).optional(),
   sira: z.coerce.number().int().min(0).default(0),
 });
 
@@ -566,7 +533,8 @@ export const getUrunRecete: RouteHandler = async (req, reply) => {
       return reply.send({ recete: null, items: [] });
     }
 
-    const dto = await buildReceteDtoWithNestedBreakdown(detail);
+    const dto = receteRowToDto(detail.recete);
+    dto.items = detail.items.map(receteKalemRowToDto);
     return reply.send(dto);
   } catch (error) {
     req.log.error({ error }, 'get_urun_recete_failed');
@@ -628,7 +596,8 @@ export const saveUrunRecete: RouteHandler = async (req, reply) => {
       await syncAsilUrunOperasyonlariFromRecete(id, parsed.data.items);
     }
 
-    const dto = await buildReceteDtoWithNestedBreakdown(detail);
+    const dto = receteRowToDto(detail.recete);
+    dto.items = detail.items.map(receteKalemRowToDto);
     return reply.send(dto);
   } catch (error: unknown) {
     req.log.error({ error }, 'save_urun_recete_failed');

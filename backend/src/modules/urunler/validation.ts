@@ -20,8 +20,8 @@ export const listQuerySchema = z.object({
   isActive: isActiveQuerySchema.optional(),
   limit: z.coerce.number().int().min(1).max(500).default(100),
   offset: z.coerce.number().int().min(0).default(0),
-  sort: sortEnum.default('kod'),
-  order: orderEnum.default('asc'),
+  sort: sortEnum.default('created_at'),
+  order: orderEnum.default('desc'),
 });
 
 const operasyonMakineSchema = z.object({
@@ -74,6 +74,7 @@ export const createSchema = z.object({
   imageAlt: optionalTrimmedStr(255),
   stok: z.coerce.number().min(0).default(0),
   kritikStok: z.coerce.number().min(0).default(0),
+  stokTakipAktif: z.boolean().default(true),
   birimFiyat: z.coerce.number().min(0).optional(),
   kdvOrani: z.coerce.number().min(0).max(100).default(20),
   operasyonTipi: z.enum(['tek_tarafli', 'cift_tarafli']).nullable().optional(),
@@ -122,6 +123,7 @@ const receteKalemItemSchema = z.object({
   urunId: z.string().trim().min(1),
   miktar: z.coerce.number().positive(),
   fireOrani: z.coerce.number().min(0).max(100).default(0),
+  aciklama: z.string().trim().max(500).optional(),
   sira: z.coerce.number().int().min(0).default(0),
 });
 
@@ -137,6 +139,7 @@ export const createUrunFullSchema = z.object({
   imageAlt: optionalTrimmedStr(255),
   stok: z.coerce.number().min(0).default(0),
   kritikStok: z.coerce.number().min(0).default(0),
+  stokTakipAktif: z.boolean().default(true),
   birimFiyat: z.coerce.number().min(0).optional(),
   kdvOrani: z.coerce.number().min(0).max(100).default(20),
   operasyonTipi: z.enum(['tek_tarafli', 'cift_tarafli']),

@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Plus, RefreshCcw, Pencil, Trash2, Search, Eye } from 'lucide-react';
+import { Plus, RefreshCcw, Pencil, Trash2, Search, Eye, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
 
@@ -42,6 +42,14 @@ import {
 } from '@/integrations/endpoints/admin/erp/musteriler_admin.endpoints';
 import type { MusteriDto } from '@/integrations/shared/erp/musteriler.types';
 import MusteriForm from './musteri-form';
+
+function formatHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url.replace(/^https?:\/\//, '').replace(/^www\./, '');
+  }
+}
 
 export default function MusterilerClient() {
   const { t } = useLocaleContext();
@@ -143,6 +151,8 @@ export default function MusterilerClient() {
               <TableHead>{t('admin.erp.musteriler.columns.ilgiliKisi')}</TableHead>
               <TableHead>{t('admin.erp.musteriler.columns.telefon')}</TableHead>
               <TableHead>{t('admin.erp.musteriler.columns.email')}</TableHead>
+              <TableHead>{t('admin.erp.musteriler.columns.website')}</TableHead>
+              <TableHead>{t('admin.erp.musteriler.columns.bayiSegment')}</TableHead>
               <TableHead className="text-right">{t('admin.erp.musteriler.columns.iskonto')}</TableHead>
               <TableHead className="w-20" />
             </TableRow>
@@ -150,7 +160,7 @@ export default function MusterilerClient() {
           <TableBody>
             {isLoading && Array.from({ length: 5 }).map((_, i) => (
               <TableRow key={i}>
-                {Array.from({ length: 8 }).map((__, j) => (
+                {Array.from({ length: 10 }).map((__, j) => (
                   <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                 ))}
               </TableRow>
@@ -158,7 +168,7 @@ export default function MusterilerClient() {
 
             {!isLoading && items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={10} className="py-10 text-center text-sm text-muted-foreground">
                   {t('admin.erp.musteriler.notFound')}
                 </TableCell>
               </TableRow>
@@ -176,6 +186,19 @@ export default function MusterilerClient() {
                 <TableCell>{m.ilgiliKisi ?? '—'}</TableCell>
                 <TableCell>{m.telefon ?? '—'}</TableCell>
                 <TableCell>{m.email ?? '—'}</TableCell>
+                <TableCell>
+                  {m.websiteUrl ? (
+                    <a className="inline-flex items-center gap-1 text-primary hover:underline" href={m.websiteUrl} target="_blank" rel="noreferrer">
+                      {formatHost(m.websiteUrl)}
+                      <ExternalLink className="size-3" />
+                    </a>
+                  ) : '—'}
+                </TableCell>
+                <TableCell>
+                  {m.bayiSegment ? (
+                    <Badge variant="outline">{t(`admin.erp.musteriler.segments.${m.bayiSegment}`)}</Badge>
+                  ) : '—'}
+                </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {m.iskonto > 0 ? `%${m.iskonto}` : '—'}
                 </TableCell>

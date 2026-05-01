@@ -45,13 +45,14 @@ import { useAuthStatusQuery } from "@/integrations/endpoints/users/auth_public.e
 import { resolveMediaUrl } from "@/lib/media-url";
 
 import UrunForm from "./urun-form";
-import UrunFullForm from "./urun-full-form";
 
 type UrunListQueryParams = {
   q?: string;
   kategori?: string;
   tedarikTipi?: TedarikTipi;
   urunGrubu?: string;
+  sort?: "ad" | "kod" | "created_at" | "stok" | "kritik_stok";
+  order?: "asc" | "desc";
 };
 
 const SKELETON_ROW_KEYS = ["row-1", "row-2", "row-3", "row-4", "row-5"] as const;
@@ -70,51 +71,8 @@ const SKELETON_CELL_KEYS = [
   "cell-12",
 ] as const;
 
-type FlattenedReceteRow = {
-  key: string;
-  item: ReceteKalemDto;
-  depth: number;
-  effectiveMiktar: number;
-  hasChildren: boolean;
-};
-
-function getReceteSatirMaliyeti(item: ReceteKalemDto, effectiveMiktar: number) {
-  return effectiveMiktar * (1 + item.fireOrani / 100) * (item.malzemeBirimFiyat ?? 0);
-}
-
-function flattenReceteItems(
-  items: ReceteKalemDto[],
-  options: { depth?: number; multiplier?: number; lineage?: string[] } = {},
-): FlattenedReceteRow[] {
-  const depth = options.depth ?? 0;
-  const multiplier = options.multiplier ?? 1;
-  const lineage = options.lineage ?? [];
-
-  return items.flatMap((item, index) => {
-    const keyPart = item.id || `${item.urunId}-${index}`;
-    const key = [...lineage, keyPart].join(">");
-    const hasChildren = Boolean(item.altRecete?.items?.length);
-    const row: FlattenedReceteRow = {
-      key,
-      item,
-      depth,
-      effectiveMiktar: item.miktar * multiplier,
-      hasChildren,
-    };
-
-    if (!hasChildren || !item.altRecete?.items) {
-      return [row];
-    }
-
-    return [
-      row,
-      ...flattenReceteItems(item.altRecete.items, {
-        depth: depth + 1,
-        multiplier: item.miktar * multiplier,
-        lineage: [...lineage, keyPart],
-      }),
-    ];
-  });
+function getReceteSatirMaliyeti(item: ReceteKalemDto) {
+  return item.miktar * (1 + item.fireOrani / 100) * (item.malzemeBirimFiyat ?? 0);
 }
 
 function getApiErrorMessage(error: unknown): string | undefined {
@@ -140,7 +98,6 @@ export default function UrunlerClient() {
   const [tedarikFilter, setTedarikFilter] = useState<TedarikTipi | "">("");
   const [urunGrubuFilter, setUrunGrubuFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
-  const [fullFormOpen, setFullFormOpen] = useState(false);
   const [editing, setEditing] = useState<UrunDto | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UrunDto | null>(null);
@@ -188,14 +145,14 @@ export default function UrunlerClient() {
     setUrunGrubuFilter("");
   }, [filteredSubCategories, urunGrubuFilter]);
 
-  const queryParams: UrunListQueryParams = {};
+  const queryParams: UrunListQueryParams = { sort: "kod", order: "asc" };
   if (search) queryParams.q = search;
   if (kategoriFilter) queryParams.kategori = kategoriFilter;
   if (tedarikFilter) queryParams.tedarikTipi = tedarikFilter;
   if (urunGrubuFilter) queryParams.urunGrubu = urunGrubuFilter;
 
   const { data, isLoading, isFetching, refetch } = useListUrunlerAdminQuery(
-    Object.keys(queryParams).length > 0 ? queryParams : undefined,
+    queryParams,
   );
 
   // Fetch full product with operasyonlar when editing
@@ -273,9 +230,6 @@ export default function UrunlerClient() {
           </Button>
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCcw className={`size-4${isFetching ? "animate-spin" : ""}`} />
-          </Button>
-          <Button size="sm" variant="secondary" onClick={() => setFullFormOpen(true)}>
-            <Plus className="mr-1 size-4" /> Asıl Ürün + Operasyonel YM
           </Button>
           <Button size="sm" onClick={openCreate}>
             <Plus className="mr-1 size-4" /> {t("admin.erp.urunler.newItem")}
@@ -455,16 +409,6 @@ export default function UrunlerClient() {
       {/* Form Sheet — use full product data when editing */}
       <UrunForm open={formOpen} onClose={handleFormClose} urun={editingId && fullUrun ? fullUrun : editing} />
 
-      {/* Asıl Ürün + Yarı Mamul Full Form */}
-      <UrunFullForm
-        open={fullFormOpen}
-        onClose={() => setFullFormOpen(false)}
-        onSuccess={() => {
-          refetch();
-          setKategoriFilter("urun");
-        }}
-      />
-
       {/* Silme onayı */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
         <AlertDialogContent>
@@ -548,14 +492,9 @@ function ExpandableProductRow({
   });
 
   const receteItems = receteData?.items ?? [];
-  const flattenedReceteRows = useMemo(() => flattenReceteItems(receteItems), [receteItems]);
   const receteToplamMaliyet = useMemo(
-    () =>
-      flattenedReceteRows.reduce((sum, row) => {
-        if (row.hasChildren) return sum;
-        return sum + getReceteSatirMaliyeti(row.item, row.effectiveMiktar);
-      }, 0),
-    [flattenedReceteRows],
+    () => receteItems.reduce((sum, item) => sum + getReceteSatirMaliyeti(item), 0),
+    [receteItems],
   );
 
   return (
@@ -666,43 +605,31 @@ function ExpandableProductRow({
                     </tr>
                   </thead>
                   <tbody>
-                    {flattenedReceteRows.map((row) => {
-                      const birimFiyat = row.item.malzemeBirimFiyat ?? 0;
-                      const satirMaliyet = getReceteSatirMaliyeti(row.item, row.effectiveMiktar);
+                    {receteItems.map((item) => {
+                      const birimFiyat = item.malzemeBirimFiyat ?? 0;
+                      const satirMaliyet = getReceteSatirMaliyeti(item);
                       return (
-                        <tr
-                          key={row.key}
-                          className={`border-muted/50 border-b ${row.depth > 0 ? "bg-muted/10" : ""}`}
-                        >
+                        <tr key={item.id} className="border-muted/50 border-b">
                           <td className="py-1.5 pr-4">
-                            <div style={{ paddingLeft: `${row.depth * 18}px` }}>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span>
-                                  {row.item.malzemeKod
-                                    ? `${row.item.malzemeKod} — ${row.item.malzemeAd}`
-                                    : row.item.urunId}
-                                </span>
-                                {row.hasChildren && (
-                                  <Badge variant="outline" className="text-[10px]">
-                                    Alt Kırılım
-                                  </Badge>
-                                )}
-                                {row.item.malzemeKategori &&
-                                  row.item.malzemeKategori !== "hammadde" &&
-                                  !row.hasChildren && (
-                                    <Badge variant="secondary" className="text-[10px]">
-                                      {tKategori(row.item.malzemeKategori)}
-                                    </Badge>
-                                  )}
-                              </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span>
+                                {item.malzemeKod
+                                  ? `${item.malzemeKod} — ${item.malzemeAd}`
+                                  : item.urunId}
+                              </span>
+                              {item.malzemeKategori && item.malzemeKategori !== "hammadde" && (
+                                <Badge variant="secondary" className="text-[10px]">
+                                  {tKategori(item.malzemeKategori)}
+                                </Badge>
+                              )}
                             </div>
                           </td>
                           <td className="py-1.5 pr-4 text-right tabular-nums">
-                            {row.effectiveMiktar.toLocaleString("tr-TR", { maximumFractionDigits: 4 })}
+                            {item.miktar.toLocaleString("tr-TR", { maximumFractionDigits: 4 })}
                           </td>
-                          <td className="py-1.5 pr-4 text-right">{row.item.malzemeBirim ?? "—"}</td>
+                          <td className="py-1.5 pr-4 text-right">{item.malzemeBirim ?? "—"}</td>
                           <td className="py-1.5 pr-4 text-right tabular-nums">
-                            %{row.item.fireOrani.toLocaleString("tr-TR", { maximumFractionDigits: 2 })}
+                            %{item.fireOrani.toLocaleString("tr-TR", { maximumFractionDigits: 2 })}
                           </td>
                           <td className="py-1.5 pr-4 text-right tabular-nums">
                             {birimFiyat

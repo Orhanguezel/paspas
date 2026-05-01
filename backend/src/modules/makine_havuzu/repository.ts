@@ -142,6 +142,26 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<MakineRo
 }
 
 export async function repoDelete(id: string): Promise<void> {
+  // Bağımlılık koruması: kuyruk satırı veya üretim operasyonu bağlıyken silme reddedilir.
+  // Cascade silme veri kaybına yol açıyordu (yetim üretim emirleri, NULL kalıp/makine).
+  const [kuyrukCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(makineKuyrugu)
+    .where(eq(makineKuyrugu.makine_id, id));
+  if (Number(kuyrukCount?.count ?? 0) > 0) {
+    const err = new Error('makine_bagimliligi_var');
+    (err as any).detail = 'Bu makine üretim kuyruğunda kullanılıyor. Önce kuyruktan çıkarın.';
+    throw err;
+  }
+  const [opCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(uretimEmriOperasyonlari)
+    .where(eq(uretimEmriOperasyonlari.makine_id, id));
+  if (Number(opCount?.count ?? 0) > 0) {
+    const err = new Error('makine_bagimliligi_var');
+    (err as any).detail = 'Bu makineye atanmış üretim emri operasyonu var. Önce operasyonun makinesini değiştirin.';
+    throw err;
+  }
   await db.transaction(async (tx) => {
     await tx.delete(kalipUyumluMakineler).where(eq(kalipUyumluMakineler.makine_id, id));
     await tx.delete(makineler).where(eq(makineler.id, id));
@@ -511,6 +531,10 @@ export async function repoKuyrukCikar(kuyruguId: string): Promise<void> {
     }
     // Kuyruk kaydini sil
     await tx.delete(makineKuyrugu).where(eq(makineKuyrugu.id, kuyruguId));
+    await tx
+      .update(makineKuyrugu)
+      .set({ sira: sql`${makineKuyrugu.sira} - 1` })
+      .where(and(eq(makineKuyrugu.makine_id, affectedMakineId), sql`${makineKuyrugu.sira} > ${row.sira}`));
 
     // Auto-derive: planlandi → atanmamis (if no remaining kuyruk entries)
     if (affectedEmriId) {
@@ -570,6 +594,16 @@ export async function repoKuyrukCikar(kuyruguId: string): Promise<void> {
 
 /** Kuyruk siralarini guncelle */
 export async function repoKuyrukSirala(data: KuyrukSiralaBody): Promise<void> {
+  const kuyrukIds = data.siralar.map((item) => item.kuyruguId);
+  const mevcutRows = await db
+    .select({ id: makineKuyrugu.id })
+    .from(makineKuyrugu)
+    .where(and(inArray(makineKuyrugu.id, kuyrukIds), eq(makineKuyrugu.makine_id, data.makineId)));
+
+  if (mevcutRows.length !== new Set(kuyrukIds).size) {
+    throw new Error('kuyruk_makine_uyumsuz');
+  }
+
   // Unique constraint (makine_id, sira) oldugu icin once tum siralari yuksek offset'e tasi
   const offset = 10_000;
   for (const item of data.siralar) {

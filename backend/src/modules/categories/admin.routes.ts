@@ -17,6 +17,7 @@ import {
   adminPutCategory,
   adminPatchCategory,
   adminDeleteCategory,
+  adminRepairDefaultCategories,
   adminReorderCategories,
   adminToggleActive,
   adminToggleFeatured,
@@ -68,6 +69,12 @@ export async function registerCategoriesAdmin(app: FastifyInstance) {
     `${BASE}`,
     { preHandler: [requireAuth, requireAdmin] },
     adminCreateCategory
+  );
+
+  app.post(
+    `${BASE}/repair-defaults`,
+    { preHandler: [requireAuth, requireAdmin] },
+    adminRepairDefaultCategories
   );
 
   app.put<{ Params: { id: string }; Body: CategoryUpdateInput }>(

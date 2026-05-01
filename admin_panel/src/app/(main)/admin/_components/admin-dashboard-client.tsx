@@ -259,7 +259,7 @@ function StokWidget() {
         ) : (
           <div className="space-y-2">
             {items.map((item) => (
-              <div key={item.id} className="space-y-0.5">
+              <div key={item.urunId} className="space-y-0.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium truncate max-w-50">{item.urunAd ?? item.urunKod ?? '—'}</span>
                   <span className="tabular-nums text-muted-foreground shrink-0 ml-2">

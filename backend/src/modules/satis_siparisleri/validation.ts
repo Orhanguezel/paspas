@@ -11,7 +11,7 @@ const isActiveQuerySchema = z.preprocess((value) => {
 }, z.boolean());
 
 const siparisKalemSchema = z.object({
-  urunId: z.string().min(1),
+  urunId: z.string().uuid(),
   miktar: z.coerce.number().positive(),
   birimFiyat: z.coerce.number().min(0).default(0),
   sira: z.coerce.number().int().min(0).default(0),
@@ -19,7 +19,7 @@ const siparisKalemSchema = z.object({
 
 export const listQuerySchema = z.object({
   q: z.string().trim().min(1).optional(),
-  musteriId: z.string().min(1).optional(),
+  musteriId: z.string().uuid().optional(),
   durum: durumEnum.optional(),
   isActive: isActiveQuerySchema.optional(),
   tamamlananlariGoster: z.preprocess((v) => v === 'true' || v === '1', z.boolean()).optional(),
@@ -31,7 +31,7 @@ export const listQuerySchema = z.object({
 
 export const createSchema = z.object({
   siparisNo: z.string().trim().min(1).max(64),
-  musteriId: z.string().min(1),
+  musteriId: z.string().uuid(),
   siparisTarihi: z.string().date(),
   terminTarihi: z.string().date().optional(),
   durum: durumEnum.default('taslak'),
@@ -43,7 +43,7 @@ export const createSchema = z.object({
 
 export const patchSchema = z.object({
   siparisNo: z.string().trim().min(1).max(64).optional(),
-  musteriId: z.string().min(1).optional(),
+  musteriId: z.string().uuid().optional(),
   siparisTarihi: z.string().date().optional(),
   terminTarihi: z.string().date().optional(),
   durum: durumEnum.optional(),
@@ -61,8 +61,8 @@ const gorunumEnum = z.enum(['duz', 'musteri', 'urun']);
 
 export const islemlerQuerySchema = z.object({
   q: z.string().trim().min(1).optional(),
-  musteriId: z.string().min(1).optional(),
-  urunId: z.string().min(1).optional(),
+  musteriId: z.string().uuid().optional(),
+  urunId: z.string().uuid().optional(),
   uretimDurumu: kalemUretimDurumEnum.optional(),
   gorunum: gorunumEnum.default('duz'),
   gizleTamamlanan: z.preprocess((v) => v === 'true' || v === '1' || v === true, z.boolean()).default(true),

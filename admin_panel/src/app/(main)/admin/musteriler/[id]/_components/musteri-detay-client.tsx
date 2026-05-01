@@ -91,6 +91,15 @@ export default function MusteriDetayClient({ id }: Props) {
               <span className="text-muted-foreground">{t('admin.erp.musteriler.columns.email')}</span>
               <span>{musteri.email ?? '—'}</span>
             </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">{t('admin.erp.musteriler.columns.website')}</span>
+              {musteri.websiteUrl ? (
+                <a className="inline-flex items-center gap-1 text-primary hover:underline" href={musteri.websiteUrl} target="_blank" rel="noreferrer">
+                  {musteri.websiteUrl.replace(/^https?:\/\//, '').replace(/^www\./, '')}
+                  <ExternalLink className="size-3" />
+                </a>
+              ) : <span>—</span>}
+            </div>
           </CardContent>
         </Card>
 
@@ -107,6 +116,14 @@ export default function MusteriDetayClient({ id }: Props) {
               <span className="text-muted-foreground">{t('admin.erp.musteriler.summary.acikSiparis')}</span>
               <span>{items.filter(s => !['kapali', 'iptal', 'tamamlandi'].includes(s.durum)).length}</span>
             </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">{t('admin.erp.musteriler.form.krediLimit')}</span>
+              <span>{musteri.krediLimit > 0 ? `${musteri.krediLimit.toLocaleString('tr-TR')} ₺` : '—'}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">{t('admin.erp.musteriler.form.vadeGunu')}</span>
+              <span>{musteri.vadeGunu != null ? `${musteri.vadeGunu} gün` : '—'}</span>
+            </div>
           </CardContent>
         </Card>
 
@@ -118,6 +135,14 @@ export default function MusteriDetayClient({ id }: Props) {
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">{t('admin.erp.musteriler.columns.iskonto')}</span>
               <span>{musteri.iskonto > 0 ? `%${musteri.iskonto}` : '—'}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">{t('admin.erp.musteriler.columns.bayiSegment')}</span>
+              <span>{musteri.bayiSegment ? t(`admin.erp.musteriler.segments.${musteri.bayiSegment}`) : '—'}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">{t('admin.erp.musteriler.form.portalStatus')}</span>
+              <span>{t(`admin.erp.musteriler.portalStatuses.${musteri.portalStatus}`)}</span>
             </div>
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">{t('admin.erp.musteriler.columns.durum')}</span>
@@ -132,6 +157,35 @@ export default function MusteriDetayClient({ id }: Props) {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">{t('admin.erp.musteriler.summary.publicSignals')}</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 text-sm md:grid-cols-2">
+          {[
+            [t('admin.erp.musteriler.form.googleMapsUrl'), musteri.googleMapsUrl],
+            [t('admin.erp.musteriler.form.instagramUrl'), musteri.instagramUrl],
+            [t('admin.erp.musteriler.form.facebookUrl'), musteri.facebookUrl],
+          ].map(([label, url]) => (
+            <div key={label} className="flex justify-between gap-3">
+              <span className="text-muted-foreground">{label}</span>
+              {url ? (
+                <a className="inline-flex items-center gap-1 text-primary hover:underline" href={url} target="_blank" rel="noreferrer">
+                  {String(url).replace(/^https?:\/\//, '').replace(/^www\./, '')}
+                  <ExternalLink className="size-3" />
+                </a>
+              ) : <span>—</span>}
+            </div>
+          ))}
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">{t('admin.erp.musteriler.form.publicVeriIzni')}</span>
+            <Badge variant={musteri.publicVeriIzni ? 'default' : 'secondary'}>
+              {musteri.publicVeriIzni ? t('admin.erp.common.active') : t('admin.erp.common.inactive')}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

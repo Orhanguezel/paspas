@@ -57,6 +57,7 @@ export default function UrunFullForm({ open, onClose, onSuccess }: Props) {
   const [renk, setRenk] = useState("");
   const [birimFiyat, setBirimFiyat] = useState("");
   const [kritikStok, setKritikStok] = useState("0");
+  const [stokTakipAktif, setStokTakipAktif] = useState(true);
   const [hazirlikSuresiDk, setHazirlikSuresiDk] = useState("60");
   const [cevrimSuresiSn, setCevrimSuresiSn] = useState("45");
   const [yariMamulHammaddeleri, setYariMamulHammaddeleri] = useState<ReceteKalemForm[]>([]);
@@ -84,6 +85,7 @@ export default function UrunFullForm({ open, onClose, onSuccess }: Props) {
     setRenk("");
     setBirimFiyat("");
     setKritikStok("0");
+    setStokTakipAktif(true);
     setHazirlikSuresiDk("60");
     setCevrimSuresiSn("45");
     setYariMamulHammaddeleri([]);
@@ -113,6 +115,7 @@ export default function UrunFullForm({ open, onClose, onSuccess }: Props) {
         renk: renk.trim() || undefined,
         birimFiyat: birimFiyat ? Number(birimFiyat) : undefined,
         kritikStok: Number(kritikStok) || 0,
+        stokTakipAktif,
         hazirlikSuresiDk: Number(hazirlikSuresiDk) || 60,
         cevrimSuresiSn: Number(cevrimSuresiSn) || 45,
         yariMamulHammaddeleri: cleanKalemler(yariMamulHammaddeleri),
@@ -220,6 +223,10 @@ export default function UrunFullForm({ open, onClose, onSuccess }: Props) {
                   value={kritikStok}
                   onChange={(e) => setKritikStok(e.target.value)}
                 />
+              </div>
+              <div className="flex items-center gap-3 pt-6">
+                <Switch checked={stokTakipAktif} onCheckedChange={setStokTakipAktif} />
+                <Label>Stok takibi</Label>
               </div>
             </div>
           </div>

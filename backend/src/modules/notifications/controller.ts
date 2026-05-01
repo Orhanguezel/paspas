@@ -6,6 +6,7 @@ import type { RouteHandler } from "fastify";
 import { randomUUID } from "crypto";
 import { db } from "@/db/client";
 import { and, desc, eq, sql } from "drizzle-orm";
+import { env } from "@/core/env";
 import { userRoles } from "@/modules/userRoles/schema";
 import {
   notifications,
@@ -40,6 +41,24 @@ function writeSseEvent(
 ): void {
   stream.write(`event: ${event}\n`);
   stream.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+
+// reply.hijack() bypasses @fastify/cors onSend hook, so SSE streams need
+// CORS headers set manually on the raw response.
+function buildSseCorsHeaders(origin: string | undefined): Record<string, string> {
+  if (!origin) return {};
+  const raw = env.CORS_ORIGIN as string | string[] | undefined;
+  const allowed = !raw
+    ? null
+    : Array.isArray(raw)
+      ? raw
+      : String(raw).split(",").map((s) => s.trim()).filter(Boolean);
+  if (allowed && allowed.length > 0 && !allowed.includes(origin)) return {};
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Credentials": "true",
+    Vary: "Origin",
+  };
 }
 
 /* ---------------------------------------------------------------
@@ -195,10 +214,13 @@ export const streamNotifications: RouteHandler = async (req, reply) => {
       .send({ error: { message: "notifications_stream_failed" } });
   }
 
+  const corsHeaders = buildSseCorsHeaders(req.headers.origin);
+
   reply.hijack();
   const stream = reply.raw;
 
   stream.writeHead(200, {
+    ...corsHeaders,
     "Content-Type": "text/event-stream; charset=utf-8",
     "Cache-Control": "no-cache, no-transform",
     Connection: "keep-alive",

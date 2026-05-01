@@ -10,6 +10,9 @@ export interface UretimEmriDto {
   emirNo: string;
   siparisKalemIds: string[];
   siparisNo: string | null;
+  siparisUrunKod: string | null;
+  siparisUrunAd: string | null;
+  siparisUrunGorsel: string | null;
   urunId: string;
   urunKod: string | null;
   urunAd: string | null;
@@ -160,6 +163,9 @@ export function normalizeUretimEmri(raw: unknown): UretimEmriDto {
     emirNo: toStr(r.emirNo),
     siparisKalemIds: toStrArray(r.siparisKalemIds),
     siparisNo: r.siparisNo != null ? toStr(r.siparisNo) : null,
+    siparisUrunKod: r.siparisUrunKod != null ? toStr(r.siparisUrunKod) : null,
+    siparisUrunAd: r.siparisUrunAd != null ? toStr(r.siparisUrunAd) : null,
+    siparisUrunGorsel: r.siparisUrunGorsel != null ? toStr(r.siparisUrunGorsel) : null,
     urunId: toStr(r.urunId),
     urunKod: r.urunKod != null ? toStr(r.urunKod) : null,
     urunAd: r.urunAd != null ? toStr(r.urunAd) : null,

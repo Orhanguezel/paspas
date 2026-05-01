@@ -85,6 +85,7 @@ function mapCreateInput(data: CreateBody): typeof urunler.$inferInsert {
     image_alt: nullIfBlank(data.imageAlt),
     stok: data.stok.toFixed(4),
     kritik_stok: data.kritikStok.toFixed(4),
+    stok_takip_aktif: data.stokTakipAktif ? 1 : 0,
     birim_fiyat: typeof data.birimFiyat === 'number' ? data.birimFiyat.toFixed(2) : undefined,
     kdv_orani: data.kdvOrani.toFixed(2),
     operasyon_tipi: data.operasyonTipi ?? null,
@@ -107,6 +108,7 @@ function mapPatchInput(data: PatchBody): Partial<typeof urunler.$inferInsert> {
   if (data.imageAlt !== undefined) payload.image_alt = nullIfBlank(data.imageAlt);
   if (data.stok !== undefined) payload.stok = data.stok.toFixed(4);
   if (data.kritikStok !== undefined) payload.kritik_stok = data.kritikStok.toFixed(4);
+  if (data.stokTakipAktif !== undefined) payload.stok_takip_aktif = data.stokTakipAktif ? 1 : 0;
   if (data.birimFiyat !== undefined) payload.birim_fiyat = data.birimFiyat.toFixed(2);
   if (data.kdvOrani !== undefined) payload.kdv_orani = data.kdvOrani.toFixed(2);
   if (data.operasyonTipi !== undefined) payload.operasyon_tipi = data.operasyonTipi ?? null;

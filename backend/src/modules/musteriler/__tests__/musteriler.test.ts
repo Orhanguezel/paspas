@@ -55,8 +55,18 @@ describe("musteriler validation", () => {
         ad: "A",
         cariKodu: "CR-001",
         sevkiyatNotu: "Arka depo teslim",
+        websiteUrl: "https://www.promats.com.tr",
+        bayiSegment: "toptanci",
+        krediLimit: 50000,
+        mevcutBakiye: 1250.5,
+        vadeGunu: 30,
+        portalEnabled: true,
+        portalStatus: "invited",
+        publicVeriIzni: true,
       }).success,
     ).toBe(true);
+    expect(createSchema.safeParse({ ad: "A", websiteUrl: "promats" }).success).toBe(false);
+    expect(createSchema.safeParse({ ad: "A", bayiSegment: "yanlis" }).success).toBe(false);
   });
 
   it("rejects empty patch body", () => {

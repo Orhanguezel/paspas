@@ -37,8 +37,8 @@ const haftaSonuTarihSchema = z.preprocess(
 const tatilFieldsSchema = z.object({
   ad: z.string().trim().min(1).max(255),
   tarih: z.string().date(),
-  baslangicSaati: saatSchema,
-  bitisSaati: saatSchema,
+  baslangicSaati: saatSchema.default('00:00'),
+  bitisSaati: saatSchema.default('23:59'),
   aciklama: z.string().trim().max(500).optional(),
 });
 

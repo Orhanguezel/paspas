@@ -143,6 +143,8 @@ export const kuyrukSirala: RouteHandler = async (req, reply) => {
     return reply.send({ ok: true });
   } catch (error) {
     req.log.error({ error }, 'kuyruk_sirala_failed');
+    const msg = error instanceof Error ? error.message : 'sunucu_hatasi';
+    if (msg === 'kuyruk_makine_uyumsuz') return reply.code(400).send({ error: { message: msg } });
     return sendInternalError(reply);
   }
 };

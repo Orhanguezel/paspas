@@ -24,6 +24,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import {
   useCreateMusteriAdminMutation,
@@ -42,6 +43,17 @@ const schema = z.object({
   adres:    z.string().optional(),
   cariKodu: z.string().optional(),
   sevkiyatNotu: z.string().optional(),
+  websiteUrl: z.string().url('invalidUrl').optional().or(z.literal('')),
+  googleMapsUrl: z.string().url('invalidUrl').optional().or(z.literal('')),
+  instagramUrl: z.string().url('invalidUrl').optional().or(z.literal('')),
+  facebookUrl: z.string().url('invalidUrl').optional().or(z.literal('')),
+  bayiSegment: z.enum(['toptanci', 'otomotiv', 'kucuk_bayi', 'ihracat', 'kurumsal', 'diger']).optional().or(z.literal('')),
+  krediLimit: z.preprocess((v) => (v === '' || v == null ? 0 : Number(v)), z.number().min(0).default(0)),
+  mevcutBakiye: z.preprocess((v) => (v === '' || v == null ? 0 : Number(v)), z.number().default(0)),
+  vadeGunu: z.preprocess((v) => (v === '' || v == null ? undefined : Number(v)), z.number().int().min(0).max(365).optional()),
+  portalEnabled: z.boolean().default(false),
+  portalStatus: z.enum(['not_invited', 'invited', 'active', 'suspended']).default('not_invited'),
+  publicVeriIzni: z.boolean().default(false),
   iskonto:  z.preprocess(
     (v) => (v === '' || v == null ? 0 : Number(v)),
     z.number().min(0).max(100).default(0),
@@ -50,6 +62,31 @@ const schema = z.object({
 });
 
 type FormValues = z.infer<typeof schema>;
+
+const emptyDefaults: FormValues = {
+  tur: 'musteri',
+  kod: '',
+  ad: '',
+  ilgiliKisi: '',
+  telefon: '',
+  email: '',
+  adres: '',
+  cariKodu: '',
+  sevkiyatNotu: '',
+  websiteUrl: '',
+  googleMapsUrl: '',
+  instagramUrl: '',
+  facebookUrl: '',
+  bayiSegment: '',
+  krediLimit: 0,
+  mevcutBakiye: 0,
+  vadeGunu: undefined,
+  portalEnabled: false,
+  portalStatus: 'not_invited',
+  publicVeriIzni: false,
+  iskonto: 0,
+  isActive: true,
+};
 
 interface MusteriFormProps {
   open: boolean;
@@ -67,7 +104,7 @@ export default function MusteriForm({ open, onClose, musteri }: MusteriFormProps
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { tur: 'musteri', kod: '', ad: '', ilgiliKisi: '', telefon: '', email: '', adres: '', cariKodu: '', sevkiyatNotu: '', iskonto: 0, isActive: true },
+    defaultValues: emptyDefaults,
   });
 
   const watchTur = form.watch('tur');
@@ -88,11 +125,22 @@ export default function MusteriForm({ open, onClose, musteri }: MusteriFormProps
         adres:    musteri.adres ?? '',
         cariKodu: musteri.cariKodu ?? '',
         sevkiyatNotu: musteri.sevkiyatNotu ?? '',
+        websiteUrl: musteri.websiteUrl ?? '',
+        googleMapsUrl: musteri.googleMapsUrl ?? '',
+        instagramUrl: musteri.instagramUrl ?? '',
+        facebookUrl: musteri.facebookUrl ?? '',
+        bayiSegment: musteri.bayiSegment ?? '',
+        krediLimit: musteri.krediLimit,
+        mevcutBakiye: musteri.mevcutBakiye,
+        vadeGunu: musteri.vadeGunu ?? undefined,
+        portalEnabled: musteri.portalEnabled,
+        portalStatus: musteri.portalStatus,
+        publicVeriIzni: musteri.publicVeriIzni,
         iskonto:  musteri.iskonto,
         isActive: musteri.isActive,
       });
     } else {
-      form.reset({ tur: 'musteri', kod: '', ad: '', ilgiliKisi: '', telefon: '', email: '', adres: '', cariKodu: '', sevkiyatNotu: '', iskonto: 0, isActive: true });
+      form.reset(emptyDefaults);
     }
   }, [musteri, open]);
 
@@ -116,6 +164,12 @@ export default function MusteriForm({ open, onClose, musteri }: MusteriFormProps
       adres: values.adres?.trim() || undefined,
       cariKodu: values.cariKodu?.trim() || undefined,
       sevkiyatNotu: values.sevkiyatNotu?.trim() || undefined,
+      websiteUrl: values.websiteUrl?.trim() || undefined,
+      googleMapsUrl: values.googleMapsUrl?.trim() || undefined,
+      instagramUrl: values.instagramUrl?.trim() || undefined,
+      facebookUrl: values.facebookUrl?.trim() || undefined,
+      bayiSegment: values.bayiSegment || undefined,
+      vadeGunu: values.vadeGunu ?? undefined,
     };
     try {
       if (isEdit && musteri) {
@@ -128,6 +182,26 @@ export default function MusteriForm({ open, onClose, musteri }: MusteriFormProps
       onClose();
     } catch (err: any) {
       toast.error(err?.data?.error?.message ?? t('admin.erp.common.operationFailed'));
+    }
+  }
+
+  function suggestWebsite() {
+    const email = form.getValues('email')?.trim();
+    const domain = email?.includes('@') ? email.split('@').at(-1) : '';
+    if (domain && !['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com'].includes(domain.toLowerCase())) {
+      form.setValue('websiteUrl', `https://www.${domain.toLowerCase()}`, { shouldDirty: true, shouldValidate: true });
+      return;
+    }
+
+    const slug = form.getValues('ad')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/ı/g, 'i')
+      .replace(/[^a-z0-9]+/g, '')
+      .slice(0, 48);
+    if (slug) {
+      form.setValue('websiteUrl', `https://www.${slug}.com.tr`, { shouldDirty: true, shouldValidate: true });
     }
   }
 
@@ -173,9 +247,23 @@ export default function MusteriForm({ open, onClose, musteri }: MusteriFormProps
             </div>
 
             {/* Telefon */}
-            <div className="space-y-2">
-              <Label>{t('admin.erp.musteriler.form.telefon')}</Label>
-              <Input {...form.register('telefon')} placeholder={t('admin.erp.musteriler.form.telefonPlaceholder')} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{t('admin.erp.musteriler.form.telefon')}</Label>
+                <Input {...form.register('telefon')} placeholder={t('admin.erp.musteriler.form.telefonPlaceholder')} />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('admin.erp.musteriler.form.websiteUrl')}</Label>
+                <div className="flex gap-2">
+                  <Input {...form.register('websiteUrl')} placeholder={t('admin.erp.musteriler.form.websiteUrlPlaceholder')} />
+                  <Button type="button" variant="outline" onClick={suggestWebsite}>
+                    {t('admin.erp.musteriler.form.suggestWebsite')}
+                  </Button>
+                </div>
+                {form.formState.errors.websiteUrl && (
+                  <p className="text-xs text-destructive">{tValidation(form.formState.errors.websiteUrl.message ?? 'invalidUrl')}</p>
+                )}
+              </div>
             </div>
 
             {/* Adres */}
@@ -198,6 +286,85 @@ export default function MusteriForm({ open, onClose, musteri }: MusteriFormProps
                   rows={3}
                   placeholder={t('admin.erp.musteriler.form.sevkiyatNotuPlaceholder')}
                 />
+              </div>
+            </div>
+
+            <div className="rounded-md border p-3">
+              <h3 className="text-sm font-medium">{t('admin.erp.musteriler.form.dealerProfile')}</h3>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{t('admin.erp.musteriler.form.bayiSegment')}</Label>
+                  <Select
+                    value={form.watch('bayiSegment') || 'none'}
+                    onValueChange={(v) => form.setValue('bayiSegment', v === 'none' ? '' : v as FormValues['bayiSegment'])}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{t('admin.erp.common.notSelected')}</SelectItem>
+                      <SelectItem value="toptanci">{t('admin.erp.musteriler.segments.toptanci')}</SelectItem>
+                      <SelectItem value="otomotiv">{t('admin.erp.musteriler.segments.otomotiv')}</SelectItem>
+                      <SelectItem value="kucuk_bayi">{t('admin.erp.musteriler.segments.kucuk_bayi')}</SelectItem>
+                      <SelectItem value="ihracat">{t('admin.erp.musteriler.segments.ihracat')}</SelectItem>
+                      <SelectItem value="kurumsal">{t('admin.erp.musteriler.segments.kurumsal')}</SelectItem>
+                      <SelectItem value="diger">{t('admin.erp.musteriler.segments.diger')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('admin.erp.musteriler.form.portalStatus')}</Label>
+                  <Select
+                    value={form.watch('portalStatus')}
+                    onValueChange={(v) => form.setValue('portalStatus', v as FormValues['portalStatus'])}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="not_invited">{t('admin.erp.musteriler.portalStatuses.not_invited')}</SelectItem>
+                      <SelectItem value="invited">{t('admin.erp.musteriler.portalStatuses.invited')}</SelectItem>
+                      <SelectItem value="active">{t('admin.erp.musteriler.portalStatuses.active')}</SelectItem>
+                      <SelectItem value="suspended">{t('admin.erp.musteriler.portalStatuses.suspended')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('admin.erp.musteriler.form.krediLimit')}</Label>
+                  <Input type="number" min={0} step="0.01" {...form.register('krediLimit')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('admin.erp.musteriler.form.mevcutBakiye')}</Label>
+                  <Input type="number" step="0.01" {...form.register('mevcutBakiye')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('admin.erp.musteriler.form.vadeGunu')}</Label>
+                  <Input type="number" min={0} max={365} {...form.register('vadeGunu')} placeholder="30" />
+                </div>
+                <div className="flex items-center gap-3 pt-6">
+                  <Switch checked={form.watch('portalEnabled')} onCheckedChange={(v) => form.setValue('portalEnabled', v)} />
+                  <Label>{t('admin.erp.musteriler.form.portalEnabled')}</Label>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-md border p-3">
+              <h3 className="text-sm font-medium">{t('admin.erp.musteriler.form.publicSignals')}</h3>
+              <div className="mt-3 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>{t('admin.erp.musteriler.form.googleMapsUrl')}</Label>
+                    <Input {...form.register('googleMapsUrl')} placeholder="https://maps.google.com/..." />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t('admin.erp.musteriler.form.instagramUrl')}</Label>
+                    <Input {...form.register('instagramUrl')} placeholder="https://instagram.com/..." />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('admin.erp.musteriler.form.facebookUrl')}</Label>
+                  <Input {...form.register('facebookUrl')} placeholder="https://facebook.com/..." />
+                </div>
+                <div className="flex items-center gap-3">
+                  <Switch checked={form.watch('publicVeriIzni')} onCheckedChange={(v) => form.setValue('publicVeriIzni', v)} />
+                  <Label>{t('admin.erp.musteriler.form.publicVeriIzni')}</Label>
+                </div>
               </div>
             </div>
 

@@ -11,7 +11,7 @@ const isActiveQuerySchema = z.preprocess((value) => {
 }, z.boolean());
 
 const kalemSchema = z.object({
-  urunId: z.string().min(1),
+  urunId: z.string().uuid(),
   miktar: z.coerce.number().positive(),
   birimFiyat: z.coerce.number().min(0).default(0),
   sira: z.coerce.number().int().min(0).default(0),
@@ -19,7 +19,7 @@ const kalemSchema = z.object({
 
 export const listQuerySchema = z.object({
   q: z.string().trim().min(1).optional(),
-  tedarikciId: z.string().min(1).optional(),
+  tedarikciId: z.string().uuid().optional(),
   durum: durumEnum.optional(),
   isActive: isActiveQuerySchema.optional(),
   limit: z.coerce.number().int().min(1).max(500).default(100),
@@ -30,7 +30,7 @@ export const listQuerySchema = z.object({
 
 export const createSchema = z.object({
   siparisNo: z.string().trim().min(1).max(64),
-  tedarikciId: z.string().min(1),
+  tedarikciId: z.string().uuid(),
   siparisTarihi: z.string().date(),
   terminTarihi: z.string().date().optional(),
   durum: durumEnum.default('taslak'),
@@ -41,7 +41,7 @@ export const createSchema = z.object({
 
 export const patchSchema = z.object({
   siparisNo: z.string().trim().min(1).max(64).optional(),
-  tedarikciId: z.string().min(1).optional(),
+  tedarikciId: z.string().uuid().optional(),
   siparisTarihi: z.string().date().optional(),
   terminTarihi: z.string().date().optional(),
   durum: durumEnum.optional(),

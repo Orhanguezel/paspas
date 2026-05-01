@@ -13,9 +13,11 @@ import {
   type CategoryUpdateInput,
   type CategorySetImageInput,
 } from "./validation";
-import { buildInsertPayload, buildUpdatePayload } from "./controller";
+import { ERP_CATEGORY_DEFAULTS, buildInsertPayload, buildUpdatePayload } from "./controller";
 import { storageAssets } from "@/modules/storage/schema";
 import { env } from "@/core/env";
+import { subCategories } from "@/modules/subCategories/schema";
+import { urunler } from "@/modules/urunler/schema";
 
 const toBool = (v: unknown): boolean | undefined => {
   if (v === undefined) return undefined;
@@ -59,8 +61,37 @@ function isDup(err: any) {
   return code === "ER_DUP_ENTRY" || code === 1062;
 }
 
+function dbErrorMessage(err: unknown, fallback: string) {
+  const code = (err as { code?: string; errno?: number })?.code ?? (err as { errno?: number })?.errno;
+  if (code === "ER_ROW_IS_REFERENCED_2" || code === 1451) return "record_in_use";
+  return fallback;
+}
 
+async function getCategoryUsage(id: string) {
+  const [category] = await db
+    .select({ id: categories.id, kod: categories.kod })
+    .from(categories)
+    .where(eq(categories.id, id))
+    .limit(1);
 
+  if (!category) return null;
+
+  const [subCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(subCategories)
+    .where(eq(subCategories.category_id, id));
+
+  const [productCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(urunler)
+    .where(eq(urunler.kategori, category.kod));
+
+  return {
+    category,
+    subCategoryCount: Number(subCount?.count ?? 0),
+    productCount: Number(productCount?.count ?? 0),
+  };
+}
 
 /** POST /categories (admin) */
 export const adminCreateCategory: RouteHandler<{ Body: CategoryCreateInput }> =
@@ -82,7 +113,7 @@ export const adminCreateCategory: RouteHandler<{ Body: CategoryCreateInput }> =
       }
       return reply
         .code(500)
-        .send({ error: { message: "db_error", detail: String(err?.message ?? err) } });
+        .send({ error: { message: dbErrorMessage(err, "category_create_failed"), detail: String(err?.message ?? err) } });
     }
 
     const [row] = await db
@@ -115,7 +146,7 @@ export const adminPutCategory: RouteHandler<{
     if (isDup(err)) return reply.code(409).send({ error: { message: "duplicate_slug" } });
     return reply
       .code(500)
-      .send({ error: { message: "db_error", detail: String(err?.message ?? err) } });
+      .send({ error: { message: dbErrorMessage(err, "category_update_failed"), detail: String(err?.message ?? err) } });
   }
 
   const rows = await db.select().from(categories).where(eq(categories.id, id)).limit(1);
@@ -145,7 +176,7 @@ export const adminPatchCategory: RouteHandler<{
     if (isDup(err)) return reply.code(409).send({ error: { message: "duplicate_slug" } });
     return reply
       .code(500)
-      .send({ error: { message: "db_error", detail: String(err?.message ?? err) } });
+      .send({ error: { message: dbErrorMessage(err, "category_update_failed"), detail: String(err?.message ?? err) } });
   }
 
   const rows = await db.select().from(categories).where(eq(categories.id, id)).limit(1);
@@ -157,9 +188,70 @@ export const adminPatchCategory: RouteHandler<{
 export const adminDeleteCategory: RouteHandler<{ Params: { id: string } }> =
   async (req, reply) => {
     const { id } = req.params;
-    await db.delete(categories).where(eq(categories.id, id));
+    const usage = await getCategoryUsage(id);
+    if (!usage) return reply.code(404).send({ error: { message: "not_found" } });
+
+    if (usage.subCategoryCount > 0 || usage.productCount > 0) {
+      return reply.code(409).send({
+        error: {
+          message: "category_in_use",
+          detail: {
+            subCategoryCount: usage.subCategoryCount,
+            productCount: usage.productCount,
+          },
+        },
+      });
+    }
+
+    try {
+      await db.delete(categories).where(eq(categories.id, id));
+    } catch (err: any) {
+      return reply
+        .code(409)
+        .send({ error: { message: dbErrorMessage(err, "category_delete_failed"), detail: String(err?.message ?? err) } });
+    }
     return reply.code(204).send();
   };
+
+/** POST /categories/repair-defaults (admin) */
+export const adminRepairDefaultCategories: RouteHandler = async (_req, reply) => {
+  const repaired: string[] = [];
+
+  for (const [kod, defaults] of Object.entries(ERP_CATEGORY_DEFAULTS)) {
+    const [existing] = await db.select().from(categories).where(eq(categories.kod, kod)).limit(1);
+    const payload = buildInsertPayload({
+      kod,
+      name: defaults.name,
+      slug: defaults.slug,
+      varsayilan_birim: defaults.varsayilan_birim,
+      varsayilan_kod_prefixi: defaults.varsayilan_kod_prefixi,
+      recetede_kullanilabilir: defaults.recetede_kullanilabilir,
+      varsayilan_tedarik_tipi: defaults.varsayilan_tedarik_tipi,
+      uretim_alanlari_aktif: defaults.uretim_alanlari_aktif,
+      operasyon_tipi_gerekli: defaults.operasyon_tipi_gerekli,
+      varsayilan_operasyon_tipi: defaults.varsayilan_operasyon_tipi ?? undefined,
+      display_order: defaults.display_order,
+      is_active: true,
+    });
+
+    if (existing) {
+      await db
+        .update(categories)
+        .set({
+          ...payload,
+          id: existing.id,
+          is_active: true,
+          updated_at: sql`CURRENT_TIMESTAMP(3)`,
+        } as any)
+        .where(eq(categories.id, existing.id));
+    } else {
+      await db.insert(categories).values(payload);
+    }
+    repaired.push(kod);
+  }
+
+  return reply.send({ ok: true, repaired });
+};
 
 /** POST /categories/reorder (admin) */
 export const adminReorderCategories: RouteHandler<{

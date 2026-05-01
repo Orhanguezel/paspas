@@ -105,6 +105,13 @@ export const categoriesAdminApi = baseApi.injectEndpoints({
       }),
     }),
 
+    repairDefaultCategoriesAdmin: build.mutation<{ ok: boolean; repaired: string[] }, void>({
+      query: () => ({
+        url: '/admin/categories/repair-defaults',
+        method: 'POST',
+      }),
+    }),
+
     /* --------------------------------------------------------- */
     /* TOGGLE ACTIVE – PATCH /api/admin/categories/:id/active    */
     /* --------------------------------------------------------- */
@@ -165,6 +172,7 @@ export const {
   useCreateCategoryAdminMutation,
   useUpdateCategoryAdminMutation,
   useDeleteCategoryAdminMutation,
+  useRepairDefaultCategoriesAdminMutation,
   useReorderCategoriesAdminMutation,
   useToggleCategoryActiveAdminMutation,
   useToggleCategoryFeaturedAdminMutation,

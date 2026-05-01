@@ -18,6 +18,7 @@ export const urunler = mysqlTable('urunler', {
   stok: decimal('stok', { precision: 12, scale: 4 }).notNull().default('0.0000'),
   kritik_stok: decimal('kritik_stok', { precision: 12, scale: 4 }).notNull().default('0.0000'),
   rezerve_stok: decimal('rezerve_stok', { precision: 12, scale: 4 }).notNull().default('0.0000'),
+  stok_takip_aktif: tinyint('stok_takip_aktif', { unsigned: true }).notNull().default(1),
   birim_fiyat: decimal('birim_fiyat', { precision: 12, scale: 2 }),
   kdv_orani: decimal('kdv_orani', { precision: 5, scale: 2 }).notNull().default('20.00'),
   operasyon_tipi: varchar('operasyon_tipi', { length: 32 }),
@@ -45,6 +46,7 @@ export type UrunDto = {
   kritikStok: number;
   rezerveStok: number;
   kullanilabilirStok: number;
+  stokTakipAktif: boolean;
   birimFiyat: number | null;
   kdvOrani: number;
   operasyonTipi: string | null;
@@ -71,6 +73,7 @@ export function rowToDto(row: UrunRow): UrunDto {
     kritikStok: Number(row.kritik_stok ?? 0),
     rezerveStok: Number(row.rezerve_stok ?? 0),
     kullanilabilirStok: Number(row.stok ?? 0) - Number(row.rezerve_stok ?? 0),
+    stokTakipAktif: row.stok_takip_aktif === 1,
     birimFiyat: row.birim_fiyat ? Number(row.birim_fiyat) : null,
     kdvOrani: Number(row.kdv_orani ?? 20),
     operasyonTipi: row.operasyon_tipi ?? null,

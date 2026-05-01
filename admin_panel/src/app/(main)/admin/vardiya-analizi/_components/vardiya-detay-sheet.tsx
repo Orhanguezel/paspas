@@ -185,6 +185,7 @@ export default function VardiyaDetaySheet({ open, onClose, target }: Props) {
                         <TableRow>
                           <TableHead className="w-28">Tarih/Saat</TableHead>
                           <TableHead>Ürün</TableHead>
+                          <TableHead>Operasyon / Kalıp</TableHead>
                           <TableHead className="w-16 text-right">Net</TableHead>
                           <TableHead className="w-16 text-right">Fire</TableHead>
                           <TableHead className="w-28">Operatör</TableHead>
@@ -201,6 +202,20 @@ export default function VardiyaDetaySheet({ open, onClose, target }: Props) {
                               )}
                               {k.notlar && (
                                 <div className="text-muted-foreground text-[10px] italic">{k.notlar}</div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-xs font-medium">{k.operasyonAdi ?? "Baskı"}</div>
+                              <div className="text-muted-foreground text-[10px]">
+                                {k.operasyonTipi === "cift_tarafli"
+                                  ? "Çift taraf"
+                                  : k.operasyonTipi === "tek_tarafli"
+                                    ? "Tek taraf"
+                                    : "Baskı"}
+                                {k.kalipKod ? ` · ${k.kalipKod}` : ""}
+                              </div>
+                              {k.kalipAd && (
+                                <div className="truncate text-muted-foreground text-[10px]">{k.kalipAd}</div>
                               )}
                             </TableCell>
                             <TableCell className="text-right text-xs tabular-nums">

@@ -4,6 +4,8 @@ import { asc, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { makineler } from '@/modules/makine_havuzu/schema';
+import { urunOperasyonlari } from '@/modules/urunler/schema';
+import { uretimEmriOperasyonlari } from '@/modules/uretim_emirleri/schema';
 import { recalcAllActiveMachines } from '@/modules/_shared/planlama';
 
 import { birimler, kaliplar, kalipUyumluMakineler, tatilMakineler, tatiller, vardiyalar, durusNedenleri, haftaSonuPlanlari, type BirimRow, type KalipRow, type TatilRow, type VardiyaRow, type DurusNedeniRow, type HaftaSonuPlanDtoRow, type HaftaSonuPlanRow } from './schema';
@@ -60,6 +62,26 @@ export async function repoUpdateKalip(id: string, body: PatchKalipBody): Promise
 }
 
 export async function repoDeleteKalip(id: string): Promise<void> {
+  // Bağımlılık koruması: ürün operasyonu veya üretim emri operasyonu kalıba bağlıyken silme reddedilir.
+  // Cascade silme veri kaybına (NULL kalip_id, kopuk reçete operasyonları) yol açıyordu.
+  const [urunOpCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(urunOperasyonlari)
+    .where(eq(urunOperasyonlari.kalip_id, id));
+  if (Number(urunOpCount?.count ?? 0) > 0) {
+    const err = new Error('kalip_bagimliligi_var');
+    (err as any).detail = 'Bu kalıp ürün operasyonunda kullanılıyor. Önce operasyondaki kalıbı değiştirin.';
+    throw err;
+  }
+  const [emirOpCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(uretimEmriOperasyonlari)
+    .where(eq(uretimEmriOperasyonlari.kalip_id, id));
+  if (Number(emirOpCount?.count ?? 0) > 0) {
+    const err = new Error('kalip_bagimliligi_var');
+    (err as any).detail = 'Bu kalıp üretim emri operasyonunda kullanılıyor.';
+    throw err;
+  }
   await db.transaction(async (tx) => {
     await tx.delete(kalipUyumluMakineler).where(eq(kalipUyumluMakineler.kalip_id, id));
     await tx.delete(kaliplar).where(eq(kaliplar.id, id));

@@ -18,7 +18,7 @@ type ListResult = {
 };
 
 function buildWhere(query: ListQuery): SQL | undefined {
-  const conditions: SQL[] = [];
+  const conditions: SQL[] = [eq(stokUrunler.stok_takip_aktif, 1)];
 
   if (query.q) {
     conditions.push(or(
@@ -84,7 +84,32 @@ export async function repoListBirimDonusumleri(urunIds: string[]): Promise<Map<s
   return map;
 }
 
+/**
+ * Test ortamı koruması: NODE_ENV=test iken `repoList` çağrısı en az bir
+ * daraltıcı filtre içermek zorundadır (`q`, `kategori`, `kritikOnly`,
+ * `stokluOnly`, `durum`). Aksi halde geniş canlı/test verisinde yanlış
+ * negatif assertion riski olduğu için açıkça hata atar.
+ *
+ * Production (NODE_ENV ≠ test) çağrılarında no-op — admin panelde tam liste
+ * açma davranışı korunur.
+ */
+function assertNarrowingFilterInTest(query: ListQuery): void {
+  if (process.env.NODE_ENV !== 'test') return;
+  const hasFilter =
+    Boolean(query.q) ||
+    Boolean(query.kategori) ||
+    query.kritikOnly === true ||
+    query.stokluOnly === true ||
+    Boolean(query.durum);
+  if (!hasFilter) {
+    throw new Error(
+      'stoklar_repoList_test_filter_required: NODE_ENV=test iken bu sorgu en az bir filtre (q | kategori | kritikOnly | stokluOnly | durum) içermek zorundadır. Geniş tablolu canlı/test DB\'de yanlış negatif assertion riski.',
+    );
+  }
+}
+
 export async function repoList(query: ListQuery): Promise<ListResult> {
+  assertNarrowingFilterInTest(query);
   const where = buildWhere(query);
   const orderBy = getOrderBy(query);
   const [items, countResult] = await Promise.all([
@@ -124,7 +149,11 @@ export async function repoGetAcikUretimIhtiyaciMap(urunIds?: string[]): Promise<
 }
 
 export async function repoGetById(id: string): Promise<StokRow | null> {
-  const rows = await db.select().from(stokUrunler).where(eq(stokUrunler.id, id)).limit(1);
+  const rows = await db
+    .select()
+    .from(stokUrunler)
+    .where(and(eq(stokUrunler.id, id), eq(stokUrunler.stok_takip_aktif, 1)))
+    .limit(1);
   return rows[0] ?? null;
 }
 
@@ -213,14 +242,15 @@ export async function repoCheckYeterlilik(query: YeterlilikQuery): Promise<Yeter
   // 5. Calculate sufficiency per material
   const kalemler: YeterlilikKalemResult[] = kalemRows.map((kalem) => {
     const malzeme = malzemeMap.get(kalem.urun_id);
+    const stokTakipAktif = malzeme?.stok_takip_aktif !== 0;
     const miktar = Number(kalem.miktar ?? 0) * carpan;
     const fireOrani = Number(kalem.fire_orani ?? 0);
     const gerekliMiktarFireli = miktar * (1 + fireOrani / 100);
     const toplamStok = malzeme ? Number(malzeme.stok ?? 0) : 0;
     const rezerveStok = malzeme ? Number(malzeme.rezerve_stok ?? 0) : 0;
-    const mevcutStok = toplamStok - rezerveStok;
-    const fark = mevcutStok - gerekliMiktarFireli;
-    const eksikMiktar = fark < 0 ? Math.abs(fark) : 0;
+    const mevcutStok = stokTakipAktif ? toplamStok - rezerveStok : gerekliMiktarFireli;
+    const fark = stokTakipAktif ? mevcutStok - gerekliMiktarFireli : 0;
+    const eksikMiktar = stokTakipAktif && fark < 0 ? Math.abs(fark) : 0;
 
     return {
       malzemeId: kalem.urun_id,

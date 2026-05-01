@@ -31,6 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { resolveMediaUrl } from "@/lib/media-url";
 import { useLocaleContext } from "@/i18n/LocaleProvider";
 import {
   useDeleteUretimEmriAdminMutation,
@@ -382,6 +383,11 @@ export default function UretimEmirleriClient() {
               const planlananBitis = formatDateShort(e.planlananBitisTarihi);
               const ilerleYuzde = ilerlemeYuzde(e);
               const atanmamis = e.makineAtamaSayisi === 0;
+              const displayUrunAd = e.siparisUrunAd ?? e.urunAd ?? e.urunId;
+              const displayUrunKod = e.siparisUrunKod ?? e.urunKod;
+              const showOperasyonelUrun =
+                Boolean(e.siparisUrunAd || e.siparisUrunKod) &&
+                (e.urunAd !== e.siparisUrunAd || e.urunKod !== e.siparisUrunKod);
 
               return (
                 <TableRow
@@ -401,13 +407,35 @@ export default function UretimEmirleriClient() {
 
                   {/* Ürün */}
                   <TableCell>
-                    <div className="font-medium text-sm text-slate-900 line-clamp-1">{e.urunAd ?? e.urunId}</div>
-                    {e.urunKod && <div className="text-xs text-muted-foreground font-mono">{e.urunKod}</div>}
-                    {e.siparisNo && (
-                      <div className="text-[10px] text-muted-foreground mt-0.5">
-                        Sipariş: {e.siparisNo}
+                    <div className="flex items-start gap-2">
+                      {(() => {
+                        const gorsel = e.siparisUrunGorsel ?? e.urunGorsel;
+                        if (!gorsel) return null;
+                        return (
+                          // biome-ignore lint/performance/noImgElement: thumbnail source can be arbitrary media URLs.
+                          <img
+                            src={resolveMediaUrl(gorsel)}
+                            alt={displayUrunAd}
+                            className="size-10 shrink-0 rounded border object-cover"
+                            loading="lazy"
+                          />
+                        );
+                      })()}
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-sm text-slate-900 line-clamp-1">{displayUrunAd}</div>
+                        {displayUrunKod && <div className="text-xs text-muted-foreground font-mono">{displayUrunKod}</div>}
+                        {showOperasyonelUrun && (
+                          <div className="text-[10px] text-muted-foreground mt-0.5">
+                            Operasyonel YM: {e.urunKod ? `${e.urunKod} — ` : ""}{e.urunAd ?? e.urunId}
+                          </div>
+                        )}
+                        {e.siparisNo && (
+                          <div className="text-[10px] text-muted-foreground mt-0.5">
+                            Sipariş: {e.siparisNo}
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </TableCell>
 
                   {/* Müşteri */}

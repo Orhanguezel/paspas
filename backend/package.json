@@ -10,7 +10,12 @@
     "db:seed": "bun src/db/seed/index.ts",
     "db:seed:nodrop": "bun src/db/seed/index.ts --no-drop",
     "db:seed:only": "bun src/db/seed/index.ts --only=",
-    "test": "bun test"
+    "test": "NODE_ENV=test bun test",
+    "test:integration": "NODE_ENV=test RUN_DB_INTEGRATION=1 bun test",
+    "test:all": "NODE_ENV=test bun test && NODE_ENV=test RUN_DB_INTEGRATION=1 bun test",
+    "db:seed:test": "NODE_ENV=test bun src/db/seed/index.ts",
+    "db:seed:test:fresh": "NODE_ENV=test ALLOW_DROP=true bun src/db/seed/index.ts",
+    "db:seed:test:nodrop": "NODE_ENV=test bun src/db/seed/index.ts --no-drop"
   },
   "dependencies": {
     "@fastify/cookie": "^11",

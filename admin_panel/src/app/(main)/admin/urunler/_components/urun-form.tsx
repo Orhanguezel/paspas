@@ -37,7 +37,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useLocaleContext } from "@/i18n/LocaleProvider";
 import { useListCategoriesAdminQuery } from "@/integrations/endpoints/admin/categories_admin.endpoints";
-import { useListBirimlerAdminQuery, useListKaliplarAdminQuery } from "@/integrations/endpoints/admin/erp/tanimlar_admin.endpoints";
+import {
+  useListBirimlerAdminQuery,
+  useListKaliplarAdminQuery,
+} from "@/integrations/endpoints/admin/erp/tanimlar_admin.endpoints";
 import {
   useCreateUrunAdminMutation,
   useDeleteUrunReceteAdminMutation,
@@ -51,6 +54,7 @@ import {
 } from "@/integrations/endpoints/admin/erp/urunler_admin.endpoints";
 import { useListSubCategoriesAdminQuery } from "@/integrations/endpoints/admin/subcategories_admin.endpoints";
 import type { CategoryDto } from "@/integrations/shared/category.types";
+import type { ReceteKalemDto } from "@/integrations/shared/erp/receteler.types";
 import type {
   OperasyonTipi,
   TedarikTipi,
@@ -85,6 +89,7 @@ const schema = z.object({
   renk: z.string().optional(),
   stok: z.preprocess((v) => (v === "" || v == null ? 0 : Number(v)), z.number().min(0).default(0)),
   kritikStok: z.preprocess((v) => (v === "" || v == null ? 0 : Number(v)), z.number().min(0).default(0)),
+  stokTakipAktif: z.boolean().default(true),
   birimFiyat: z.preprocess(
     (v) => (v === "" || v == null ? undefined : Number(v)),
     z.number().positive("positive").optional(),
@@ -116,10 +121,7 @@ function getApiErrorMessage(error: unknown, tError: (key: string) => string): st
   return knownKeys.has(message) ? tError(message) : message;
 }
 
-function getValidationMessage(
-  message: string | undefined,
-  tValidation: (key: string) => string,
-): string | undefined {
+function getValidationMessage(message: string | undefined, tValidation: (key: string) => string): string | undefined {
   if (!message) return undefined;
   const knownKeys = new Set(["required", "kodRequired", "adRequired", "birimRequired", "positive"]);
   return knownKeys.has(message) ? tValidation(message) : message;
@@ -171,6 +173,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
       renk: "",
       stok: 0,
       kritikStok: 0,
+      stokTakipAktif: true,
       kdvOrani: 20,
       operasyonTipi: "tek_tarafli",
       isActive: true,
@@ -196,7 +199,10 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   const watchKategori = form.watch("kategori");
 
   // Auto-suggest next product code for new products
-  const { data: nextCodeData, refetch: refetchNextCode } = useGetNextCodeAdminQuery({ kategori: watchKategori }, { skip: isEdit });
+  const { data: nextCodeData, refetch: refetchNextCode } = useGetNextCodeAdminQuery(
+    { kategori: watchKategori },
+    { skip: isEdit },
+  );
   const watchTedarikTipi = form.watch("tedarikTipi");
   const watchOperasyonTipi = form.watch("operasyonTipi");
   const watchAd = form.watch("ad");
@@ -210,7 +216,10 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   );
   const categorySubGroups = subCategoryData ?? [];
   const receteKategoriKodlari = useMemo(
-    () => categories.filter((item) => item.recetede_kullanilabilir).map((item) => item.kod),
+    () =>
+      Array.from(
+        new Set([...categories.filter((item) => item.recetede_kullanilabilir).map((item) => item.kod), "operasyonel_ym"]),
+      ),
     [categories],
   );
   const productionFieldsEnabled = selectedCategory?.uretim_alanlari_aktif ?? false;
@@ -393,13 +402,14 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
         renk: urun.renk ?? "",
         stok: urun.stok ?? 0,
         kritikStok: urun.kritikStok ?? 0,
+        stokTakipAktif: urun.stokTakipAktif ?? true,
         birimFiyat: urun.birimFiyat ?? undefined,
         kdvOrani: urun.kdvOrani ?? 20,
         operasyonTipi:
           urun.operasyonTipi ??
-          ((categories.find((item) => item.kod === (urun.kategori ?? "urun"))?.varsayilan_operasyon_tipi as
-            | OperasyonTipi
-            | null) ?? "tek_tarafli"),
+          (categories.find((item) => item.kod === (urun.kategori ?? "urun"))
+            ?.varsayilan_operasyon_tipi as OperasyonTipi | null) ??
+          "tek_tarafli",
         isActive: urun.isActive,
         operasyonlar:
           urun.operasyonlar?.map((op) => ({
@@ -428,6 +438,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
         renk: "",
         stok: 0,
         kritikStok: 0,
+        stokTakipAktif: true,
         kdvOrani: 20,
         operasyonTipi: (categories[0]?.varsayilan_operasyon_tipi as OperasyonTipi | null | undefined) ?? null,
         isActive: true,
@@ -462,7 +473,11 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
         const validRows = recipeOwnerEnabled
           ? draftReceteRows
               .filter((row) => row.urunId)
-              .map(({ key: _key, ...row }, idx) => ({ ...row, sira: idx + 1 }))
+              .map(({ key: _key, aciklama, ...row }, idx) => ({
+                ...row,
+                aciklama: aciklama.trim() || undefined,
+                sira: idx + 1,
+              }))
           : [];
         if (validRows.length > 0) {
           await saveDraftRecete({ urunId: created.id, items: validRows }).unwrap();
@@ -495,6 +510,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
           renk: "",
           stok: 0,
           kritikStok: 0,
+          stokTakipAktif: true,
           birimFiyat: undefined,
           kdvOrani: 20,
           operasyonTipi: (categories[0]?.varsayilan_operasyon_tipi as OperasyonTipi | null | undefined) ?? null,
@@ -510,7 +526,9 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
       }
       onClose();
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, (key) => t(`admin.erp.urunler.errors.${key}`)) ?? t("admin.erp.common.operationFailed"));
+      toast.error(
+        getApiErrorMessage(err, (key) => t(`admin.erp.urunler.errors.${key}`)) ?? t("admin.erp.common.operationFailed"),
+      );
     }
   }
 
@@ -679,9 +697,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                   >
                     <SelectTrigger>
                       <SelectValue
-                        placeholder={
-                          categorySubGroups.length > 0 ? tForm("urunGrubuSec") : tForm("urunGrubuYok")
-                        }
+                        placeholder={categorySubGroups.length > 0 ? tForm("urunGrubuSec") : tForm("urunGrubuYok")}
                       />
                     </SelectTrigger>
                     <SelectContent>
@@ -720,6 +736,14 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                     placeholder={tForm("kritikStokPlaceholder")}
                   />
                 </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={form.watch("stokTakipAktif")}
+                  onCheckedChange={(v) => form.setValue("stokTakipAktif", v, { shouldDirty: true })}
+                />
+                <Label>Stok takibi</Label>
               </div>
 
               {/* Birim Fiyat + KDV */}
@@ -792,11 +816,13 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                               <SelectValue placeholder={tForm("hedefBirimPlaceholder")} />
                             </SelectTrigger>
                             <SelectContent>
-                              {birimler.filter((b) => b.kod !== anaBirim).map((b) => (
-                                <SelectItem key={b.kod} value={b.kod}>
-                                  {b.ad}
-                                </SelectItem>
-                              ))}
+                              {birimler
+                                .filter((b) => b.kod !== anaBirim)
+                                .map((b) => (
+                                  <SelectItem key={b.kod} value={b.kod}>
+                                    {b.ad}
+                                  </SelectItem>
+                                ))}
                               <SelectItem value="custom">{tForm("digerBirim")}</SelectItem>
                             </SelectContent>
                           </Select>
@@ -889,7 +915,10 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                           <div className="space-y-1">
                             <Label className="text-xs">{tForm("operasyonAdi")}</Label>
-                            <Input {...form.register(`operasyonlar.${idx}.operasyonAdi`)} disabled={isRecipeDrivenFinalProduct} />
+                            <Input
+                              {...form.register(`operasyonlar.${idx}.operasyonAdi`)}
+                              disabled={isRecipeDrivenFinalProduct}
+                            />
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs">{tForm("kalip")}</Label>
@@ -1010,9 +1039,7 @@ function DraftMedyaSection({ urls, coverUrl, onUrlsChange, onCoverChange, disabl
     <div className="space-y-3">
       <div>
         <h3 className="font-semibold text-sm">{tForm("medyaTitle")}</h3>
-        <p className="mt-1 text-muted-foreground text-xs">
-          {tForm("medyaDraftHelper")}
-        </p>
+        <p className="mt-1 text-muted-foreground text-xs">{tForm("medyaDraftHelper")}</p>
       </div>
 
       <AdminImageUploadField
@@ -1043,16 +1070,11 @@ function MedyaSection({ urunId }: MedyaSectionProps) {
 
   // Derive URLs and cover from server data
   const serverUrls = useMemo(() => (medyaData ?? []).map((m) => m.url).filter(Boolean), [medyaData]);
-  const serverValueTypes = useMemo(
-    () => Object.fromEntries((medyaData ?? []).map((m) => [m.url, m.tip])),
-    [medyaData],
-  );
+  const serverValueTypes = useMemo(() => Object.fromEntries((medyaData ?? []).map((m) => [m.url, m.tip])), [medyaData]);
   const serverValueAssetIds = useMemo(
     () =>
       Object.fromEntries(
-        (medyaData ?? [])
-          .filter((m) => m.storageAssetId)
-          .map((m) => [m.url, m.storageAssetId as string]),
+        (medyaData ?? []).filter((m) => m.storageAssetId).map((m) => [m.url, m.storageAssetId as string]),
       ),
     [medyaData],
   );
@@ -1170,6 +1192,7 @@ interface ReceteRow {
   urunId: string;
   miktar: number;
   fireOrani: number;
+  aciklama: string;
   sira: number;
 }
 
@@ -1179,6 +1202,8 @@ interface MalzemeOption {
   ad: string;
   birim: string;
 }
+
+type ReceteMalzemeOption = Pick<UrunDto, "id" | "kategori" | "kod" | "ad" | "birim" | "birimFiyat">;
 
 interface MalzemeComboboxProps {
   malzemeOptions: MalzemeOption[];
@@ -1197,11 +1222,7 @@ function MalzemeCombobox({ malzemeOptions, value, onChange, placeholder, label }
       <Label className="text-xs">{label}</Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full justify-between font-normal"
-          >
+          <Button type="button" variant="outline" className="w-full justify-between font-normal">
             {selected ? `${selected.kod} — ${selected.ad}` : placeholder}
             <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
           </Button>
@@ -1251,8 +1272,36 @@ function createReceteRow(partial?: Partial<Omit<ReceteRow, "key">>): ReceteRow {
     urunId: partial?.urunId ?? "",
     miktar: partial?.miktar ?? 1,
     fireOrani: partial?.fireOrani ?? 0,
+    aciklama: partial?.aciklama ?? "",
     sira: partial?.sira ?? 0,
   };
+}
+
+function receteKalemToMalzemeOption(item: ReceteKalemDto): ReceteMalzemeOption | null {
+  if (!item.urunId) return null;
+  return {
+    id: item.urunId,
+    kategori: item.malzemeKategori ?? "",
+    kod: item.malzemeKod || item.urunId,
+    ad: item.malzemeAd || item.urunId,
+    birim: item.malzemeBirim || "",
+    birimFiyat: item.malzemeBirimFiyat,
+  };
+}
+
+function mergeReceteMalzemeOptions(
+  options: ReceteMalzemeOption[],
+  receteItems: ReceteKalemDto[] | undefined,
+): ReceteMalzemeOption[] {
+  if (!receteItems?.length) return options;
+  const byId = new Map(options.map((option) => [option.id, option]));
+  for (const item of receteItems) {
+    const option = receteKalemToMalzemeOption(item);
+    if (option && !byId.has(option.id)) {
+      byId.set(option.id, option);
+    }
+  }
+  return Array.from(byId.values());
 }
 
 function DraftReceteSection({ birim, allowedCategoryCodes, rows, onRowsChange }: DraftReceteSectionProps) {
@@ -1297,9 +1346,7 @@ function DraftReceteSection({ birim, allowedCategoryCodes, rows, onRowsChange }:
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-sm">{tForm("receteTitle")}</h3>
-          <p className="mt-1 text-muted-foreground text-xs">
-            {tForm("receteDraftHelper")}
-          </p>
+          <p className="mt-1 text-muted-foreground text-xs">{tForm("receteDraftHelper")}</p>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={addRow}>
           <Plus className="mr-1 size-3" /> {tForm("receteSatirEkle")}
@@ -1354,6 +1401,14 @@ function DraftReceteSection({ birim, allowedCategoryCodes, rows, onRowsChange }:
                 </Button>
               </div>
             </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Açıklama</Label>
+              <Input
+                value={row.aciklama}
+                onChange={(e) => updateRow(idx, "aciklama", e.target.value)}
+                placeholder="Reçete satırı açıklaması"
+              />
+            </div>
 
             {malzeme && (
               <div className="flex items-center gap-4 text-muted-foreground text-xs">
@@ -1397,10 +1452,15 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
   const [initialized, setInitialized] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
-  const malzemeOptions = useMemo(() => {
+  const baseMalzemeOptions = useMemo(() => {
     if (!malzemeData?.items) return [];
     return malzemeData.items.filter((u) => allowedCategoryCodes.includes(u.kategori) && u.id !== urunId);
   }, [allowedCategoryCodes, malzemeData, urunId]);
+
+  const malzemeOptions = useMemo(
+    () => mergeReceteMalzemeOptions(baseMalzemeOptions, receteData?.items),
+    [baseMalzemeOptions, receteData?.items],
+  );
 
   useEffect(() => {
     const validIds = new Set(malzemeOptions.map((item) => item.id));
@@ -1420,6 +1480,7 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
           urunId: item.urunId,
           miktar: item.miktar,
           fireOrani: item.fireOrani,
+          aciklama: item.aciklama ?? "",
           sira: item.sira,
         })),
       );
@@ -1462,7 +1523,10 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
     try {
       await saveRecete({
         urunId,
-        items: validRows.map(({ key: _key, ...row }) => row),
+        items: validRows.map(({ key: _key, aciklama, ...row }) => ({
+          ...row,
+          aciklama: aciklama.trim() || undefined,
+        })),
       }).unwrap();
       toast.success(tForm("receteKaydedildi"));
     } catch (err: unknown) {
@@ -1556,6 +1620,14 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
                   <Trash2 className="size-4" />
                 </Button>
               </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Açıklama</Label>
+              <Input
+                value={row.aciklama}
+                onChange={(e) => updateRow(idx, "aciklama", e.target.value)}
+                placeholder="Reçete satırı açıklaması"
+              />
             </div>
             {malzeme && (
               <div className="flex items-center gap-4 text-muted-foreground text-xs">

@@ -6,7 +6,7 @@ import { db } from '@/db/client';
 import { receteler, receteKalemleri } from '@/modules/receteler/schema';
 import { repoGetByUrunId as repoGetReceteByUrunId } from '@/modules/receteler/repository';
 
-import { urunler, urunOperasyonlari, type UrunRow } from './schema';
+import { urunler, urunOperasyonlari, type UrunOperasyonMakineDto, type UrunOperasyonRow, type UrunRow } from './schema';
 import { repoGetById, repoListOperasyonMakineleri, repoListOperasyonlar, repoUpdate } from './repository';
 import type { CreateUrunFullBody, OperasyonItem, ReceteKalemItem } from './validation';
 
@@ -44,6 +44,11 @@ type ReceteOperasyonKalemi = {
   sira?: number;
 };
 
+export type ReceteOperasyonKategoriKalemi = ReceteOperasyonKalemi & {
+  kategori?: string | null;
+  index?: number;
+};
+
 type DerivedAsilUrunOperasyonlari = {
   operasyonTipi: 'tek_tarafli' | 'cift_tarafli' | null;
   operasyonlar: OperasyonItem[];
@@ -52,6 +57,45 @@ type DerivedAsilUrunOperasyonlari = {
 
 const LEGACY_YARI_MAMUL_KATEGORISI = 'yarimamul';
 const OPERASYONEL_YM_KATEGORISI = 'operasyonel_ym';
+
+export function selectOperasyonKaynakRefs(items: ReceteOperasyonKategoriKalemi[]): ReceteOperasyonKategoriKalemi[] {
+  const sortedUnique = (kategori: string) =>
+    items
+      .filter((item) => item.kategori === kategori && item.urunId)
+      .sort((a, b) => (a.sira ?? 0) - (b.sira ?? 0) || (a.index ?? 0) - (b.index ?? 0))
+      .filter((item, index, list) => list.findIndex((candidate) => candidate.urunId === item.urunId) === index);
+
+  const operasyonelYmRefs = sortedUnique(OPERASYONEL_YM_KATEGORISI);
+  return operasyonelYmRefs.length > 0 ? operasyonelYmRefs : sortedUnique(LEGACY_YARI_MAMUL_KATEGORISI);
+}
+
+export function deriveOperasyonTipiFromKaynakRefs(
+  refs: ReceteOperasyonKategoriKalemi[],
+): 'tek_tarafli' | 'cift_tarafli' | null {
+  if (refs.length === 0) return null;
+  if (refs.length > 2) {
+    throw new OperasyonelYmTutarsizligiError('urun_recetesinde_en_fazla_iki_operasyonel_ym_olur');
+  }
+  return refs.length === 2 ? 'cift_tarafli' : 'tek_tarafli';
+}
+
+export function buildAsilUrunOperasyonlariFromKaynakOperasyonlar(
+  kaynakOperasyonlar: UrunOperasyonRow[],
+  makineMap: Map<string, UrunOperasyonMakineDto[]>,
+): OperasyonItem[] {
+  return kaynakOperasyonlar.map((row, index) => ({
+    operasyonAdi: row.operasyon_adi,
+    sira: index + 1,
+    kalipId: row.kalip_id ?? undefined,
+    hazirlikSuresiDk: row.hazirlik_suresi_dk,
+    cevrimSuresiSn: Number(row.cevrim_suresi_sn),
+    montaj: row.montaj === 1,
+    makineler: (makineMap.get(row.id) ?? []).map((makine) => ({
+      makineId: makine.makineId,
+      oncelikSira: makine.oncelikSira,
+    })),
+  }));
+}
 
 /**
  * Asıl ürün + otomatik operasyonel YM(ler) + reçeteleri tek transaction içinde kurar.
@@ -85,6 +129,7 @@ export async function createUrunWithYariMamuller(input: CreateUrunFullBody): Pro
       image_alt: input.imageAlt ?? null,
       stok: input.stok.toFixed(4),
       kritik_stok: input.kritikStok.toFixed(4),
+      stok_takip_aktif: input.stokTakipAktif ? 1 : 0,
       birim_fiyat: typeof input.birimFiyat === 'number' ? input.birimFiyat.toFixed(2) : undefined,
       kdv_orani: input.kdvOrani.toFixed(2),
       operasyon_tipi: input.operasyonTipi,
@@ -104,6 +149,7 @@ export async function createUrunWithYariMamuller(input: CreateUrunFullBody): Pro
         renk: input.renk ?? null,
         stok: '0.0000',
         kritik_stok: '0.0000',
+        stok_takip_aktif: input.stokTakipAktif ? 1 : 0,
         kdv_orani: input.kdvOrani.toFixed(2),
         operasyon_tipi: null,
       };
@@ -137,6 +183,7 @@ export async function createUrunWithYariMamuller(input: CreateUrunFullBody): Pro
           urun_id: k.urunId,
           miktar: k.miktar.toFixed(4),
           fire_orani: k.fireOrani.toFixed(2),
+          aciklama: k.aciklama?.trim() || null,
           sira: k.sira || idx + 1,
         }));
         await tx.insert(receteKalemleri).values(kalemValues);
@@ -150,6 +197,7 @@ export async function createUrunWithYariMamuller(input: CreateUrunFullBody): Pro
         urunId: t.id,
         miktar: t.miktar,
         fireOrani: 0,
+        aciklama: null,
         sira: idx + 1,
       })),
       ...input.asilUrunMalzemeleri.map((k, idx) => ({
@@ -172,6 +220,7 @@ export async function createUrunWithYariMamuller(input: CreateUrunFullBody): Pro
         urun_id: k.urunId,
         miktar: k.miktar.toFixed(4),
         fire_orani: k.fireOrani.toFixed(2),
+        aciklama: k.aciklama?.trim() || null,
         sira: k.sira,
       }));
       await tx.insert(receteKalemleri).values(kalemValues);
@@ -358,23 +407,18 @@ async function deriveAsilUrunOperasyonlariFromRecete(
     .where(inArray(urunler.id, itemIds));
 
   const urunById = new Map(urunRows.map((row) => [row.id, row]));
-  const operasyonelYmRefs = receteRefs
-    .filter((item) => urunById.get(item.urunId)?.kategori === OPERASYONEL_YM_KATEGORISI)
-    .sort((a, b) => a.sira - b.sira || a.index - b.index)
-    .filter((item, index, list) => list.findIndex((candidate) => candidate.urunId === item.urunId) === index);
-  const legacyYmRefs = receteRefs
-    .filter((item) => urunById.get(item.urunId)?.kategori === LEGACY_YARI_MAMUL_KATEGORISI)
-    .sort((a, b) => a.sira - b.sira || a.index - b.index)
-    .filter((item, index, list) => list.findIndex((candidate) => candidate.urunId === item.urunId) === index);
-  const yariMamulRefs = operasyonelYmRefs.length > 0 ? operasyonelYmRefs : legacyYmRefs;
+  const yariMamulRefs = selectOperasyonKaynakRefs(
+    receteRefs.map((item) => ({
+      ...item,
+      kategori: urunById.get(item.urunId)?.kategori,
+    })),
+  );
 
   if (yariMamulRefs.length === 0) {
     return { operasyonTipi: null, operasyonlar: [], yariMamulIds: [] };
   }
 
-  if (yariMamulRefs.length > 2) {
-    throw new OperasyonelYmTutarsizligiError('urun_recetesinde_en_fazla_iki_operasyonel_ym_olur');
-  }
+  const operasyonTipi = deriveOperasyonTipiFromKaynakRefs(yariMamulRefs);
 
   const kaynakOperasyonListeleri = await Promise.all(
     yariMamulRefs.map((item) => repoListOperasyonlar(item.urunId)),
@@ -390,19 +434,8 @@ async function deriveAsilUrunOperasyonlariFromRecete(
   const makineMap = await repoListOperasyonMakineleri(kaynakOperasyonlar.map((row) => row.id));
 
   return {
-    operasyonTipi: kaynakOperasyonlar.length === 2 ? 'cift_tarafli' : 'tek_tarafli',
-    operasyonlar: kaynakOperasyonlar.map((row, index) => ({
-      operasyonAdi: row.operasyon_adi,
-      sira: index + 1,
-      kalipId: row.kalip_id ?? undefined,
-      hazirlikSuresiDk: row.hazirlik_suresi_dk,
-      cevrimSuresiSn: Number(row.cevrim_suresi_sn),
-      montaj: row.montaj === 1,
-      makineler: (makineMap.get(row.id) ?? []).map((makine) => ({
-        makineId: makine.makineId,
-        oncelikSira: makine.oncelikSira,
-      })),
-    })),
+    operasyonTipi,
+    operasyonlar: buildAsilUrunOperasyonlariFromKaynakOperasyonlar(kaynakOperasyonlar, makineMap),
     yariMamulIds: yariMamulRefs.map((item) => item.urunId),
   };
 }

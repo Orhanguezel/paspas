@@ -7,7 +7,7 @@ import type { NotificationType } from "./schema";
 
 export const notificationCreateSchema = z.object({
   // Eğer sistem tarafından başka kullanıcıya bildirim gönderilecekse gerekli
-  user_id: z.string().min(1).optional(),
+  user_id: z.string().uuid().optional(),
 
   title: z.string().min(1).max(255),
   message: z.string().min(1),

@@ -68,22 +68,37 @@ async function loadWeekendPlans(): Promise<WeekendPlanMap> {
   for (const row of rows) {
     if (!row.haftaBaslangic || !row.makineId) continue;
 
-    // hafta_baslangic: o haftanin Cumartesi tarihini tutar
     const baseTarih = row.haftaBaslangic instanceof Date
       ? row.haftaBaslangic
       : new Date(String(row.haftaBaslangic).slice(0, 10) + 'T00:00:00');
 
-    // Cumartesi calisiyor mu?
+    // hafta_baslangic semantik olarak Cumartesi olmalı, ama UI bazen Pazar ya da
+    // başka bir gün gönderebilir. Cumartesi/Pazar slotlarını gönderilen güne göre
+    // doğru hesapla.
+    const dayOfWeek = baseTarih.getDay(); // 0=Pazar, 6=Cumartesi
+    let cumartesiDate: Date;
+    let pazarDate: Date;
+    if (dayOfWeek === 0) {
+      // Pazar verilmiş → Cumartesi = -1 gün
+      pazarDate = new Date(baseTarih);
+      cumartesiDate = new Date(baseTarih);
+      cumartesiDate.setDate(cumartesiDate.getDate() - 1);
+    } else {
+      // Cumartesi (6) veya hafta içi → en yakın o haftanın Cumartesi'sine kay
+      cumartesiDate = new Date(baseTarih);
+      const offset = (6 - dayOfWeek + 7) % 7;
+      cumartesiDate.setDate(cumartesiDate.getDate() + offset);
+      pazarDate = new Date(cumartesiDate);
+      pazarDate.setDate(pazarDate.getDate() + 1);
+    }
+
     if (row.cumartesiCalisir === 1) {
-      const cumartesiKey = toDateKey(baseTarih);
+      const cumartesiKey = toDateKey(cumartesiDate);
       if (!map.has(cumartesiKey)) map.set(cumartesiKey, new Set());
       map.get(cumartesiKey)!.add(row.makineId);
     }
 
-    // Pazar calisiyor mu? (Cumartesi + 1 gün)
     if (row.pazarCalisir === 1) {
-      const pazarDate = new Date(baseTarih);
-      pazarDate.setDate(pazarDate.getDate() + 1);
       const pazarKey = toDateKey(pazarDate);
       if (!map.has(pazarKey)) map.set(pazarKey, new Set());
       map.get(pazarKey)!.add(row.makineId);

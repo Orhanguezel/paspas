@@ -184,28 +184,28 @@ export async function repoCreate(body: CreateBody, operatorUserId: string | null
       kalite_notu: body.kaliteNotu ?? null,
     });
 
-    // 2. Update product stock (only if accepted)
+    // 2. Reddedilen kalite stoğa eklenmez ve hareket de yazılmaz —
+    // satın alma teslim toplamı da değişmediği için durum 'siparis_verildi' kalır.
     if (body.kaliteDurumu !== 'red') {
       await tx
         .update(urunler)
         .set({ stok: sql`${urunler.stok} + ${body.gelenMiktar.toFixed(4)}` })
-        .where(eq(urunler.id, body.urunId));
+        .where(and(eq(urunler.id, body.urunId), eq(urunler.stok_takip_aktif, 1)));
+
+      await tx.insert(hareketler).values({
+        id: randomUUID(),
+        urun_id: body.urunId,
+        hareket_tipi: 'giris',
+        referans_tipi: 'mal_kabul',
+        referans_id: id,
+        miktar: body.gelenMiktar.toFixed(4),
+        aciklama: `Mal kabul (${body.kaynakTipi})`,
+        created_by_user_id: operatorUserId ?? null,
+      });
     }
 
-    // 3. Create movement record
-    await tx.insert(hareketler).values({
-      id: randomUUID(),
-      urun_id: body.urunId,
-      hareket_tipi: 'giris',
-      referans_tipi: 'mal_kabul',
-      referans_id: id,
-      miktar: body.gelenMiktar.toFixed(4),
-      aciklama: `Mal kabul (${body.kaynakTipi})`,
-      created_by_user_id: operatorUserId ?? null,
-    });
-
-    // 4. Auto-update satin alma siparis status (only for satin_alma type)
-    if (body.kaynakTipi === 'satin_alma' && body.satinAlmaSiparisId) {
+    // 3. Auto-update satin alma siparis status — sadece kabul/kosullu kayıtları sayar.
+    if (body.kaynakTipi === 'satin_alma' && body.satinAlmaSiparisId && body.kaliteDurumu !== 'red') {
       await updateSatinAlmaDurum(tx, body.satinAlmaSiparisId);
     }
   });
@@ -224,13 +224,19 @@ async function updateSatinAlmaDurum(tx: Parameters<Parameters<typeof db.transact
   if (kalemleri.length === 0) return;
 
   const kalemIds = kalemleri.map((k) => k.id);
+  // Sadece kabul/kosullu kayıtları teslim toplamına ekle. Red kayıtları yok sayılır.
   const kabulTotals = await tx
     .select({
       kalemId: malKabulKayitlari.satin_alma_kalem_id,
       totalKabul: sql<string>`COALESCE(SUM(${malKabulKayitlari.gelen_miktar}), 0)`,
     })
     .from(malKabulKayitlari)
-    .where(inArray(malKabulKayitlari.satin_alma_kalem_id, kalemIds))
+    .where(
+      and(
+        inArray(malKabulKayitlari.satin_alma_kalem_id, kalemIds),
+        inArray(malKabulKayitlari.kalite_durumu, ['kabul', 'kosullu']),
+      ),
+    )
     .groupBy(malKabulKayitlari.satin_alma_kalem_id);
 
   const kabulMap = new Map(kabulTotals.map((r) => [r.kalemId, Number(r.totalKabul)]));
@@ -278,7 +284,7 @@ export async function repoUpdate(id: string, patch: PatchBody, operatorUserId?: 
       await db
         .update(urunler)
         .set({ stok: sql`${urunler.stok} - ${miktar.toFixed(4)}` })
-        .where(eq(urunler.id, existing[0].urun_id));
+        .where(and(eq(urunler.id, existing[0].urun_id), eq(urunler.stok_takip_aktif, 1)));
 
       await db.insert(hareketler).values({
         id: randomUUID(),
@@ -295,7 +301,7 @@ export async function repoUpdate(id: string, patch: PatchBody, operatorUserId?: 
       await db
         .update(urunler)
         .set({ stok: sql`${urunler.stok} + ${effectiveMiktar.toFixed(4)}` })
-        .where(eq(urunler.id, existing[0].urun_id));
+        .where(and(eq(urunler.id, existing[0].urun_id), eq(urunler.stok_takip_aktif, 1)));
 
       await db.insert(hareketler).values({
         id: randomUUID(),
@@ -337,7 +343,7 @@ export async function repoDelete(id: string): Promise<boolean> {
       await tx
         .update(urunler)
         .set({ stok: sql`${urunler.stok} - ${miktar.toFixed(4)}` })
-        .where(eq(urunler.id, existing[0].urun_id));
+        .where(and(eq(urunler.id, existing[0].urun_id), eq(urunler.stok_takip_aktif, 1)));
     }
 
     // Delete related movement

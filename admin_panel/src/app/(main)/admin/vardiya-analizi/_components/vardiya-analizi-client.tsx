@@ -110,6 +110,12 @@ function vardiyaLabel(tipi: string): string {
   return tipi;
 }
 
+function operasyonTipiLabel(tip: string | null): string {
+  if (tip === "cift_tarafli") return "Çift taraf";
+  if (tip === "tek_tarafli") return "Tek taraf";
+  return "Baskı";
+}
+
 function viewLabel(view: ViewMode): string {
   if (view === "makine") return "Makine Bazlı";
   if (view === "kalip") return "Kalıp Bazlı";
@@ -283,6 +289,7 @@ export default function VardiyaAnaliziClient() {
             "Bitiş",
             "Net Üretim",
             "Fire",
+            "Operasyon / Kalıp",
             "Çalışma",
             "Duruş",
             "OEE",
@@ -297,6 +304,11 @@ export default function VardiyaAnaliziClient() {
             formatDateTimeLabel(vardiya.bitis),
             vardiya.uretim.netToplam.toLocaleString("tr-TR"),
             vardiya.uretim.fireToplam.toLocaleString("tr-TR"),
+            vardiya.uretim.operasyonKirilimi.length > 0
+              ? vardiya.uretim.operasyonKirilimi
+                  .map((op) => `${op.operasyonAdi}: ${op.miktar.toLocaleString("tr-TR")}${op.kalipKod ? ` (${op.kalipKod})` : ""}`)
+                  .join(" | ")
+              : "—",
             formatDk(vardiya.calismaSuresiDk),
             formatDk(vardiya.durusToplamDk),
             `%${Math.round(vardiya.oee * 100)}`,
@@ -316,11 +328,12 @@ export default function VardiyaAnaliziClient() {
             "Makine",
             "Vardiya",
             "Aktif",
-            "Üretim",
+            "Baskı Adedi",
             "Çalışma",
             "Duruş",
             "Arıza",
             "Kalıp Değişimi",
+            "Operasyon / Kalıp",
             "Ort. Çevrim",
             "Teorik Hedef",
             "Gerçekleşme",
@@ -335,6 +348,11 @@ export default function VardiyaAnaliziClient() {
             formatDk(makine.durusToplamDk),
             `${makine.arizaSayisi} (${formatDk(makine.arizaDk)})`,
             `${makine.kalipDegisimSayisi} (${formatDk(makine.kalipDegisimDk)})`,
+            makine.operasyonKirilimi.length > 0
+              ? makine.operasyonKirilimi
+                  .map((op) => `${op.operasyonAdi}: ${op.miktar.toLocaleString("tr-TR")}${op.kalipKod ? ` (${op.kalipKod})` : ""}`)
+                  .join(" | ")
+              : "—",
             makine.ortCevrimSaniye != null ? `${makine.ortCevrimSaniye} sn` : "—",
             makine.teorikHedef != null ? makine.teorikHedef.toLocaleString("tr-TR") : "—",
             makine.hedefGerceklesmeYuzde != null ? `%${makine.hedefGerceklesmeYuzde}` : "—",
@@ -396,11 +414,11 @@ export default function VardiyaAnaliziClient() {
     if (next === "ozel") {
       if (rangePreset !== "ozel") {
         if ("tarih" in range.query) {
-          setCustomBaslangic(range.query.tarih);
-          setCustomBitis(range.query.tarih);
+          setCustomBaslangic(range.query.tarih ?? "");
+          setCustomBitis(range.query.tarih ?? "");
         } else {
-          setCustomBaslangic(range.query.baslangicTarih);
-          setCustomBitis(range.query.bitisTarih);
+          setCustomBaslangic(range.query.baslangicTarih ?? "");
+          setCustomBitis(range.query.bitisTarih ?? "");
         }
       }
       setRangePreset("ozel");
@@ -810,7 +828,7 @@ function MakineCard({ m, onOpenDetay }: { m: MakineRollup; onOpenDetay: () => vo
         {m.teorikHedef !== null && m.hedefGerceklesmeYuzde !== null ? (
           <div className="space-y-1">
             <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Hedef / Gerçekleşen</span>
+              <span className="text-muted-foreground">Hedef / Baskı</span>
               <span
                 className={
                   hedefStatus === "iyi"
@@ -850,7 +868,32 @@ function MakineCard({ m, onOpenDetay }: { m: MakineRollup; onOpenDetay: () => vo
         ) : (
           <div className="text-muted-foreground text-xs">
             <Package className="mr-1 inline-block size-3" />
-            {m.toplamUretim.toLocaleString("tr-TR")} adet üretim (hedef hesaplanamadı)
+            {m.toplamUretim.toLocaleString("tr-TR")} baskı (hedef hesaplanamadı)
+          </div>
+        )}
+
+        {m.operasyonKirilimi.length > 0 && (
+          <div className="space-y-1 text-xs">
+            <div className="text-muted-foreground">Operasyon / Kalıp</div>
+            <div className="flex flex-wrap gap-1">
+              {m.operasyonKirilimi.slice(0, 4).map((op) => (
+                <Badge
+                  key={`${op.operasyonId ?? op.operasyonAdi}-${op.kalipId ?? "kalipsiz"}`}
+                  variant="secondary"
+                  className="max-w-full text-[10px]"
+                >
+                  <span className="truncate">
+                    {op.operasyonAdi} · {op.miktar.toLocaleString("tr-TR")}
+                    {op.kalipKod ? ` · ${op.kalipKod}` : ""}
+                  </span>
+                </Badge>
+              ))}
+              {m.operasyonKirilimi.length > 4 && (
+                <Badge variant="outline" className="text-[10px]">
+                  +{m.operasyonKirilimi.length - 4}
+                </Badge>
+              )}
+            </div>
           </div>
         )}
 
@@ -938,7 +981,7 @@ function VardiyaCard({ v, onOpenDetay }: { v: VardiyaAnalizItem; onOpenDetay: ()
         {/* Üretim Kırılımı */}
         <div>
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Üretim</span>
+            <span className="text-muted-foreground">Baskı Adedi</span>
             <span className="font-semibold tabular-nums">
               {v.uretim.toplamMiktar.toLocaleString("tr-TR")} adet
             </span>
@@ -956,6 +999,31 @@ function VardiyaCard({ v, onOpenDetay }: { v: VardiyaAnalizItem; onOpenDetay: ()
             </ul>
           )}
         </div>
+
+        {v.uretim.operasyonKirilimi.length > 0 && (
+          <div className="space-y-1 text-xs">
+            <div className="text-muted-foreground">Operasyon / Kalıp</div>
+            <ul className="space-y-0.5">
+              {v.uretim.operasyonKirilimi.slice(0, 4).map((op) => (
+                <li
+                  key={`${op.operasyonId ?? op.operasyonAdi}-${op.kalipId ?? "kalipsiz"}`}
+                  className="flex justify-between gap-2 text-xs"
+                >
+                  <span className="truncate">
+                    {op.operasyonAdi}
+                    <span className="text-muted-foreground">
+                      {" "}· {operasyonTipiLabel(op.operasyonTipi)}
+                      {op.kalipKod ? ` · ${op.kalipKod}` : ""}
+                    </span>
+                  </span>
+                  <span className="tabular-nums text-muted-foreground">
+                    {op.miktar.toLocaleString("tr-TR")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Çalışma / Duruş */}
         <div className="grid grid-cols-2 gap-2 text-xs">

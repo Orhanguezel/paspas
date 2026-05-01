@@ -184,6 +184,7 @@ export const gunlukUretimGir: RouteHandler = async (req, reply) => {
   } catch (error) {
     const { msg, stack } = extractError(error);
     if (msg === 'aktif_uretim_bulunamadi') return sendError(reply, 404, msg);
+    if (msg === 'vardiya_kaydi_bulunamadi') return sendError(reply, 404, msg);
     if (msg === 'makine_bugun_calismiyor') return sendError(reply, 409, msg);
     req.log.error({ error: msg, stack }, 'gunluk_uretim_gir_failed');
     return sendError(reply, 500, msg || 'sunucu_hatasi');
@@ -249,4 +250,12 @@ export const listDuruslar: RouteHandler = async (req, reply) => {
     req.log.error({ error: msg, stack }, 'list_duruslar_failed');
     return sendError(reply, 500, 'sunucu_hatasi');
   }
+};
+
+export const listOperatorIsleri = listMakineKuyrugu;
+
+export const finishOperatorIsi: RouteHandler = async (req, reply) => {
+  const { id } = (req.params ?? {}) as { id?: string };
+  req.body = { ...((req.body ?? {}) as Record<string, unknown>), makineKuyrukId: id };
+  return (uretimBitir as (request: typeof req, response: typeof reply) => unknown)(req, reply);
 };

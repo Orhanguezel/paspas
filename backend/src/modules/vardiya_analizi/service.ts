@@ -1,17 +1,26 @@
-import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, lte, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { users } from '@/modules/auth/schema';
 import { makineler as makinelerTbl } from '@/modules/makine_havuzu/schema';
 import { durusKayitlari, operatorGunlukKayitlari, vardiyaKayitlari } from '@/modules/operator/schema';
-import { durusNedenleri } from '@/modules/tanimlar/schema';
-import { kaliplar } from '@/modules/tanimlar/schema';
+import { durusNedenleri, kaliplar, vardiyalar as vardiyaTanimlari } from '@/modules/tanimlar/schema';
 import { uretimEmirleri, uretimEmriOperasyonlari } from '@/modules/uretim_emirleri/schema';
 import { urunler } from '@/modules/urunler/schema';
 
 import type { ListQuery, TrendQuery } from './validation';
 
 export type UrunKirilim = { urunId: string; urunAd: string; urunKod: string | null; miktar: number };
+
+export type OperasyonKirilim = {
+  operasyonId: string | null;
+  operasyonAdi: string;
+  operasyonTipi: string | null;
+  kalipId: string | null;
+  kalipKod: string | null;
+  kalipAd: string | null;
+  miktar: number;
+};
 
 export type VardiyaAnalizItem = {
   id: string;
@@ -31,6 +40,7 @@ export type VardiyaAnalizItem = {
     netToplam: number;
     fireToplam: number;
     urunKirilimi: UrunKirilim[];
+    operasyonKirilimi: OperasyonKirilim[];
   };
   duruslar: {
     toplamDk: number;
@@ -73,6 +83,7 @@ export type MakineRollup = {
   ortCevrimSaniye: number | null;
   teorikHedef: number | null;
   hedefGerceklesmeYuzde: number | null;
+  operasyonKirilimi: OperasyonKirilim[];
   oee: number;
 };
 
@@ -97,6 +108,66 @@ export type VardiyaAnalizResponse = {
   ozet: VardiyaAnalizOzet;
 };
 
+export type UretimKirilimAggregateRow = {
+  urunId: string;
+  urunAd: string;
+  urunKod: string | null;
+  netMiktar: number | string | null;
+  fireMiktar: number | string | null;
+};
+
+export function buildUretimKirilimSummary(rows: UretimKirilimAggregateRow[]) {
+  const byProduct = new Map<string, UrunKirilim>();
+  let fireToplam = 0;
+
+  for (const row of rows) {
+    const miktar = Number(row.netMiktar ?? 0);
+    const existing = byProduct.get(row.urunId);
+    if (existing) {
+      existing.miktar += miktar;
+    } else {
+      byProduct.set(row.urunId, {
+        urunId: row.urunId,
+        urunAd: row.urunAd,
+        urunKod: row.urunKod,
+        miktar,
+      });
+    }
+    fireToplam += Number(row.fireMiktar ?? 0);
+  }
+
+  const urunKirilimi = Array.from(byProduct.values());
+  return {
+    urunKirilimi,
+    uretimToplam: urunKirilimi.reduce((sum, item) => sum + item.miktar, 0),
+    fireToplam,
+  };
+}
+
+const DEFAULT_VARDIYA_SAATLERI = {
+  gunduz: { baslangic: '07:30', bitis: '19:30' },
+  gece: { baslangic: '19:30', bitis: '07:30' },
+} as const;
+
+type VardiyaTipi = keyof typeof DEFAULT_VARDIYA_SAATLERI;
+type VardiyaTanimi = {
+  vardiyaTipi: VardiyaTipi;
+  ad: string;
+  baslangicSaati: string;
+  bitisSaati: string;
+};
+
+type VardiyaRow = {
+  id: string;
+  makineId: string;
+  operatorUserId: string | null;
+  vardiyaTipi: string;
+  baslangic: Date;
+  bitis: Date | null;
+  makineAd: string;
+  operatorAd: string | null;
+};
+
 function dateRange(query: ListQuery): { baslangic: Date; bitis: Date; tarihLabel: string } {
   if (query.baslangicTarih && query.bitisTarih) {
     return {
@@ -115,6 +186,103 @@ function dateRange(query: ListQuery): { baslangic: Date; bitis: Date; tarihLabel
 
 function diffMinutes(a: Date, b: Date): number {
   return Math.max(0, Math.floor((b.getTime() - a.getTime()) / 60000));
+}
+
+function parseClockToMinutes(clock: string): number {
+  const [hour, minute] = clock.split(':').map(Number);
+  return (hour * 60) + minute;
+}
+
+function normalizeShiftName(value: string): string {
+  return value
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '');
+}
+
+function inferVardiyaTipi(ad: string, baslangicSaati: string, bitisSaati: string): VardiyaTipi {
+  const normalizedName = normalizeShiftName(ad);
+  if (normalizedName.includes('gece')) return 'gece';
+  if (normalizedName.includes('gunduz')) return 'gunduz';
+
+  const baslangic = parseClockToMinutes(baslangicSaati);
+  const bitis = parseClockToMinutes(bitisSaati);
+  if (baslangic > bitis) return 'gece';
+  return baslangic >= (12 * 60) ? 'gece' : 'gunduz';
+}
+
+function createDateForClock(reference: Date, clock: string): Date {
+  const [hour, minute] = clock.split(':').map(Number);
+  const date = new Date(reference);
+  date.setHours(hour, minute, 0, 0);
+  return date;
+}
+
+function buildShiftWindowForTime(time: Date, tanim: VardiyaTanimi): { baslangic: Date; bitis: Date } {
+  const baslangicMinutes = parseClockToMinutes(tanim.baslangicSaati);
+  const bitisMinutes = parseClockToMinutes(tanim.bitisSaati);
+  const currentMinutes = (time.getHours() * 60) + time.getMinutes();
+  const overnight = baslangicMinutes >= bitisMinutes;
+
+  const baslangic = createDateForClock(time, tanim.baslangicSaati);
+  const bitis = createDateForClock(time, tanim.bitisSaati);
+
+  if (overnight) {
+    if (currentMinutes >= baslangicMinutes) {
+      bitis.setDate(bitis.getDate() + 1);
+    } else {
+      baslangic.setDate(baslangic.getDate() - 1);
+    }
+  }
+
+  return { baslangic, bitis };
+}
+
+async function listActiveVardiyaTanimlari(): Promise<VardiyaTanimi[]> {
+  const rows = await db
+    .select({
+      ad: vardiyaTanimlari.ad,
+      baslangicSaati: vardiyaTanimlari.baslangic_saati,
+      bitisSaati: vardiyaTanimlari.bitis_saati,
+    })
+    .from(vardiyaTanimlari)
+    .where(eq(vardiyaTanimlari.is_active, 1))
+    .orderBy(asc(vardiyaTanimlari.baslangic_saati), asc(vardiyaTanimlari.ad));
+
+  if (rows.length === 0) {
+    return (Object.entries(DEFAULT_VARDIYA_SAATLERI) as [VardiyaTipi, { baslangic: string; bitis: string }][]).map(([vardiyaTipi, saatler]) => ({
+      vardiyaTipi,
+      ad: vardiyaTipi,
+      baslangicSaati: saatler.baslangic,
+      bitisSaati: saatler.bitis,
+    }));
+  }
+
+  return rows.map((row) => ({
+    vardiyaTipi: inferVardiyaTipi(row.ad, row.baslangicSaati, row.bitisSaati),
+    ad: row.ad,
+    baslangicSaati: row.baslangicSaati,
+    bitisSaati: row.bitisSaati,
+  }));
+}
+
+function clampDate(date: Date, min: Date, max: Date): Date {
+  if (date < min) return min;
+  if (date > max) return max;
+  return date;
+}
+
+function mergeOperasyonKirilimi(target: OperasyonKirilim[], source: OperasyonKirilim[]) {
+  for (const item of source) {
+    const key = `${item.operasyonId ?? 'null'}-${item.kalipId ?? 'null'}-${item.operasyonTipi ?? 'null'}`;
+    const existing = target.find((current) => `${current.operasyonId ?? 'null'}-${current.kalipId ?? 'null'}-${current.operasyonTipi ?? 'null'}` === key);
+    if (existing) {
+      existing.miktar += item.miktar;
+    } else {
+      target.push({ ...item });
+    }
+  }
+  target.sort((a, b) => b.miktar - a.miktar || a.operasyonAdi.localeCompare(b.operasyonAdi, 'tr'));
 }
 
 export type DurusDetay = {
@@ -139,6 +307,10 @@ export type UretimKaydi = {
   fireMiktar: number;
   operatorAd: string | null;
   notlar: string | null;
+  operasyonAdi: string | null;
+  operasyonTipi: string | null;
+  kalipKod: string | null;
+  kalipAd: string | null;
 };
 
 export type SaatlikUretim = { saat: string; miktar: number };
@@ -273,16 +445,23 @@ export async function getVardiyaAnaliziDetay(params: {
       fireMiktar: operatorGunlukKayitlari.fire_miktari,
       notlar: operatorGunlukKayitlari.notlar,
       operatorAd: users.full_name,
+      operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
+      operasyonTipi: urunler.operasyon_tipi,
+      kalipKod: kaliplar.kod,
+      kalipAd: kaliplar.ad,
     })
     .from(operatorGunlukKayitlari)
     .innerJoin(uretimEmirleri, eq(operatorGunlukKayitlari.uretim_emri_id, uretimEmirleri.id))
     .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+    .leftJoin(uretimEmriOperasyonlari, eq(operatorGunlukKayitlari.emir_operasyon_id, uretimEmriOperasyonlari.id))
+    .leftJoin(kaliplar, eq(uretimEmriOperasyonlari.kalip_id, kaliplar.id))
     .leftJoin(users, eq(operatorGunlukKayitlari.operator_user_id, users.id))
     .where(
       and(
         eq(operatorGunlukKayitlari.makine_id, makineId),
         gte(operatorGunlukKayitlari.kayit_tarihi, baslangic),
         lte(operatorGunlukKayitlari.kayit_tarihi, bitis),
+        sql`(${operatorGunlukKayitlari.emir_operasyon_id} IS NULL OR COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 0)`,
       ),
     )
     .orderBy(desc(operatorGunlukKayitlari.kayit_tarihi));
@@ -297,6 +476,10 @@ export async function getVardiyaAnaliziDetay(params: {
     fireMiktar: Number(r.fireMiktar ?? 0),
     operatorAd: r.operatorAd ?? null,
     notlar: r.notlar ?? null,
+    operasyonAdi: r.operasyonAdi ?? null,
+    operasyonTipi: r.operasyonTipi ?? null,
+    kalipKod: r.kalipKod ?? null,
+    kalipAd: r.kalipAd ?? null,
   }));
 
   // Saatlik üretim
@@ -322,11 +505,13 @@ export async function getVardiyaAnaliziDetay(params: {
     .from(operatorGunlukKayitlari)
     .innerJoin(uretimEmirleri, eq(operatorGunlukKayitlari.uretim_emri_id, uretimEmirleri.id))
     .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+    .leftJoin(uretimEmriOperasyonlari, eq(operatorGunlukKayitlari.emir_operasyon_id, uretimEmriOperasyonlari.id))
     .where(
       and(
         eq(operatorGunlukKayitlari.makine_id, makineId),
         gte(operatorGunlukKayitlari.kayit_tarihi, baslangic),
         lte(operatorGunlukKayitlari.kayit_tarihi, bitis),
+        sql`(${operatorGunlukKayitlari.emir_operasyon_id} IS NULL OR COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 0)`,
       ),
     );
 
@@ -354,12 +539,12 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
   const { baslangic, bitis, tarihLabel } = dateRange(query);
 
   const vardiyaConditions = [
-    gte(vardiyaKayitlari.baslangic, baslangic),
-    lte(vardiyaKayitlari.baslangic, bitis),
+    sql`${vardiyaKayitlari.baslangic} <= ${bitis}`,
+    sql`COALESCE(${vardiyaKayitlari.bitis}, ${bitis}) >= ${baslangic}`,
   ];
   if (query.makineId) vardiyaConditions.push(eq(vardiyaKayitlari.makine_id, query.makineId));
 
-  const vardiyaRows = await db
+  const vardiyaRows: VardiyaRow[] = await db
     .select({
       id: vardiyaKayitlari.id,
       makineId: vardiyaKayitlari.makine_id,
@@ -376,10 +561,67 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
     .where(and(...vardiyaConditions))
     .orderBy(desc(vardiyaKayitlari.baslangic));
 
+  const vardiyaTanimlari = await listActiveVardiyaTanimlari();
+  const productionRows = await db
+    .select({
+      makineId: operatorGunlukKayitlari.makine_id,
+      makineAd: makinelerTbl.ad,
+      operatorUserId: operatorGunlukKayitlari.operator_user_id,
+      operatorAd: users.full_name,
+      kayitTarihi: operatorGunlukKayitlari.kayit_tarihi,
+    })
+    .from(operatorGunlukKayitlari)
+    .innerJoin(makinelerTbl, eq(operatorGunlukKayitlari.makine_id, makinelerTbl.id))
+    .leftJoin(uretimEmriOperasyonlari, eq(operatorGunlukKayitlari.emir_operasyon_id, uretimEmriOperasyonlari.id))
+    .leftJoin(users, eq(operatorGunlukKayitlari.operator_user_id, users.id))
+    .where(
+      and(
+        gte(operatorGunlukKayitlari.kayit_tarihi, baslangic),
+        lte(operatorGunlukKayitlari.kayit_tarihi, bitis),
+        query.makineId ? eq(operatorGunlukKayitlari.makine_id, query.makineId) : sql`1 = 1`,
+        sql`${operatorGunlukKayitlari.net_miktar} != 0`,
+        sql`(${operatorGunlukKayitlari.emir_operasyon_id} IS NULL OR COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 0)`,
+      ),
+    )
+    .orderBy(desc(operatorGunlukKayitlari.kayit_tarihi));
+
+  const knownShiftKeys = new Set(vardiyaRows.map((v) => `${v.makineId}-${new Date(v.baslangic).toISOString()}`));
+  for (const kayit of productionRows) {
+    if (!kayit.makineId || !kayit.makineAd) continue;
+    const kayitTarihi = new Date(kayit.kayitTarihi);
+    const tanim = vardiyaTanimlari
+      .map((item) => ({ item, pencere: buildShiftWindowForTime(kayitTarihi, item) }))
+      .find(({ pencere }) => kayitTarihi >= pencere.baslangic && kayitTarihi < pencere.bitis);
+    if (!tanim) continue;
+
+    const syntheticKey = `${kayit.makineId}-${tanim.pencere.baslangic.toISOString()}`;
+    if (knownShiftKeys.has(syntheticKey)) continue;
+
+    const hasRealCoveringShift = vardiyaRows.some((v) => {
+      if (v.makineId !== kayit.makineId) return false;
+      const realStart = new Date(v.baslangic);
+      const realEnd = v.bitis ? new Date(v.bitis) : bitis;
+      return kayitTarihi >= realStart && kayitTarihi <= realEnd;
+    });
+    if (hasRealCoveringShift) continue;
+
+    knownShiftKeys.add(syntheticKey);
+    vardiyaRows.push({
+      id: `synthetic-${syntheticKey}`,
+      makineId: kayit.makineId,
+      operatorUserId: kayit.operatorUserId ?? null,
+      vardiyaTipi: tanim.item.vardiyaTipi,
+      baslangic: tanim.pencere.baslangic,
+      bitis: tanim.pencere.bitis,
+      makineAd: kayit.makineAd,
+      operatorAd: kayit.operatorAd ?? null,
+    });
+  }
+
   const vardiyalar: VardiyaAnalizItem[] = [];
   for (const v of vardiyaRows) {
-    const effectiveBitis = v.bitis ? new Date(v.bitis) : new Date();
-    const vBaslangic = new Date(v.baslangic);
+    const effectiveBitis = clampDate(v.bitis ? new Date(v.bitis) : new Date(), baslangic, bitis);
+    const vBaslangic = clampDate(new Date(v.baslangic), baslangic, bitis);
     const planlananSureDk = diffMinutes(vBaslangic, effectiveBitis);
 
     // Üretim kırılımı: vardiya aralığında gerçekleşen operator_gunluk_kayitlari
@@ -395,23 +637,61 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
       .from(operatorGunlukKayitlari)
       .innerJoin(uretimEmirleri, eq(operatorGunlukKayitlari.uretim_emri_id, uretimEmirleri.id))
       .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+      .leftJoin(uretimEmriOperasyonlari, eq(operatorGunlukKayitlari.emir_operasyon_id, uretimEmriOperasyonlari.id))
       .where(
         and(
           eq(operatorGunlukKayitlari.makine_id, v.makineId),
           gte(operatorGunlukKayitlari.kayit_tarihi, vBaslangic),
           lte(operatorGunlukKayitlari.kayit_tarihi, effectiveBitis),
+          sql`(${operatorGunlukKayitlari.emir_operasyon_id} IS NULL OR COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 0)`,
         ),
       )
       .groupBy(urunler.id, urunler.ad, urunler.kod);
 
-    const urunKirilimi: UrunKirilim[] = uretimRows.map((r) => ({
-      urunId: r.urunId,
-      urunAd: r.urunAd,
-      urunKod: r.urunKod,
-      miktar: Number(r.netMiktar ?? 0),
-    }));
-    const uretimToplam = urunKirilimi.reduce((s, u) => s + u.miktar, 0);
-    const fireToplam = uretimRows.reduce((s, r) => s + Number(r.fireMiktar), 0);
+    const operasyonRows = await db
+      .select({
+        operasyonId: uretimEmriOperasyonlari.id,
+        operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
+        operasyonTipi: urunler.operasyon_tipi,
+        kalipId: kaliplar.id,
+        kalipKod: kaliplar.kod,
+        kalipAd: kaliplar.ad,
+        netMiktar: sql<number>`coalesce(sum(${operatorGunlukKayitlari.net_miktar}), 0)`,
+      })
+      .from(operatorGunlukKayitlari)
+      .innerJoin(uretimEmirleri, eq(operatorGunlukKayitlari.uretim_emri_id, uretimEmirleri.id))
+      .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+      .leftJoin(uretimEmriOperasyonlari, eq(operatorGunlukKayitlari.emir_operasyon_id, uretimEmriOperasyonlari.id))
+      .leftJoin(kaliplar, eq(uretimEmriOperasyonlari.kalip_id, kaliplar.id))
+      .where(
+        and(
+          eq(operatorGunlukKayitlari.makine_id, v.makineId),
+          gte(operatorGunlukKayitlari.kayit_tarihi, vBaslangic),
+          lte(operatorGunlukKayitlari.kayit_tarihi, effectiveBitis),
+          sql`(${operatorGunlukKayitlari.emir_operasyon_id} IS NULL OR COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 0)`,
+        ),
+      )
+      .groupBy(
+        uretimEmriOperasyonlari.id,
+        uretimEmriOperasyonlari.operasyon_adi,
+        urunler.operasyon_tipi,
+        kaliplar.id,
+        kaliplar.kod,
+        kaliplar.ad,
+      );
+
+    const { urunKirilimi, uretimToplam, fireToplam } = buildUretimKirilimSummary(uretimRows);
+    const operasyonKirilimi: OperasyonKirilim[] = operasyonRows
+      .map((r) => ({
+        operasyonId: r.operasyonId ?? null,
+        operasyonAdi: r.operasyonAdi ?? 'Baskı',
+        operasyonTipi: r.operasyonTipi ?? null,
+        kalipId: r.kalipId ?? null,
+        kalipKod: r.kalipKod ?? null,
+        kalipAd: r.kalipAd ?? null,
+        miktar: Number(r.netMiktar ?? 0),
+      }))
+      .sort((a, b) => b.miktar - a.miktar || a.operasyonAdi.localeCompare(b.operasyonAdi, 'tr'));
 
     // Duruş analizi
     const durusRows = await db
@@ -486,6 +766,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         netToplam: uretimToplam,
         fireToplam,
         urunKirilimi,
+        operasyonKirilimi,
       },
       duruslar: d,
       oee: Number(oee.toFixed(3)),
@@ -521,6 +802,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
       existing.kalipDegisimSayisi += v.duruslar.kalipDegisimSayisi;
       existing.kalipDegisimDk += v.duruslar.kalipDegisimDk;
       existing.bakimDk += v.duruslar.bakimDk;
+      mergeOperasyonKirilimi(existing.operasyonKirilimi, v.uretim.operasyonKirilimi);
     } else {
       makineRollupMap.set(v.makineId, {
         makineId: v.makineId,
@@ -538,6 +820,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         ortCevrimSaniye: null,
         teorikHedef: null,
         hedefGerceklesmeYuzde: null,
+        operasyonKirilimi: v.uretim.operasyonKirilimi.map((item) => ({ ...item })),
         oee: 0,
       });
     }
@@ -625,6 +908,8 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
       and(
         gte(operatorGunlukKayitlari.kayit_tarihi, baslangic),
         lte(operatorGunlukKayitlari.kayit_tarihi, bitis),
+        query.makineId ? eq(operatorGunlukKayitlari.makine_id, query.makineId) : sql`1 = 1`,
+        eq(uretimEmriOperasyonlari.montaj, 0),
       ),
     );
 

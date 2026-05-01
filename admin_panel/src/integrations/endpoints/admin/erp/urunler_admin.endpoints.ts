@@ -41,6 +41,8 @@ export const urunlerAdminApi = baseApi.injectEndpoints({
           kategori?: UrunKategori;
           tedarikTipi?: TedarikTipi;
           urunGrubu?: string;
+          sort?: "ad" | "kod" | "created_at" | "stok" | "kritik_stok";
+          order?: "asc" | "desc";
         }
       | undefined
     >({
@@ -84,6 +86,7 @@ export const urunlerAdminApi = baseApi.injectEndpoints({
         renk?: string;
         stok?: number;
         kritikStok?: number;
+        stokTakipAktif?: boolean;
         birimFiyat?: number;
         kdvOrani?: number;
         operasyonTipi: "tek_tarafli" | "cift_tarafli";
@@ -94,7 +97,10 @@ export const urunlerAdminApi = baseApi.injectEndpoints({
       }
     >({
       query: (body) => ({ url: `${BASE}/full`, method: "POST", body }),
-      invalidatesTags: [{ type: "Urunler", id: "LIST" }, { type: "Receteler", id: "LIST" }],
+      invalidatesTags: [
+        { type: "Urunler", id: "LIST" },
+        { type: "Receteler", id: "LIST" },
+      ],
     }),
 
     updateUrunAdmin: b.mutation<UrunDto, { id: string; body: UrunUpdatePayload }>({
@@ -146,7 +152,10 @@ export const urunlerAdminApi = baseApi.injectEndpoints({
 
     saveUrunReceteAdmin: b.mutation<
       ReceteDto,
-      { urunId: string; items: { urunId: string; miktar: number; fireOrani: number; sira: number }[] }
+      {
+        urunId: string;
+        items: { urunId: string; miktar: number; fireOrani: number; aciklama?: string; sira: number }[];
+      }
     >({
       query: ({ urunId, items }) => ({ url: `${BASE}/${urunId}/recete`, method: "PUT", body: { items } }),
       transformResponse: (res: unknown) => normalizeRecete(res),

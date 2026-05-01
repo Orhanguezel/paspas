@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, like, lte, or, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, gte, inArray, like, lt, lte, ne, or, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
@@ -481,7 +481,51 @@ export async function repoGetById(id: string): Promise<GanttBarDto | null> {
 }
 
 export async function repoUpdateById(id: string, patch: PatchBody): Promise<GanttBarDto | null> {
+  const [existing] = await db.select().from(makineKuyrugu).where(eq(makineKuyrugu.id, id)).limit(1);
+  if (!existing) return null;
+
   const payload = mapPatchInput(patch);
+
+  // Çakışma kontrolü: yeni baslangic/bitis aralığı aynı makinedeki başka aktif
+  // (durum != 'tamamlandi' ve != 'iptal') kuyruk satırıyla overlap ediyorsa reddet.
+  if (payload.planlanan_baslangic !== undefined || payload.planlanan_bitis !== undefined) {
+    const yeniBas = payload.planlanan_baslangic !== undefined ? payload.planlanan_baslangic : existing.planlanan_baslangic;
+    const yeniBit = payload.planlanan_bitis !== undefined ? payload.planlanan_bitis : existing.planlanan_bitis;
+    if (yeniBas && yeniBit) {
+      const cakisanlar = await db
+        .select({ id: makineKuyrugu.id })
+        .from(makineKuyrugu)
+        .where(
+          and(
+            eq(makineKuyrugu.makine_id, existing.makine_id),
+            ne(makineKuyrugu.id, id),
+            sql`${makineKuyrugu.durum} NOT IN ('tamamlandi', 'iptal')`,
+            // Overlap: existing.bas < new.bit AND existing.bit > new.bas
+            lt(makineKuyrugu.planlanan_baslangic, yeniBit),
+            gt(makineKuyrugu.planlanan_bitis, yeniBas),
+          ),
+        )
+        .limit(1);
+      if (cakisanlar.length > 0) {
+        const err = new Error('makine_kuyrugu_cakisma');
+        (err as any).detail = 'Bu tarih aralığında aynı makinede başka kuyruk satırı var.';
+        throw err;
+      }
+    }
+  }
+
   await db.update(makineKuyrugu).set(payload).where(eq(makineKuyrugu.id, id));
+
+  // Bağlı emir operasyonu tarihlerini de senkronla.
+  if (existing.emir_operasyon_id && (payload.planlanan_baslangic !== undefined || payload.planlanan_bitis !== undefined)) {
+    const opPatch: Partial<typeof uretimEmriOperasyonlari.$inferInsert> = {};
+    if (payload.planlanan_baslangic !== undefined) opPatch.planlanan_baslangic = payload.planlanan_baslangic;
+    if (payload.planlanan_bitis !== undefined) opPatch.planlanan_bitis = payload.planlanan_bitis;
+    await db
+      .update(uretimEmriOperasyonlari)
+      .set(opPatch)
+      .where(eq(uretimEmriOperasyonlari.id, existing.emir_operasyon_id));
+  }
+
   return repoGetById(id);
 }

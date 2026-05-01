@@ -9,7 +9,7 @@ import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type { CategoryCreateInput, CategoryUpdateInput } from "./validation";
 import { toBool, nullIfEmpty } from "@/modules/_shared/normalizers";
 
-const ERP_CATEGORY_DEFAULTS = {
+export const ERP_CATEGORY_DEFAULTS = {
   urun: {
     name: "Urun",
     slug: "urun",

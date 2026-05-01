@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeUrun, normalizeUrunList } from '../urunler.types';
 import { normalizeMusteri, normalizeMusteriList } from '../musteriler.types';
+import { normalizeRecete } from '../receteler.types';
 
 /* ================================================================
    Urunler Normalizers
@@ -97,6 +98,14 @@ describe('normalizeMusteri', () => {
       tur: 'musteri',
       telefon: '+905551234567',
       adres: 'İstanbul',
+      websiteUrl: 'https://www.promats.com.tr',
+      bayiSegment: 'toptanci',
+      krediLimit: '50000.00',
+      mevcutBakiye: '1250.50',
+      vadeGunu: 30,
+      portalEnabled: 1,
+      portalStatus: 'invited',
+      publicVeriIzni: true,
       iskonto: 10,
       isActive: true,
       createdAt: '2026-01-01',
@@ -107,12 +116,21 @@ describe('normalizeMusteri', () => {
     expect(dto.tur).toBe('musteri');
     expect(dto.iskonto).toBe(10);
     expect(dto.isActive).toBe(true);
+    expect(dto.websiteUrl).toBe('https://www.promats.com.tr');
+    expect(dto.bayiSegment).toBe('toptanci');
+    expect(dto.krediLimit).toBe(50000);
+    expect(dto.portalStatus).toBe('invited');
+    expect(dto.publicVeriIzni).toBe(true);
   });
 
   it('handles null optional fields', () => {
     const dto = normalizeMusteri({ id: '1', ad: 'Test' });
     expect(dto.telefon).toBeNull();
     expect(dto.adres).toBeNull();
+    expect(dto.websiteUrl).toBeNull();
+    expect(dto.bayiSegment).toBeNull();
+    expect(dto.portalEnabled).toBe(false);
+    expect(dto.portalStatus).toBe('not_invited');
   });
 
   it('handles empty input', () => {
@@ -132,5 +150,33 @@ describe('normalizeMusteriList', () => {
     const list = normalizeMusteriList(res);
     expect(list.items).toHaveLength(2);
     expect(list.total).toBe(2);
+  });
+});
+
+/* ================================================================
+   Receteler Normalizers
+   ================================================================ */
+
+describe('normalizeRecete', () => {
+  it('preserves material image URLs for recipe preview modal', () => {
+    const recete = normalizeRecete({
+      id: 'recete-1',
+      kod: 'REC-001',
+      ad: 'Test Recete',
+      items: [
+        {
+          id: 'kalem-1',
+          urunId: 'malzeme-1',
+          malzemeAd: 'PVC Siyah',
+          malzemeGorselUrl: 'https://cdn.example.com/pvc-siyah.png',
+          miktar: '2.5',
+          fireOrani: '1',
+          sira: '1',
+        },
+      ],
+    });
+
+    expect(recete.items?.[0]?.malzemeGorselUrl).toBe('https://cdn.example.com/pvc-siyah.png');
+    expect(recete.items?.[0]?.miktar).toBe(2.5);
   });
 });

@@ -3,10 +3,21 @@ import dotenv from "dotenv";
 import { existsSync } from "fs";
 import { resolve } from "path";
 
-// Önce .env yükle, sonra .env.local varsa override etsin
+// Yükleme sırası (sonra gelen önceki değerleri override eder):
+//   1. .env                    — base config
+//   2. .env.local              — geliştiricinin lokal override'ları (gitignored)
+//   3. .env.test (NODE_ENV=test ise) — test runner için izole DB / config
+//
+// Bu sıra, `bun test` veya `NODE_ENV=test ...` ile çalıştırılan testleri canlı
+// veritabanından izole etmek için kullanılır. .env.test sadece test'te yüklenir.
 dotenv.config();
 const localEnv = resolve(process.cwd(), ".env.local");
 if (existsSync(localEnv)) dotenv.config({ path: localEnv, override: true });
+
+if (process.env.NODE_ENV === "test") {
+  const testEnv = resolve(process.cwd(), ".env.test");
+  if (existsSync(testEnv)) dotenv.config({ path: testEnv, override: true });
+}
 
 const toInt = (v: string | undefined, d: number) => {
   const n = v ? parseInt(v, 10) : NaN;

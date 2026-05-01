@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const gunlukDurumEnum = z.enum(['devam_ediyor', 'yarim_kaldi', 'durdu', 'iptal_edildi', 'makine_arizasi', 'tamamlandi']);
+const emirDurumEnum = z.enum(['hazirlaniyor', 'uretimde', 'tamamlandi', 'iptal']);
 
 // -- Makine kuyrugu listeleme (makine bazli) --
 export const listMakineKuyruguQuerySchema = z.object({
@@ -58,10 +59,33 @@ export const vardiyaSonuBodySchema = z.object({
 
 export const gunlukUretimBodySchema = z.object({
   makineId: z.string().min(1),
+  vardiyaKayitId: z.string().min(1).optional(),
   uretilenMiktar: z.coerce.number().min(0.0001),
   fireMiktar: z.coerce.number().min(0).default(0),
   birimTipi: z.enum(['adet', 'takim']).default('adet'),
   notlar: z.string().trim().max(500).optional(),
+});
+
+// Eski controller testleri ve entegrasyonlar bu isimleri import ediyor.
+export const listQuerySchema = z.object({
+  makineId: z.string().min(1).optional(),
+  durum: emirDurumEnum.optional(),
+  limit: z.coerce.number().int().min(1).max(500).default(100),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
+export const finishBodySchema = z.object({
+  uretilenMiktar: z.coerce.number().min(0),
+  durum: emirDurumEnum.default('tamamlandi'),
+});
+
+export const createGunlukGirisBodySchema = z.object({
+  ekUretimMiktari: z.coerce.number().min(0).optional(),
+  gunlukDurum: gunlukDurumEnum.optional(),
+  makineArizasi: z.boolean().optional(),
+  durusNedeni: z.string().trim().max(255).optional(),
+  notlar: z.string().trim().max(500).optional(),
+  emirDurumu: emirDurumEnum.optional(),
 });
 
 // -- Sevkiyat --

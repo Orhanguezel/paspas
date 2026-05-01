@@ -19,6 +19,15 @@ const VALID_TRANSITIONS: Record<KalemUretimDurumu, KalemUretimDurumu[]> = {
 type TxOrDb = MySql2Database<any> | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
+ * Bir durum geçişinin geçerli olup olmadığını DB'ye dokunmadan kontrol eder.
+ * Aynı duruma geçiş idempotent kabul edilir (no-op, geçerli sayılır).
+ */
+export function canTransitionKalem(mevcutDurum: KalemUretimDurumu, yeniDurum: KalemUretimDurumu): boolean {
+  if (mevcutDurum === yeniDurum) return true;
+  return VALID_TRANSITIONS[mevcutDurum]?.includes(yeniDurum) ?? false;
+}
+
+/**
  * Siparis kaleminin uretim durumunu gecerli bir sonraki duruma gecirir.
  * Gecersiz gecislerde hata firlatir.
  */

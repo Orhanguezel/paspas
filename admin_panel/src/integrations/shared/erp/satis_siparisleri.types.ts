@@ -32,6 +32,7 @@ export interface SiparisIslemSatiri {
   urunAd: string;
   urunKod: string;
   miktar: number;
+  uretilenMiktar: number;
   birimFiyat: number;
   uretimDurumu: KalemUretimDurumu;
   sevkEdilenMiktar: number;
