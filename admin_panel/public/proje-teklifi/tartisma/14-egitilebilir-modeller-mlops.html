@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>14 — Eğitilebilir Modeller &amp; MLOps: Derinlemesine (Faz
-7) — MatPortal Proje Teklifi</title>
+<title>14 — Eğitilebilir Modeller &amp; MLOps: Derinlemesine (Faz 7) — MatPortal Proje Teklifi</title>
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
@@ -56,8 +55,7 @@
 
 <div>
 <div class="top-banner">
-  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>14 —
-Eğitilebilir Modeller &amp; MLOps: Derinlemesine (Faz 7)</strong></div>
+  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>14 — Eğitilebilir Modeller &amp; MLOps: Derinlemesine (Faz 7)</strong></div>
   <div class="actions">
     <a href="../index.html">← Ana Sayfa</a>
   </div>
@@ -68,12 +66,9 @@ Eğitilebilir Modeller &amp; MLOps: Derinlemesine (Faz 7)</strong></div>
     Versiyon 1.1 · 2026-05-01 · MatPortal Proje Teklifi
   </div>
 
-<h1 id="eğitilebilir-modeller-mlops-derinlemesine-faz-7">14 —
-Eğitilebilir Modeller &amp; MLOps: Derinlemesine (Faz 7)</h1>
+<h1 id="eğitilebilir-modeller-mlops-derinlemesine-faz-7">14 — Eğitilebilir Modeller &amp; MLOps: Derinlemesine (Faz 7)</h1>
 <blockquote>
-<p><strong>Felsefe:</strong> Aynı kod, farklı şirketler. Her şirketin
-kendi verisi var, kendi modelini eğitir. Modeli versiyonla, A/B test et,
-geriye al. Yöneticiler “Excel yükle, model güncellesin” yapabilsin.</p>
+<p><strong>Felsefe:</strong> Aynı kod, farklı şirketler. Her şirketin kendi verisi var, kendi modelini eğitir. Modeli versiyonla, A/B test et, geriye al. Yöneticiler “Excel yükle, model güncellesin” yapabilsin.</p>
 </blockquote>
 <hr />
 <h2 id="niye-eğitilebilir-model">1. Niye eğitilebilir model?</h2>
@@ -81,12 +76,8 @@ geriye al. Yöneticiler “Excel yükle, model güncellesin” yapabilsin.</p>
 <blockquote>
 <p>“Tek bir model her şirkete uyar mı?”</p>
 </blockquote>
-<p><strong>Hayır.</strong> Her şirketin: - Sektörü farklı (plastik
-enjeksiyon, tekstil, gıda) - Bayi yapısı farklı (5 büyük bayi vs 200
-küçük bayi) - Mevsimselliği farklı (yaz/kış, bayram öncesi) - Ürün
-karması farklı (10 ürün vs 1000 ürün)</p>
-<p>Tek bir “MatPortal modeli” satarsak, her müşteride %30-40 hata
-vermeye mahkum.</p>
+<p><strong>Hayır.</strong> Her şirketin: - Sektörü farklı (plastik enjeksiyon, tekstil, gıda) - Bayi yapısı farklı (5 büyük bayi vs 200 küçük bayi) - Mevsimselliği farklı (yaz/kış, bayram öncesi) - Ürün karması farklı (10 ürün vs 1000 ürün)</p>
+<p>Tek bir “MatPortal modeli” satarsak, her müşteride %30-40 hata vermeye mahkum.</p>
 <h3 id="çözüm">1.2 Çözüm</h3>
 <p><strong>Paylaşılan kod, müşteriye özel veri &amp; model.</strong></p>
 <pre><code>matportal-core (paketlenmiş kod)
@@ -168,8 +159,7 @@ ornek-tekstil-deploy/          ← başka müşteri
 </tbody>
 </table>
 <h3 id="hibrit-stack-bun-python">2.2 Hibrit stack — Bun + Python</h3>
-<p>Paspas backend Bun/TypeScript. ML kütüphaneleri (scikit-learn,
-prophet, xgboost) Python ekosisteminde. Köprü:</p>
+<p>Paspas backend Bun/TypeScript. ML kütüphaneleri (scikit-learn, prophet, xgboost) Python ekosisteminde. Köprü:</p>
 <pre><code>┌──────────────────────────────────────────┐
 │  Paspas Backend (Bun)                    │
 │  - REST API                              │
@@ -189,17 +179,12 @@ prophet, xgboost) Python ekosisteminde. Köprü:</p>
 │  MLflow (deneme takibi)                  │
 │  + S3 (model artifacts)                  │
 └──────────────────────────────────────────┘</code></pre>
-<h3 id="ml-service-özellik-listesi">2.3 ML Service — özellik
-listesi</h3>
+<h3 id="ml-service-özellik-listesi">2.3 ML Service — özellik listesi</h3>
 <ul>
-<li><strong>/train</strong>: model eğitimi başlat. Asenkron. İş
-kuyruğuna gider, BullMQ/Celery.</li>
-<li><strong>/predict</strong>: production tahmin. Düşük latency
-(&lt;100ms hedef).</li>
-<li><strong>/evaluate</strong>: backtest. Geçmiş veride model
-performansı.</li>
-<li><strong>/model/{id}/promote</strong>: A → B’ye geçir
-(champion).</li>
+<li><strong>/train</strong>: model eğitimi başlat. Asenkron. İş kuyruğuna gider, BullMQ/Celery.</li>
+<li><strong>/predict</strong>: production tahmin. Düşük latency (&lt;100ms hedef).</li>
+<li><strong>/evaluate</strong>: backtest. Geçmiş veride model performansı.</li>
+<li><strong>/model/{id}/promote</strong>: A → B’ye geçir (champion).</li>
 <li><strong>/model/{id}/rollback</strong>: önceki stabile dön.</li>
 </ul>
 <hr />
@@ -218,8 +203,7 @@ performansı.</li>
 │   └── churn/
 │       └── xgboost-bayi-churn-60gun/</code></pre>
 <h3 id="versiyon-metadata">3.2 Versiyon metadata</h3>
-<div class="sourceCode" id="cb4"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> model_versiyonlari (</span>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> model_versiyonlari (</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  model_ailesi <span class="dt">varchar</span>(<span class="dv">128</span>),     <span class="co">-- &#39;prophet-bayi-042-urun-star-siyah&#39;</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  versiyon <span class="dt">varchar</span>(<span class="dv">32</span>),           <span class="co">-- &#39;v1.3&#39;</span></span>
@@ -237,14 +221,10 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb4-1"><a href="#c
 <span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
 <h3 id="championchallenger-pattern">3.3 Champion/Challenger pattern</h3>
 <ul>
-<li><strong>Champion</strong>: production’a veriyor. Her tahmin bunu
-kullanıyor.</li>
-<li><strong>Challenger</strong>: yeni eğitim. Production trafiğinin
-<strong>%5’i</strong> ile test ediliyor.</li>
-<li>7 gün sonra: challenger’ın MAPE’si champion’dan iyi ise →
-promote.</li>
-<li>Promote edilince eski champion <strong>retired</strong> olur ama
-silinmez (rollback için).</li>
+<li><strong>Champion</strong>: production’a veriyor. Her tahmin bunu kullanıyor.</li>
+<li><strong>Challenger</strong>: yeni eğitim. Production trafiğinin <strong>%5’i</strong> ile test ediliyor.</li>
+<li>7 gün sonra: challenger’ın MAPE’si champion’dan iyi ise → promote.</li>
+<li>Promote edilince eski champion <strong>retired</strong> olur ama silinmez (rollback için).</li>
 </ul>
 <hr />
 <h2 id="ab-test">4. A/B test</h2>
@@ -255,8 +235,7 @@ silinmez (rollback için).</li>
 
 Her iki tahminin gerçekleşen değerle karşılaştırması yapılır.</code></pre>
 <h3 id="istatistiksel-anlamlılık">4.2 İstatistiksel anlamlılık</h3>
-<div class="sourceCode" id="cb6"><pre
-class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ab_test_anlamli_mi(</span>
+<div class="sourceCode" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ab_test_anlamli_mi(</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  champion_mape: <span class="bu">list</span>[<span class="bu">float</span>],</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  challenger_mape: <span class="bu">list</span>[<span class="bu">float</span>],</span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  alfa: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.05</span></span>
@@ -294,14 +273,10 @@ class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a hr
 <hr />
 <h2 id="excel-upload-ux">5. Excel upload UX</h2>
 <h3 id="iki-senaryo">5.1 İki senaryo</h3>
-<h4 id="senaryo-a-tarihsel-veri-ekleme">Senaryo A — Tarihsel veri
-ekleme</h4>
-<p>Yönetici geçmiş 2 yılın siparişlerini başka sistemden ihraç etmiş,
-Excel olarak elinde.</p>
-<h4 id="senaryo-b-yeni-özellik-ekleme">Senaryo B — Yeni özellik
-ekleme</h4>
-<p>Yönetici “kampanyalarımız” Excel’i tutuyor — kampanyaları model’e
-tanıtmak istiyor.</p>
+<h4 id="senaryo-a-tarihsel-veri-ekleme">Senaryo A — Tarihsel veri ekleme</h4>
+<p>Yönetici geçmiş 2 yılın siparişlerini başka sistemden ihraç etmiş, Excel olarak elinde.</p>
+<h4 id="senaryo-b-yeni-özellik-ekleme">Senaryo B — Yeni özellik ekleme</h4>
+<p>Yönetici “kampanyalarımız” Excel’i tutuyor — kampanyaları model’e tanıtmak istiyor.</p>
 <h3 id="akış">5.2 Akış</h3>
 <pre><code>1. /admin/tahmin-motoru/veri/yukle
 2. Şablon indir butonu (siparis_v1.xlsx, kampanya_v1.xlsx, ham_madde_v1.xlsx)
@@ -333,14 +308,10 @@ tanıtmak istiyor.</p>
     [ Mevcut bayiye eşle ]
     [ Bu satırı atla ]</code></pre>
 <hr />
-<h2 id="çok-değişkenli-model-multivariate">6. Çok değişkenli model —
-multivariate</h2>
-<h3 id="tek-değişkenli-vs-çok-değişkenli">6.1 Tek değişkenli vs çok
-değişkenli</h3>
-<p><strong>Tek değişkenli (univariate):</strong> Sadece geçmiş sipariş
-adedinden tahmin. - Naive, ARIMA, basit Prophet</p>
-<p><strong>Çok değişkenli (multivariate):</strong> Sipariş + ek
-faktörler. - Prophet (regressors), XGBoost, LSTM</p>
+<h2 id="çok-değişkenli-model-multivariate">6. Çok değişkenli model — multivariate</h2>
+<h3 id="tek-değişkenli-vs-çok-değişkenli">6.1 Tek değişkenli vs çok değişkenli</h3>
+<p><strong>Tek değişkenli (univariate):</strong> Sadece geçmiş sipariş adedinden tahmin. - Naive, ARIMA, basit Prophet</p>
+<p><strong>Çok değişkenli (multivariate):</strong> Sipariş + ek faktörler. - Prophet (regressors), XGBoost, LSTM</p>
 <h3 id="eklenecek-özellikler">6.2 Eklenecek özellikler</h3>
 <table>
 <thead>
@@ -433,10 +404,8 @@ faktörler. - Prophet (regressors), XGBoost, LSTM</p>
 </tr>
 </tbody>
 </table>
-<h3 id="feature-engineering-pipeline">6.3 Feature engineering
-pipeline</h3>
-<div class="sourceCode" id="cb10"><pre
-class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ozellik_uret(bayi_id, donem_baslangic, donem_bitis):</span>
+<h3 id="feature-engineering-pipeline">6.3 Feature engineering pipeline</h3>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ozellik_uret(bayi_id, donem_baslangic, donem_bitis):</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> get_siparis_history(bayi_id, donem_baslangic <span class="op">-</span> <span class="dv">365</span>, donem_bitis)</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Lag features</span></span>
@@ -468,15 +437,12 @@ class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a h
 <span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> df</span></code></pre></div>
 <hr />
-<h2 id="active-learning-kullanıcı-düzeltmesinden-öğrenme">7. Active
-learning — kullanıcı düzeltmesinden öğrenme</h2>
+<h2 id="active-learning-kullanıcı-düzeltmesinden-öğrenme">7. Active learning — kullanıcı düzeltmesinden öğrenme</h2>
 <h3 id="senaryo">7.1 Senaryo</h3>
 <pre><code>SİSTEM: &quot;Önümüzdeki 30 gün BAY-042 → 250 adet tahmin&quot;
 YÖNETİCİ: &quot;Hayır, geçen ayın aynısı 180 olacak. Pazar zayıf.&quot;</code></pre>
-<p>Bu <strong>değerli sinyal</strong>. Yönetici bilgi sahibi (saha
-sezgisi). Modele geri besleme yapılır:</p>
-<div class="sourceCode" id="cb12"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> tahmin_geri_besleme (</span>
+<p>Bu <strong>değerli sinyal</strong>. Yönetici bilgi sahibi (saha sezgisi). Modele geri besleme yapılır:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> tahmin_geri_besleme (</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  tahmin_id <span class="dt">char</span>(<span class="dv">36</span>),</span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  user_id <span class="dt">char</span>(<span class="dv">36</span>),</span>
@@ -488,31 +454,24 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb12-1"><a href="#
 <h3 id="modele-entegrasyon">7.2 Modele entegrasyon</h3>
 <p>3 strateji:</p>
 <h4 id="a-online-learning">A — Online learning</h4>
-<p>Düzeltme anında modele yedirilir. <strong>Risk:</strong> Yanlış
-düzeltme modeli bozar.</p>
+<p>Düzeltme anında modele yedirilir. <strong>Risk:</strong> Yanlış düzeltme modeli bozar.</p>
 <h4 id="b-batch-learning-ağırlık">B — Batch learning + ağırlık</h4>
-<p>Hafta sonunda toplu yeniden eğitim. Düzeltme verisi normal veriden
-<strong>2× ağırlık</strong> alır.</p>
+<p>Hafta sonunda toplu yeniden eğitim. Düzeltme verisi normal veriden <strong>2× ağırlık</strong> alır.</p>
 <h4 id="c-calibration-layer">C — Calibration layer</h4>
 <p>Model olduğu gibi kalır, üstüne “calibration” katmanı eklenir.</p>
 <pre><code>final_tahmin = ham_model_tahmin × (1 + calibration_factor)
 calibration_factor = ortalama (yönetici_düzeltmeleri / ham_tahminler)</code></pre>
-<p><strong>Önerim: B + C kombinasyonu.</strong> Ana model toplu öğrenir,
-calibration anlık esnetir.</p>
+<p><strong>Önerim: B + C kombinasyonu.</strong> Ana model toplu öğrenir, calibration anlık esnetir.</p>
 <h3 id="yönetici-güvenliği">7.3 Yönetici güvenliği</h3>
 <ul>
 <li>Tüm düzeltmeler <strong>audit log</strong>.</li>
-<li>Aşırı düzeltme yapan kullanıcı <strong>flag</strong> (model
-bozulmasın).</li>
-<li>Çakışan düzeltme (2 yönetici farklı düzeltme) → ortalama veya
-sonuncu.</li>
+<li>Aşırı düzeltme yapan kullanıcı <strong>flag</strong> (model bozulmasın).</li>
+<li>Çakışan düzeltme (2 yönetici farklı düzeltme) → ortalama veya sonuncu.</li>
 </ul>
 <hr />
-<h2 id="açıklanabilirlik-explainability">8. Açıklanabilirlik —
-explainability</h2>
+<h2 id="açıklanabilirlik-explainability">8. Açıklanabilirlik — explainability</h2>
 <h3 id="niye">8.1 Niye?</h3>
-<p>Yönetici “neden 250 dedin?” sorduğunda <strong>anlamlı cevap</strong>
-alabilmeli. Yoksa sistem siyah kutu olur, güven azalır.</p>
+<p>Yönetici “neden 250 dedin?” sorduğunda <strong>anlamlı cevap</strong> alabilmeli. Yoksa sistem siyah kutu olur, güven azalır.</p>
 <h3 id="yöntemler">8.2 Yöntemler</h3>
 <table>
 <colgroup>
@@ -591,35 +550,25 @@ düşüş etkisi yapıyor. Bayinin geçen 30 gün durgunluğu hesaba katılmış
 </ol>
 <h3 id="hata-durumunda">9.2 Hata durumunda</h3>
 <ul>
-<li>Auto-rollback eşiği: gerçek MAPE &gt; %50 olursa
-<strong>otomatik</strong> önceki stabil sürüme dön</li>
+<li>Auto-rollback eşiği: gerçek MAPE &gt; %50 olursa <strong>otomatik</strong> önceki stabil sürüme dön</li>
 <li>Yöneticiye email + dashboard kırmızı</li>
 </ul>
 <hr />
-<h2 id="çok-müşteri-multi-tenant-izolasyon">10. Çok-müşteri
-(multi-tenant) izolasyon</h2>
+<h2 id="çok-müşteri-multi-tenant-izolasyon">10. Çok-müşteri (multi-tenant) izolasyon</h2>
 <h3 id="senaryo-1">10.1 Senaryo</h3>
-<p>Promats için MatPortal canlı. Sonra başka bir plastik fabrikasına da
-satıldı. <strong>İki müşterinin verisi karışmamalı.</strong></p>
-<h3 id="yaklaşım-separate-deployment">10.2 Yaklaşım — separate
-deployment</h3>
+<p>Promats için MatPortal canlı. Sonra başka bir plastik fabrikasına da satıldı. <strong>İki müşterinin verisi karışmamalı.</strong></p>
+<h3 id="yaklaşım-separate-deployment">10.2 Yaklaşım — separate deployment</h3>
 <p>Tek codebase, <strong>iki ayrı VPS / iki ayrı DB</strong>.</p>
 <pre><code>matportal-promats.com.tr   ← Promats deployment
 matportal-firma2.com.tr    ← İkinci müşteri</code></pre>
 <ul>
 <li>DB ayrı: <code>promats_erp</code>, <code>firma2_erp</code></li>
-<li>Model storage ayrı: <code>s3://matportal/promats/</code>,
-<code>s3://matportal/firma2/</code></li>
+<li>Model storage ayrı: <code>s3://matportal/promats/</code>, <code>s3://matportal/firma2/</code></li>
 <li>LLM API key ayrı (her müşteri kendi limit’i)</li>
 <li>Konfig farklı (sektör, ölçek, mevsimsellik)</li>
 </ul>
-<h3 id="federated-learning-uzun-vadeli">10.3 Federated learning (uzun
-vadeli)</h3>
-<p>Çok müşteri olduğunda <strong>anonim</strong> federated model: - Her
-müşterinin lokal modeli kendi verisinde eğitilir - Sadece
-<strong>ağırlıklar</strong> merkez sunucuya gönderilir (veri
-gönderilmez) - Merkezi “meta-model” oluşur - Yeni müşterinin “ilk gün”
-performansı meta-model sayesinde iyi başlar</p>
+<h3 id="federated-learning-uzun-vadeli">10.3 Federated learning (uzun vadeli)</h3>
+<p>Çok müşteri olduğunda <strong>anonim</strong> federated model: - Her müşterinin lokal modeli kendi verisinde eğitilir - Sadece <strong>ağırlıklar</strong> merkez sunucuya gönderilir (veri gönderilmez) - Merkezi “meta-model” oluşur - Yeni müşterinin “ilk gün” performansı meta-model sayesinde iyi başlar</p>
 <p><strong>Faz 7’de değil, Faz 11+ vizyonu.</strong></p>
 <hr />
 <h2 id="maliyet-ve-performans">11. Maliyet ve performans</h2>
@@ -672,14 +621,12 @@ performansı meta-model sayesinde iyi başlar</p>
 </tr>
 </tbody>
 </table>
-<p>500 bayi-ürün modeli × 1 dk Prophet = 8 saat. Pazartesi 03:00 cron’da
-bitsin diye <strong>paralel</strong> eğitim (8 worker × 1 saat).</p>
+<p>500 bayi-ürün modeli × 1 dk Prophet = 8 saat. Pazartesi 03:00 cron’da bitsin diye <strong>paralel</strong> eğitim (8 worker × 1 saat).</p>
 <h3 id="tahmin-inference-maliyeti">11.2 Tahmin (inference) maliyeti</h3>
 <ul>
 <li>Prophet: 50-100ms/tahmin</li>
 <li>XGBoost: 5-10ms/tahmin</li>
-<li>Cache: 1 saatlik tahmin sonucu Redis’te → tekrar istenirse
-anlık</li>
+<li>Cache: 1 saatlik tahmin sonucu Redis’te → tekrar istenirse anlık</li>
 </ul>
 <h3 id="storage">11.3 Storage</h3>
 <ul>
@@ -690,8 +637,7 @@ anlık</li>
 </ul>
 <hr />
 <h2 id="db-şeması-ek-tablolar">12. DB şeması — ek tablolar</h2>
-<div class="sourceCode" id="cb17"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> feature_pipeline_kayitlari (</span>
+<div class="sourceCode" id="cb17"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> feature_pipeline_kayitlari (</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  pipeline_versiyonu <span class="dt">varchar</span>(<span class="dv">32</span>),</span>
 <span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  girdi_tablo <span class="dt">varchar</span>(<span class="dv">64</span>),</span>
@@ -729,15 +675,12 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb17-1"><a href="#
 <span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>  yuklendi_at datetime</span>
 <span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
 <hr />
-<h2 id="ui-adminml-laboratuvari">13. UI —
-<code>/admin/ml-laboratuvari</code></h2>
+<h2 id="ui-adminml-laboratuvari">13. UI — <code>/admin/ml-laboratuvari</code></h2>
 <h3 id="dashboard">13.1 Dashboard</h3>
 <ul>
-<li><strong>Aktif modeller</strong>: liste (model ailesi, versiyon,
-MAPE, son eğitim)</li>
+<li><strong>Aktif modeller</strong>: liste (model ailesi, versiyon, MAPE, son eğitim)</li>
 <li><strong>Eğitim kuyruğu</strong>: “şu anda 5 model eğitiliyor”</li>
-<li><strong>A/B testler</strong>: aktif test listesi, sonuç
-bekleniyor</li>
+<li><strong>A/B testler</strong>: aktif test listesi, sonuç bekleniyor</li>
 <li><strong>Veri sağlığı</strong>: outlier %, eksik %, duplicate %</li>
 </ul>
 <h3 id="model-detay">13.2 Model detay</h3>
@@ -757,34 +700,19 @@ bekleniyor</li>
 <li>“Modeli yenile” butonu (calibration sürer)</li>
 </ul>
 <hr />
-<h2 id="açık-karar-noktaları-faz-7">14. Açık karar noktaları (Faz
-7)</h2>
+<h2 id="açık-karar-noktaları-faz-7">14. Açık karar noktaları (Faz 7)</h2>
 <ol type="1">
-<li><strong>Python ML service:</strong> ayrı container mı, Bun process
-mi spawn? (Önerim: ayrı container, FastAPI)</li>
-<li><strong>MLflow vs custom:</strong> açık kaynak çözüm mi yazıyoruz
-mu? (Önerim: MLflow başla, gerekirse custom)</li>
-<li><strong>Federated learning:</strong> Faz 7’de mi, sonraki faz mı?
-(Önerim: sonraki)</li>
-<li><strong>Excel upload kolon mapping:</strong> otomatik tespit ne
-kadar gelişmiş? (Önerim: önce manuel, AI sonra)</li>
-<li><strong>GPU gerek olur mu:</strong> LSTM için VPS yetersiz, cloud
-GPU mu? (Önerim: ihtiyaç doğunca AWS Sagemaker)</li>
-<li><strong>Calibration vs full retrain:</strong> ne sıklıkla
-kalibrasyon? (Önerim: günlük inkremental, haftalık tam)</li>
-<li><strong>Audit retention:</strong> model versiyon kaç yıl saklanır?
-(Önerim: 3 yıl + retired sonra silinir)</li>
+<li><strong>Python ML service:</strong> ayrı container mı, Bun process mi spawn? (Önerim: ayrı container, FastAPI)</li>
+<li><strong>MLflow vs custom:</strong> açık kaynak çözüm mi yazıyoruz mu? (Önerim: MLflow başla, gerekirse custom)</li>
+<li><strong>Federated learning:</strong> Faz 7’de mi, sonraki faz mı? (Önerim: sonraki)</li>
+<li><strong>Excel upload kolon mapping:</strong> otomatik tespit ne kadar gelişmiş? (Önerim: önce manuel, AI sonra)</li>
+<li><strong>GPU gerek olur mu:</strong> LSTM için VPS yetersiz, cloud GPU mu? (Önerim: ihtiyaç doğunca AWS Sagemaker)</li>
+<li><strong>Calibration vs full retrain:</strong> ne sıklıkla kalibrasyon? (Önerim: günlük inkremental, haftalık tam)</li>
+<li><strong>Audit retention:</strong> model versiyon kaç yıl saklanır? (Önerim: 3 yıl + retired sonra silinir)</li>
 </ol>
 <hr />
 <h2 id="faz-7-çıktı-listesi">15. Faz 7 çıktı listesi</h2>
-<p>✅ Python ML service (FastAPI) ayağa kalktı ✅ MLflow + S3 model
-storage ✅ Excel upload UX (kolon mapping + preview + hata düzeltme) ✅
-Multivariate feature pipeline ✅ XGBoost + Prophet modelleri çok
-değişkenli eğitilebiliyor ✅ A/B test mekanizması (champion/challenger)
-✅ Active learning (yönetici düzeltmesi → calibration) ✅
-Açıklanabilirlik (SHAP UI + LLM doğal dil) ✅ Auto-rollback (MAPE &gt;
-%50 → eski modele dön) ✅ Multi-deployment ready (env-based config) ✅
-Audit log: her eğitim, her tahmin, her geri besleme</p>
+<p>✅ Python ML service (FastAPI) ayağa kalktı ✅ MLflow + S3 model storage ✅ Excel upload UX (kolon mapping + preview + hata düzeltme) ✅ Multivariate feature pipeline ✅ XGBoost + Prophet modelleri çok değişkenli eğitilebiliyor ✅ A/B test mekanizması (champion/challenger) ✅ Active learning (yönetici düzeltmesi → calibration) ✅ Açıklanabilirlik (SHAP UI + LLM doğal dil) ✅ Auto-rollback (MAPE &gt; %50 → eski modele dön) ✅ Multi-deployment ready (env-based config) ✅ Audit log: her eğitim, her tahmin, her geri besleme</p>
 
   <!--
     Yorum/not paneli artık Paspas admin panelinde native React component olarak
@@ -801,8 +729,9 @@ Audit log: her eğitim, her tahmin, her geri besleme</p>
 </div>
 
 <script>
-  window.DOC_ID = "14 — Eğitilebilir Modeller &amp; MLOps: Derinlemesine
-(Faz 7)".replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  // Pandoc bazen uzun basligi multi-line yaziyor; once whitespace'leri tek
+  // bosluga indirgeyip sonra slug uret. Aksi halde JS literal newline hatasi.
+  window.DOC_ID = ("14 — Eğitilebilir Modeller &amp; MLOps: Derinlemesine (Faz 7)").replace(/\s+/g, ' ').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
   // Aktif sidebar linki
   document.addEventListener('DOMContentLoaded', function() {
     var path = window.location.pathname.split('/').pop().replace('.html', '');

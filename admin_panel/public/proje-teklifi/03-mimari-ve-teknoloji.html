@@ -55,8 +55,7 @@
 
 <div>
 <div class="top-banner">
-  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>03 —
-Mimari ve Teknoloji</strong></div>
+  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>03 — Mimari ve Teknoloji</strong></div>
   <div class="actions">
     <a href="index.html">← Ana Sayfa</a>
   </div>
@@ -68,11 +67,7 @@ Mimari ve Teknoloji</strong></div>
   </div>
 
 <h1 id="mimari-ve-teknoloji">03 — Mimari ve Teknoloji</h1>
-<p>Bu doküman MatPortal’ın <strong>teknik mimarisini</strong>, Paspas
-ERP ile <strong>entegrasyon noktalarını</strong>, <strong>deployment
-topolojisini</strong> ve teknoloji kararlarının
-<strong>gerekçelerini</strong> açıklar. Hedef: hem teknik
-müdür/yatırımcı hem de senior geliştirici okuyabilsin.</p>
+<p>Bu doküman MatPortal’ın <strong>teknik mimarisini</strong>, Paspas ERP ile <strong>entegrasyon noktalarını</strong>, <strong>deployment topolojisini</strong> ve teknoloji kararlarının <strong>gerekçelerini</strong> açıklar. Hedef: hem teknik müdür/yatırımcı hem de senior geliştirici okuyabilsin.</p>
 <h2 id="mimari-genel-bakış">1. Mimari Genel Bakış</h2>
 <h3 id="üst-düzey-diyagram">1.1 Üst Düzey Diyagram</h3>
 <pre><code>┌──────────────────────────────────────────────────────────────────────┐
@@ -203,63 +198,23 @@ müdür/yatırımcı hem de senior geliştirici okuyabilsin.</p>
 </tr>
 </tbody>
 </table>
-<h2 id="teknoloji-kararları-ve-gerekçeleri">2. Teknoloji Kararları (ve
-Gerekçeleri)</h2>
+<h2 id="teknoloji-kararları-ve-gerekçeleri">2. Teknoloji Kararları (ve Gerekçeleri)</h2>
 <h3 id="backend-fastify-bun">2.1 Backend — Fastify + Bun</h3>
-<p><strong>Karar:</strong> Paspas backend Fastify 5 + Bun runtime.
-MatPortal modülleri <strong>aynı projeye yeni route’lar</strong> olarak
-eklenir.</p>
-<p><strong>Gerekçe:</strong> - Paspas zaten Fastify+Bun kullanıyor,
-<strong>yeni stack öğrenmeye gerek yok</strong> - Bun runtime: Node’dan
-<strong>2-3x hızlı</strong>, native TypeScript, native test - Tek
-backend → tek auth, tek DB connection pool, tek deployment - Yeni bir
-Express/NestJS kurmak fragmentasyon yaratır</p>
-<p><strong>Alternatif değerlendirilen:</strong> - ❌ Express: Yavaş,
-Promats projesi modern stack’te - ❌ NestJS: Aşırı katmanlı, küçük takım
-için overhead - ❌ Microservices (her modül ayrı backend): erken
-optimizasyon, operasyonel yük büyük - ✅ Fastify monolith: doğru
-tercih</p>
-<h3 id="frontend-next.js-16-react-19">2.2 Frontend — Next.js 16 + React
-19</h3>
-<p><strong>Karar:</strong> İki ayrı Next.js uygulaması:
-<code>admin_panel/</code> (mevcut) ve <code>dealer_portal/</code>
-(yeni).</p>
-<p><strong>Gerekçe:</strong> - Yönetici ve bayi UI’ları <strong>ayrı
-izolasyon</strong> ister (farklı kullanıcı, farklı yetki, farklı UX) -
-Tek Next.js’te iki rol göstermek şişme + güvenlik riski - Aynı backend →
-kod paylaşımı <code>_shared/</code> üzerinden - Tailwind 4 + Shadcn UI
-Promats projelerinde standart</p>
-<p><strong>Frontend stack:</strong> - <strong>Next.js 16</strong> App
-Router - <strong>React 19</strong> server components, suspense -
-<strong>Redux Toolkit + RTK Query</strong> state + cache -
-<strong>Shadcn/UI</strong> + <strong>Tailwind 4</strong> stil -
-<strong>Zod</strong> validation (backend schemas paylaşılır) -
-<strong>next-intl</strong> çoklu dil hazırlığı (Faz 9 sonrası)</p>
+<p><strong>Karar:</strong> Paspas backend Fastify 5 + Bun runtime. MatPortal modülleri <strong>aynı projeye yeni route’lar</strong> olarak eklenir.</p>
+<p><strong>Gerekçe:</strong> - Paspas zaten Fastify+Bun kullanıyor, <strong>yeni stack öğrenmeye gerek yok</strong> - Bun runtime: Node’dan <strong>2-3x hızlı</strong>, native TypeScript, native test - Tek backend → tek auth, tek DB connection pool, tek deployment - Yeni bir Express/NestJS kurmak fragmentasyon yaratır</p>
+<p><strong>Alternatif değerlendirilen:</strong> - ❌ Express: Yavaş, Promats projesi modern stack’te - ❌ NestJS: Aşırı katmanlı, küçük takım için overhead - ❌ Microservices (her modül ayrı backend): erken optimizasyon, operasyonel yük büyük - ✅ Fastify monolith: doğru tercih</p>
+<h3 id="frontend-next.js-16-react-19">2.2 Frontend — Next.js 16 + React 19</h3>
+<p><strong>Karar:</strong> İki ayrı Next.js uygulaması: <code>admin_panel/</code> (mevcut) ve <code>dealer_portal/</code> (yeni).</p>
+<p><strong>Gerekçe:</strong> - Yönetici ve bayi UI’ları <strong>ayrı izolasyon</strong> ister (farklı kullanıcı, farklı yetki, farklı UX) - Tek Next.js’te iki rol göstermek şişme + güvenlik riski - Aynı backend → kod paylaşımı <code>_shared/</code> üzerinden - Tailwind 4 + Shadcn UI Promats projelerinde standart</p>
+<p><strong>Frontend stack:</strong> - <strong>Next.js 16</strong> App Router - <strong>React 19</strong> server components, suspense - <strong>Redux Toolkit + RTK Query</strong> state + cache - <strong>Shadcn/UI</strong> + <strong>Tailwind 4</strong> stil - <strong>Zod</strong> validation (backend schemas paylaşılır) - <strong>next-intl</strong> çoklu dil hazırlığı (Faz 9 sonrası)</p>
 <h3 id="veritabanı-mysql-drizzle">2.3 Veritabanı — MySQL + Drizzle</h3>
-<p><strong>Karar:</strong> Mevcut MySQL 8 devam. Yeni 30+ tablo aynı
-<code>promats_erp</code> DB’ye eklenir.</p>
-<p><strong>Gerekçe:</strong> - Paspas zaten MySQL + Drizzle ORM - Tek DB
-→ JOIN’ler basit, transaction güçlü - char(36) UUID konvansiyonu Promats
-projelerinde standart - Migration: seed-based (CLAUDE.md kuralı: ALTER
-yasak, <code>0XX_*_schema.sql</code> güncellenir)</p>
-<p><strong>MySQL vs PostgreSQL?</strong> - PostgreSQL’in avantajları:
-JSON sorguları, full-text search, advanced index - Ama: Promats
-stack’inde MySQL standart, geri dönüş maliyeti yüksek - Eklenebilen JSON
-desteği MySQL 8 ile yeterli (modern) - ✅ MySQL devam</p>
-<h3 id="ml-service-python-fastapi-ayrı-container">2.4 ML Service —
-Python FastAPI (ayrı container)</h3>
-<p><strong>Karar:</strong> Python FastAPI servisi ayrı Docker
-container’da. Bun backend HTTP üzerinden iletişim.</p>
-<p><strong>Gerekçe:</strong> - ML kütüphaneleri (scikit-learn, Prophet,
-XGBoost, SHAP) <strong>Python ekosisteminde</strong> - Bun’da bunları
-yeniden yazmak imkansız (saatlik / aylık eğitim) - Köprü: REST API - Bun
-→ POST <code>/train</code> → Python eğitir, MLflow’a yazar, ID döner -
-Bun → POST <code>/predict</code> → Python tahmin döner (cache’li,
-&lt;100ms) - Container izolasyonu: Python crash’i Bun’u etkilemez</p>
-<p><strong>Alternatif:</strong> - ❌ Bun’dan child_process spawn:
-ölçeklenmez, tek instance - ❌ JS-native ML (TensorFlow.js):
-Prophet/XGBoost yok, ekosistem zayıf - ✅ FastAPI ayrı container: doğru
-tercih</p>
+<p><strong>Karar:</strong> Mevcut MySQL 8 devam. Yeni 30+ tablo aynı <code>promats_erp</code> DB’ye eklenir.</p>
+<p><strong>Gerekçe:</strong> - Paspas zaten MySQL + Drizzle ORM - Tek DB → JOIN’ler basit, transaction güçlü - char(36) UUID konvansiyonu Promats projelerinde standart - Migration: seed-based (CLAUDE.md kuralı: ALTER yasak, <code>0XX_*_schema.sql</code> güncellenir)</p>
+<p><strong>MySQL vs PostgreSQL?</strong> - PostgreSQL’in avantajları: JSON sorguları, full-text search, advanced index - Ama: Promats stack’inde MySQL standart, geri dönüş maliyeti yüksek - Eklenebilen JSON desteği MySQL 8 ile yeterli (modern) - ✅ MySQL devam</p>
+<h3 id="ml-service-python-fastapi-ayrı-container">2.4 ML Service — Python FastAPI (ayrı container)</h3>
+<p><strong>Karar:</strong> Python FastAPI servisi ayrı Docker container’da. Bun backend HTTP üzerinden iletişim.</p>
+<p><strong>Gerekçe:</strong> - ML kütüphaneleri (scikit-learn, Prophet, XGBoost, SHAP) <strong>Python ekosisteminde</strong> - Bun’da bunları yeniden yazmak imkansız (saatlik / aylık eğitim) - Köprü: REST API - Bun → POST <code>/train</code> → Python eğitir, MLflow’a yazar, ID döner - Bun → POST <code>/predict</code> → Python tahmin döner (cache’li, &lt;100ms) - Container izolasyonu: Python crash’i Bun’u etkilemez</p>
+<p><strong>Alternatif:</strong> - ❌ Bun’dan child_process spawn: ölçeklenmez, tek instance - ❌ JS-native ML (TensorFlow.js): Prophet/XGBoost yok, ekosistem zayıf - ✅ FastAPI ayrı container: doğru tercih</p>
 <p><strong>Stack detayı:</strong></p>
 <pre><code>ml_service/
 ├── Dockerfile
@@ -270,21 +225,12 @@ tercih</p>
 │   ├── models/        # algoritma wrapper&#39;lar
 │   ├── pipeline/      # feature engineering
 │   └── storage/       # MLflow + S3 client</code></pre>
-<h3 id="crawling-crawlee-playwright">2.5 Crawling — Crawlee +
-Playwright</h3>
-<p><strong>Karar:</strong> TypeScript native Crawlee + Playwright (ana
-backend ile aynı dilde).</p>
-<p><strong>Gerekçe:</strong> - Crawlee Apify ekiplinin: queue, retry,
-throttle, robots.txt <strong>built-in</strong> - Playwright: JS-rendered
-modern siteler için (bayilerin çoğu) - TypeScript → mevcut backend ile
-kod paylaşımı - Apify (sosyal medya): managed scraping, ToS uyumlu</p>
-<p><strong>Alternatif:</strong> - ❌ Python Scrapy: ayrı dil, ayrı stack
-- ❌ Puppeteer: Playwright daha modern + cross-browser - ❌ Cheerio
-only: JS-rendered siteler kazıyamıyor</p>
-<h3 id="llm-multi-provider-abstraction">2.6 LLM — Multi-provider
-abstraction</h3>
-<p><strong>Karar:</strong> Tek bir LLM client wrapper, runtime’da
-provider seçilebilir.</p>
+<h3 id="crawling-crawlee-playwright">2.5 Crawling — Crawlee + Playwright</h3>
+<p><strong>Karar:</strong> TypeScript native Crawlee + Playwright (ana backend ile aynı dilde).</p>
+<p><strong>Gerekçe:</strong> - Crawlee Apify ekiplinin: queue, retry, throttle, robots.txt <strong>built-in</strong> - Playwright: JS-rendered modern siteler için (bayilerin çoğu) - TypeScript → mevcut backend ile kod paylaşımı - Apify (sosyal medya): managed scraping, ToS uyumlu</p>
+<p><strong>Alternatif:</strong> - ❌ Python Scrapy: ayrı dil, ayrı stack - ❌ Puppeteer: Playwright daha modern + cross-browser - ❌ Cheerio only: JS-rendered siteler kazıyamıyor</p>
+<h3 id="llm-multi-provider-abstraction">2.6 LLM — Multi-provider abstraction</h3>
+<p><strong>Karar:</strong> Tek bir LLM client wrapper, runtime’da provider seçilebilir.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode ts"><code class="sourceCode typescript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">interface</span> LLMProvider {</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  name<span class="op">:</span> <span class="st">&#39;claude&#39;</span> <span class="op">|</span> <span class="st">&#39;openai&#39;</span> <span class="op">|</span> <span class="st">&#39;groq&#39;</span><span class="op">;</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">chat</span>(messages<span class="op">:</span> Message[]<span class="op">,</span> opts<span class="op">?:</span> ChatOpts)<span class="op">:</span> <span class="bu">Promise</span><span class="op">&lt;</span>Response<span class="op">&gt;;</span></span>
@@ -292,12 +238,7 @@ provider seçilebilir.</p>
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> llm <span class="op">=</span> <span class="fu">createLLM</span>({ provider<span class="op">:</span> env<span class="op">.</span><span class="at">LLM_DEFAULT</span><span class="op">,</span> fallback<span class="op">:</span> <span class="st">&#39;groq&#39;</span> })<span class="op">;</span></span></code></pre></div>
-<p><strong>Gerekçe:</strong> - <strong>Vendor lock-in yok</strong>:
-Anthropic pahalanırsa Groq’a geç - <strong>Maliyet
-optimizasyonu</strong>: kritik aksiyon Claude (kalite), bulk Groq
-(ucuz/hızlı) - <strong>Fallback</strong>: birinin API çökerse
-alternatife geç - Promats’a teslim: API key Promats’ın hesabında,
-kontrol onların</p>
+<p><strong>Gerekçe:</strong> - <strong>Vendor lock-in yok</strong>: Anthropic pahalanırsa Groq’a geç - <strong>Maliyet optimizasyonu</strong>: kritik aksiyon Claude (kalite), bulk Groq (ucuz/hızlı) - <strong>Fallback</strong>: birinin API çökerse alternatife geç - Promats’a teslim: API key Promats’ın hesabında, kontrol onların</p>
 <p><strong>Provider seçim kuralları:</strong></p>
 <table>
 <colgroup>
@@ -341,46 +282,24 @@ kontrol onların</p>
 </tbody>
 </table>
 <h3 id="mobil-flutter">2.7 Mobil — Flutter</h3>
-<p><strong>Karar:</strong> Saha satış + bayi mobil + operatör →
-Flutter.</p>
-<p><strong>Gerekçe:</strong> - Promats mobil projeleri zaten Flutter
-(Bereket Fide, VistaSeeds) - Tek codebase → iOS + Android - Performance
-native’a yakın - React Native: Bun ile çelişkiler, ayrı bilgi tabanı</p>
-<p><strong>Alternatif:</strong> - PWA (sadece bayi tarafı, Faz 9.7) —
-başlangıçta yeterli, sonradan native’a geçilebilir</p>
-<h3 id="authentication-fastify-jwt-httponly-cookie">2.8 Authentication —
-Fastify JWT + httpOnly cookie</h3>
-<p><strong>Karar:</strong> Mevcut Paspas auth pattern’i tüm yeni
-modüllerde devam.</p>
+<p><strong>Karar:</strong> Saha satış + bayi mobil + operatör → Flutter.</p>
+<p><strong>Gerekçe:</strong> - Promats mobil projeleri zaten Flutter (Bereket Fide, VistaSeeds) - Tek codebase → iOS + Android - Performance native’a yakın - React Native: Bun ile çelişkiler, ayrı bilgi tabanı</p>
+<p><strong>Alternatif:</strong> - PWA (sadece bayi tarafı, Faz 9.7) — başlangıçta yeterli, sonradan native’a geçilebilir</p>
+<h3 id="authentication-fastify-jwt-httponly-cookie">2.8 Authentication — Fastify JWT + httpOnly cookie</h3>
+<p><strong>Karar:</strong> Mevcut Paspas auth pattern’i tüm yeni modüllerde devam.</p>
 <pre><code>Login → POST /auth/login → JWT (15dk) + Refresh JWT (7gün) → httpOnly cookie
 RTK Query her request&#39;te cookie ekler
 401 → otomatik refresh → tekrar dene</code></pre>
-<p><strong>Gerekçe:</strong> - Mevcut Paspas auth çalışıyor, yeniden
-tasarlamaya gerek yok - httpOnly cookie: XSS koruma (localStorage’dan
-güvenli) - Refresh token rotation - Bayi portalı için: aynı auth
-mekanizması, farklı <code>audience</code> claim’i (bayi vs admin)</p>
-<h3 id="cache-queue-redis-bullmq">2.9 Cache &amp; Queue — Redis +
-BullMQ</h3>
-<p><strong>Karar:</strong> Tek Redis instance: cache + BullMQ queue +
-rate limit + session.</p>
-<p><strong>Kullanım:</strong> - <strong>Cache:</strong> tahmin sonucu (1
-saat TTL), bayi cari (5dk TTL), katalog (15dk TTL) -
-<strong>Queue:</strong> scraper işleri, ML eğitim, email gönderim, Excel
-parsing - <strong>Rate limit:</strong> API per-IP, per-user -
-<strong>Session:</strong> opsiyonel — JWT zaten stateless</p>
+<p><strong>Gerekçe:</strong> - Mevcut Paspas auth çalışıyor, yeniden tasarlamaya gerek yok - httpOnly cookie: XSS koruma (localStorage’dan güvenli) - Refresh token rotation - Bayi portalı için: aynı auth mekanizması, farklı <code>audience</code> claim’i (bayi vs admin)</p>
+<h3 id="cache-queue-redis-bullmq">2.9 Cache &amp; Queue — Redis + BullMQ</h3>
+<p><strong>Karar:</strong> Tek Redis instance: cache + BullMQ queue + rate limit + session.</p>
+<p><strong>Kullanım:</strong> - <strong>Cache:</strong> tahmin sonucu (1 saat TTL), bayi cari (5dk TTL), katalog (15dk TTL) - <strong>Queue:</strong> scraper işleri, ML eğitim, email gönderim, Excel parsing - <strong>Rate limit:</strong> API per-IP, per-user - <strong>Session:</strong> opsiyonel — JWT zaten stateless</p>
 <h3 id="object-storage-s3-minio">2.10 Object Storage — S3 / MinIO</h3>
-<p><strong>Karar:</strong> Cloud deployment’ta AWS S3, self-host’ta
-MinIO.</p>
-<p><strong>Kullanım:</strong> - HTML snapshot’lar (Faz 5 — 90 gün
-retention) - Model artifact (Faz 7 — versiyon × bayi-ürün) - Bayi
-yüklenen dosyalar (iade fotoğraf, vs) - PDF rapor (cari ekstre,
-fatura)</p>
-<h2 id="paspas-ile-entegrasyon-noktaları">3. Paspas ile Entegrasyon
-Noktaları</h2>
-<h3 id="mevcut-paspas-tabloları-paylaşılan">3.1 Mevcut Paspas tabloları
-(paylaşılan)</h3>
-<p>MatPortal aşağıdaki Paspas tablolarını <strong>read</strong> +
-bazılarına <strong>write</strong> yapar:</p>
+<p><strong>Karar:</strong> Cloud deployment’ta AWS S3, self-host’ta MinIO.</p>
+<p><strong>Kullanım:</strong> - HTML snapshot’lar (Faz 5 — 90 gün retention) - Model artifact (Faz 7 — versiyon × bayi-ürün) - Bayi yüklenen dosyalar (iade fotoğraf, vs) - PDF rapor (cari ekstre, fatura)</p>
+<h2 id="paspas-ile-entegrasyon-noktaları">3. Paspas ile Entegrasyon Noktaları</h2>
+<h3 id="mevcut-paspas-tabloları-paylaşılan">3.1 Mevcut Paspas tabloları (paylaşılan)</h3>
+<p>MatPortal aşağıdaki Paspas tablolarını <strong>read</strong> + bazılarına <strong>write</strong> yapar:</p>
 <table>
 <thead>
 <tr class="header">
@@ -471,13 +390,7 @@ bazılarına <strong>write</strong> yapar:</p>
 </tr>
 </tbody>
 </table>
-<p><strong>Kritik prensip:</strong> MatPortal <strong>doğrudan Paspas
-tablolarına yazmaz</strong>. Yazma yapacaksa Paspas’ın repository
-fonksiyonlarını çağırır (örn.
-<code>satis_siparisleri/repository.ts:repoCreate</code>). Bu sayede: -
-Paspas iş kuralları korunur (validation, audit) - Tek doğruluk kaynağı -
-İlerde Paspas API değişirse MatPortal kırılmaz, repo wrapper
-güncellenir</p>
+<p><strong>Kritik prensip:</strong> MatPortal <strong>doğrudan Paspas tablolarına yazmaz</strong>. Yazma yapacaksa Paspas’ın repository fonksiyonlarını çağırır (örn. <code>satis_siparisleri/repository.ts:repoCreate</code>). Bu sayede: - Paspas iş kuralları korunur (validation, audit) - Tek doğruluk kaynağı - İlerde Paspas API değişirse MatPortal kırılmaz, repo wrapper güncellenir</p>
 <h3 id="yeni-matportal-tabloları">3.2 Yeni MatPortal tabloları</h3>
 <p>Faz bazlı yeni tablolar (özet):</p>
 <pre><code>Faz 1: talep_havuzu, talep_kalemleri, talep_kaynak
@@ -495,8 +408,7 @@ Faz 7: model_versiyonlari, ab_test_calistirma, excel_yukleme_gecmisi,
 Faz 8: ai_aksiyon_audit, ai_otomasyon_ayarlari, ai_oneri_geri_besleme
 Faz 9: ziyaret_kayitlari, push_bildirim_log, mobil_oturumlari</code></pre>
 <blockquote>
-<p><strong>Detay:</strong> <a
-href="./06-veri-modeli.md"><code>06-veri-modeli.md</code></a></p>
+<p><strong>Detay:</strong> <a href="./06-veri-modeli.md"><code>06-veri-modeli.md</code></a></p>
 </blockquote>
 <h3 id="mevcut-sidebar-genişlemesi">3.3 Mevcut sidebar genişlemesi</h3>
 <p>Paspas admin paneli sidebar’a yeni menü grupları:</p>
@@ -528,11 +440,9 @@ MATPORTAL (yeni)
   │   └── Araç-Paspas Uyumluluk
   ├── ML Laboratuvarı (Faz 7)
   └── Konversasyonel (Faz 8)</code></pre>
-<p>Yetki: Paspas admin, MatPortal admin, segment admin, satış sorumlusu
-rolleri. Her menü kendi yetkisine bağlı.</p>
+<p>Yetki: Paspas admin, MatPortal admin, segment admin, satış sorumlusu rolleri. Her menü kendi yetkisine bağlı.</p>
 <h2 id="deployment-topolojisi">4. Deployment Topolojisi</h2>
-<h3 id="tek-müşteri-promats-deployment">4.1 Tek müşteri (Promats)
-deployment</h3>
+<h3 id="tek-müşteri-promats-deployment">4.1 Tek müşteri (Promats) deployment</h3>
 <pre><code>                    ┌──────────────────┐
                     │  promats.local   │ → DNS
                     └────────┬─────────┘
@@ -629,11 +539,8 @@ deployment</h3>
 </tr>
 </tbody>
 </table>
-<p><strong>Önerilen başlangıç:</strong> 8GB+4vCPU+200GB tek VPS
-(~$30-50/ay). <strong>Faz 7 itibariyle:</strong> ML + Crawler ayrı
-container, ayrı host (~$80-120/ay).</p>
-<h3 id="multi-deployment-gizli-saas">4.3 Multi-deployment (gizli
-SaaS)</h3>
+<p><strong>Önerilen başlangıç:</strong> 8GB+4vCPU+200GB tek VPS (~$30-50/ay). <strong>Faz 7 itibariyle:</strong> ML + Crawler ayrı container, ayrı host (~$80-120/ay).</p>
+<h3 id="multi-deployment-gizli-saas">4.3 Multi-deployment (gizli SaaS)</h3>
 <pre><code>                  ┌──────────────────┐
                   │ Tek Codebase     │
                   │ (matportal-core) │
@@ -651,18 +558,10 @@ SaaS)</h3>
 │ Konfig: özel  │  │ Konfig: özel   │  │ Konfig: özel   │
 │ LLM key: özel │  │ LLM key: özel  │  │ LLM key: özel  │
 └───────────────┘  └────────────────┘  └────────────────┘</code></pre>
-<p><strong>Not:</strong> Bu strateji <strong>Promats’a
-görünmez</strong>. Promats için MatPortal “kendi özel ürünüdür”. Ortak
-codebase Orhan’ın bilgisindedir, müşteri tarafına aksetmez.</p>
-<p><strong>Konfig farklılıkları:</strong> -
-<code>MATPORTAL_BRAND_NAME=Promats Bayi Portalı</code> -
-<code>MATPORTAL_SECTOR=plastik_enjeksiyon</code> -
-<code>MATPORTAL_SEASONALITY=yıllık</code> -
-<code>MATPORTAL_CURRENCY=TRY</code> - <code>LLM_API_KEY=...</code> (her
-müşteri kendi)</p>
+<p><strong>Not:</strong> Bu strateji <strong>Promats’a görünmez</strong>. Promats için MatPortal “kendi özel ürünüdür”. Ortak codebase Orhan’ın bilgisindedir, müşteri tarafına aksetmez.</p>
+<p><strong>Konfig farklılıkları:</strong> - <code>MATPORTAL_BRAND_NAME=Promats Bayi Portalı</code> - <code>MATPORTAL_SECTOR=plastik_enjeksiyon</code> - <code>MATPORTAL_SEASONALITY=yıllık</code> - <code>MATPORTAL_CURRENCY=TRY</code> - <code>LLM_API_KEY=...</code> (her müşteri kendi)</p>
 <h2 id="güvenlik">5. Güvenlik</h2>
-<h3 id="authentication-authorization">5.1 Authentication &amp;
-Authorization</h3>
+<h3 id="authentication-authorization">5.1 Authentication &amp; Authorization</h3>
 <ul>
 <li>JWT access token: <strong>15 dk</strong> TTL</li>
 <li>JWT refresh token: <strong>7 gün</strong> TTL, rotation aktif</li>
@@ -737,12 +636,9 @@ Authorization</h3>
 <ul>
 <li><strong>At rest:</strong> MySQL şifreli volume (LUKS), S3 SSE</li>
 <li><strong>In transit:</strong> TLS 1.3 her yerde, HSTS aktif</li>
-<li><strong>PII:</strong> bayi telefon/email yalnızca
-<code>musteriler</code> tablosunda — log’a girmez</li>
-<li><strong>KVKK:</strong> aydınlatma metni, silme talebi flow’u (Faz
-6)</li>
-<li><strong>Audit:</strong> tüm sensitive aksiyonlar
-<code>*_audit</code> tablolarında, 7 yıl saklanır</li>
+<li><strong>PII:</strong> bayi telefon/email yalnızca <code>musteriler</code> tablosunda — log’a girmez</li>
+<li><strong>KVKK:</strong> aydınlatma metni, silme talebi flow’u (Faz 6)</li>
+<li><strong>Audit:</strong> tüm sensitive aksiyonlar <code>*_audit</code> tablolarında, 7 yıl saklanır</li>
 </ul>
 <h3 id="saldırı-yüzeyi">5.4 Saldırı yüzeyi</h3>
 <table>
@@ -783,8 +679,7 @@ Authorization</h3>
 </tr>
 <tr class="odd">
 <td>LLM prompt injection</td>
-<td>Kullanıcı girdisi <code>&lt;user&gt;</code> tag içinde, sistem
-prompt sabit</td>
+<td>Kullanıcı girdisi <code>&lt;user&gt;</code> tag içinde, sistem prompt sabit</td>
 </tr>
 <tr class="even">
 <td>Scraping yasal sorun</td>
@@ -928,8 +823,7 @@ prompt sabit</td>
 </tr>
 </tbody>
 </table>
-<p>Bu rakamlar <strong>tek VPS+tek Redis+tek MySQL</strong> ile rahat
-karşılanır. 100+ bayide horizontal scaling değerlendirilebilir.</p>
+<p>Bu rakamlar <strong>tek VPS+tek Redis+tek MySQL</strong> ile rahat karşılanır. 100+ bayide horizontal scaling değerlendirilebilir.</p>
 <h2 id="geliştirme-akışı">7. Geliştirme Akışı</h2>
 <h3 id="repository-yapısı">7.1 Repository yapısı</h3>
 <pre><code>paspas/                     # mevcut monorepo
@@ -955,12 +849,8 @@ karşılanır. 100+ bayide horizontal scaling değerlendirilebilir.</p>
     ├── tartisma/           # mevcut tartışma dokümanları
     └── proje-teklifi/      # mevcut teklif dokümanları</code></pre>
 <h3 id="cicd">7.2 CI/CD</h3>
-<p><strong>Pipeline:</strong> 1. PR açıldığında: lint + type-check +
-unit test 2. main’e merge: integration test + build 3. Auto-deploy
-staging 4. Manuel approve → production deploy</p>
-<p><strong>Stack:</strong> - GitHub Actions (Promats projeleri zaten
-kullanıyor) - Docker Compose (deployment) - Health check + auto-restart
-(Docker <code>restart: unless-stopped</code>)</p>
+<p><strong>Pipeline:</strong> 1. PR açıldığında: lint + type-check + unit test 2. main’e merge: integration test + build 3. Auto-deploy staging 4. Manuel approve → production deploy</p>
+<p><strong>Stack:</strong> - GitHub Actions (Promats projeleri zaten kullanıyor) - Docker Compose (deployment) - Health check + auto-restart (Docker <code>restart: unless-stopped</code>)</p>
 <h3 id="test-piramidi">7.3 Test piramidi</h3>
 <table>
 <thead>
@@ -995,12 +885,8 @@ kullanıyor) - Docker Compose (deployment) - Health check + auto-restart
 </table>
 <h2 id="operasyonel-konular">8. Operasyonel Konular</h2>
 <h3 id="izleme-monitoring">8.1 İzleme (monitoring)</h3>
-<p><strong>Stack:</strong> - Application: Sentry (hata takibi) - Metrik:
-Prometheus + Grafana - Log: structured JSON → loki (ileride) - Uptime:
-UptimeRobot ya da Healthchecks.io (eksternal)</p>
-<p><strong>Kritik dashboard:</strong> - API latency p95/p99 - Hata oranı
-(HTTP 5xx) - DB connection pool - Crawler success rate - LLM token usage
-+ maliyet - Tahmin MAPE (model dashboard) - Churn alarm count</p>
+<p><strong>Stack:</strong> - Application: Sentry (hata takibi) - Metrik: Prometheus + Grafana - Log: structured JSON → loki (ileride) - Uptime: UptimeRobot ya da Healthchecks.io (eksternal)</p>
+<p><strong>Kritik dashboard:</strong> - API latency p95/p99 - Hata oranı (HTTP 5xx) - DB connection pool - Crawler success rate - LLM token usage + maliyet - Tahmin MAPE (model dashboard) - Churn alarm count</p>
 <h3 id="yedekleme">8.2 Yedekleme</h3>
 <ul>
 <li>MySQL: günlük tam dump → S3 (30 gün retention)</li>
@@ -1045,30 +931,18 @@ UptimeRobot ya da Healthchecks.io (eksternal)</p>
 </tr>
 </tbody>
 </table>
-<h2 id="açık-karar-noktaları-mimari">9. Açık karar noktaları
-(Mimari)</h2>
+<h2 id="açık-karar-noktaları-mimari">9. Açık karar noktaları (Mimari)</h2>
 <ol type="1">
-<li><strong>Bun vs Node.js:</strong> Bun stable mı yeterli, bazı paket
-uyumsuzluğu olabilir? (Önerim: Bun devam, sorun çıkan paketleri
-replace)</li>
-<li><strong>MinIO vs AWS S3:</strong> Self-host mu cloud mu? (Önerim:
-başlangıç MinIO, ölçek olunca S3)</li>
-<li><strong>Mobil PWA vs native Flutter (bayi tarafı):</strong> PWA ilk
-çıkışta yeter mi? (Önerim: PWA → ihtiyaç doğunca native)</li>
-<li><strong>Microservice ayrımı:</strong> Hangi noktada ML/Crawler’ı
-tamamen ayırmak gerek? (Önerim: 100+ bayi sonrası)</li>
-<li><strong>MySQL vs PostgreSQL geçişi:</strong> İlerde gerek olur mu?
-(Önerim: hayır, MySQL 8 yeterli)</li>
-<li><strong>Kubernetes:</strong> Ne zaman? (Önerim: 3+ müşteri
-deployment olunca)</li>
-<li><strong>Frontend tek monorepo mu, ayrı repo mu (admin vs
-portal)?</strong> (Önerim: monorepo, yarn workspaces / turborepo)</li>
-<li><strong>WebSocket gerek mi (gerçek zamanlı bildirim)?</strong>
-(Önerim: Faz 6’da Server-Sent Events; WS Faz 8’de)</li>
-<li><strong>i18n (çoklu dil):</strong> Faz 9 mu, baştan mı? (Önerim:
-anahtar yapısı baştan, çeviri Faz 9)</li>
-<li><strong>GraphQL vs REST:</strong> REST devam mı? (Önerim: REST
-devam, RTK Query iyi çalışıyor)</li>
+<li><strong>Bun vs Node.js:</strong> Bun stable mı yeterli, bazı paket uyumsuzluğu olabilir? (Önerim: Bun devam, sorun çıkan paketleri replace)</li>
+<li><strong>MinIO vs AWS S3:</strong> Self-host mu cloud mu? (Önerim: başlangıç MinIO, ölçek olunca S3)</li>
+<li><strong>Mobil PWA vs native Flutter (bayi tarafı):</strong> PWA ilk çıkışta yeter mi? (Önerim: PWA → ihtiyaç doğunca native)</li>
+<li><strong>Microservice ayrımı:</strong> Hangi noktada ML/Crawler’ı tamamen ayırmak gerek? (Önerim: 100+ bayi sonrası)</li>
+<li><strong>MySQL vs PostgreSQL geçişi:</strong> İlerde gerek olur mu? (Önerim: hayır, MySQL 8 yeterli)</li>
+<li><strong>Kubernetes:</strong> Ne zaman? (Önerim: 3+ müşteri deployment olunca)</li>
+<li><strong>Frontend tek monorepo mu, ayrı repo mu (admin vs portal)?</strong> (Önerim: monorepo, yarn workspaces / turborepo)</li>
+<li><strong>WebSocket gerek mi (gerçek zamanlı bildirim)?</strong> (Önerim: Faz 6’da Server-Sent Events; WS Faz 8’de)</li>
+<li><strong>i18n (çoklu dil):</strong> Faz 9 mu, baştan mı? (Önerim: anahtar yapısı baştan, çeviri Faz 9)</li>
+<li><strong>GraphQL vs REST:</strong> REST devam mı? (Önerim: REST devam, RTK Query iyi çalışıyor)</li>
 </ol>
 
   <!--
@@ -1086,8 +960,9 @@ devam, RTK Query iyi çalışıyor)</li>
 </div>
 
 <script>
-  window.DOC_ID = "03 — Mimari ve
-Teknoloji".replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  // Pandoc bazen uzun basligi multi-line yaziyor; once whitespace'leri tek
+  // bosluga indirgeyip sonra slug uret. Aksi halde JS literal newline hatasi.
+  window.DOC_ID = ("03 — Mimari ve Teknoloji").replace(/\s+/g, ' ').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
   // Aktif sidebar linki
   document.addEventListener('DOMContentLoaded', function() {
     var path = window.location.pathname.split('/').pop().replace('.html', '');

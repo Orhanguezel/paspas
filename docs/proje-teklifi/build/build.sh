@@ -30,6 +30,7 @@ for md in "$DOCS_DIR"/*.md; do
   pandoc "$md" \
     --from=markdown-tex_math_dollars-tex_math_single_backslash-raw_tex \
     --to=html5 \
+    --wrap=none \
     --template="$SCRIPT_DIR/template.html" \
     --metadata title="$(head -1 "$md" | sed 's/^# *//')" \
     --output="$OUT_DIR/$base.html"
@@ -43,6 +44,7 @@ for md in "$TARTISMA_DIR"/*.md; do
   pandoc "$md" \
     --from=markdown-tex_math_dollars-tex_math_single_backslash-raw_tex \
     --to=html5 \
+    --wrap=none \
     --template="$SCRIPT_DIR/template-tartisma.html" \
     --metadata title="$(head -1 "$md" | sed 's/^# *//')" \
     --output="$OUT_DIR/tartisma/$base.html"
@@ -53,6 +55,7 @@ if [ -f "$TARTISMA_DIR/README.md" ]; then
   pandoc "$TARTISMA_DIR/README.md" \
     --from=markdown-tex_math_dollars-tex_math_single_backslash-raw_tex \
     --to=html5 \
+    --wrap=none \
     --template="$SCRIPT_DIR/template-tartisma.html" \
     --metadata title="Tartışma Dokümanları İndeksi" \
     --output="$OUT_DIR/tartisma/index.html"
@@ -63,6 +66,7 @@ if [ -f "$DOCS_DIR/README.md" ]; then
   pandoc "$DOCS_DIR/README.md" \
     --from=markdown-tex_math_dollars-tex_math_single_backslash-raw_tex \
     --to=html5 \
+    --wrap=none \
     --template="$SCRIPT_DIR/template.html" \
     --metadata title="MatPortal Proje Teklifi" \
     --output="$OUT_DIR/index.html"

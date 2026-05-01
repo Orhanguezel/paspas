@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>09 — Otomasyon Eşikleri &amp; Onay
-Kuralları — MatPortal Proje Teklifi</title>
+<title>09 — Otomasyon Eşikleri &amp; Onay Kuralları — MatPortal Proje Teklifi</title>
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
@@ -56,8 +55,7 @@ Kuralları — MatPortal Proje Teklifi</title>
 
 <div>
 <div class="top-banner">
-  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>09 —
-Otomasyon Eşikleri &amp; Onay Kuralları</strong></div>
+  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>09 — Otomasyon Eşikleri &amp; Onay Kuralları</strong></div>
   <div class="actions">
     <a href="../index.html">← Ana Sayfa</a>
   </div>
@@ -68,29 +66,16 @@ Otomasyon Eşikleri &amp; Onay Kuralları</strong></div>
     Versiyon 1.1 · 2026-05-01 · MatPortal Proje Teklifi
   </div>
 
-<h1 id="otomasyon-eşikleri-onay-kuralları">09 — Otomasyon Eşikleri &amp;
-Onay Kuralları</h1>
+<h1 id="otomasyon-eşikleri-onay-kuralları">09 — Otomasyon Eşikleri &amp; Onay Kuralları</h1>
 <blockquote>
-<p><strong>Bağlam (v1.1):</strong> Bu doküman risk skoru × güven eşiği ×
-tutar limiti üçlü onay matrisinin <strong>detaylı tasarımını</strong>
-içerir. Faz 8 (Konversasyonel) bu kuralları kullanır. Risk yönetimi
-genel: <a
-href="../proje-teklifi/09-risk.md"><code>proje-teklifi/09-risk.md</code></a>.
-Audit log şeması: <a
-href="../proje-teklifi/06-veri-modeli.md#faz-8--konversasyonel-3-tablo"><code>proje-teklifi/06-veri-modeli.md</code></a>.</p>
+<p><strong>Bağlam (v1.1):</strong> Bu doküman risk skoru × güven eşiği × tutar limiti üçlü onay matrisinin <strong>detaylı tasarımını</strong> içerir. Faz 8 (Konversasyonel) bu kuralları kullanır. Risk yönetimi genel: <a href="../proje-teklifi/09-risk.md"><code>proje-teklifi/09-risk.md</code></a>. Audit log şeması: <a href="../proje-teklifi/06-veri-modeli.md#faz-8--konversasyonel-3-tablo"><code>proje-teklifi/06-veri-modeli.md</code></a>.</p>
 </blockquote>
 <h2 id="soru">Soru</h2>
 <blockquote>
-<p>“AI önerilerinin hangi tutar/güven skoru üstünde manuel onaya
-çıksın?”</p>
+<p>“AI önerilerinin hangi tutar/güven skoru üstünde manuel onaya çıksın?”</p>
 </blockquote>
-<p>İki uç: - <strong>Aşırı muhafazakar:</strong> her AI önerisi insan
-onayı bekler → güven yüksek, ama AI değer üretmez (insan zamanını yine
-yer). - <strong>Aşırı liberal:</strong> AI her şeyi otomatik yapar →
-değer yüksek ama hata maliyeti büyük (yanlış
-mail/sipariş/satınalma).</p>
-<p>Doğru cevap <strong>risk seviyesine göre kademeli kural
-seti</strong>. Bu doküman 4 boyutla bunu tasarlar.</p>
+<p>İki uç: - <strong>Aşırı muhafazakar:</strong> her AI önerisi insan onayı bekler → güven yüksek, ama AI değer üretmez (insan zamanını yine yer). - <strong>Aşırı liberal:</strong> AI her şeyi otomatik yapar → değer yüksek ama hata maliyeti büyük (yanlış mail/sipariş/satınalma).</p>
+<p>Doğru cevap <strong>risk seviyesine göre kademeli kural seti</strong>. Bu doküman 4 boyutla bunu tasarlar.</p>
 <h2 id="risk-boyutları">1. Risk boyutları</h2>
 <p>Her aksiyonu 4 boyutta puanla:</p>
 <table style="width:100%;">
@@ -120,8 +105,7 @@ seti</strong>. Bu doküman 4 boyutla bunu tasarlar.</p>
 <tr class="odd">
 <td><strong>Dış görünüm</strong></td>
 <td>Müşteri/tedarikçi/kamu görüyor mu?</td>
-<td>İçeride kalır (1) → İç dağıtım (2) → Müşteri görür (3) → Kamu görür
-(4)</td>
+<td>İçeride kalır (1) → İç dağıtım (2) → Müşteri görür (3) → Kamu görür (4)</td>
 </tr>
 <tr class="even">
 <td><strong>Veri etkisi</strong></td>
@@ -130,8 +114,7 @@ seti</strong>. Bu doküman 4 boyutla bunu tasarlar.</p>
 </tr>
 </tbody>
 </table>
-<p><strong>Toplam risk skoru:</strong> 4 boyutun toplamı (4-16
-arası)</p>
+<p><strong>Toplam risk skoru:</strong> 4 boyutun toplamı (4-16 arası)</p>
 <table>
 <colgroup>
 <col style="width: 28%" />
@@ -154,8 +137,7 @@ arası)</p>
 <tr class="even">
 <td>7-9</td>
 <td>Orta</td>
-<td>AI taslak çıkarır, onay UI’da bekler (5 dk içinde tepki yoksa email
-uyarı)</td>
+<td>AI taslak çıkarır, onay UI’da bekler (5 dk içinde tepki yoksa email uyarı)</td>
 </tr>
 <tr class="odd">
 <td>10-12</td>
@@ -165,15 +147,12 @@ uyarı)</td>
 <tr class="even">
 <td>13-16</td>
 <td>Kritik</td>
-<td>AI sadece bilgilendirir; aksiyon <strong>insan başlatır</strong>, AI
-yardımcı</td>
+<td>AI sadece bilgilendirir; aksiyon <strong>insan başlatır</strong>, AI yardımcı</td>
 </tr>
 </tbody>
 </table>
-<h2 id="aksiyon-kataloğu-risk-skoruna-göre">2. Aksiyon kataloğu — risk
-skoruna göre</h2>
-<h3 id="düşük-4-6-ai-sessizce-yapar">Düşük (4-6) — AI sessizce
-yapar</h3>
+<h2 id="aksiyon-kataloğu-risk-skoruna-göre">2. Aksiyon kataloğu — risk skoruna göre</h2>
+<h3 id="düşük-4-6-ai-sessizce-yapar">Düşük (4-6) — AI sessizce yapar</h3>
 <table>
 <colgroup>
 <col style="width: 37%" />
@@ -220,8 +199,7 @@ yapar</h3>
 </tr>
 </tbody>
 </table>
-<h3 id="orta-7-9-taslak-sessiz-onay-penceresi">Orta (7-9) — taslak +
-sessiz onay penceresi</h3>
+<h3 id="orta-7-9-taslak-sessiz-onay-penceresi">Orta (7-9) — taslak + sessiz onay penceresi</h3>
 <table>
 <colgroup>
 <col style="width: 29%" />
@@ -258,8 +236,7 @@ sessiz onay penceresi</h3>
 </tr>
 </tbody>
 </table>
-<h3 id="yüksek-10-12-insan-onayı-zorunlu">Yüksek (10-12) — insan onayı
-zorunlu</h3>
+<h3 id="yüksek-10-12-insan-onayı-zorunlu">Yüksek (10-12) — insan onayı zorunlu</h3>
 <table>
 <colgroup>
 <col style="width: 39%" />
@@ -301,8 +278,7 @@ zorunlu</h3>
 </tr>
 </tbody>
 </table>
-<h3 id="kritik-13-16-sadece-bilgi-insan-başlatır">Kritik (13-16) —
-sadece bilgi, insan başlatır</h3>
+<h3 id="kritik-13-16-sadece-bilgi-insan-başlatır">Kritik (13-16) — sadece bilgi, insan başlatır</h3>
 <table>
 <colgroup>
 <col style="width: 39%" />
@@ -339,8 +315,7 @@ sadece bilgi, insan başlatır</h3>
 </tr>
 </tbody>
 </table>
-<h2 id="tutar-bazlı-override-kuralları">3. Tutar bazlı override
-kuralları</h2>
+<h2 id="tutar-bazlı-override-kuralları">3. Tutar bazlı override kuralları</h2>
 <p>Skor üstüne ek <strong>mutlak limitler</strong>:</p>
 <table>
 <colgroup>
@@ -400,15 +375,10 @@ kuralları</h2>
 </tr>
 </tbody>
 </table>
-<p>Örnek: AI talep özetinde <code>guven_skoru=0.92</code> çıkarsa “10K
-sipariş aç” öneremez (risk yüksek + güven 0.95 altı). Ama
-<code>guven_skoru=0.97</code> çıkarsa “5K sipariş taslağı” otomatik
-açabilir.</p>
-<h2 id="reddedilen-önerilerden-öğrenme">5. Reddedilen önerilerden
-öğrenme</h2>
+<p>Örnek: AI talep özetinde <code>guven_skoru=0.92</code> çıkarsa “10K sipariş aç” öneremez (risk yüksek + güven 0.95 altı). Ama <code>guven_skoru=0.97</code> çıkarsa “5K sipariş taslağı” otomatik açabilir.</p>
+<h2 id="reddedilen-önerilerden-öğrenme">5. Reddedilen önerilerden öğrenme</h2>
 <p>Geri besleme tablosu:</p>
-<div class="sourceCode" id="cb1"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> ai_oneri_geri_besleme (</span>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> ai_oneri_geri_besleme (</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  oneri_id <span class="dt">char</span>(<span class="dv">36</span>),</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  oneri_tipi <span class="dt">varchar</span>(<span class="dv">64</span>),</span>
@@ -419,14 +389,10 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb1-1"><a href="#c
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  manual_alternatif JSON,            <span class="co">-- insan ne yaptı</span></span>
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  created_at datetime</span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
-<p>Haftalık cron: - Red oranı %30 üzeri olan aksiyon türleri → eşik
-yükselt - Onay-revize ratio %50 üzeri → AI eksik bilgi alıyor, prompt
-güncelle - Red sebepleri kümele → top-3’ü prompt’a few-shot olarak
-ekle</p>
+<p>Haftalık cron: - Red oranı %30 üzeri olan aksiyon türleri → eşik yükselt - Onay-revize ratio %50 üzeri → AI eksik bilgi alıyor, prompt güncelle - Red sebepleri kümele → top-3’ü prompt’a few-shot olarak ekle</p>
 <h2 id="audit-log-zorunluluğu">6. Audit log zorunluluğu</h2>
 <p>Risk 7+ olan <strong>her aksiyon</strong> audit kaydı zorunlu:</p>
-<div class="sourceCode" id="cb2"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> ai_aksiyon_audit (</span>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> ai_aksiyon_audit (</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  aksiyon_tipi <span class="dt">varchar</span>(<span class="dv">64</span>),</span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  tetikleyen ENUM(<span class="st">&#39;ai_otomatik&#39;</span>,<span class="st">&#39;ai_onerili&#39;</span>,<span class="st">&#39;insan_manuel&#39;</span>),</span>
@@ -482,12 +448,9 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb2-1"><a href="#c
 </tr>
 </tbody>
 </table>
-<p><strong>Rollback olmayan aksiyonlar her zaman insan onayı
-gerektirir</strong> — risk skoruna bakılmaz.</p>
-<h2 id="müşteriyönetici-konuşma-katmanında-uygulama">8. Müşteri/yönetici
-konuşma katmanında uygulama</h2>
-<p><a href="./07-konversasyonel-katman.md">Faz 6 — konversasyonel
-katman</a> için:</p>
+<p><strong>Rollback olmayan aksiyonlar her zaman insan onayı gerektirir</strong> — risk skoruna bakılmaz.</p>
+<h2 id="müşteriyönetici-konuşma-katmanında-uygulama">8. Müşteri/yönetici konuşma katmanında uygulama</h2>
+<p><a href="./07-konversasyonel-katman.md">Faz 6 — konversasyonel katman</a> için:</p>
 <pre><code>KULLANICI: &quot;5000 takım STAR SİYAH sipariş ver, ay sonuna yetişsin&quot;
 AI: niyet çıkar, parametreleri topla
     risk_skoru = 4(geri al kolay) + 3(50K tutar) + 3(müşteri görür) + 1(1 kayıt) = 11 (Yüksek)
@@ -497,13 +460,8 @@ KULLANICI: &quot;Onayla&quot;
 AI: aksiyon yap → DB write + audit log
 AI: &quot;Sipariş SS-2026-0125 oluşturuldu. 28 Mart sevke hazır.&quot;</code></pre>
 <h2 id="acil-durum-kill-switch">9. Acil durum kill-switch</h2>
-<p>Kullanıcı her zaman: - Tüm AI önerilerini global olarak
-<strong>kapatabilir</strong> (admin ayar) - Belirli aksiyon türünü
-<strong>kapatabilir</strong> (“AI artık satın alma siparişi açmasın”) -
-Belirli AI provider’ı <strong>kapatabilir</strong> (örn. Claude
-pahalıysa Groq’a düş)</p>
-<div class="sourceCode" id="cb4"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> ai_otomasyon_ayarlari (</span>
+<p>Kullanıcı her zaman: - Tüm AI önerilerini global olarak <strong>kapatabilir</strong> (admin ayar) - Belirli aksiyon türünü <strong>kapatabilir</strong> (“AI artık satın alma siparişi açmasın”) - Belirli AI provider’ı <strong>kapatabilir</strong> (örn. Claude pahalıysa Groq’a düş)</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> ai_otomasyon_ayarlari (</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">scope</span> ENUM(<span class="st">&#39;global&#39;</span>,<span class="st">&#39;aksiyon_tipi&#39;</span>,<span class="st">&#39;provider&#39;</span>),</span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  scope_value <span class="dt">varchar</span>(<span class="dv">128</span>),         <span class="co">-- aksiyon adı veya provider adı</span></span>
@@ -512,8 +470,7 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb4-1"><a href="#c
 <span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  updated_by <span class="dt">char</span>(<span class="dv">36</span>),</span>
 <span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  updated_at datetime</span>
 <span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
-<h2 id="önerilen-başlangıç-yapılandırması">10. Önerilen başlangıç
-yapılandırması</h2>
+<h2 id="önerilen-başlangıç-yapılandırması">10. Önerilen başlangıç yapılandırması</h2>
 <table>
 <colgroup>
 <col style="width: 46%" />
@@ -564,20 +521,14 @@ yapılandırması</h2>
 </tr>
 </tbody>
 </table>
-<p>İlk 3 ay = “öğrenme dönemi”. Sapma metrikleri toparlanır, eşikler
-kalibre edilir, sonra otomasyonlar kademeli açılır.</p>
+<p>İlk 3 ay = “öğrenme dönemi”. Sapma metrikleri toparlanır, eşikler kalibre edilir, sonra otomasyonlar kademeli açılır.</p>
 <h2 id="açık-karar-noktaları">Açık karar noktaları</h2>
 <ol type="1">
-<li><strong>İlk başlangıç tutarı:</strong> 1.000₺ ve 5.000₺ önerim uygun
-mu? Daha düşük/yüksek?</li>
-<li><strong>Sessiz onay penceresi:</strong> 12-24 saat mi, daha kısa mı
-(örn. 1 saat)?</li>
-<li><strong>Kill-switch yetkisi:</strong> sadece sistem admin mi, satış
-müdürü de yapabilsin mi?</li>
-<li><strong>Audit log saklama:</strong> sınırsız mı, 5 yıl gibi sınır
-mı?</li>
-<li><strong>AI kararsızlığı:</strong> “AI emin değilim, insan karar
-versin” durumu için ayrı bir kuyruk mu?</li>
+<li><strong>İlk başlangıç tutarı:</strong> 1.000₺ ve 5.000₺ önerim uygun mu? Daha düşük/yüksek?</li>
+<li><strong>Sessiz onay penceresi:</strong> 12-24 saat mi, daha kısa mı (örn. 1 saat)?</li>
+<li><strong>Kill-switch yetkisi:</strong> sadece sistem admin mi, satış müdürü de yapabilsin mi?</li>
+<li><strong>Audit log saklama:</strong> sınırsız mı, 5 yıl gibi sınır mı?</li>
+<li><strong>AI kararsızlığı:</strong> “AI emin değilim, insan karar versin” durumu için ayrı bir kuyruk mu?</li>
 </ol>
 
   <!--
@@ -595,8 +546,9 @@ versin” durumu için ayrı bir kuyruk mu?</li>
 </div>
 
 <script>
-  window.DOC_ID = "09 — Otomasyon Eşikleri &amp; Onay
-Kuralları".replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  // Pandoc bazen uzun basligi multi-line yaziyor; once whitespace'leri tek
+  // bosluga indirgeyip sonra slug uret. Aksi halde JS literal newline hatasi.
+  window.DOC_ID = ("09 — Otomasyon Eşikleri &amp; Onay Kuralları").replace(/\s+/g, ' ').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
   // Aktif sidebar linki
   document.addEventListener('DOMContentLoaded', function() {
     var path = window.location.pathname.split('/').pop().replace('.html', '');

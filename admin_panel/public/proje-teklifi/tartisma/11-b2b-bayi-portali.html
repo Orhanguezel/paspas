@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>11 — B2B Bayi Portalı (Paspas Mimarisine
-Uyarlanmış) — MatPortal Proje Teklifi</title>
+<title>11 — B2B Bayi Portalı (Paspas Mimarisine Uyarlanmış) — MatPortal Proje Teklifi</title>
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
@@ -56,8 +55,7 @@ Uyarlanmış) — MatPortal Proje Teklifi</title>
 
 <div>
 <div class="top-banner">
-  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>11 — B2B
-Bayi Portalı (Paspas Mimarisine Uyarlanmış)</strong></div>
+  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>11 — B2B Bayi Portalı (Paspas Mimarisine Uyarlanmış)</strong></div>
   <div class="actions">
     <a href="../index.html">← Ana Sayfa</a>
   </div>
@@ -68,29 +66,16 @@ Bayi Portalı (Paspas Mimarisine Uyarlanmış)</strong></div>
     Versiyon 1.1 · 2026-05-01 · MatPortal Proje Teklifi
   </div>
 
-<h1 id="b2b-bayi-portalı-paspas-mimarisine-uyarlanmış">11 — B2B Bayi
-Portalı (Paspas Mimarisine Uyarlanmış)</h1>
+<h1 id="b2b-bayi-portalı-paspas-mimarisine-uyarlanmış">11 — B2B Bayi Portalı (Paspas Mimarisine Uyarlanmış)</h1>
 <blockquote>
-<p><strong>Bağlam (v1.1):</strong> Bu doküman <strong>Faz 6 — B2B Bayi
-Portalı</strong>’nın detaylı tasarımıdır. 10 alt modül, DB şeması,
-mimari karar (Postgres-tabanlı pasted örnek vs Paspas MySQL stack
-uyumlandırılması). Üst düzey faz haritası: <a
-href="../proje-teklifi/02-cozum-genel-bakis.md#faz-6--b2b-bayi-portalı-matportal"><code>proje-teklifi/02-cozum-genel-bakis.md</code></a>.
-Özellik listesi: <a
-href="../proje-teklifi/05-fonksiyonel-kapsam.md#faz-6--b2b-bayi-portalı-76-özellik"><code>proje-teklifi/05-fonksiyonel-kapsam.md</code></a>
-(76 özellik, MVP/Genişleme).</p>
+<p><strong>Bağlam (v1.1):</strong> Bu doküman <strong>Faz 6 — B2B Bayi Portalı</strong>’nın detaylı tasarımıdır. 10 alt modül, DB şeması, mimari karar (Postgres-tabanlı pasted örnek vs Paspas MySQL stack uyumlandırılması). Üst düzey faz haritası: <a href="../proje-teklifi/02-cozum-genel-bakis.md#faz-6--b2b-bayi-portalı-matportal"><code>proje-teklifi/02-cozum-genel-bakis.md</code></a>. Özellik listesi: <a href="../proje-teklifi/05-fonksiyonel-kapsam.md#faz-6--b2b-bayi-portalı-76-özellik"><code>proje-teklifi/05-fonksiyonel-kapsam.md</code></a> (76 özellik, MVP/Genişleme).</p>
 </blockquote>
-<h2 id="strateji-değişimi-neden-bu-doküman-var">Strateji değişimi —
-neden bu doküman var</h2>
-<p>Daha önceki <a href="./02-musteri-kesif.md">02-musteri-kesif.md</a>
-“yeni müşteri keşfi”ni öne aldı. Müşteri tabanı analizi sonrası strateji
-değişti:</p>
+<h2 id="strateji-değişimi-neden-bu-doküman-var">Strateji değişimi — neden bu doküman var</h2>
+<p>Daha önceki <a href="./02-musteri-kesif.md">02-musteri-kesif.md</a> “yeni müşteri keşfi”ni öne aldı. Müşteri tabanı analizi sonrası strateji değişti:</p>
 <blockquote>
-<p><strong>Yeni müşteri kazanmak, mevcut müşteriyi elinde tutmaktan ve
-daha çok satmaktan 5-7 kat daha pahalı.</strong></p>
+<p><strong>Yeni müşteri kazanmak, mevcut müşteriyi elinde tutmaktan ve daha çok satmaktan 5-7 kat daha pahalı.</strong></p>
 </blockquote>
-<p>Mevcut <strong>35 aktif müşteri</strong> (DB’de doğrulandı). İskonto
-dağılımı %0-45.60, ortalama %17.7 — yani:</p>
+<p>Mevcut <strong>35 aktif müşteri</strong> (DB’de doğrulandı). İskonto dağılımı %0-45.60, ortalama %17.7 — yani:</p>
 <table style="width:100%;">
 <colgroup>
 <col style="width: 25%" />
@@ -122,9 +107,7 @@ dağılımı %0-45.60, ortalama %17.7 — yani:</p>
 </tr>
 </tbody>
 </table>
-<p>Bu 35 müşterinin %70’inde iletişim verisi eksik (görsel analizinden).
-<strong>Önce mevcut müşteriyi düzene sok, sonra portal kur, sonra yeni
-müşteri ara.</strong></p>
+<p>Bu 35 müşterinin %70’inde iletişim verisi eksik (görsel analizinden). <strong>Önce mevcut müşteriyi düzene sok, sonra portal kur, sonra yeni müşteri ara.</strong></p>
 <h2 id="doğru-sıralama">Doğru sıralama</h2>
 <pre><code>[1] Mevcut müşteri enrichment (1-2 hafta)
        Eksik telefon/email/web doldur, segmentasyon çıkar
@@ -139,11 +122,8 @@ müşteri ara.</strong></p>
        İstanbul Oto, Ankara Oto Market, Ege Oto, Güney, Karadeniz
        ↓
 [5] Tam yayılım + yeni müşteri keşfi (Faz 3 ve sonrası)</code></pre>
-<h2 id="önemli-mimari-uyarı-yapıştırılan-stratejideki-hatalar">Önemli
-mimari uyarı — yapıştırılan stratejideki hatalar</h2>
-<p>Yapıştırılan analiz metni doğru iş mantığına sahip ama <strong>Paspas
-stack’ini bilmediği için yanlış teknolojiler önerdi</strong>.
-Düzeltme:</p>
+<h2 id="önemli-mimari-uyarı-yapıştırılan-stratejideki-hatalar">Önemli mimari uyarı — yapıştırılan stratejideki hatalar</h2>
+<p>Yapıştırılan analiz metni doğru iş mantığına sahip ama <strong>Paspas stack’ini bilmediği için yanlış teknolojiler önerdi</strong>. Düzeltme:</p>
 <table style="width:100%;">
 <colgroup>
 <col style="width: 12%" />
@@ -182,8 +162,7 @@ Düzeltme:</p>
 <td>Auth</td>
 <td>Auth.js v5 (NextAuth)</td>
 <td><strong>Fastify JWT + httpOnly cookie</strong> (mevcut)</td>
-<td>Mevcut <code>auth/</code> modülünü genişlet — yeni
-<code>dealer</code> rolü</td>
+<td>Mevcut <code>auth/</code> modülünü genişlet — yeni <code>dealer</code> rolü</td>
 </tr>
 <tr class="odd">
 <td>ID</td>
@@ -193,10 +172,8 @@ Düzeltme:</p>
 </tr>
 <tr class="even">
 <td>Tablo isimleri</td>
-<td><code>customers</code>, <code>products</code>,
-<code>orders</code></td>
-<td><strong><code>musteriler</code>, <code>urunler</code>,
-<code>satis_siparisleri</code></strong> (Türkçe)</td>
+<td><code>customers</code>, <code>products</code>, <code>orders</code></td>
+<td><strong><code>musteriler</code>, <code>urunler</code>, <code>satis_siparisleri</code></strong> (Türkçe)</td>
 <td>Türkçe konvansiyon</td>
 </tr>
 <tr class="odd">
@@ -209,8 +186,7 @@ Düzeltme:</p>
 <td>Monorepo</td>
 <td>Turborepo + pnpm workspaces</td>
 <td>İki ayrı klasör (admin_panel, backend)</td>
-<td><strong>Üçüncü klasör ekle:</strong>
-<code>dealer_portal/</code></td>
+<td><strong>Üçüncü klasör ekle:</strong> <code>dealer_portal/</code></td>
 </tr>
 <tr class="odd">
 <td>Job queue</td>
@@ -228,8 +204,7 @@ Düzeltme:</p>
 <td>ERP “drafts” tablosu</td>
 <td><code>portal_order_drafts</code> → ERP sync</td>
 <td>Direkt <code>satis_siparisleri/repository.ts:repoCreate</code></td>
-<td><strong>Drafts katmanı gereksiz</strong> — Paspas backend zaten
-Fastify, portal direkt API çağırır</td>
+<td><strong>Drafts katmanı gereksiz</strong> — Paspas backend zaten Fastify, portal direkt API çağırır</td>
 </tr>
 <tr class="even">
 <td><code>vehicleCompat</code></td>
@@ -280,14 +255,9 @@ Fastify, portal direkt API çağırır</td>
                     │ • urun_arac_uyumlulugu       │
                     │ • arac_modelleri             │
                     └──────────────────────────────┘</code></pre>
-<p><strong>Tek doğruluk kaynağı:</strong> mevcut
-<code>promats_erp</code> MySQL’i. Portal kendi tabloları
-<code>portal_*</code> prefix’iyle ayrılır. Sipariş yazımı ortak —
-<code>repoCreate</code> (satis_siparisleri) reuse.</p>
-<h2 id="yeni-db-şeması-paspas-konvansiyonu">Yeni DB Şeması (Paspas
-konvansiyonu)</h2>
-<div class="sourceCode" id="cb3"><pre
-class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// backend/src/modules/portal/schema.ts (yeni modül)</span></span>
+<p><strong>Tek doğruluk kaynağı:</strong> mevcut <code>promats_erp</code> MySQL’i. Portal kendi tabloları <code>portal_*</code> prefix’iyle ayrılır. Sipariş yazımı ortak — <code>repoCreate</code> (satis_siparisleri) reuse.</p>
+<h2 id="yeni-db-şeması-paspas-konvansiyonu">Yeni DB Şeması (Paspas konvansiyonu)</h2>
+<div class="sourceCode" id="cb3"><pre class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// backend/src/modules/portal/schema.ts (yeni modül)</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { sql } <span class="im">from</span> <span class="st">&#39;drizzle-orm&#39;</span><span class="op">;</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { char<span class="op">,</span> datetime<span class="op">,</span> decimal<span class="op">,</span> int<span class="op">,</span> json<span class="op">,</span> mysqlTable<span class="op">,</span> text<span class="op">,</span> tinyint<span class="op">,</span> varchar } <span class="im">from</span> <span class="st">&#39;drizzle-orm/mysql-core&#39;</span><span class="op">;</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -361,16 +331,11 @@ class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb3-
 <span id="cb3-72"><a href="#cb3-72" aria-hidden="true" tabindex="-1"></a>  notlar<span class="op">:</span> <span class="fu">varchar</span>(<span class="st">&#39;notlar&#39;</span><span class="op">,</span> { length<span class="op">:</span> <span class="dv">500</span> })<span class="op">,</span></span>
 <span id="cb3-73"><a href="#cb3-73" aria-hidden="true" tabindex="-1"></a>  created_at<span class="op">:</span> <span class="fu">datetime</span>(<span class="st">&#39;created_at&#39;</span>)<span class="op">.</span><span class="fu">notNull</span>()<span class="op">.</span><span class="fu">default</span>(<span class="fu">sql</span><span class="vs">`CURRENT_TIMESTAMP`</span>)<span class="op">,</span></span>
 <span id="cb3-74"><a href="#cb3-74" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span></code></pre></div>
-<p><strong>Önemli:</strong> <code>iskonto</code> field’ı
-<code>musteriler</code> tablosunda <strong>yüzde olarak
-saklanıyor</strong> (5.00 = %5, 0.05 değil). Hesaplama:</p>
-<div class="sourceCode" id="cb4"><pre
-class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> iskontoOrani <span class="op">=</span> <span class="bu">Number</span>(musteri<span class="op">.</span><span class="at">iskonto</span>) <span class="op">/</span> <span class="dv">100</span><span class="op">;</span> <span class="co">// 5.00 → 0.05</span></span>
+<p><strong>Önemli:</strong> <code>iskonto</code> field’ı <code>musteriler</code> tablosunda <strong>yüzde olarak saklanıyor</strong> (5.00 = %5, 0.05 değil). Hesaplama:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> iskontoOrani <span class="op">=</span> <span class="bu">Number</span>(musteri<span class="op">.</span><span class="at">iskonto</span>) <span class="op">/</span> <span class="dv">100</span><span class="op">;</span> <span class="co">// 5.00 → 0.05</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> finalFiyat <span class="op">=</span> <span class="bu">Number</span>(urun<span class="op">.</span><span class="at">birim_fiyat</span>) <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> iskontoOrani)<span class="op">;</span></span></code></pre></div>
-<h2 id="sipariş-akışı-drafts-katmanı-gereksiz">Sipariş akışı — drafts
-katmanı gereksiz</h2>
-<p>Yapıştırılan strateji “portal_order_drafts → ERP sync” katmanı
-önerdi. Paspas için <strong>gereksiz</strong>:</p>
+<h2 id="sipariş-akışı-drafts-katmanı-gereksiz">Sipariş akışı — drafts katmanı gereksiz</h2>
+<p>Yapıştırılan strateji “portal_order_drafts → ERP sync” katmanı önerdi. Paspas için <strong>gereksiz</strong>:</p>
 <pre><code>Müşteri portal&#39;a sipariş yazar
   ↓
 POST /portal/orders (Fastify route)
@@ -386,14 +351,10 @@ Paspas backend transaction:
 Sipariş gerçekten DB&#39;de oluşur (SS-2026-XXXX)
   ↓
 Geri rapor: müşteriye onay numarası + termin</code></pre>
-<p><code>repoCreate</code> zaten transaction kullanıyor, kalemler
-oluşturuyor. Drafts katmanı eklemek lüzumsuz katman olur.</p>
-<h2 id="auth-mevcut-auth-modülünü-genişlet">Auth — mevcut
-<code>auth/</code> modülünü genişlet</h2>
-<p>Yapıştırılan stratejideki Auth.js v5 gereksiz. Paspas zaten Fastify
-JWT + cookie kullanıyor (<code>access_token</code>):</p>
-<div class="sourceCode" id="cb6"><pre
-class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// backend/src/modules/portal/auth.controller.ts (yeni)</span></span>
+<p><code>repoCreate</code> zaten transaction kullanıyor, kalemler oluşturuyor. Drafts katmanı eklemek lüzumsuz katman olur.</p>
+<h2 id="auth-mevcut-auth-modülünü-genişlet">Auth — mevcut <code>auth/</code> modülünü genişlet</h2>
+<p>Yapıştırılan stratejideki Auth.js v5 gereksiz. Paspas zaten Fastify JWT + cookie kullanıyor (<code>access_token</code>):</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// backend/src/modules/portal/auth.controller.ts (yeni)</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> bcrypt <span class="im">from</span> <span class="st">&#39;bcryptjs&#39;</span><span class="op">;</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> <span class="im">type</span> { RouteHandler } <span class="im">from</span> <span class="st">&#39;fastify&#39;</span><span class="op">;</span></span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { db } <span class="im">from</span> <span class="st">&#39;@/db/client&#39;</span><span class="op">;</span></span>
@@ -449,14 +410,9 @@ class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb6-
 <span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> reply<span class="op">.</span><span class="fu">send</span>({ ok<span class="op">:</span> <span class="kw">true</span><span class="op">,</span> must_change_pw<span class="op">:</span> user<span class="op">.</span><span class="at">must_change_pw</span> <span class="op">===</span> <span class="dv">1</span> })<span class="op">;</span></span>
 <span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a>}<span class="op">;</span></span></code></pre></div>
-<p><code>requireAuth</code> middleware’i zaten var (mevcut
-<code>authPlugin</code>). Yeni middleware:
-<code>requireDealerRole</code> — token’da <code>role === 'dealer'</code>
-kontrol eder, müşterinin sadece kendi verisine erişimini sağlar.</p>
-<h2 id="frontend-dealer_portal-yeni-klasör">Frontend —
-<code>dealer_portal/</code> yeni klasör</h2>
-<p>Mevcut <code>admin_panel/</code> ile <strong>aynı seviyede</strong>
-üçüncü bir Next.js 16 projesi:</p>
+<p><code>requireAuth</code> middleware’i zaten var (mevcut <code>authPlugin</code>). Yeni middleware: <code>requireDealerRole</code> — token’da <code>role === 'dealer'</code> kontrol eder, müşterinin sadece kendi verisine erişimini sağlar.</p>
+<h2 id="frontend-dealer_portal-yeni-klasör">Frontend — <code>dealer_portal/</code> yeni klasör</h2>
+<p>Mevcut <code>admin_panel/</code> ile <strong>aynı seviyede</strong> üçüncü bir Next.js 16 projesi:</p>
 <pre><code>paspas/
 ├── admin_panel/          (mevcut, yönetici UI)
 ├── backend/              (mevcut, Fastify)
@@ -477,14 +433,9 @@ kontrol eder, müşterinin sadece kendi verisine erişimini sağlar.</p>
 │   │   └── components/
 │   └── tailwind.config.js (admin_panel&#39;den kopyala)
 └── docs/</code></pre>
-<p><strong>Tech stack (admin_panel ile uyumlu):</strong> - Next.js 16 +
-React 19 + Tailwind 4 - Redux Toolkit + RTK Query (admin_panel’deki
-gibi, Server Actions değil) - shadcn/UI (mevcut bileşenler kopyalanır) -
-Auth: <code>access_token</code> cookie + Fastify JWT - API çağrıları:
-<code>http://localhost:8078/portal/*</code></p>
+<p><strong>Tech stack (admin_panel ile uyumlu):</strong> - Next.js 16 + React 19 + Tailwind 4 - Redux Toolkit + RTK Query (admin_panel’deki gibi, Server Actions değil) - shadcn/UI (mevcut bileşenler kopyalanır) - Auth: <code>access_token</code> cookie + Fastify JWT - API çağrıları: <code>http://localhost:8078/portal/*</code></p>
 <h2 id="haftalık-sprint-planı">4 haftalık sprint planı</h2>
-<h3 id="hafta-0-mevcut-müşteri-enrichment-1-hafta">Hafta 0 — Mevcut
-müşteri enrichment (1 hafta) ⚡</h3>
+<h3 id="hafta-0-mevcut-müşteri-enrichment-1-hafta">Hafta 0 — Mevcut müşteri enrichment (1 hafta) ⚡</h3>
 <p>Önce 35 mevcut müşterinin verisini doldur:</p>
 <table>
 <colgroup>
@@ -500,8 +451,7 @@ müşteri enrichment (1 hafta) ⚡</h3>
 <tbody>
 <tr class="odd">
 <td>1-2</td>
-<td>Google Places API setup + script:
-<code>scripts/enrich-musteriler.ts</code></td>
+<td>Google Places API setup + script: <code>scripts/enrich-musteriler.ts</code></td>
 </tr>
 <tr class="even">
 <td>3</td>
@@ -513,18 +463,15 @@ müşteri enrichment (1 hafta) ⚡</h3>
 </tr>
 <tr class="even">
 <td>5</td>
-<td>Manuel doğrulama: yöneticiye 35 müşteri için “AI önerisi” panosu,
-tıkla onayla</td>
+<td>Manuel doğrulama: yöneticiye 35 müşteri için “AI önerisi” panosu, tıkla onayla</td>
 </tr>
 <tr class="odd">
 <td>6-7</td>
-<td>Segment otomasyonu: %0-7 → toptancı, %8-25 → otomotiv, %26+ →
-küçük</td>
+<td>Segment otomasyonu: %0-7 → toptancı, %8-25 → otomotiv, %26+ → küçük</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Çıktı:</strong> 35 müşterinin %90+ verisi tamam, segmentleri
-belirli.</p>
+<p><strong>Çıktı:</strong> 35 müşterinin %90+ verisi tamam, segmentleri belirli.</p>
 <h3 id="hafta-1-portal-backend-db">Hafta 1 — Portal backend + DB</h3>
 <table>
 <colgroup>
@@ -540,33 +487,27 @@ belirli.</p>
 <tbody>
 <tr class="odd">
 <td>1</td>
-<td>DB migration (<code>195_v1_portal_tablolari.sql</code>) — 7 yeni
-tablo</td>
+<td>DB migration (<code>195_v1_portal_tablolari.sql</code>) — 7 yeni tablo</td>
 </tr>
 <tr class="even">
 <td>2</td>
-<td><code>backend/src/modules/portal/</code> modülü iskeleti (schema,
-repository, controller, router)</td>
+<td><code>backend/src/modules/portal/</code> modülü iskeleti (schema, repository, controller, router)</td>
 </tr>
 <tr class="odd">
 <td>3</td>
-<td>Auth: dealer login + JWT cookie + middleware
-(<code>requireDealerRole</code>)</td>
+<td>Auth: dealer login + JWT cookie + middleware (<code>requireDealerRole</code>)</td>
 </tr>
 <tr class="even">
 <td>4-5</td>
-<td>Catalog endpoint: <code>/portal/catalog</code> filtre + iskonto
-uygulama (server-side)</td>
+<td>Catalog endpoint: <code>/portal/catalog</code> filtre + iskonto uygulama (server-side)</td>
 </tr>
 <tr class="odd">
 <td>6-7</td>
-<td>Sepet endpoints: <code>POST /portal/cart/items</code>,
-<code>DELETE /portal/cart/items/:id</code></td>
+<td>Sepet endpoints: <code>POST /portal/cart/items</code>, <code>DELETE /portal/cart/items/:id</code></td>
 </tr>
 </tbody>
 </table>
-<h3 id="hafta-2-portal-frontend-sipariş">Hafta 2 — Portal frontend +
-sipariş</h3>
+<h3 id="hafta-2-portal-frontend-sipariş">Hafta 2 — Portal frontend + sipariş</h3>
 <table>
 <colgroup>
 <col style="width: 50%" />
@@ -581,13 +522,11 @@ sipariş</h3>
 <tbody>
 <tr class="odd">
 <td>8-9</td>
-<td><code>dealer_portal/</code> Next.js 16 setup, login sayfası,
-dashboard skeleton</td>
+<td><code>dealer_portal/</code> Next.js 16 setup, login sayfası, dashboard skeleton</td>
 </tr>
 <tr class="even">
 <td>10-11</td>
-<td>Katalog sayfası: marka/model/yıl filtreleri + ürün listesi (RTK
-Query)</td>
+<td>Katalog sayfası: marka/model/yıl filtreleri + ürün listesi (RTK Query)</td>
 </tr>
 <tr class="odd">
 <td>12</td>
@@ -595,13 +534,11 @@ Query)</td>
 </tr>
 <tr class="even">
 <td>13-14</td>
-<td>Checkout: kredi limit kontrol + <code>repoCreate</code> çağrısı +
-audit</td>
+<td>Checkout: kredi limit kontrol + <code>repoCreate</code> çağrısı + audit</td>
 </tr>
 </tbody>
 </table>
-<h3 id="hafta-3-cari-sipariş-geçmişi-polish">Hafta 3 — Cari, sipariş
-geçmişi, polish</h3>
+<h3 id="hafta-3-cari-sipariş-geçmişi-polish">Hafta 3 — Cari, sipariş geçmişi, polish</h3>
 <table>
 <colgroup>
 <col style="width: 50%" />
@@ -628,30 +565,22 @@ geçmişi, polish</h3>
 </tr>
 <tr class="even">
 <td>18</td>
-<td>Email bildirim (sipariş alındı) — mevcut <code>mail/</code>
-modülü</td>
+<td>Email bildirim (sipariş alındı) — mevcut <code>mail/</code> modülü</td>
 </tr>
 <tr class="odd">
 <td>19</td>
-<td>Admin panel: <code>/admin/portal-kullanicilari</code> — yöneticinin
-bayi şifre yaratması</td>
+<td>Admin panel: <code>/admin/portal-kullanicilari</code> — yöneticinin bayi şifre yaratması</td>
 </tr>
 <tr class="even">
 <td>20-21</td>
-<td>E2E test (Playwright — mevcut altyapı), güvenlik kontrolü,
-deploy</td>
+<td>E2E test (Playwright — mevcut altyapı), güvenlik kontrolü, deploy</td>
 </tr>
 </tbody>
 </table>
-<h3 id="hafta-4-pilot-bayi-onboarding">Hafta 4 — Pilot bayi
-onboarding</h3>
-<p>5 stratejik müşteri seçimi (DB’den iskonto %0-7 olanlar): -
-Yöneticinin elle seçim listesi - Her birine WhatsApp ile login bilgisi -
-1 hafta feedback toplama - Düzeltmeler sonrası tüm bayilere açma</p>
-<h2 id="ürün-araç-uyumluluk-verisi-kritik">Ürün-araç uyumluluk verisi —
-kritik</h2>
-<p>Yeni tablo <code>arac_modelleri</code> boş başlar. Doldurma
-stratejisi:</p>
+<h3 id="hafta-4-pilot-bayi-onboarding">Hafta 4 — Pilot bayi onboarding</h3>
+<p>5 stratejik müşteri seçimi (DB’den iskonto %0-7 olanlar): - Yöneticinin elle seçim listesi - Her birine WhatsApp ile login bilgisi - 1 hafta feedback toplama - Düzeltmeler sonrası tüm bayilere açma</p>
+<h2 id="ürün-araç-uyumluluk-verisi-kritik">Ürün-araç uyumluluk verisi — kritik</h2>
+<p>Yeni tablo <code>arac_modelleri</code> boş başlar. Doldurma stratejisi:</p>
 <table>
 <colgroup>
 <col style="width: 38%" />
@@ -677,8 +606,7 @@ stratejisi:</p>
 <td>Orta (validation gerek)</td>
 </tr>
 <tr class="odd">
-<td>AI destekli (Claude/OpenAI) — “Toyota Corolla 2018 hangi paspas
-tipleri uyumlu”</td>
+<td>AI destekli (Claude/OpenAI) — “Toyota Corolla 2018 hangi paspas tipleri uyumlu”</td>
 <td>Orta</td>
 <td>Doğrulama gerek</td>
 </tr>
@@ -689,43 +617,28 @@ tipleri uyumlu”</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Pragmatik plan:</strong> İlk 30-40 araç modeli (en çok satan)
-manuel/Excel ile doldur — pazarın %80’i. Long-tail sonra.</p>
-<h2 id="multi-channel-sequence-faz-2-sonrası">Multi-channel sequence
-(Faz 2 sonrası)</h2>
+<p><strong>Pragmatik plan:</strong> İlk 30-40 araç modeli (en çok satan) manuel/Excel ile doldur — pazarın %80’i. Long-tail sonra.</p>
+<h2 id="multi-channel-sequence-faz-2-sonrası">Multi-channel sequence (Faz 2 sonrası)</h2>
 <p>Yapıştırılan stratejinin önerdiği toptancı sequence’i:</p>
 <pre><code>Gün 0:  Email + WhatsApp (paralel)
 Gün 3:  WhatsApp follow-up + numune teklifi
 Gün 7:  Telefon (manuel — satış temsilcisi)
 Gün 14: Email — kampanya/fırsat
 Gün 30: Aylık katalog/fiyat listesi</code></pre>
-<p>Bu Faz 4’e (yurt dışı + outreach) bağlanır. Şu an portal MVP
-odaklı.</p>
+<p>Bu Faz 4’e (yurt dışı + outreach) bağlanır. Şu an portal MVP odaklı.</p>
 <h2 id="açık-sorular">Açık sorular</h2>
 <ol type="1">
-<li><strong><code>musteri.iskonto</code> formatı:</strong> Şu an
-decimal(5,2) yüzde. UI’da 5.00 mu yoksa “%5” mi gösterilecek? Backend
-hesabı net.</li>
-<li><strong>Kredi limit alanı:</strong> <code>musteriler</code>
-tablosunda yok. Yeni alan ekleyelim mi
-(<code>kredi_limit decimal(12,2)</code>,
-<code>mevcut_bakiye decimal(12,2)</code>)?</li>
-<li><strong>Pilot 5 bayi seçimi:</strong> İskonto %0-7 olanlar otomatik
-mi seçilsin yoksa elle mi?</li>
-<li><strong>Araç katalog veri kaynağı:</strong> Excel export mevcut mu?
-Yoksa manuel + AI destekli mi başlanır?</li>
-<li><strong>B2B portal subdomain:</strong>
-<code>portal.paspas.com</code> mu, <code>bayi.paspas.com</code> mu? SSL
-setup?</li>
-<li><strong>Şifre sıfırlama:</strong> Email-based reset link, 24 saatlik
-token? Mail modülü hazır.</li>
-<li><strong>Stok görünürlüğü:</strong> Müşteri “5 adet kaldı” görsün mü,
-yoksa sadece “stokta var/yok”? B2B’de tam sayı yaygın.</li>
+<li><strong><code>musteri.iskonto</code> formatı:</strong> Şu an decimal(5,2) yüzde. UI’da 5.00 mu yoksa “%5” mi gösterilecek? Backend hesabı net.</li>
+<li><strong>Kredi limit alanı:</strong> <code>musteriler</code> tablosunda yok. Yeni alan ekleyelim mi (<code>kredi_limit decimal(12,2)</code>, <code>mevcut_bakiye decimal(12,2)</code>)?</li>
+<li><strong>Pilot 5 bayi seçimi:</strong> İskonto %0-7 olanlar otomatik mi seçilsin yoksa elle mi?</li>
+<li><strong>Araç katalog veri kaynağı:</strong> Excel export mevcut mu? Yoksa manuel + AI destekli mi başlanır?</li>
+<li><strong>B2B portal subdomain:</strong> <code>portal.paspas.com</code> mu, <code>bayi.paspas.com</code> mu? SSL setup?</li>
+<li><strong>Şifre sıfırlama:</strong> Email-based reset link, 24 saatlik token? Mail modülü hazır.</li>
+<li><strong>Stok görünürlüğü:</strong> Müşteri “5 adet kaldı” görsün mü, yoksa sadece “stokta var/yok”? B2B’de tam sayı yaygın.</li>
 </ol>
 <h2 id="bağımlılıklar">Bağımlılıklar</h2>
 <ul>
-<li>✅ <code>musteriler</code>, <code>urunler</code>,
-<code>satis_siparisleri/repoCreate</code> mevcut</li>
+<li>✅ <code>musteriler</code>, <code>urunler</code>, <code>satis_siparisleri/repoCreate</code> mevcut</li>
 <li>✅ Drizzle MySQL, Fastify JWT, Next.js 16 admin_panel pattern</li>
 <li>✅ Playwright e2e altyapısı (P3 Madde 3)</li>
 <li>⚠️ Mevcut müşteri enrichment scripti yok</li>
@@ -775,14 +688,11 @@ yoksa sadece “stokta var/yok”? B2B’de tam sayı yaygın.</li>
 </tr>
 </tbody>
 </table>
-<p><a href="./06-yol-haritasi.md">06-yol-haritasi.md</a>’de bu,
-<strong>Faz 1.5 (enrichment) + Faz 2 (portal)</strong> olarak yer alır.
-Eski Faz 2 (talep AI) Faz 2.5’e kayar.</p>
+<p><a href="./06-yol-haritasi.md">06-yol-haritasi.md</a>’de bu, <strong>Faz 1.5 (enrichment) + Faz 2 (portal)</strong> olarak yer alır. Eski Faz 2 (talep AI) Faz 2.5’e kayar.</p>
 <h2 id="bir-sonraki-adım">Bir sonraki adım</h2>
 <ol type="1">
 <li>Bu doküman onaylanır mı?</li>
-<li>Onaylanırsa: <code>06-yol-haritasi.md</code> güncellenir (B2B portal
-Faz 2 olarak kayar, lead discovery Faz 3’e iter)</li>
+<li>Onaylanırsa: <code>06-yol-haritasi.md</code> güncellenir (B2B portal Faz 2 olarak kayar, lead discovery Faz 3’e iter)</li>
 <li>Üstteki <strong>7 açık soruya</strong> cevap → Hafta 0 başlar</li>
 </ol>
 
@@ -801,8 +711,9 @@ Faz 2 olarak kayar, lead discovery Faz 3’e iter)</li>
 </div>
 
 <script>
-  window.DOC_ID = "11 — B2B Bayi Portalı (Paspas Mimarisine
-Uyarlanmış)".replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  // Pandoc bazen uzun basligi multi-line yaziyor; once whitespace'leri tek
+  // bosluga indirgeyip sonra slug uret. Aksi halde JS literal newline hatasi.
+  window.DOC_ID = ("11 — B2B Bayi Portalı (Paspas Mimarisine Uyarlanmış)").replace(/\s+/g, ' ').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
   // Aktif sidebar linki
   document.addEventListener('DOMContentLoaded', function() {
     var path = window.location.pathname.split('/').pop().replace('.html', '');

@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>02 — Müşteri Keşif Otomasyonu (Yurt İçi + Yurt
-Dışı) — MatPortal Proje Teklifi</title>
+<title>02 — Müşteri Keşif Otomasyonu (Yurt İçi + Yurt Dışı) — MatPortal Proje Teklifi</title>
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
@@ -56,8 +55,7 @@ Dışı) — MatPortal Proje Teklifi</title>
 
 <div>
 <div class="top-banner">
-  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>02 —
-Müşteri Keşif Otomasyonu (Yurt İçi + Yurt Dışı)</strong></div>
+  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>02 — Müşteri Keşif Otomasyonu (Yurt İçi + Yurt Dışı)</strong></div>
   <div class="actions">
     <a href="../index.html">← Ana Sayfa</a>
   </div>
@@ -68,39 +66,20 @@ Müşteri Keşif Otomasyonu (Yurt İçi + Yurt Dışı)</strong></div>
     Versiyon 1.1 · 2026-05-01 · MatPortal Proje Teklifi
   </div>
 
-<h1 id="müşteri-keşif-otomasyonu-yurt-içi-yurt-dışı">02 — Müşteri Keşif
-Otomasyonu (Yurt İçi + Yurt Dışı)</h1>
+<h1 id="müşteri-keşif-otomasyonu-yurt-içi-yurt-dışı">02 — Müşteri Keşif Otomasyonu (Yurt İçi + Yurt Dışı)</h1>
 <blockquote>
-<p><strong>Bağlam (v1.1):</strong> Bu doküman <strong>Faz 3 — Müşteri
-Keşif Motoru</strong>’nun temel hipotez ve yöntemini anlatır. Güncel
-resmî yapı: <a
-href="../proje-teklifi/02-cozum-genel-bakis.md#faz-3--müşteri-keşif-motoru"><code>proje-teklifi/02-cozum-genel-bakis.md</code></a>.
-CRM kararı: <a
-href="./10-crm-karari.md"><code>10-crm-karari.md</code></a>. SaaS bütçe:
-<a
-href="./08-saas-butce-analizi.md"><code>08-saas-butce-analizi.md</code></a>.</p>
+<p><strong>Bağlam (v1.1):</strong> Bu doküman <strong>Faz 3 — Müşteri Keşif Motoru</strong>’nun temel hipotez ve yöntemini anlatır. Güncel resmî yapı: <a href="../proje-teklifi/02-cozum-genel-bakis.md#faz-3--müşteri-keşif-motoru"><code>proje-teklifi/02-cozum-genel-bakis.md</code></a>. CRM kararı: <a href="./10-crm-karari.md"><code>10-crm-karari.md</code></a>. SaaS bütçe: <a href="./08-saas-butce-analizi.md"><code>08-saas-butce-analizi.md</code></a>.</p>
 </blockquote>
 <h2 id="hipotez">Hipotez</h2>
 <blockquote>
-<p>Mevcut müşteri profili (sektör, bölge, sipariş hacmi, ürün karması)
-çıkarılırsa; aynı profile uyan yeni firmalar <strong>otomatik
-aranabilir</strong>, skorlanıp satış ekibinin önüne düşürülebilir. Bu,
-soğuk arama randımanını ciddi yükseltir.</p>
+<p>Mevcut müşteri profili (sektör, bölge, sipariş hacmi, ürün karması) çıkarılırsa; aynı profile uyan yeni firmalar <strong>otomatik aranabilir</strong>, skorlanıp satış ekibinin önüne düşürülebilir. Bu, soğuk arama randımanını ciddi yükseltir.</p>
 </blockquote>
 <h2 id="sorun-tanımı">Sorun tanımı</h2>
-<p>Bugün: - Yeni müşteri = ekip arkadaşının çevresi + fuar + tavsiye.
-Yani <strong>şanssal</strong>. - Mevcut müşterilerin profili
-(sektör/skala/coğrafya) <strong>sistemde tanımlı değil</strong> — sadece
-<code>musteriler.ad/adres/telefon</code>. - Yurt dışı genişleme
-<strong>öncelikle dil bariyeri + erişim kanalı yok</strong> olduğu için
-ele alınmamış.</p>
+<p>Bugün: - Yeni müşteri = ekip arkadaşının çevresi + fuar + tavsiye. Yani <strong>şanssal</strong>. - Mevcut müşterilerin profili (sektör/skala/coğrafya) <strong>sistemde tanımlı değil</strong> — sadece <code>musteriler.ad/adres/telefon</code>. - Yurt dışı genişleme <strong>öncelikle dil bariyeri + erişim kanalı yok</strong> olduğu için ele alınmamış.</p>
 <h2 id="önerilen-mimari-üç-faz">Önerilen mimari — üç faz</h2>
-<h3 id="faz-1-mevcut-müşteriyi-profilleme">Faz 1 — Mevcut müşteriyi
-profilleme</h3>
-<p>Yeni alanlar (<code>musteriler</code> tablosuna ek + ayrı
-<code>musteri_profili</code> tablosu):</p>
-<div class="sourceCode" id="cb1"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> musteriler <span class="kw">ADD</span> <span class="kw">COLUMN</span> sektor <span class="dt">varchar</span>(<span class="dv">64</span>);</span>
+<h3 id="faz-1-mevcut-müşteriyi-profilleme">Faz 1 — Mevcut müşteriyi profilleme</h3>
+<p>Yeni alanlar (<code>musteriler</code> tablosuna ek + ayrı <code>musteri_profili</code> tablosu):</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> musteriler <span class="kw">ADD</span> <span class="kw">COLUMN</span> sektor <span class="dt">varchar</span>(<span class="dv">64</span>);</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> musteriler <span class="kw">ADD</span> <span class="kw">COLUMN</span> sehir <span class="dt">varchar</span>(<span class="dv">64</span>);</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> musteriler <span class="kw">ADD</span> <span class="kw">COLUMN</span> ulke <span class="dt">varchar</span>(<span class="dv">64</span>) <span class="kw">DEFAULT</span> <span class="st">&#39;TR&#39;</span>;</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> musteriler <span class="kw">ADD</span> <span class="kw">COLUMN</span> olcek ENUM(<span class="st">&#39;mikro&#39;</span>,<span class="st">&#39;kucuk&#39;</span>,<span class="st">&#39;orta&#39;</span>,<span class="st">&#39;buyuk&#39;</span>);</span>
@@ -116,17 +95,10 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb1-1"><a href="#c
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="kw">segment</span> <span class="dt">varchar</span>(<span class="dv">32</span>),                    <span class="co">-- otomatik segmentasyon: &quot;premium&quot;,&quot;düzenli&quot;,&quot;tek_seferlik&quot;</span></span>
 <span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  recalc_at datetime</span>
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
-<p><code>musteri_profili</code> haftalık cron ile (re)hesaplanır. Bu
-olmadan keşif arama kriteri yok.</p>
-<h3 id="faz-2-mevcut-müşteriden-segment-çıkarımı">Faz 2 — Mevcut
-müşteriden segment çıkarımı</h3>
-<p>K-means veya basit kuralcı segmentasyon: - <strong>Premium:</strong>
-son 12 ay &gt; X TL ciro + sipariş sıklığı yüksek -
-<strong>Düzenli:</strong> orta hacim, mevsimsel - <strong>Tek
-seferlik:</strong> 1-2 sipariş, sonra sessiz - <strong>Kayıp:</strong>
-son 6 ay sıfır sipariş</p>
-<p>Her segment için “ideal müşteri profili” (ICP) çıkar: hangi sektör,
-hangi ölçek, hangi şehir, hangi ürünler.</p>
+<p><code>musteri_profili</code> haftalık cron ile (re)hesaplanır. Bu olmadan keşif arama kriteri yok.</p>
+<h3 id="faz-2-mevcut-müşteriden-segment-çıkarımı">Faz 2 — Mevcut müşteriden segment çıkarımı</h3>
+<p>K-means veya basit kuralcı segmentasyon: - <strong>Premium:</strong> son 12 ay &gt; X TL ciro + sipariş sıklığı yüksek - <strong>Düzenli:</strong> orta hacim, mevsimsel - <strong>Tek seferlik:</strong> 1-2 sipariş, sonra sessiz - <strong>Kayıp:</strong> son 6 ay sıfır sipariş</p>
+<p>Her segment için “ideal müşteri profili” (ICP) çıkar: hangi sektör, hangi ölçek, hangi şehir, hangi ürünler.</p>
 <h3 id="faz-3-lead-keşif-kanalları">Faz 3 — Lead keşif kanalları</h3>
 <p>Yurt içi:</p>
 <table>
@@ -147,8 +119,7 @@ hangi ölçek, hangi şehir, hangi ürünler.</p>
 <tbody>
 <tr class="odd">
 <td><strong>Ticaret Sicili Gazetesi</strong></td>
-<td>API yok, scrape edilebilir (firma açılış ilanları, sektör,
-ortaklar)</td>
+<td>API yok, scrape edilebilir (firma açılış ilanları, sektör, ortaklar)</td>
 <td>Yarı yapılandırılmış HTML</td>
 <td>Düşük (zaman)</td>
 </tr>
@@ -233,14 +204,10 @@ ortaklar)</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Önerilen başlangıç paketi (yurt içi):</strong> Google Maps
-Places + TOBB + sektörel B2B scraping. <strong>Önerilen başlangıç paketi
-(yurt dışı):</strong> Hunter.io (email) + Apollo.io free tier + LinkedIn
-manuel.</p>
+<p><strong>Önerilen başlangıç paketi (yurt içi):</strong> Google Maps Places + TOBB + sektörel B2B scraping. <strong>Önerilen başlangıç paketi (yurt dışı):</strong> Hunter.io (email) + Apollo.io free tier + LinkedIn manuel.</p>
 <h3 id="faz-4-skorlama-ve-outreach">Faz 4 — Skorlama ve outreach</h3>
 <p>Her keşfedilen lead için:</p>
-<div class="sourceCode" id="cb2"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> lead_havuzu (</span>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> lead_havuzu (</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  kaynak <span class="dt">varchar</span>(<span class="dv">64</span>),                    <span class="co">-- &#39;tobb&#39;, &#39;google_places&#39;, &#39;apollo&#39;, &#39;manuel&#39;</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  firma_adi <span class="dt">varchar</span>(<span class="dv">255</span>),</span>
@@ -266,8 +233,7 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb2-1"><a href="#c
 <span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
 <p>Skorlama formülü (basit başlangıç):</p>
 <pre><code>skor = 0.4 * sektor_eslesme + 0.3 * sehir_yakinligi + 0.2 * olcek_uyumu + 0.1 * sosyal_medya_aktif</code></pre>
-<p>Faz B’de LLM’den geçirilir: “şu mevcut müşteri profili + şu lead
-profili — uyum skorunu 0-100 arası ver, gerekçe yaz.”</p>
+<p>Faz B’de LLM’den geçirilir: “şu mevcut müşteri profili + şu lead profili — uyum skorunu 0-100 arası ver, gerekçe yaz.”</p>
 <h2 id="kullanılacak-araçlar-özet">Kullanılacak araçlar (özet)</h2>
 <table>
 <colgroup>
@@ -327,25 +293,16 @@ profili — uyum skorunu 0-100 arası ver, gerekçe yaz.”</p>
 </table>
 <h2 id="açık-sorular">Açık sorular</h2>
 <ol type="1">
-<li><strong>Yasal:</strong> Türkiye’de KVKK + GDPR (Avrupa lead’leri
-için) açısından şirket bilgisi (B2B) toplama nasıl konumlandırılır?
-Genelde “şirket bilgisi” kişisel veri sayılmaz ama CEO/satın alma
-yöneticisinin adı/email’i sayılır → opt-out altyapısı şart.</li>
-<li><strong>Outreach kanalı:</strong> Otomatik email mi, satış ekibi
-manuel mi? Otomatikse spam riski + domain reputasyon kaybı.</li>
-<li><strong>Yurt dışı dil:</strong> Çıktı promotional metinleri Türkçe +
-İngilizce + Almanca + Arapça mı? Hangi dilde?</li>
-<li><strong>Bütçe:</strong> Hunter.io + Apollo + Google Places aylık
-~$100. Bu kabul edilebilir mi?</li>
-<li><strong>CRM:</strong> Lead pipeline yönetimi için açık kaynak CRM
-entegrasyonu (SuiteCRM/EspoCRM) yapılsın mı yoksa Paspas ERP içinde
-basit modül mü?</li>
+<li><strong>Yasal:</strong> Türkiye’de KVKK + GDPR (Avrupa lead’leri için) açısından şirket bilgisi (B2B) toplama nasıl konumlandırılır? Genelde “şirket bilgisi” kişisel veri sayılmaz ama CEO/satın alma yöneticisinin adı/email’i sayılır → opt-out altyapısı şart.</li>
+<li><strong>Outreach kanalı:</strong> Otomatik email mi, satış ekibi manuel mi? Otomatikse spam riski + domain reputasyon kaybı.</li>
+<li><strong>Yurt dışı dil:</strong> Çıktı promotional metinleri Türkçe + İngilizce + Almanca + Arapça mı? Hangi dilde?</li>
+<li><strong>Bütçe:</strong> Hunter.io + Apollo + Google Places aylık ~$100. Bu kabul edilebilir mi?</li>
+<li><strong>CRM:</strong> Lead pipeline yönetimi için açık kaynak CRM entegrasyonu (SuiteCRM/EspoCRM) yapılsın mı yoksa Paspas ERP içinde basit modül mü?</li>
 </ol>
 <h2 id="bağımlılıklar">Bağımlılıklar</h2>
 <ul>
 <li>✅ <code>musteriler</code> tablosu mevcut</li>
-<li>⚠️ Müşteri profili çıkarımı için aylık ciro/sipariş sıklığı view’ı
-yok</li>
+<li>⚠️ Müşteri profili çıkarımı için aylık ciro/sipariş sıklığı view’ı yok</li>
 <li>⚠️ Web crawler altyapısı kurulu değil</li>
 <li>⚠️ Lead pipeline arayüzü yok</li>
 </ul>
@@ -401,8 +358,7 @@ yok</li>
 </tr>
 </tbody>
 </table>
-<p>Yurt dışı (Apollo/LinkedIn) tarafı ayrı bir faz; başlangıçta yurt içi
-crawler + scoring + manuel outreach yeterli.</p>
+<p>Yurt dışı (Apollo/LinkedIn) tarafı ayrı bir faz; başlangıçta yurt içi crawler + scoring + manuel outreach yeterli.</p>
 
   <!--
     Yorum/not paneli artık Paspas admin panelinde native React component olarak
@@ -419,8 +375,9 @@ crawler + scoring + manuel outreach yeterli.</p>
 </div>
 
 <script>
-  window.DOC_ID = "02 — Müşteri Keşif Otomasyonu (Yurt İçi + Yurt
-Dışı)".replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  // Pandoc bazen uzun basligi multi-line yaziyor; once whitespace'leri tek
+  // bosluga indirgeyip sonra slug uret. Aksi halde JS literal newline hatasi.
+  window.DOC_ID = ("02 — Müşteri Keşif Otomasyonu (Yurt İçi + Yurt Dışı)").replace(/\s+/g, ' ').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
   // Aktif sidebar linki
   document.addEventListener('DOMContentLoaded', function() {
     var path = window.location.pathname.split('/').pop().replace('.html', '');

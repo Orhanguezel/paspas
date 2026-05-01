@@ -55,8 +55,7 @@
 
 <div>
 <div class="top-banner">
-  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>02 — Çözüm
-Genel Bakış</strong></div>
+  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>02 — Çözüm Genel Bakış</strong></div>
   <div class="actions">
     <a href="index.html">← Ana Sayfa</a>
   </div>
@@ -69,17 +68,8 @@ Genel Bakış</strong></div>
 
 <h1 id="çözüm-genel-bakış">02 — Çözüm Genel Bakış</h1>
 <h2 id="vizyon">Vizyon</h2>
-<p>MatPortal, Paspas Üretim ERP’sinin üzerine inşa edilen
-<strong>kademeli bir dijital dönüşüm ekosistemidir</strong>. Bayi
-portalı, sipariş tahmin motoru, churn radarı, scraping altyapısı, MLOps
-katmanı ve konversasyonel AI modüllerinin <strong>birbirini
-besleyen</strong> modüler bir bütünüdür.</p>
-<p>Bu doküman 11 fazın her birinin <strong>ne ürettiğini</strong>,
-<strong>hangi mevcut modüle bağlandığını</strong>, <strong>kimden veri
-aldığını</strong> ve <strong>kimi beslediğini</strong> anlatır. Her
-fazın derinlemesine teknik tasarımı <code>tartisma/</code> klasöründeki
-ayrı dokümanlarda yapılır — burada <strong>bütünlük resmi</strong>
-vardır.</p>
+<p>MatPortal, Paspas Üretim ERP’sinin üzerine inşa edilen <strong>kademeli bir dijital dönüşüm ekosistemidir</strong>. Bayi portalı, sipariş tahmin motoru, churn radarı, scraping altyapısı, MLOps katmanı ve konversasyonel AI modüllerinin <strong>birbirini besleyen</strong> modüler bir bütünüdür.</p>
+<p>Bu doküman 11 fazın her birinin <strong>ne ürettiğini</strong>, <strong>hangi mevcut modüle bağlandığını</strong>, <strong>kimden veri aldığını</strong> ve <strong>kimi beslediğini</strong> anlatır. Her fazın derinlemesine teknik tasarımı <code>tartisma/</code> klasöründeki ayrı dokümanlarda yapılır — burada <strong>bütünlük resmi</strong> vardır.</p>
 <h2 id="tip-kullanıcı">3 Tip Kullanıcı</h2>
 <table>
 <colgroup>
@@ -170,127 +160,59 @@ vardır.</p>
 └─────────────────────────────────────────────────────────────────┘</code></pre>
 <h2 id="faz-çıktı-haritası">11 Faz — Çıktı Haritası</h2>
 <h3 id="faz-0-paspas-tamamlanma">Faz 0 — Paspas Tamamlanma</h3>
-<p><strong>Süre:</strong> 4 hafta. <strong>Ön koşul:</strong> Yok
-(mevcut çalışan sistem).</p>
-<p><strong>Ne üretilir:</strong> - Mevcut açık 14 modülün polish’i
-(yarım kalmış uçlar, edge case’ler) - Stabilite düzeltmeleri, bug fix -
-Test coverage genişlemesi - Performance baseline ölçümü</p>
-<p><strong>Kabul kriterleri:</strong> - Tüm modüller “production stable”
-işareti - Bilinen kritik bug = 0 - Operatör ekranı, üretim emri, sevk
-akışı kesintisiz çalışır</p>
-<p><strong>Bağımlılık çıktısı:</strong> sonraki tüm fazların güvendiği
-temel.</p>
+<p><strong>Süre:</strong> 4 hafta. <strong>Ön koşul:</strong> Yok (mevcut çalışan sistem).</p>
+<p><strong>Ne üretilir:</strong> - Mevcut açık 14 modülün polish’i (yarım kalmış uçlar, edge case’ler) - Stabilite düzeltmeleri, bug fix - Test coverage genişlemesi - Performance baseline ölçümü</p>
+<p><strong>Kabul kriterleri:</strong> - Tüm modüller “production stable” işareti - Bilinen kritik bug = 0 - Operatör ekranı, üretim emri, sevk akışı kesintisiz çalışır</p>
+<p><strong>Bağımlılık çıktısı:</strong> sonraki tüm fazların güvendiği temel.</p>
 <hr />
-<h3 id="faz-1-talep-toplama-altyapısı">Faz 1 — Talep Toplama
-Altyapısı</h3>
+<h3 id="faz-1-talep-toplama-altyapısı">Faz 1 — Talep Toplama Altyapısı</h3>
 <p><strong>Süre:</strong> 4 hafta. <strong>Ön koşul:</strong> Faz 0.</p>
-<p><strong>Ne üretilir:</strong> - <code>talep_havuzu</code> tablosu:
-bayi/müşteri/iç talep merkezi kayıt - <code>talep_kaynak</code> enum:
-WhatsApp, telefon, email, portal, manuel - Talep yapılandırma akışı (LLM
-destekli — serbest metin → JSON) - Yönetici UI: gelen talepler kanban
-(yeni → işleniyor → siparişe → kapanış) - Bağlantı: müşteri kartına tüm
-talep geçmişi - Yapılandırılmış JSON:
-<code>{ urun, miktar, vade, fiyat_beklentisi, oncelik }</code></p>
-<p><strong>Kabul kriterleri:</strong> - WhatsApp/email talep manuel
-girişi 2 dakikada tamamlanır - LLM yapılandırma %85+ doğrulukta -
-Yönetici kanban kullanıyor</p>
+<p><strong>Ne üretilir:</strong> - <code>talep_havuzu</code> tablosu: bayi/müşteri/iç talep merkezi kayıt - <code>talep_kaynak</code> enum: WhatsApp, telefon, email, portal, manuel - Talep yapılandırma akışı (LLM destekli — serbest metin → JSON) - Yönetici UI: gelen talepler kanban (yeni → işleniyor → siparişe → kapanış) - Bağlantı: müşteri kartına tüm talep geçmişi - Yapılandırılmış JSON: <code>{ urun, miktar, vade, fiyat_beklentisi, oncelik }</code></p>
+<p><strong>Kabul kriterleri:</strong> - WhatsApp/email talep manuel girişi 2 dakikada tamamlanır - LLM yapılandırma %85+ doğrulukta - Yönetici kanban kullanıyor</p>
 <p><strong>Beslediği:</strong> Faz 2 (tahmin motoru için ek sinyal).</p>
 <blockquote>
-<p><strong>Detay:</strong> <a
-href="../tartisma/01-talep-tahmin-motoru.md"><code>tartisma/01-talep-tahmin-motoru.md</code></a></p>
+<p><strong>Detay:</strong> <a href="../tartisma/01-talep-tahmin-motoru.md"><code>tartisma/01-talep-tahmin-motoru.md</code></a></p>
 </blockquote>
 <hr />
 <h3 id="faz-2-sipariş-tahmin-motoru">Faz 2 — Sipariş Tahmin Motoru</h3>
-<p><strong>Süre:</strong> 8 hafta. <strong>Ön koşul:</strong> Faz 0 +
-Faz 1.</p>
-<p><strong>Ne üretilir:</strong> - Kademeli algoritma paketi: naive →
-mevsimsel → lineer regresyon → Prophet → XGBoost - Bayi-ürün × dönem
-tahmin tablosu (<code>tahmin_calistirma</code>) - 3 katmanlı model
-hiyerarşisi: bayi-ürün özel → segment → genel - Türk tatil takvimi
-entegrasyonu (Ramazan, Kurban, milli) - Excel girdi formatı
-(<code>siparis_gecmisi_v1.xlsx</code>) ile tarihsel veri yükleme -
-MAPE/RMSE/Bias dashboard - Champion/challenger otomatik seçimi -
-Açıklanabilirlik UI: sinyal listesi + doğal dil -
-<code>/admin/tahmin-motoru</code> UI</p>
-<p><strong>Kabul kriterleri:</strong> - En az 10 bayide MAPE &lt; %35 -
-Yönetici manuel re-train yapabiliyor - Her tahmin <strong>gerçekleşen
-değer</strong> ile karşılaştırılıyor (öğrenme döngüsü)</p>
-<p><strong>Beslediği:</strong> Faz 4 (stok), Faz 6 (portal teslim
-tahmini), Faz 7 (MLOps).</p>
+<p><strong>Süre:</strong> 8 hafta. <strong>Ön koşul:</strong> Faz 0 + Faz 1.</p>
+<p><strong>Ne üretilir:</strong> - Kademeli algoritma paketi: naive → mevsimsel → lineer regresyon → Prophet → XGBoost - Bayi-ürün × dönem tahmin tablosu (<code>tahmin_calistirma</code>) - 3 katmanlı model hiyerarşisi: bayi-ürün özel → segment → genel - Türk tatil takvimi entegrasyonu (Ramazan, Kurban, milli) - Excel girdi formatı (<code>siparis_gecmisi_v1.xlsx</code>) ile tarihsel veri yükleme - MAPE/RMSE/Bias dashboard - Champion/challenger otomatik seçimi - Açıklanabilirlik UI: sinyal listesi + doğal dil - <code>/admin/tahmin-motoru</code> UI</p>
+<p><strong>Kabul kriterleri:</strong> - En az 10 bayide MAPE &lt; %35 - Yönetici manuel re-train yapabiliyor - Her tahmin <strong>gerçekleşen değer</strong> ile karşılaştırılıyor (öğrenme döngüsü)</p>
+<p><strong>Beslediği:</strong> Faz 4 (stok), Faz 6 (portal teslim tahmini), Faz 7 (MLOps).</p>
 <blockquote>
-<p><strong>Detay:</strong> <a
-href="../tartisma/12-tahmin-motoru-derinlemesine.md"><code>tartisma/12-tahmin-motoru-derinlemesine.md</code></a></p>
+<p><strong>Detay:</strong> <a href="../tartisma/12-tahmin-motoru-derinlemesine.md"><code>tartisma/12-tahmin-motoru-derinlemesine.md</code></a></p>
 </blockquote>
 <hr />
 <h3 id="faz-3-müşteri-keşif-motoru">Faz 3 — Müşteri Keşif Motoru</h3>
-<p><strong>Süre:</strong> 6 hafta. <strong>Ön koşul:</strong> Faz 1 +
-Faz 2.</p>
-<p><strong>Ne üretilir:</strong> - Yurt içi lead kaynakları: TOBB,
-sanayim.net, Google Places (TR), sektör portalları - Yurt dışı lead
-kaynakları: Apollo.io API (free tier başlangıç) -
-<code>lead_havuzu</code> tablosu: aday firma, iletişim, sektör, ölçek,
-skor - Lead skorlama: mevcut bayi profiline benzerlik (ML) - Manuel + AI
-birleşik segmentasyon - <code>/admin/lead-pipeline</code> kanban (yeni →
-temas → görüşmede → kazanıldı/kayıp) - Outreach taslak üretici (LLM)</p>
-<p><strong>Kabul kriterleri:</strong> - Yurt içi haftalık 50+ kalite
-lead (manuel kontrolden geçen) - Yurt dışı 20+ lead/hafta - Lead →
-bayiye dönüşüm ölçümleniyor</p>
-<p><strong>Beslediği:</strong> Saha CRM (Faz 9+), B2B portal onboarding
-(Faz 6).</p>
+<p><strong>Süre:</strong> 6 hafta. <strong>Ön koşul:</strong> Faz 1 + Faz 2.</p>
+<p><strong>Ne üretilir:</strong> - Yurt içi lead kaynakları: TOBB, sanayim.net, Google Places (TR), sektör portalları - Yurt dışı lead kaynakları: Apollo.io API (free tier başlangıç) - <code>lead_havuzu</code> tablosu: aday firma, iletişim, sektör, ölçek, skor - Lead skorlama: mevcut bayi profiline benzerlik (ML) - Manuel + AI birleşik segmentasyon - <code>/admin/lead-pipeline</code> kanban (yeni → temas → görüşmede → kazanıldı/kayıp) - Outreach taslak üretici (LLM)</p>
+<p><strong>Kabul kriterleri:</strong> - Yurt içi haftalık 50+ kalite lead (manuel kontrolden geçen) - Yurt dışı 20+ lead/hafta - Lead → bayiye dönüşüm ölçümleniyor</p>
+<p><strong>Beslediği:</strong> Saha CRM (Faz 9+), B2B portal onboarding (Faz 6).</p>
 <blockquote>
-<p><strong>Detay:</strong> <a
-href="../tartisma/02-musteri-kesif.md"><code>tartisma/02-musteri-kesif.md</code></a>,
-<a
-href="../tartisma/10-crm-karari.md"><code>tartisma/10-crm-karari.md</code></a></p>
+<p><strong>Detay:</strong> <a href="../tartisma/02-musteri-kesif.md"><code>tartisma/02-musteri-kesif.md</code></a>, <a href="../tartisma/10-crm-karari.md"><code>tartisma/10-crm-karari.md</code></a></p>
 </blockquote>
 <hr />
-<h3 id="faz-4-stok-tedarik-otomasyonu">Faz 4 — Stok &amp; Tedarik
-Otomasyonu</h3>
-<p><strong>Süre:</strong> 6 hafta. <strong>Ön koşul:</strong> Faz 2
-(tahmin motoru gerek).</p>
-<p><strong>Ne üretilir:</strong> - Tüketim hızı analizi (her
-ürün/hammadde için aylık/haftalık) - Reçete bazlı ham madde projeksiyonu
-(üretim emri × reçete) - Yeniden sipariş noktası (ROP) otomatik hesabı -
-“Bu hafta ne almalıyız” yönetici raporu - Tedarikçi performans skoru
-(zamanında teslim, kalite, fiyat) - Tedarikçi karşılaştırma (alternatif
-tedarikçi listesi) - Otomatik PO taslağı (manuel onayla tedarikçiye)</p>
-<p><strong>Kabul kriterleri:</strong> - Stok-out olayları %50+ azalır -
-Aşırı stok %30+ azalır - PO taslakları yöneticiye haftalık otomatik</p>
+<h3 id="faz-4-stok-tedarik-otomasyonu">Faz 4 — Stok &amp; Tedarik Otomasyonu</h3>
+<p><strong>Süre:</strong> 6 hafta. <strong>Ön koşul:</strong> Faz 2 (tahmin motoru gerek).</p>
+<p><strong>Ne üretilir:</strong> - Tüketim hızı analizi (her ürün/hammadde için aylık/haftalık) - Reçete bazlı ham madde projeksiyonu (üretim emri × reçete) - Yeniden sipariş noktası (ROP) otomatik hesabı - “Bu hafta ne almalıyız” yönetici raporu - Tedarikçi performans skoru (zamanında teslim, kalite, fiyat) - Tedarikçi karşılaştırma (alternatif tedarikçi listesi) - Otomatik PO taslağı (manuel onayla tedarikçiye)</p>
+<p><strong>Kabul kriterleri:</strong> - Stok-out olayları %50+ azalır - Aşırı stok %30+ azalır - PO taslakları yöneticiye haftalık otomatik</p>
 <p><strong>Beslediği:</strong> Üretim planlama, satınalma modülü.</p>
 <blockquote>
-<p><strong>Detay:</strong> <a
-href="../tartisma/03-tedarikci-yonetimi.md"><code>tartisma/03-tedarikci-yonetimi.md</code></a>,
-<a
-href="../tartisma/04-stok-tahmin-otomasyonu.md"><code>tartisma/04-stok-tahmin-otomasyonu.md</code></a></p>
+<p><strong>Detay:</strong> <a href="../tartisma/03-tedarikci-yonetimi.md"><code>tartisma/03-tedarikci-yonetimi.md</code></a>, <a href="../tartisma/04-stok-tahmin-otomasyonu.md"><code>tartisma/04-stok-tahmin-otomasyonu.md</code></a></p>
 </blockquote>
 <hr />
-<h3 id="faz-5-bayi-scraping-churn-radarı">Faz 5 — Bayi Scraping &amp;
-Churn Radarı</h3>
-<p><strong>Süre:</strong> 8 hafta. <strong>Ön koşul:</strong> Faz 0
-(bayi listesi var).</p>
-<p><strong>Ne üretilir:</strong> - Crawlee + Playwright + Apify (sosyal)
-kazıma altyapısı - KVKK + robots.txt + rate limit uyumlu crawler - 11
-sinyal türü: yeni rakip ürün, sosyal medya pasifliği, fiyat değişimi,
-vb. - Kural-bazlı + ML (XGBoost) churn skoru - 30/60/90 gün churn
-olasılık tahmini - <code>/admin/bayi-radari</code> heatmap dashboard -
-Saha aksiyon log (önce/sonra ölçümleme) - LLM aksiyon önerisi: “ne
-yapılmalı?” - Bayi sözleşme klozu + KVKK aydınlatma</p>
-<p><strong>Kabul kriterleri:</strong> - 100 bayinin haftalık taraması
-başarılı - Churn ML modeli precision &gt; 0.7 - En az 3 bayide churn’dan
-korunma kanıtı (aksiyon → skor düşüşü)</p>
-<p><strong>Beslediği:</strong> Saha CRM (yüksek riskli bayilere
-ziyaret), Faz 7 (MLOps), kampanya planlama.</p>
+<h3 id="faz-5-bayi-scraping-churn-radarı">Faz 5 — Bayi Scraping &amp; Churn Radarı</h3>
+<p><strong>Süre:</strong> 8 hafta. <strong>Ön koşul:</strong> Faz 0 (bayi listesi var).</p>
+<p><strong>Ne üretilir:</strong> - Crawlee + Playwright + Apify (sosyal) kazıma altyapısı - KVKK + robots.txt + rate limit uyumlu crawler - 11 sinyal türü: yeni rakip ürün, sosyal medya pasifliği, fiyat değişimi, vb. - Kural-bazlı + ML (XGBoost) churn skoru - 30/60/90 gün churn olasılık tahmini - <code>/admin/bayi-radari</code> heatmap dashboard - Saha aksiyon log (önce/sonra ölçümleme) - LLM aksiyon önerisi: “ne yapılmalı?” - Bayi sözleşme klozu + KVKK aydınlatma</p>
+<p><strong>Kabul kriterleri:</strong> - 100 bayinin haftalık taraması başarılı - Churn ML modeli precision &gt; 0.7 - En az 3 bayide churn’dan korunma kanıtı (aksiyon → skor düşüşü)</p>
+<p><strong>Beslediği:</strong> Saha CRM (yüksek riskli bayilere ziyaret), Faz 7 (MLOps), kampanya planlama.</p>
 <blockquote>
-<p><strong>Detay:</strong> <a
-href="../tartisma/13-bayi-scraping-churn.md"><code>tartisma/13-bayi-scraping-churn.md</code></a></p>
+<p><strong>Detay:</strong> <a href="../tartisma/13-bayi-scraping-churn.md"><code>tartisma/13-bayi-scraping-churn.md</code></a></p>
 </blockquote>
 <hr />
-<h3 id="faz-6-b2b-bayi-portalı-matportal">Faz 6 — B2B Bayi Portalı
-(MatPortal)</h3>
-<p><strong>Süre:</strong> 8 hafta. <strong>Ön koşul:</strong> Faz 0
-(Paspas stable). Faz 2 paralel.</p>
-<p><strong>Ne üretilir:</strong> Bayinin doğrudan kullandığı portal — 10
-alt modül.</p>
+<h3 id="faz-6-b2b-bayi-portalı-matportal">Faz 6 — B2B Bayi Portalı (MatPortal)</h3>
+<p><strong>Süre:</strong> 8 hafta. <strong>Ön koşul:</strong> Faz 0 (Paspas stable). Faz 2 paralel.</p>
+<p><strong>Ne üretilir:</strong> Bayinin doğrudan kullandığı portal — 10 alt modül.</p>
 <h4 id="bayi-tarafı-8-modül">Bayi tarafı (8 modül)</h4>
 <table>
 <colgroup>
@@ -309,20 +231,17 @@ alt modül.</p>
 <tr class="odd">
 <td>1</td>
 <td>Kimlik &amp; hesap</td>
-<td>Email+şifre login, JWT cookie, çoklu kullanıcı per bayi, rol bazlı
-yetki</td>
+<td>Email+şifre login, JWT cookie, çoklu kullanıcı per bayi, rol bazlı yetki</td>
 </tr>
 <tr class="even">
 <td>2</td>
 <td>Katalog &amp; araç eşleşme</td>
-<td>Marka→Model→Yıl filtre, uyumlu paspas listesi, bayi-iskonto fiyat,
-stok durumu</td>
+<td>Marka→Model→Yıl filtre, uyumlu paspas listesi, bayi-iskonto fiyat, stok durumu</td>
 </tr>
 <tr class="odd">
 <td>3</td>
 <td>Sipariş &amp; sepet</td>
-<td>Sepet yönetimi, kredi limit kontrolü, doğrudan ERP’ye akış
-(<code>repoCreate</code>)</td>
+<td>Sepet yönetimi, kredi limit kontrolü, doğrudan ERP’ye akış (<code>repoCreate</code>)</td>
 </tr>
 <tr class="even">
 <td>4</td>
@@ -351,8 +270,7 @@ stok durumu</td>
 </tr>
 </tbody>
 </table>
-<h4 id="yönetici-tarafı-2-modül-mevcut-modül-genişlemeleri">Yönetici
-tarafı (2 modül + mevcut modül genişlemeleri)</h4>
+<h4 id="yönetici-tarafı-2-modül-mevcut-modül-genişlemeleri">Yönetici tarafı (2 modül + mevcut modül genişlemeleri)</h4>
 <table>
 <colgroup>
 <col style="width: 17%" />
@@ -370,98 +288,49 @@ tarafı (2 modül + mevcut modül genişlemeleri)</h4>
 <tr class="odd">
 <td>9</td>
 <td>Bayi yönetimi</td>
-<td>Bayi listesi, yetki, iskonto, kredi limiti, davranış raporu,
-pasifleştirme</td>
+<td>Bayi listesi, yetki, iskonto, kredi limiti, davranış raporu, pasifleştirme</td>
 </tr>
 <tr class="even">
 <td>10</td>
 <td>Portal raporları</td>
-<td>Sipariş hacmi, top ürünler, terk edilmiş sepet, “aranan ama olmayan
-araç”, pazar haritası</td>
+<td>Sipariş hacmi, top ürünler, terk edilmiş sepet, “aranan ama olmayan araç”, pazar haritası</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Mevcut modül genişlemeleri:</strong> - Kampanya: portal’da
-bant, segment-spesifik, kupon - Üretim planlama: portal siparişi tahmin
-verisi olarak besler - Stok: bayi siparişinde otomatik rezervasyon -
-Cari/muhasebe: ödeme anında portal’da</p>
-<p><strong>Araç-paspas uyumluluk tablosu</strong> (yeni): -
-<code>arac_modelleri</code> (Marka + Model + Yıl + Gövde) -
-<code>urun_arac_uyumlulugu</code> (SKU ↔︎ araç) - MVP: ilk 30-40 popüler
-model (pazarın %80’i) - Long-tail sonradan AI destekli genişler</p>
-<p><strong>Kabul kriterleri:</strong> - Pilot 5 bayide 4 hafta kullanım,
-%80+ memnuniyet - Sipariş hatası %80+ azalır - Telefon/WhatsApp sipariş
-süresi yarıdan az</p>
-<p><strong>Beslediği:</strong> Faz 2 tahmin motoru (yeni veri akışı),
-Faz 5 churn radarı (portal kullanım sinyali).</p>
+<p><strong>Mevcut modül genişlemeleri:</strong> - Kampanya: portal’da bant, segment-spesifik, kupon - Üretim planlama: portal siparişi tahmin verisi olarak besler - Stok: bayi siparişinde otomatik rezervasyon - Cari/muhasebe: ödeme anında portal’da</p>
+<p><strong>Araç-paspas uyumluluk tablosu</strong> (yeni): - <code>arac_modelleri</code> (Marka + Model + Yıl + Gövde) - <code>urun_arac_uyumlulugu</code> (SKU ↔︎ araç) - MVP: ilk 30-40 popüler model (pazarın %80’i) - Long-tail sonradan AI destekli genişler</p>
+<p><strong>Kabul kriterleri:</strong> - Pilot 5 bayide 4 hafta kullanım, %80+ memnuniyet - Sipariş hatası %80+ azalır - Telefon/WhatsApp sipariş süresi yarıdan az</p>
+<p><strong>Beslediği:</strong> Faz 2 tahmin motoru (yeni veri akışı), Faz 5 churn radarı (portal kullanım sinyali).</p>
 <blockquote>
-<p><strong>Detay:</strong> <a
-href="../tartisma/11-b2b-bayi-portali.md"><code>tartisma/11-b2b-bayi-portali.md</code></a></p>
+<p><strong>Detay:</strong> <a href="../tartisma/11-b2b-bayi-portali.md"><code>tartisma/11-b2b-bayi-portali.md</code></a></p>
 </blockquote>
 <hr />
-<h3 id="faz-7-eğitilebilir-modeller-mlops">Faz 7 — Eğitilebilir Modeller
-(MLOps)</h3>
-<p><strong>Süre:</strong> 8 hafta. <strong>Ön koşul:</strong> Faz 2 +
-Faz 5.</p>
-<p><strong>Ne üretilir:</strong> - Python FastAPI ML servis (Bun → spawn
-/ HTTP) - MLflow + S3 model storage - Champion/challenger A/B test
-mekanizması - Excel upload UX: kolon eşleştirme, validation, preview,
-hata düzeltme - Multivariate feature pipeline: kur (TCMB), tatil, hava
-(OpenWeather), kampanya - Active learning: yönetici düzeltmesi →
-calibration layer - SHAP + LLM doğal dil açıklama - Auto-rollback: MAPE
-&gt; %50 → eski sürüm - Multi-deployment hazırlık (env-based config)</p>
-<p><strong>Kabul kriterleri:</strong> - Yönetici Excel yüklerken modeli
-yeniden eğitebiliyor - A/B test 7 gün otomatik koşuyor, istatistiksel
-anlamlı sonucu UI’da gösteriyor - Açıklanabilirlik %95 tahminde
-aktif</p>
-<p><strong>Beslediği:</strong> Tüm tahmin motorları (Faz 2, 4, 5) bu
-altyapıya geçer.</p>
+<h3 id="faz-7-eğitilebilir-modeller-mlops">Faz 7 — Eğitilebilir Modeller (MLOps)</h3>
+<p><strong>Süre:</strong> 8 hafta. <strong>Ön koşul:</strong> Faz 2 + Faz 5.</p>
+<p><strong>Ne üretilir:</strong> - Python FastAPI ML servis (Bun → spawn / HTTP) - MLflow + S3 model storage - Champion/challenger A/B test mekanizması - Excel upload UX: kolon eşleştirme, validation, preview, hata düzeltme - Multivariate feature pipeline: kur (TCMB), tatil, hava (OpenWeather), kampanya - Active learning: yönetici düzeltmesi → calibration layer - SHAP + LLM doğal dil açıklama - Auto-rollback: MAPE &gt; %50 → eski sürüm - Multi-deployment hazırlık (env-based config)</p>
+<p><strong>Kabul kriterleri:</strong> - Yönetici Excel yüklerken modeli yeniden eğitebiliyor - A/B test 7 gün otomatik koşuyor, istatistiksel anlamlı sonucu UI’da gösteriyor - Açıklanabilirlik %95 tahminde aktif</p>
+<p><strong>Beslediği:</strong> Tüm tahmin motorları (Faz 2, 4, 5) bu altyapıya geçer.</p>
 <blockquote>
-<p><strong>Detay:</strong> <a
-href="../tartisma/14-egitilebilir-modeller-mlops.md"><code>tartisma/14-egitilebilir-modeller-mlops.md</code></a></p>
+<p><strong>Detay:</strong> <a href="../tartisma/14-egitilebilir-modeller-mlops.md"><code>tartisma/14-egitilebilir-modeller-mlops.md</code></a></p>
 </blockquote>
 <hr />
 <h3 id="faz-8-konversasyonel-katman">Faz 8 — Konversasyonel Katman</h3>
-<p><strong>Süre:</strong> 6 hafta. <strong>Ön koşul:</strong> Faz 2-7
-olgunlaştığında.</p>
-<p><strong>Ne üretilir:</strong> - Yönetici sohbet arayüzü: doğal dil
-ile sipariş, rapor, sorgu - Bayi sohbet arayüzü (opsiyonel, varsayılan
-kapalı): “5000 paspas star siyah lazım” - Niyet (intent) çıkarımı,
-parametre toplama (slot-filling) - Risk skoru × güven eşiği × tutar
-limiti üçlü onay matrisi - Audit log + rollback her aksiyon için -
-Kill-switch: global / aksiyon türü / provider bazında kapatılabilir -
-LLM provider abstraction (Claude / OpenAI / Groq seçilebilir)</p>
-<p><strong>Kabul kriterleri:</strong> - Risk 4-6 düşük aksiyonlar
-otomatik (audit’li) - Risk 10+ aksiyonlar <strong>her zaman</strong>
-insan onayı - Onay penceresi (12-24 saat) konfigüre edilebilir</p>
+<p><strong>Süre:</strong> 6 hafta. <strong>Ön koşul:</strong> Faz 2-7 olgunlaştığında.</p>
+<p><strong>Ne üretilir:</strong> - Yönetici sohbet arayüzü: doğal dil ile sipariş, rapor, sorgu - Bayi sohbet arayüzü (opsiyonel, varsayılan kapalı): “5000 paspas star siyah lazım” - Niyet (intent) çıkarımı, parametre toplama (slot-filling) - Risk skoru × güven eşiği × tutar limiti üçlü onay matrisi - Audit log + rollback her aksiyon için - Kill-switch: global / aksiyon türü / provider bazında kapatılabilir - LLM provider abstraction (Claude / OpenAI / Groq seçilebilir)</p>
+<p><strong>Kabul kriterleri:</strong> - Risk 4-6 düşük aksiyonlar otomatik (audit’li) - Risk 10+ aksiyonlar <strong>her zaman</strong> insan onayı - Onay penceresi (12-24 saat) konfigüre edilebilir</p>
 <p><strong>Beslediği:</strong> Tüm sistem — alternatif giriş kanalı.</p>
 <blockquote>
-<p><strong>Detay:</strong> <a
-href="../tartisma/07-konversasyonel-katman.md"><code>tartisma/07-konversasyonel-katman.md</code></a>,
-<a
-href="../tartisma/09-otomasyon-esikleri.md"><code>tartisma/09-otomasyon-esikleri.md</code></a></p>
+<p><strong>Detay:</strong> <a href="../tartisma/07-konversasyonel-katman.md"><code>tartisma/07-konversasyonel-katman.md</code></a>, <a href="../tartisma/09-otomasyon-esikleri.md"><code>tartisma/09-otomasyon-esikleri.md</code></a></p>
 </blockquote>
 <hr />
 <h3 id="faz-9-mobil-saha-crm">Faz 9 — Mobil &amp; Saha CRM</h3>
-<p><strong>Süre:</strong> 8 hafta. <strong>Ön koşul:</strong> Faz 6 (web
-stable).</p>
-<p><strong>Ne üretilir:</strong> - <strong>Saha satış mobil</strong>
-(Flutter): bayi ziyaret kaydı, sesli not (Whisper), foto, offline-first
-sipariş - <strong>Bayi mobil</strong>: portal’ın mobil versiyonu (ya
-native, ya PWA — kararı Faz 9 başında) - <strong>Operatör mobil</strong>
-(zaten varsa polish): iş emri durumu, hata raporu, vardiya teslim - Push
-bildirim altyapısı (Firebase Cloud Messaging) - Saha ziyaret notları →
-Faz 5 churn sinyaline feed-in - LLM özet: “ziyaret notunda kritik bilgi
-var mı?”</p>
-<p><strong>Kabul kriterleri:</strong> - Saha ekibi günlük kullanım,
-kayıt yükü &lt;2dk/ziyaret - Offline çalışma 3 saat sonra senkronize -
-Push bildirim teslim oranı &gt;%95</p>
-<p><strong>Beslediği:</strong> Faz 5 (saha sinyalleri), Faz 8 (mobil
-sohbet).</p>
+<p><strong>Süre:</strong> 8 hafta. <strong>Ön koşul:</strong> Faz 6 (web stable).</p>
+<p><strong>Ne üretilir:</strong> - <strong>Saha satış mobil</strong> (Flutter): bayi ziyaret kaydı, sesli not (Whisper), foto, offline-first sipariş - <strong>Bayi mobil</strong>: portal’ın mobil versiyonu (ya native, ya PWA — kararı Faz 9 başında) - <strong>Operatör mobil</strong> (zaten varsa polish): iş emri durumu, hata raporu, vardiya teslim - Push bildirim altyapısı (Firebase Cloud Messaging) - Saha ziyaret notları → Faz 5 churn sinyaline feed-in - LLM özet: “ziyaret notunda kritik bilgi var mı?”</p>
+<p><strong>Kabul kriterleri:</strong> - Saha ekibi günlük kullanım, kayıt yükü &lt;2dk/ziyaret - Offline çalışma 3 saat sonra senkronize - Push bildirim teslim oranı &gt;%95</p>
+<p><strong>Beslediği:</strong> Faz 5 (saha sinyalleri), Faz 8 (mobil sohbet).</p>
 <hr />
 <h3 id="faz-10-genişleme-fazları">Faz 10+ — Genişleme Fazları</h3>
-<p><strong>Süre:</strong> her biri 2-8 hafta. <strong>Ön koşul:</strong>
-Faz 0-9.</p>
+<p><strong>Süre:</strong> her biri 2-8 hafta. <strong>Ön koşul:</strong> Faz 0-9.</p>
 <p>10 ek sinyal/modül — Promats yönetimi ile birlikte sıralanır:</p>
 <table>
 <colgroup>
@@ -520,8 +389,7 @@ Faz 0-9.</p>
 </tbody>
 </table>
 <blockquote>
-<p><strong>Detay:</strong> <a
-href="../tartisma/15-genisletme-sinyalleri.md"><code>tartisma/15-genisletme-sinyalleri.md</code></a></p>
+<p><strong>Detay:</strong> <a href="../tartisma/15-genisletme-sinyalleri.md"><code>tartisma/15-genisletme-sinyalleri.md</code></a></p>
 </blockquote>
 <hr />
 <h2 id="modül-haritası-toplam-bakış">Modül Haritası — Toplam Bakış</h2>
@@ -639,11 +507,9 @@ href="../tartisma/15-genisletme-sinyalleri.md"><code>tartisma/15-genisletme-siny
 </tr>
 </tbody>
 </table>
-<p><strong>Toplam yeni modül:</strong> ~17. <strong>Toplam genişletilen
-mevcut modül:</strong> 4 (kampanya, üretim, stok, cari).</p>
+<p><strong>Toplam yeni modül:</strong> ~17. <strong>Toplam genişletilen mevcut modül:</strong> 4 (kampanya, üretim, stok, cari).</p>
 <hr />
-<h2 id="veri-akışı-tek-yöne-doğru-bakış">Veri Akışı — Tek Yöne Doğru
-Bakış</h2>
+<h2 id="veri-akışı-tek-yöne-doğru-bakış">Veri Akışı — Tek Yöne Doğru Bakış</h2>
 <pre><code>┌──────────────────────────────────────────────────────────────────┐
 │  GİRİŞ KANALLARI                                                 │
 ├──────────────────────────────────────────────────────────────────┤
@@ -688,8 +554,7 @@ Bakış</h2>
 │  Tedarikçi (otomatik PO email)  │  Müşteri (e-fatura, bildirim) │
 └──────────────────────────────────────────────────────────────────┘</code></pre>
 <h2 id="teknoloji-konumlanması">Teknoloji Konumlanması</h2>
-<h3 id="mevcut-paspas-stack-dokunulmaz-genişletilir">Mevcut Paspas Stack
-(dokunulmaz, genişletilir)</h3>
+<h3 id="mevcut-paspas-stack-dokunulmaz-genişletilir">Mevcut Paspas Stack (dokunulmaz, genişletilir)</h3>
 <ul>
 <li>Fastify 5 + Bun (backend)</li>
 <li>Drizzle ORM + MySQL 2 + char(36) UUID</li>
@@ -699,58 +564,39 @@ Bakış</h2>
 <h3 id="matportal-yeni-eklenenler">MatPortal Yeni Eklenenler</h3>
 <ul>
 <li><strong>Bayi portal:</strong> ayrı Next.js app, aynı backend</li>
-<li><strong>ML servis:</strong> Python FastAPI (ayrı container, REST’le
-konuşur)</li>
-<li><strong>Scraping:</strong> Crawlee + Playwright + Apify (TS — Bun
-ile uyumlu)</li>
-<li><strong>Mobil:</strong> Flutter (mevcut Promats projeleri ile
-uyumlu)</li>
+<li><strong>ML servis:</strong> Python FastAPI (ayrı container, REST’le konuşur)</li>
+<li><strong>Scraping:</strong> Crawlee + Playwright + Apify (TS — Bun ile uyumlu)</li>
+<li><strong>Mobil:</strong> Flutter (mevcut Promats projeleri ile uyumlu)</li>
 <li><strong>MLOps:</strong> MLflow (model versiyon) + S3 (artifact)</li>
 <li><strong>Kuyruk:</strong> BullMQ + Redis (asenkron iş)</li>
-<li><strong>LLM gateway:</strong> Anthropic + OpenAI + Groq
-abstraction</li>
+<li><strong>LLM gateway:</strong> Anthropic + OpenAI + Groq abstraction</li>
 <li><strong>Email:</strong> Brevo (free tier başlangıç)</li>
-<li><strong>Email finder:</strong> Snov.io / Apollo (faz 3
-itibariyle)</li>
+<li><strong>Email finder:</strong> Snov.io / Apollo (faz 3 itibariyle)</li>
 <li><strong>Maps:</strong> Google Places + OpenStreetMap fallback</li>
 </ul>
 <h2 id="çıktıları-deliverables">Çıktıları (Deliverables)</h2>
 <p>Faz 0-9 tamamlandığında Promats’a teslim edilecekler:</p>
 <ol type="1">
-<li><strong>Bayi portal</strong> — yeni Next.js uygulaması, mobil
-uyumlu, Paspas marka kimliği</li>
-<li><strong>Paspas backend genişlemesi</strong> —
-<code>/portal/*</code>, <code>/tahmin/*</code>, <code>/churn/*</code>,
-<code>/lead/*</code>, <code>/sohbet/*</code> route’ları</li>
-<li><strong>Python ML servisi</strong> — Docker container, FastAPI,
-MLflow entegrasyonu</li>
-<li><strong>Scraping worker</strong> — Crawlee tabanlı, schedule +
-queue</li>
-<li><strong>DB migration script’leri</strong> — yeni 30+ tablo, geri
-alınabilir</li>
-<li><strong>Yönetici sidebar genişlemesi</strong> — Bayi Portalı, Tahmin
-Motoru, Bayi Radarı, Lead Pipeline, ML Lab</li>
-<li><strong>Araç-paspas uyumluluk veritabanı</strong> — ilk 30-40 model
-dolu</li>
+<li><strong>Bayi portal</strong> — yeni Next.js uygulaması, mobil uyumlu, Paspas marka kimliği</li>
+<li><strong>Paspas backend genişlemesi</strong> — <code>/portal/*</code>, <code>/tahmin/*</code>, <code>/churn/*</code>, <code>/lead/*</code>, <code>/sohbet/*</code> route’ları</li>
+<li><strong>Python ML servisi</strong> — Docker container, FastAPI, MLflow entegrasyonu</li>
+<li><strong>Scraping worker</strong> — Crawlee tabanlı, schedule + queue</li>
+<li><strong>DB migration script’leri</strong> — yeni 30+ tablo, geri alınabilir</li>
+<li><strong>Yönetici sidebar genişlemesi</strong> — Bayi Portalı, Tahmin Motoru, Bayi Radarı, Lead Pipeline, ML Lab</li>
+<li><strong>Araç-paspas uyumluluk veritabanı</strong> — ilk 30-40 model dolu</li>
 <li><strong>Saha satış mobil app</strong> — Flutter, iOS/Android</li>
-<li><strong>Bayi mobil</strong> — PWA veya native (Faz 9 başında
-karar)</li>
-<li><strong>Bayi onboarding paketi</strong> — kullanım rehberi, video,
-KVKK metni</li>
+<li><strong>Bayi mobil</strong> — PWA veya native (Faz 9 başında karar)</li>
+<li><strong>Bayi onboarding paketi</strong> — kullanım rehberi, video, KVKK metni</li>
 <li><strong>Yönetici eğitim</strong> — canlı 2 oturum + kayıt</li>
-<li><strong>Operasyonel runbook</strong> — model re-train, churn
-aksiyon, scraping monitoring</li>
+<li><strong>Operasyonel runbook</strong> — model re-train, churn aksiyon, scraping monitoring</li>
 <li><strong>6 ay garanti</strong> — bug fix + minor enhancement</li>
-<li><strong>Multi-deployment ready</strong> — başka müşteriye
-konuşlandırılabilir kod tabanı (Promats’a görünmez)</li>
+<li><strong>Multi-deployment ready</strong> — başka müşteriye konuşlandırılabilir kod tabanı (Promats’a görünmez)</li>
 </ol>
-<h2 id="değer-sıralaması-kapsam-daralması">Değer Sıralaması — Kapsam
-Daralması</h2>
+<h2 id="değer-sıralaması-kapsam-daralması">Değer Sıralaması — Kapsam Daralması</h2>
 <p>Eğer kapsam daraltılmak zorunda kalırsa, faz önceliği:</p>
 <ol type="1">
 <li><strong>Faz 0</strong> — temel, alternatifsiz</li>
-<li><strong>Faz 6</strong> (Bayi Portalı) — bayinin en hızlı hissedeceği
-değer</li>
+<li><strong>Faz 6</strong> (Bayi Portalı) — bayinin en hızlı hissedeceği değer</li>
 <li><strong>Faz 2</strong> (Tahmin Motoru) — operasyonel kazanç</li>
 <li><strong>Faz 5</strong> (Churn) — savunma; bayi kaybetmemek</li>
 <li><strong>Faz 4</strong> (Stok otomasyonu) — maliyet azaltma</li>
@@ -759,21 +605,14 @@ değer</li>
 <li><strong>Faz 8, 9</strong> — opsiyonel, ihtiyaç doğunca</li>
 <li><strong>Faz 10+</strong> — genişleme</li>
 </ol>
-<p>Eğer sadece 6 ay süre + bütçe varsa: <strong>Faz 0 + Faz 6 + Faz 2
-yeterli</strong>. Diğerleri sonraki kontratlarla.</p>
-<h2 id="açık-karar-noktaları-çözüm-bakışı">Açık Karar Noktaları (Çözüm
-Bakışı)</h2>
+<p>Eğer sadece 6 ay süre + bütçe varsa: <strong>Faz 0 + Faz 6 + Faz 2 yeterli</strong>. Diğerleri sonraki kontratlarla.</p>
+<h2 id="açık-karar-noktaları-çözüm-bakışı">Açık Karar Noktaları (Çözüm Bakışı)</h2>
 <ol type="1">
-<li><strong>Faz 6 (Portal) öncelendirme:</strong> Faz 0 tamamlanmadan
-portal başlasın mı? (Önerim: hayır, ama paralel hazırlık olabilir)</li>
-<li><strong>Faz 2 → Faz 7 sırası:</strong> MLOps daha mı önce? (Önerim:
-hayır, Faz 2’de basit Prophet yeter; MLOps Faz 7’ye)</li>
-<li><strong>Bayi mobil:</strong> PWA mı, native Flutter mı? (Önerim: PWA
-başla, ihtiyaç doğunca native)</li>
-<li><strong>Konversasyonel katman (Faz 8) bayi tarafı:</strong> açılsın
-mı, sadece yönetici mi? (Önerim: ilk yıl sadece yönetici)</li>
-<li><strong>Genişleme modülleri (Faz 10+):</strong> hangisi ilk?
-(Önerim: AI belge işleme — hemen değer üretir)</li>
+<li><strong>Faz 6 (Portal) öncelendirme:</strong> Faz 0 tamamlanmadan portal başlasın mı? (Önerim: hayır, ama paralel hazırlık olabilir)</li>
+<li><strong>Faz 2 → Faz 7 sırası:</strong> MLOps daha mı önce? (Önerim: hayır, Faz 2’de basit Prophet yeter; MLOps Faz 7’ye)</li>
+<li><strong>Bayi mobil:</strong> PWA mı, native Flutter mı? (Önerim: PWA başla, ihtiyaç doğunca native)</li>
+<li><strong>Konversasyonel katman (Faz 8) bayi tarafı:</strong> açılsın mı, sadece yönetici mi? (Önerim: ilk yıl sadece yönetici)</li>
+<li><strong>Genişleme modülleri (Faz 10+):</strong> hangisi ilk? (Önerim: AI belge işleme — hemen değer üretir)</li>
 </ol>
 
   <!--
@@ -791,8 +630,9 @@ mı, sadece yönetici mi? (Önerim: ilk yıl sadece yönetici)</li>
 </div>
 
 <script>
-  window.DOC_ID = "02 — Çözüm Genel
-Bakış".replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  // Pandoc bazen uzun basligi multi-line yaziyor; once whitespace'leri tek
+  // bosluga indirgeyip sonra slug uret. Aksi halde JS literal newline hatasi.
+  window.DOC_ID = ("02 — Çözüm Genel Bakış").replace(/\s+/g, ' ').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
   // Aktif sidebar linki
   document.addEventListener('DOMContentLoaded', function() {
     var path = window.location.pathname.split('/').pop().replace('.html', '');

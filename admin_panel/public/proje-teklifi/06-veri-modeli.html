@@ -55,8 +55,7 @@
 
 <div>
 <div class="top-banner">
-  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>06 — Veri
-Modeli</strong></div>
+  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>06 — Veri Modeli</strong></div>
   <div class="actions">
     <a href="index.html">← Ana Sayfa</a>
   </div>
@@ -68,43 +67,23 @@ Modeli</strong></div>
   </div>
 
 <h1 id="veri-modeli">06 — Veri Modeli</h1>
-<p>Bu doküman MatPortal’ın <strong>eklenen 30+ tabloyu</strong>, mevcut
-Paspas tablolarıyla <strong>ilişkilerini</strong>, <strong>migration
-stratejisini</strong> ve <strong>veri yaşam döngüsünü</strong> anlatır.
-Detaylı SQL şemaları her fazın derinlemesine dokümanında; burada
-<strong>bütünlük resmi</strong> vardır.</p>
+<p>Bu doküman MatPortal’ın <strong>eklenen 30+ tabloyu</strong>, mevcut Paspas tablolarıyla <strong>ilişkilerini</strong>, <strong>migration stratejisini</strong> ve <strong>veri yaşam döngüsünü</strong> anlatır. Detaylı SQL şemaları her fazın derinlemesine dokümanında; burada <strong>bütünlük resmi</strong> vardır.</p>
 <h2 id="genel-prensipler">1. Genel Prensipler</h2>
 <h3 id="konvansiyonlar">1.1 Konvansiyonlar</h3>
 <ul>
-<li><strong>PK:</strong> <code>char(36)</code> UUID v4 (Promats
-projeleri standardı)</li>
-<li><strong>Tablo isimleri:</strong> Türkçe + snake_case
-(<code>musteriler</code>, <code>tahmin_calistirma</code>)</li>
-<li><strong>Audit kolonları:</strong> <code>created_at datetime</code>,
-<code>updated_at datetime</code>, <code>created_by char(36)</code>,
-<code>updated_by char(36)</code></li>
-<li><strong>Soft delete:</strong> <code>deleted_at datetime NULL</code>
-(kritik tablolarda)</li>
-<li><strong>JSON kolonları:</strong> MySQL 8 native JSON, schema
-validation Drizzle/Zod ile</li>
-<li><strong>Index:</strong> kompozit index sorgu pattern’lerine göre,
-<code>EXPLAIN</code> ile doğrulanır</li>
-<li><strong>FK:</strong> <code>ON DELETE RESTRICT</code> varsayılan
-(kasıtlı CASCADE açık tanımlanır)</li>
+<li><strong>PK:</strong> <code>char(36)</code> UUID v4 (Promats projeleri standardı)</li>
+<li><strong>Tablo isimleri:</strong> Türkçe + snake_case (<code>musteriler</code>, <code>tahmin_calistirma</code>)</li>
+<li><strong>Audit kolonları:</strong> <code>created_at datetime</code>, <code>updated_at datetime</code>, <code>created_by char(36)</code>, <code>updated_by char(36)</code></li>
+<li><strong>Soft delete:</strong> <code>deleted_at datetime NULL</code> (kritik tablolarda)</li>
+<li><strong>JSON kolonları:</strong> MySQL 8 native JSON, schema validation Drizzle/Zod ile</li>
+<li><strong>Index:</strong> kompozit index sorgu pattern’lerine göre, <code>EXPLAIN</code> ile doğrulanır</li>
+<li><strong>FK:</strong> <code>ON DELETE RESTRICT</code> varsayılan (kasıtlı CASCADE açık tanımlanır)</li>
 </ul>
 <h3 id="migration-kuralı">1.2 Migration kuralı</h3>
-<p><strong>Kritik:</strong> <a href="../../CLAUDE.md">CLAUDE.md</a>
-gereği <code>ALTER TABLE</code> lokal ortamda yasak. Schema değişikliği
-<strong>seed dosyası</strong>
-(<code>backend/src/db/seed/sql/0XX_*.sql</code>) güncellenip
-<code>db:seed:fresh</code> ile sıfırdan kurulur. Production’da migration
-script ayrı yönetilir.</p>
-<p>Bu doküman seed dosyalarına eklenen <strong>yeni 30+ tabloyu</strong>
-listeler.</p>
-<h2 id="mevcut-paspas-tabloları-paylaşılan">2. Mevcut Paspas Tabloları
-(paylaşılan)</h2>
-<p>MatPortal’ın <strong>read</strong> ve sınırlı <strong>write</strong>
-yaptığı mevcut tablolar:</p>
+<p><strong>Kritik:</strong> <a href="../../CLAUDE.md">CLAUDE.md</a> gereği <code>ALTER TABLE</code> lokal ortamda yasak. Schema değişikliği <strong>seed dosyası</strong> (<code>backend/src/db/seed/sql/0XX_*.sql</code>) güncellenip <code>db:seed:fresh</code> ile sıfırdan kurulur. Production’da migration script ayrı yönetilir.</p>
+<p>Bu doküman seed dosyalarına eklenen <strong>yeni 30+ tabloyu</strong> listeler.</p>
+<h2 id="mevcut-paspas-tabloları-paylaşılan">2. Mevcut Paspas Tabloları (paylaşılan)</h2>
+<p>MatPortal’ın <strong>read</strong> ve sınırlı <strong>write</strong> yaptığı mevcut tablolar:</p>
 <table>
 <colgroup>
 <col style="width: 18%" />
@@ -127,8 +106,7 @@ yaptığı mevcut tablolar:</p>
 <tr class="even">
 <td><code>urunler</code></td>
 <td>Ürün katalog</td>
-<td><code>portal_sepet_kalemleri</code>, <code>tahmin_calistirma</code>
-FK</td>
+<td><code>portal_sepet_kalemleri</code>, <code>tahmin_calistirma</code> FK</td>
 </tr>
 <tr class="odd">
 <td><code>urun_kategorileri</code></td>
@@ -192,19 +170,11 @@ FK</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Kritik prensip:</strong> MatPortal Paspas tablolarına
-<strong>doğrudan INSERT/UPDATE/DELETE yapmaz</strong>. Yazma işlemleri
-Paspas’ın repository fonksiyonlarını çağırır (örn.
-<code>satis_siparisleri/repository.ts:repoCreate</code>). Bu sayede iş
-kuralları korunur.</p>
-<p>İstisna: <code>musteriler.son_giris_at</code>,
-<code>musteriler.portal_aktif_mi</code> gibi portal-spesifik kolonlar.
-Bunlar <code>musteriler</code> tablosuna eklenir ve portal yazar.</p>
+<p><strong>Kritik prensip:</strong> MatPortal Paspas tablolarına <strong>doğrudan INSERT/UPDATE/DELETE yapmaz</strong>. Yazma işlemleri Paspas’ın repository fonksiyonlarını çağırır (örn. <code>satis_siparisleri/repository.ts:repoCreate</code>). Bu sayede iş kuralları korunur.</p>
+<p>İstisna: <code>musteriler.son_giris_at</code>, <code>musteriler.portal_aktif_mi</code> gibi portal-spesifik kolonlar. Bunlar <code>musteriler</code> tablosuna eklenir ve portal yazar.</p>
 <h2 id="yeni-tablolar-faz-bazlı">3. Yeni Tablolar — Faz Bazlı</h2>
-<h3 id="faz-1-talep-toplama-altyapısı-3-tablo">Faz 1 — Talep Toplama
-Altyapısı (3 tablo)</h3>
-<div class="sourceCode" id="cb1"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> talep_havuzu (</span>
+<h3 id="faz-1-talep-toplama-altyapısı-3-tablo">Faz 1 — Talep Toplama Altyapısı (3 tablo)</h3>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> talep_havuzu (</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  kaynak ENUM(<span class="st">&#39;whatsapp&#39;</span>,<span class="st">&#39;telefon&#39;</span>,<span class="st">&#39;email&#39;</span>,<span class="st">&#39;portal&#39;</span>,<span class="st">&#39;manuel&#39;</span>,<span class="st">&#39;sohbet&#39;</span>,<span class="st">&#39;saha&#39;</span>),</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  kaynak_referans <span class="dt">varchar</span>(<span class="dv">255</span>),    <span class="co">-- WA mesaj ID, email subject, vb.</span></span>
@@ -243,10 +213,8 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb1-1"><a href="#c
 <span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>  ekler JSON,</span>
 <span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>  created_at datetime</span>
 <span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
-<h3 id="faz-2-sipariş-tahmin-motoru-4-tablo">Faz 2 — Sipariş Tahmin
-Motoru (4 tablo)</h3>
-<div class="sourceCode" id="cb2"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> tahmin_modelleri (</span>
+<h3 id="faz-2-sipariş-tahmin-motoru-4-tablo">Faz 2 — Sipariş Tahmin Motoru (4 tablo)</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> tahmin_modelleri (</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">scope</span> ENUM(<span class="st">&#39;genel&#39;</span>,<span class="st">&#39;segment&#39;</span>,<span class="st">&#39;bayi&#39;</span>,<span class="st">&#39;bayi_urun&#39;</span>),</span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  scope_value <span class="dt">varchar</span>(<span class="dv">255</span>),</span>
@@ -306,13 +274,10 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb2-1"><a href="#c
 <span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a>  yuklendi_at datetime</span>
 <span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
 <blockquote>
-<p><strong>Detay:</strong> <a
-href="../tartisma/12-tahmin-motoru-derinlemesine.md"><code>tartisma/12-tahmin-motoru-derinlemesine.md</code></a></p>
+<p><strong>Detay:</strong> <a href="../tartisma/12-tahmin-motoru-derinlemesine.md"><code>tartisma/12-tahmin-motoru-derinlemesine.md</code></a></p>
 </blockquote>
-<h3 id="faz-3-müşteri-keşif-3-tablo">Faz 3 — Müşteri Keşif (3
-tablo)</h3>
-<div class="sourceCode" id="cb3"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> lead_havuzu (</span>
+<h3 id="faz-3-müşteri-keşif-3-tablo">Faz 3 — Müşteri Keşif (3 tablo)</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> lead_havuzu (</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  kaynak ENUM(<span class="st">&#39;tobb&#39;</span>,<span class="st">&#39;sanayim_net&#39;</span>,<span class="st">&#39;google_places&#39;</span>,<span class="st">&#39;apollo&#39;</span>,<span class="st">&#39;hunter&#39;</span>,<span class="st">&#39;manuel&#39;</span>,<span class="st">&#39;onerilen&#39;</span>),</span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  firma_adi <span class="dt">varchar</span>(<span class="dv">255</span>),</span>
@@ -363,10 +328,8 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb3-1"><a href="#c
 <span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>  metrikler JSON,                  <span class="co">-- { gonderilen, acilan, tiklanan, donusum }</span></span>
 <span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>  created_at datetime</span>
 <span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
-<h3 id="faz-4-stok-tedarik-4-tablo-mevcut-genişler">Faz 4 — Stok &amp;
-Tedarik (4 tablo + mevcut genişler)</h3>
-<div class="sourceCode" id="cb4"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> tuketim_hizi (</span>
+<h3 id="faz-4-stok-tedarik-4-tablo-mevcut-genişler">Faz 4 — Stok &amp; Tedarik (4 tablo + mevcut genişler)</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> tuketim_hizi (</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  urun_id <span class="dt">char</span>(<span class="dv">36</span>) FK urunler.<span class="kw">id</span>,</span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  donem <span class="dt">date</span>,                      <span class="co">-- ay başı</span></span>
@@ -416,10 +379,8 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb4-1"><a href="#c
 <span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>  donusturulen_satinalma_id <span class="dt">char</span>(<span class="dv">36</span>),</span>
 <span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>  created_at datetime</span>
 <span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
-<h3 id="faz-5-bayi-scraping-churn-5-tablo">Faz 5 — Bayi Scraping &amp;
-Churn (5 tablo)</h3>
-<div class="sourceCode" id="cb5"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> web_kazima_hedefleri (</span>
+<h3 id="faz-5-bayi-scraping-churn-5-tablo">Faz 5 — Bayi Scraping &amp; Churn (5 tablo)</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> web_kazima_hedefleri (</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  bayi_id <span class="dt">char</span>(<span class="dv">36</span>) FK musteriler.<span class="kw">id</span> <span class="kw">NULL</span>,  <span class="co">-- rakip de olabilir, NULL</span></span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  url <span class="dt">varchar</span>(<span class="dv">500</span>),</span>
@@ -490,13 +451,10 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb5-1"><a href="#c
 <span id="cb5-69"><a href="#cb5-69" aria-hidden="true" tabindex="-1"></a>  olcum_tarihi datetime</span>
 <span id="cb5-70"><a href="#cb5-70" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
 <blockquote>
-<p><strong>Detay:</strong> <a
-href="../tartisma/13-bayi-scraping-churn.md"><code>tartisma/13-bayi-scraping-churn.md</code></a></p>
+<p><strong>Detay:</strong> <a href="../tartisma/13-bayi-scraping-churn.md"><code>tartisma/13-bayi-scraping-churn.md</code></a></p>
 </blockquote>
-<h3 id="faz-6-bayi-portalı-11-tablo">Faz 6 — Bayi Portalı (11
-tablo)</h3>
-<div class="sourceCode" id="cb6"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> portal_kullanicilari (</span>
+<h3 id="faz-6-bayi-portalı-11-tablo">Faz 6 — Bayi Portalı (11 tablo)</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> portal_kullanicilari (</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  musteri_id <span class="dt">char</span>(<span class="dv">36</span>) FK musteriler.<span class="kw">id</span>,    <span class="co">-- bayi</span></span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  email <span class="dt">varchar</span>(<span class="dv">255</span>) <span class="kw">UNIQUE</span>,</span>
@@ -641,8 +599,7 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb6-1"><a href="#c
 <span id="cb6-143"><a href="#cb6-143" aria-hidden="true" tabindex="-1"></a>  created_at datetime</span>
 <span id="cb6-144"><a href="#cb6-144" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
 <h3 id="faz-7-mlops-5-tablo">Faz 7 — MLOps (5 tablo)</h3>
-<div class="sourceCode" id="cb7"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> model_versiyonlari (</span>
+<div class="sourceCode" id="cb7"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> model_versiyonlari (</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  model_ailesi <span class="dt">varchar</span>(<span class="dv">128</span>),</span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  versiyon <span class="dt">varchar</span>(<span class="dv">32</span>),</span>
@@ -708,13 +665,10 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb7-1"><a href="#c
 <span id="cb7-64"><a href="#cb7-64" aria-hidden="true" tabindex="-1"></a>  geri_besleme_tarihi datetime</span>
 <span id="cb7-65"><a href="#cb7-65" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
 <blockquote>
-<p><strong>Detay:</strong> <a
-href="../tartisma/14-egitilebilir-modeller-mlops.md"><code>tartisma/14-egitilebilir-modeller-mlops.md</code></a></p>
+<p><strong>Detay:</strong> <a href="../tartisma/14-egitilebilir-modeller-mlops.md"><code>tartisma/14-egitilebilir-modeller-mlops.md</code></a></p>
 </blockquote>
-<h3 id="faz-8-konversasyonel-3-tablo">Faz 8 — Konversasyonel (3
-tablo)</h3>
-<div class="sourceCode" id="cb8"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> ai_aksiyon_audit (</span>
+<h3 id="faz-8-konversasyonel-3-tablo">Faz 8 — Konversasyonel (3 tablo)</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> ai_aksiyon_audit (</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  aksiyon_tipi <span class="dt">varchar</span>(<span class="dv">64</span>),</span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  tetikleyen ENUM(<span class="st">&#39;ai_otomatik&#39;</span>,<span class="st">&#39;ai_onerili&#39;</span>,<span class="st">&#39;insan_manuel&#39;</span>),</span>
@@ -751,10 +705,8 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb8-1"><a href="#c
 <span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>  manual_alternatif JSON,</span>
 <span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>  created_at datetime</span>
 <span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
-<h3 id="faz-9-mobil-saha-3-tablo">Faz 9 — Mobil &amp; Saha (3
-tablo)</h3>
-<div class="sourceCode" id="cb9"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> ziyaret_kayitlari (</span>
+<h3 id="faz-9-mobil-saha-3-tablo">Faz 9 — Mobil &amp; Saha (3 tablo)</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> ziyaret_kayitlari (</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  saha_user_id <span class="dt">char</span>(<span class="dv">36</span>) FK kullanicilar.<span class="kw">id</span>,</span>
 <span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  bayi_id <span class="dt">char</span>(<span class="dv">36</span>) FK musteriler.<span class="kw">id</span>,</span>
@@ -803,12 +755,9 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb9-1"><a href="#c
 <span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a>  son_aktif datetime,</span>
 <span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>  iptal_at datetime <span class="kw">NULL</span></span>
 <span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
-<h2 id="mevcut-tablolara-eklenen-kolonlar">4. Mevcut Tablolara Eklenen
-Kolonlar</h2>
-<p>Bazı yeni özellikler <strong>mevcut tablolara kolon ekler</strong>
-(yine seed dosyası güncellenir):</p>
-<div class="sourceCode" id="cb10"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- musteriler tablosu (Faz 5 + Faz 6)</span></span>
+<h2 id="mevcut-tablolara-eklenen-kolonlar">4. Mevcut Tablolara Eklenen Kolonlar</h2>
+<p>Bazı yeni özellikler <strong>mevcut tablolara kolon ekler</strong> (yine seed dosyası güncellenir):</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- musteriler tablosu (Faz 5 + Faz 6)</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> musteriler <span class="kw">ADD</span> <span class="kw">COLUMN</span> portal_aktif_mi tinyint <span class="kw">DEFAULT</span> <span class="dv">0</span>;</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> musteriler <span class="kw">ADD</span> <span class="kw">COLUMN</span> son_portal_giris datetime <span class="kw">NULL</span>;</span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> musteriler <span class="kw">ADD</span> <span class="kw">COLUMN</span> web_sitesi <span class="dt">varchar</span>(<span class="dv">255</span>) <span class="kw">NULL</span>;</span>
@@ -830,10 +779,7 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb10-1"><a href="#
 <span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>) <span class="kw">DEFAULT</span> <span class="st">&#39;admin_panel&#39;</span>;</span>
 <span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> satis_siparisleri <span class="kw">ADD</span> <span class="kw">COLUMN</span> portal_sepet_id <span class="dt">char</span>(<span class="dv">36</span>) <span class="kw">NULL</span>;</span></code></pre></div>
 <blockquote>
-<p><strong>Not:</strong> Yukarıdaki ALTER ifadeleri <strong>gösterim
-amaçlıdır</strong>. Gerçek implementasyonda seed SQL dosyaları
-(<code>0XX_*.sql</code>) doğrudan güncellenir, fresh deploy ile
-uygulanır. Production migration ayrı yönetilir.</p>
+<p><strong>Not:</strong> Yukarıdaki ALTER ifadeleri <strong>gösterim amaçlıdır</strong>. Gerçek implementasyonda seed SQL dosyaları (<code>0XX_*.sql</code>) doğrudan güncellenir, fresh deploy ile uygulanır. Production migration ayrı yönetilir.</p>
 </blockquote>
 <h2 id="er-ilişki-görünümü-özet">5. ER İlişki Görünümü (özet)</h2>
 <pre><code>                    musteriler
@@ -933,11 +879,7 @@ uygulanır. Production migration ayrı yönetilir.</p>
 </tbody>
 </table>
 <h3 id="kvkk-silme-talebi-akışı">6.2 KVKK silme talebi akışı</h3>
-<p>Bayi silme talebi gönderirse: 1. <code>musteriler</code> →
-<code>kvkk_silme_at</code> damgası 2. PII alanları (telefon, email,
-ad-soyad) anonimleştirilir 3. İlişkili tablolar: portal_kullanicilari
-pasifleştirilir 4. Sipariş geçmişi anonim kalır (ticari kayıt yasal
-zorunlu) 5. Audit log: silme talebi + uygulanan aksiyon</p>
+<p>Bayi silme talebi gönderirse: 1. <code>musteriler</code> → <code>kvkk_silme_at</code> damgası 2. PII alanları (telefon, email, ad-soyad) anonimleştirilir 3. İlişkili tablolar: portal_kullanicilari pasifleştirilir 4. Sipariş geçmişi anonim kalır (ticari kayıt yasal zorunlu) 5. Audit log: silme talebi + uygulanan aksiyon</p>
 <h3 id="backup-stratejisi">6.3 Backup stratejisi</h3>
 <table>
 <thead>
@@ -981,8 +923,7 @@ zorunlu) 5. Audit log: silme talebi + uygulanan aksiyon</p>
 </tr>
 </tbody>
 </table>
-<h2 id="performans-index-stratejisi">7. Performans — Index
-Stratejisi</h2>
+<h2 id="performans-index-stratejisi">7. Performans — Index Stratejisi</h2>
 <h3 id="yüksek-trafik-sorguları">7.1 Yüksek-trafik sorguları</h3>
 <table>
 <colgroup>
@@ -1006,8 +947,7 @@ Stratejisi</h2>
 </tr>
 <tr class="odd">
 <td>Portal sepet aktif</td>
-<td><code>(portal_user_id, durum)</code> WHERE
-<code>durum='aktif'</code></td>
+<td><code>(portal_user_id, durum)</code> WHERE <code>durum='aktif'</code></td>
 </tr>
 <tr class="even">
 <td>Tahmin sonuç (bayi-ürün-dönem)</td>
@@ -1015,8 +955,7 @@ Stratejisi</h2>
 </tr>
 <tr class="odd">
 <td>Churn risk top liste</td>
-<td><code>(risk, tarih DESC)</code> WHERE
-<code>risk IN ('yüksek','kritik')</code></td>
+<td><code>(risk, tarih DESC)</code> WHERE <code>risk IN ('yüksek','kritik')</code></td>
 </tr>
 <tr class="even">
 <td>Web kazıma sıradaki</td>
@@ -1024,49 +963,26 @@ Stratejisi</h2>
 </tr>
 <tr class="odd">
 <td>Lead skor sıralı</td>
-<td><code>(benzerlik_skoru DESC, durum)</code> WHERE
-<code>durum IN ('yeni','araştırılıyor')</code></td>
+<td><code>(benzerlik_skoru DESC, durum)</code> WHERE <code>durum IN ('yeni','araştırılıyor')</code></td>
 </tr>
 </tbody>
 </table>
-<h3 id="tahmin-yapan-sorgular-denormalize-gerekirse">7.2 Tahmin yapan
-sorgular (denormalize gerekirse)</h3>
-<p>İlerde performans sorunu çıkarsa: - <code>bayi_aylik_ozet</code>
-materialized view (toplam sipariş, ciro, churn skoru) - Redis cache
-layer (her sorgu cache’lenmeden önce ölçüm) - Read replica (raporlama
-yükü ana DB’yi etkilemesin)</p>
+<h3 id="tahmin-yapan-sorgular-denormalize-gerekirse">7.2 Tahmin yapan sorgular (denormalize gerekirse)</h3>
+<p>İlerde performans sorunu çıkarsa: - <code>bayi_aylik_ozet</code> materialized view (toplam sipariş, ciro, churn skoru) - Redis cache layer (her sorgu cache’lenmeden önce ölçüm) - Read replica (raporlama yükü ana DB’yi etkilemesin)</p>
 <h2 id="test-verisi">8. Test verisi</h2>
-<p>Faz 0 sonunda <strong>realistic test verisi</strong> üretilir: - 5
-pilot bayi anonim seed - 6 ay sipariş geçmişi (gerçekleşen + sentetik) -
-Test ortamında promats_erp_test ayrı DB - E2E testler bu seed üzerinde
-koşar</p>
-<h2 id="açık-karar-noktaları-veri-modeli">9. Açık karar noktaları (Veri
-Modeli)</h2>
+<p>Faz 0 sonunda <strong>realistic test verisi</strong> üretilir: - 5 pilot bayi anonim seed - 6 ay sipariş geçmişi (gerçekleşen + sentetik) - Test ortamında promats_erp_test ayrı DB - E2E testler bu seed üzerinde koşar</p>
+<h2 id="açık-karar-noktaları-veri-modeli">9. Açık karar noktaları (Veri Modeli)</h2>
 <ol type="1">
-<li><strong>char(36) UUID vs auto-increment INT:</strong> mevcut Promats
-konvansiyonu UUID, devam ediyoruz. (Karar: UUID)</li>
-<li><strong>JSON kolonları vs ayrı tablo:</strong> sinyaller,
-parametreler vb. JSON’da mı tablolaştırma? (Önerim: JSON,
-sorgulanmıyorsa)</li>
-<li><strong>Soft delete:</strong> her tabloya mı, sadece kritiklere mi?
-(Önerim: kritiklere — <code>musteriler</code>, <code>urunler</code>,
-<code>siparisler</code>)</li>
-<li><strong>Audit log seviyesi:</strong> her INSERT/UPDATE’i mi
-loglayalım? (Önerim: risk 7+ aksiyonlar)</li>
-<li><strong>Read replica:</strong> ne zaman gerek? (Önerim: 100K+ aylık
-sipariş)</li>
-<li><strong>MySQL partitioning:</strong> <code>tahmin_calistirma</code>
-ve <code>web_kazima_kayitlari</code> için? (Önerim: 1 yıl sonra, tarih
-bazlı)</li>
-<li><strong>Encryption at rest:</strong> sadece DB volume mu,
-kolon-bazlı mı? (Önerim: volume — yeterli)</li>
-<li><strong>PII şifreleme:</strong> telefon/email DB’de plain mi şifreli
-mi? (Önerim: plain ama erişim audit’li, KVKK uyumlu)</li>
-<li><strong><code>musteriler</code> aşırı yükleniyor:</strong> ayrı
-<code>bayi_metadata</code> tablosu mu? (Önerim: önce kolonlar, 50+ kolon
-olunca ayrıştır)</li>
-<li><strong>Drizzle vs raw SQL migration:</strong> seed dosyalarına raw
-SQL devam (Promats konvansiyonu)</li>
+<li><strong>char(36) UUID vs auto-increment INT:</strong> mevcut Promats konvansiyonu UUID, devam ediyoruz. (Karar: UUID)</li>
+<li><strong>JSON kolonları vs ayrı tablo:</strong> sinyaller, parametreler vb. JSON’da mı tablolaştırma? (Önerim: JSON, sorgulanmıyorsa)</li>
+<li><strong>Soft delete:</strong> her tabloya mı, sadece kritiklere mi? (Önerim: kritiklere — <code>musteriler</code>, <code>urunler</code>, <code>siparisler</code>)</li>
+<li><strong>Audit log seviyesi:</strong> her INSERT/UPDATE’i mi loglayalım? (Önerim: risk 7+ aksiyonlar)</li>
+<li><strong>Read replica:</strong> ne zaman gerek? (Önerim: 100K+ aylık sipariş)</li>
+<li><strong>MySQL partitioning:</strong> <code>tahmin_calistirma</code> ve <code>web_kazima_kayitlari</code> için? (Önerim: 1 yıl sonra, tarih bazlı)</li>
+<li><strong>Encryption at rest:</strong> sadece DB volume mu, kolon-bazlı mı? (Önerim: volume — yeterli)</li>
+<li><strong>PII şifreleme:</strong> telefon/email DB’de plain mi şifreli mi? (Önerim: plain ama erişim audit’li, KVKK uyumlu)</li>
+<li><strong><code>musteriler</code> aşırı yükleniyor:</strong> ayrı <code>bayi_metadata</code> tablosu mu? (Önerim: önce kolonlar, 50+ kolon olunca ayrıştır)</li>
+<li><strong>Drizzle vs raw SQL migration:</strong> seed dosyalarına raw SQL devam (Promats konvansiyonu)</li>
 </ol>
 
   <!--
@@ -1084,8 +1000,9 @@ SQL devam (Promats konvansiyonu)</li>
 </div>
 
 <script>
-  window.DOC_ID = "06 — Veri
-Modeli".replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  // Pandoc bazen uzun basligi multi-line yaziyor; once whitespace'leri tek
+  // bosluga indirgeyip sonra slug uret. Aksi halde JS literal newline hatasi.
+  window.DOC_ID = ("06 — Veri Modeli").replace(/\s+/g, ' ').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
   // Aktif sidebar linki
   document.addEventListener('DOMContentLoaded', function() {
     var path = window.location.pathname.split('/').pop().replace('.html', '');

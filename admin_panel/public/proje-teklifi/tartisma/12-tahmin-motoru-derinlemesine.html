@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>12 — Tahmin Motoru: Derinlemesine Teknik Tasarım (Faz
-2) — MatPortal Proje Teklifi</title>
+<title>12 — Tahmin Motoru: Derinlemesine Teknik Tasarım (Faz 2) — MatPortal Proje Teklifi</title>
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
@@ -56,8 +55,7 @@
 
 <div>
 <div class="top-banner">
-  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>12 —
-Tahmin Motoru: Derinlemesine Teknik Tasarım (Faz 2)</strong></div>
+  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>12 — Tahmin Motoru: Derinlemesine Teknik Tasarım (Faz 2)</strong></div>
   <div class="actions">
     <a href="../index.html">← Ana Sayfa</a>
   </div>
@@ -68,28 +66,17 @@ Tahmin Motoru: Derinlemesine Teknik Tasarım (Faz 2)</strong></div>
     Versiyon 1.1 · 2026-05-01 · MatPortal Proje Teklifi
   </div>
 
-<h1 id="tahmin-motoru-derinlemesine-teknik-tasarım-faz-2">12 — Tahmin
-Motoru: Derinlemesine Teknik Tasarım (Faz 2)</h1>
+<h1 id="tahmin-motoru-derinlemesine-teknik-tasarım-faz-2">12 — Tahmin Motoru: Derinlemesine Teknik Tasarım (Faz 2)</h1>
 <blockquote>
-<p><strong>Felsefe:</strong> Önce istatistik, sonra AI. Sayılarla
-açıklanabilir bir model olmadan, “Claude öneriyor” diye karar vermek
-itibar zedeler. AI, modelin <strong>yanına</strong> gelir;
-<strong>yerine</strong> geçmez.</p>
+<p><strong>Felsefe:</strong> Önce istatistik, sonra AI. Sayılarla açıklanabilir bir model olmadan, “Claude öneriyor” diye karar vermek itibar zedeler. AI, modelin <strong>yanına</strong> gelir; <strong>yerine</strong> geçmez.</p>
 </blockquote>
 <hr />
-<h2 id="sipariş-tahmin-motoru-ne-çözüyor">1. Sipariş Tahmin Motoru ne
-çözüyor?</h2>
+<h2 id="sipariş-tahmin-motoru-ne-çözüyor">1. Sipariş Tahmin Motoru ne çözüyor?</h2>
 <h3 id="soru">1.1 Soru</h3>
 <blockquote>
-<p>“Bayi X, önümüzdeki 30 gün içinde Y ürününden ne kadar sipariş
-verecek?”</p>
+<p>“Bayi X, önümüzdeki 30 gün içinde Y ürününden ne kadar sipariş verecek?”</p>
 </blockquote>
-<p>Çıktı şu kararlara temel olur: - <strong>Üretim planlaması</strong> —
-gelmemiş ama gelmesi muhtemel siparişe stok hazırla - <strong>Hammadde
-satınalma</strong> — kalıp hazırlık + reçete üzerinden ham madde miktarı
-- <strong>Bayi mesaj zamanlaması</strong> — “siparişiniz vermeniz
-gereken döneme yaklaşıyorsunuz” hatırlatması - <strong>Stok
-tahsis</strong> — kıt ürünlerde önceliklendirme</p>
+<p>Çıktı şu kararlara temel olur: - <strong>Üretim planlaması</strong> — gelmemiş ama gelmesi muhtemel siparişe stok hazırla - <strong>Hammadde satınalma</strong> — kalıp hazırlık + reçete üzerinden ham madde miktarı - <strong>Bayi mesaj zamanlaması</strong> — “siparişiniz vermeniz gereken döneme yaklaşıyorsunuz” hatırlatması - <strong>Stok tahsis</strong> — kıt ürünlerde önceliklendirme</p>
 <h3 id="çıktı-yapısı">1.2 Çıktı yapısı</h3>
 <div class="sourceCode" id="cb1"><pre class="sourceCode ts"><code class="sourceCode typescript"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> TahminCiktisi <span class="op">=</span> {</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  bayi_id<span class="op">:</span> <span class="dt">string</span><span class="op">;</span></span>
@@ -110,11 +97,8 @@ tahsis</strong> — kıt ürünlerde önceliklendirme</p>
 <span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  uyari_bayraklari<span class="op">:</span> <span class="dt">string</span>[]<span class="op">;</span>   <span class="co">// ör. &quot;yeterli veri yok&quot;, &quot;outlier tespit edildi&quot;</span></span>
 <span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>}<span class="op">;</span></span></code></pre></div>
 <hr />
-<h2 id="algoritma-seçimi-kademeli-model-paketi">2. Algoritma Seçimi —
-kademeli model paketi</h2>
-<p>Tek algoritma yok. <strong>Veri yeterliliğine göre artan
-karmaşıklık.</strong> Her bayi/ürün için en basit yeterli olanı
-kullan.</p>
+<h2 id="algoritma-seçimi-kademeli-model-paketi">2. Algoritma Seçimi — kademeli model paketi</h2>
+<p>Tek algoritma yok. <strong>Veri yeterliliğine göre artan karmaşıklık.</strong> Her bayi/ürün için en basit yeterli olanı kullan.</p>
 <h3 id="karar-matrisi">2.1 Karar matrisi</h3>
 <table>
 <colgroup>
@@ -141,8 +125,7 @@ kullan.</p>
 <tr class="even">
 <td>3-6 ay</td>
 <td>10-30 sipariş</td>
-<td><strong>Mevsimsel ortalama</strong> (aynı dönem geçen yılın son 3
-ayı)</td>
+<td><strong>Mevsimsel ortalama</strong> (aynı dönem geçen yılın son 3 ayı)</td>
 <td>Trend yok ama dönemsellik tahmin edilir</td>
 </tr>
 <tr class="odd">
@@ -176,19 +159,15 @@ ayı)</td>
 <pre><code>tahmin = son_ay_sipariş_adedi</code></pre>
 <ul>
 <li>Fallback. Hiçbir model çalışmazsa bu çalışır.</li>
-<li>Tüm modellerin doğruluğunu ölçmek için <strong>baseline</strong>
-olarak kullanılır.</li>
+<li>Tüm modellerin doğruluğunu ölçmek için <strong>baseline</strong> olarak kullanılır.</li>
 </ul>
 <h4 id="mevsimsel-ortalama"><strong>Mevsimsel ortalama</strong></h4>
 <pre><code>tahmin = (geçen_yıl_aynı_ay + 2 yıl önce aynı ay) / 2</code></pre>
 <ul>
-<li>Mevsimselliği basitçe yakalar. Kategori: tekstil/inşaat gibi
-mevsimsel sektörler.</li>
+<li>Mevsimselliği basitçe yakalar. Kategori: tekstil/inşaat gibi mevsimsel sektörler.</li>
 </ul>
-<h4 id="lineer-regresyon-statsmodels-veya-scikit-learn"><strong>Lineer
-regresyon (statsmodels veya scikit-learn)</strong></h4>
-<div class="sourceCode" id="cb4"><pre
-class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>features <span class="op">=</span> [</span>
+<h4 id="lineer-regresyon-statsmodels-veya-scikit-learn"><strong>Lineer regresyon (statsmodels veya scikit-learn)</strong></h4>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>features <span class="op">=</span> [</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;gun_sayisi_baslangictan&#39;</span>,  <span class="co"># zaman trend</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;ay_no&#39;</span>,                     <span class="co"># 1-12 (one-hot)</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;haftaici_haftasonu&#39;</span>,</span>
@@ -203,15 +182,12 @@ class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a hr
 <h4 id="prophet-facebook"><strong>Prophet (Facebook)</strong></h4>
 <ul>
 <li>Otomatik mevsimsellik (haftalık + yıllık)</li>
-<li>Türk tatil takvimi (Ramazan, Kurban, milli bayramlar) elle
-eklenir</li>
+<li>Türk tatil takvimi (Ramazan, Kurban, milli bayramlar) elle eklenir</li>
 <li>Out-of-the-box çalışır, az tuning ister</li>
 <li>Python: <code>prophet</code> paketi</li>
-<li><strong>Bu motorun varsayılanı.</strong> İlk tam ürünü ile çıkarken
-Prophet kullanılacak.</li>
+<li><strong>Bu motorun varsayılanı.</strong> İlk tam ürünü ile çıkarken Prophet kullanılacak.</li>
 </ul>
-<h4 id="arima-autoregressive-integrated-moving-average"><strong>ARIMA
-(AutoRegressive Integrated Moving Average)</strong></h4>
+<h4 id="arima-autoregressive-integrated-moving-average"><strong>ARIMA (AutoRegressive Integrated Moving Average)</strong></h4>
 <ul>
 <li>Geleneksel zaman serisi modeli</li>
 <li>Stationarity gerektirir (ön işleme)</li>
@@ -220,18 +196,15 @@ Prophet kullanılacak.</li>
 <h4 id="xgboost"><strong>XGBoost</strong></h4>
 <ul>
 <li>Tabular veri kralı</li>
-<li>Feature engineering ağır: kur, kampanya, hava, geçen ay siparişi
-vs.</li>
+<li>Feature engineering ağır: kur, kampanya, hava, geçen ay siparişi vs.</li>
 <li>Doğruluk en yüksek ama açıklanması zor (SHAP gerek)</li>
 </ul>
 <h4 id="lstm-transformer"><strong>LSTM / Transformer</strong></h4>
 <ul>
-<li>Çok bayili + çok ürünlü ortamda <strong>tek model</strong> ile ortak
-desen öğrenir</li>
+<li>Çok bayili + çok ürünlü ortamda <strong>tek model</strong> ile ortak desen öğrenir</li>
 <li>Faz 7 hedefi. Faz 2’de <strong>gerek yok</strong>.</li>
 </ul>
-<h3 id="algoritma-seçim-mantığı-kod-sahte-kodu">2.3 Algoritma seçim
-mantığı (kod sahte kodu)</h3>
+<h3 id="algoritma-seçim-mantığı-kod-sahte-kodu">2.3 Algoritma seçim mantığı (kod sahte kodu)</h3>
 <div class="sourceCode" id="cb5"><pre class="sourceCode ts"><code class="sourceCode typescript"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">tahminMetoduSec</span>(bayi<span class="op">:</span> Bayi<span class="op">,</span> urun<span class="op">:</span> Urun)<span class="op">:</span> Metod {</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> veri <span class="op">=</span> <span class="fu">veriOzeti</span>(bayi<span class="op">.</span><span class="at">id</span><span class="op">,</span> urun<span class="op">.</span><span class="at">id</span>)<span class="op">;</span></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -243,8 +216,7 @@ mantığı (kod sahte kodu)</h3>
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="st">&#39;prophet&#39;</span><span class="op">;</span>  <span class="co">// güvenli varsayılan</span></span>
 <span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <hr />
-<h2 id="eğitim-verisi-minimum-gereksinimler">3. Eğitim Verisi — minimum
-gereksinimler</h2>
+<h2 id="eğitim-verisi-minimum-gereksinimler">3. Eğitim Verisi — minimum gereksinimler</h2>
 <h3 id="tablo-bazlı">3.1 Tablo bazlı</h3>
 <table>
 <colgroup>
@@ -306,8 +278,7 @@ gereksinimler</h2>
 </tr>
 </tbody>
 </table>
-<h3 id="veri-yetersizliği-davranışı">3.2 Veri yetersizliği
-davranışı</h3>
+<h3 id="veri-yetersizliği-davranışı">3.2 Veri yetersizliği davranışı</h3>
 <table>
 <colgroup>
 <col style="width: 43%" />
@@ -322,18 +293,15 @@ davranışı</h3>
 <tbody>
 <tr class="odd">
 <td>Bayi 0-3 ay yeni</td>
-<td>Tahmin yapma. UI’da “yeterli veri yok” göster, manuel öneri kabul
-et.</td>
+<td>Tahmin yapma. UI’da “yeterli veri yok” göster, manuel öneri kabul et.</td>
 </tr>
 <tr class="even">
 <td>3-6 ay</td>
-<td>Sektör ortalamasını öneri olarak göster, “bayi-spesifik tahmin için
-6 ay gerekiyor” uyarısı</td>
+<td>Sektör ortalamasını öneri olarak göster, “bayi-spesifik tahmin için 6 ay gerekiyor” uyarısı</td>
 </tr>
 <tr class="odd">
 <td>6-12 ay</td>
-<td>Tahmin yap ama güven aralığını <strong>geniş</strong> tut (95%
-interval &gt; %50 fark)</td>
+<td>Tahmin yap ama güven aralığını <strong>geniş</strong> tut (95% interval &gt; %50 fark)</td>
 </tr>
 <tr class="even">
 <td>&gt; 12 ay</td>
@@ -341,8 +309,7 @@ interval &gt; %50 fark)</td>
 </tr>
 </tbody>
 </table>
-<h3 id="verinin-kalite-kontrolü-eğitim-öncesi">3.3 Verinin
-<strong>kalite</strong> kontrolü (eğitim öncesi)</h3>
+<h3 id="verinin-kalite-kontrolü-eğitim-öncesi">3.3 Verinin <strong>kalite</strong> kontrolü (eğitim öncesi)</h3>
 <div class="sourceCode" id="cb6"><pre class="sourceCode ts"><code class="sourceCode typescript"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> kaliteKontroller <span class="op">=</span> [</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  { ad<span class="op">:</span> <span class="st">&#39;eksik_donem&#39;</span><span class="op">,</span> kural<span class="op">:</span> <span class="st">&#39;aylık veri en fazla 1 ay boş olabilir&#39;</span> }<span class="op">,</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  { ad<span class="op">:</span> <span class="st">&#39;outlier&#39;</span><span class="op">,</span> kural<span class="op">:</span> <span class="st">&#39;IQR × 3 üstü değerler işaretlenir, modele girmez&#39;</span> }<span class="op">,</span></span>
@@ -350,11 +317,9 @@ interval &gt; %50 fark)</td>
 <span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  { ad<span class="op">:</span> <span class="st">&#39;duplicate&#39;</span><span class="op">,</span> kural<span class="op">:</span> <span class="st">&#39;aynı gün/aynı tutar siparişler birleştirilir&#39;</span> }<span class="op">,</span></span>
 <span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  { ad<span class="op">:</span> <span class="st">&#39;iade&#39;</span><span class="op">,</span> kural<span class="op">:</span> <span class="st">&#39;iade edilen siparişler net hesabı düşürür&#39;</span> }<span class="op">,</span></span>
 <span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>]<span class="op">;</span></span></code></pre></div>
-<p><strong>Bayrak:</strong> Eğitim verisinin %20’si bu kontrollerden
-geçemiyorsa, model eğitimi durur ve yöneticiye uyarı gider.</p>
+<p><strong>Bayrak:</strong> Eğitim verisinin %20’si bu kontrollerden geçemiyorsa, model eğitimi durur ve yöneticiye uyarı gider.</p>
 <hr />
-<h2 id="bayi-spesifik-mi-genel-model-mi">4. Bayi-spesifik mi, genel
-model mi?</h2>
+<h2 id="bayi-spesifik-mi-genel-model-mi">4. Bayi-spesifik mi, genel model mi?</h2>
 <h3 id="üç-katmanlı-strateji">4.1 Üç katmanlı strateji</h3>
 <pre><code>                    ┌─────────────────────┐
                     │   GENEL MODEL       │  ← tüm bayilerden öğrenen
@@ -393,8 +358,7 @@ model mi?</h2>
 </tr>
 <tr class="odd">
 <td>Bayi olgun + ürün nadir</td>
-<td><strong>Bayi modeli</strong> (ürün bazında değil, kategori
-bazında)</td>
+<td><strong>Bayi modeli</strong> (ürün bazında değil, kategori bazında)</td>
 </tr>
 <tr class="even">
 <td>Tüm bayilerde yeni ürün lansmanı</td>
@@ -405,12 +369,9 @@ bazında)</td>
 <h3 id="model-sayısı-tahmini">4.3 Model sayısı tahmini</h3>
 <pre><code>Ortalama: 50 bayi × 200 ürün = 10.000 olası model
 Pratik: ~500 bayi-ürün modeli + 20 segment modeli + 1 genel model</code></pre>
-<p>10.000 ayrı model <strong>eğitilmez</strong>. Sadece
-<strong>aktif</strong> olanlar (son 90 günde sipariş gelen) eğitilir.
-Diğerleri segment/genel modele düşer.</p>
+<p>10.000 ayrı model <strong>eğitilmez</strong>. Sadece <strong>aktif</strong> olanlar (son 90 günde sipariş gelen) eğitilir. Diğerleri segment/genel modele düşer.</p>
 <h3 id="model-storage">4.4 Model storage</h3>
-<div class="sourceCode" id="cb9"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> tahmin_modelleri (</span>
+<div class="sourceCode" id="cb9"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> tahmin_modelleri (</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">scope</span> ENUM(<span class="st">&#39;genel&#39;</span>,<span class="st">&#39;segment&#39;</span>,<span class="st">&#39;bayi&#39;</span>,<span class="st">&#39;bayi_urun&#39;</span>),</span>
 <span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  scope_value <span class="dt">varchar</span>(<span class="dv">255</span>),         <span class="co">-- &#39;bayi:abc-123:urun:xyz-456&#39; veya &#39;segment:tekstil-orta&#39;</span></span>
@@ -426,8 +387,7 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb9-1"><a href="#c
 <span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  notlar text</span>
 <span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
 <hr />
-<h2 id="mevsimsellik-hangi-desenler-yakalanır">5. Mevsimsellik — hangi
-desenler yakalanır?</h2>
+<h2 id="mevsimsellik-hangi-desenler-yakalanır">5. Mevsimsellik — hangi desenler yakalanır?</h2>
 <h3 id="katman-mevsimsellik">5.1 4 katman mevsimsellik</h3>
 <table>
 <colgroup>
@@ -466,33 +426,23 @@ desenler yakalanır?</h2>
 </tbody>
 </table>
 <h3 id="tatil-etkisi-türk-takvimi">5.2 Tatil etkisi (Türk takvimi)</h3>
-<div class="sourceCode" id="cb10"><pre
-class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>turk_tatilleri <span class="op">=</span> {</span>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>turk_tatilleri <span class="op">=</span> {</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;ramazan_bayrami&#39;</span>: {<span class="st">&#39;tarih&#39;</span>: <span class="st">&#39;2026-03-20&#39;</span>, <span class="st">&#39;oncesi_etkisi_gun&#39;</span>: <span class="dv">14</span>, <span class="st">&#39;etki&#39;</span>: <span class="fl">1.4</span>},</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;kurban_bayrami&#39;</span>: {<span class="st">&#39;tarih&#39;</span>: <span class="st">&#39;2026-05-27&#39;</span>, <span class="st">&#39;oncesi_etkisi_gun&#39;</span>: <span class="dv">10</span>, <span class="st">&#39;etki&#39;</span>: <span class="fl">1.3</span>},</span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;cumhuriyet&#39;</span>: {<span class="st">&#39;tarih&#39;</span>: <span class="st">&#39;2026-10-29&#39;</span>, <span class="st">&#39;oncesi_etkisi_gun&#39;</span>: <span class="dv">3</span>, <span class="st">&#39;etki&#39;</span>: <span class="fl">0.7</span>},</span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;yilbasi&#39;</span>: {<span class="st">&#39;tarih&#39;</span>: <span class="st">&#39;2026-12-31&#39;</span>, <span class="st">&#39;oncesi_etkisi_gun&#39;</span>: <span class="dv">7</span>, <span class="st">&#39;etki&#39;</span>: <span class="fl">1.2</span>},</span>
 <span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
-<p><strong>Etki</strong>: tatilden N gün önce siparişlerin normal
-değerine <strong>çarpan</strong> uygulanır.</p>
-<h3 id="sektör-spesifik-özel-günler">5.3 Sektör-spesifik özel
-günler</h3>
-<p>Bayinin sektörüne göre ek özel günler: - <strong>Tarım:</strong>
-ekim/hasat dönemi - <strong>İnşaat:</strong> ilkbahar açılış (Mart), kış
-kapanış (Kasım) - <strong>Tekstil:</strong> sezon değişimi (Mart, Eylül)
-- <strong>Otomotiv:</strong> model yılı geçişi (Ekim-Kasım)</p>
+<p><strong>Etki</strong>: tatilden N gün önce siparişlerin normal değerine <strong>çarpan</strong> uygulanır.</p>
+<h3 id="sektör-spesifik-özel-günler">5.3 Sektör-spesifik özel günler</h3>
+<p>Bayinin sektörüne göre ek özel günler: - <strong>Tarım:</strong> ekim/hasat dönemi - <strong>İnşaat:</strong> ilkbahar açılış (Mart), kış kapanış (Kasım) - <strong>Tekstil:</strong> sezon değişimi (Mart, Eylül) - <strong>Otomotiv:</strong> model yılı geçişi (Ekim-Kasım)</p>
 <hr />
-<h2 id="excel-girdi-formatı-kullanıcı-veri-yüklemesi">6. Excel Girdi
-Formatı — kullanıcı veri yüklemesi</h2>
+<h2 id="excel-girdi-formatı-kullanıcı-veri-yüklemesi">6. Excel Girdi Formatı — kullanıcı veri yüklemesi</h2>
 <h3 id="iki-giriş-yolu">6.1 İki giriş yolu</h3>
 <ol type="1">
-<li><strong>DB üzerinden</strong> (Paspas içi siparişlerden otomatik) —
-varsayılan</li>
-<li><strong>Excel/CSV upload</strong> (geçmiş veriler, başka sistemden
-ihraç) — opsiyonel</li>
+<li><strong>DB üzerinden</strong> (Paspas içi siparişlerden otomatik) — varsayılan</li>
+<li><strong>Excel/CSV upload</strong> (geçmiş veriler, başka sistemden ihraç) — opsiyonel</li>
 </ol>
-<h3 id="excel-şablonu-siparis_gecmisi_v1.xlsx">6.2 Excel şablonu —
-<code>siparis_gecmisi_v1.xlsx</code></h3>
+<h3 id="excel-şablonu-siparis_gecmisi_v1.xlsx">6.2 Excel şablonu — <code>siparis_gecmisi_v1.xlsx</code></h3>
 <table style="width:100%;">
 <colgroup>
 <col style="width: 18%" />
@@ -589,12 +539,9 @@ ihraç) — opsiyonel</li>
 5. &quot;Modeli yeniden eğit&quot; butonu aktif olur
 6. Eğitim arka planda — 30 dakika sonra tamamlanma e-postası</code></pre>
 <h3 id="hata-düzeltme">6.4 Hata düzeltme</h3>
-<p>Hatalı satırlar <strong>inline editor</strong> ile düzeltilebilir: -
-“Bayi kodu BAY-XYZ bulunamadı” → dropdown’dan seç veya yeni bayi oluştur
-- “Tarih formatı geçersiz” → tarih seçici göster</p>
+<p>Hatalı satırlar <strong>inline editor</strong> ile düzeltilebilir: - “Bayi kodu BAY-XYZ bulunamadı” → dropdown’dan seç veya yeni bayi oluştur - “Tarih formatı geçersiz” → tarih seçici göster</p>
 <hr />
-<h2 id="doğruluk-hedefleri-ve-metrikler">7. Doğruluk hedefleri ve
-metrikler</h2>
+<h2 id="doğruluk-hedefleri-ve-metrikler">7. Doğruluk hedefleri ve metrikler</h2>
 <h3 id="metrikler">7.1 Metrikler</h3>
 <table>
 <colgroup>
@@ -674,27 +621,21 @@ metrikler</h2>
 </tr>
 </tbody>
 </table>
-<h3 id="karşılaştırma-naive-baseline">7.3 Karşılaştırma — naive
-baseline</h3>
-<p>Her tahmin için <strong>mutlaka</strong> naive baseline ile
-karşılaştırma yapılır.</p>
+<h3 id="karşılaştırma-naive-baseline">7.3 Karşılaştırma — naive baseline</h3>
+<p>Her tahmin için <strong>mutlaka</strong> naive baseline ile karşılaştırma yapılır.</p>
 <pre><code>iyilik_orani = (naive_mape - model_mape) / naive_mape
 
 Eğer iyilik_orani &lt; 0.10 (model naive&#39;den %10 daha iyi değil)
 → Model değerli değil, naive kullan, eğitim israfını engelle</code></pre>
-<h3 id="otomatik-model-seçimi-championchallenger">7.4 Otomatik model
-seçimi (champion/challenger)</h3>
+<h3 id="otomatik-model-seçimi-championchallenger">7.4 Otomatik model seçimi (champion/challenger)</h3>
 <ul>
-<li>Her hafta 5 model paralel eğitilir: naive, mevsimsel, lineer,
-prophet, xgboost</li>
+<li>Her hafta 5 model paralel eğitilir: naive, mevsimsel, lineer, prophet, xgboost</li>
 <li>Test setinde MAPE en düşük olan <strong>champion</strong> olur</li>
 <li>Kullanılan model değişirse yöneticiye email</li>
-<li>Champion 2 hafta üst üste yenilenmedi → “değişiklik gerek yok,
-sistem stabil”</li>
+<li>Champion 2 hafta üst üste yenilenmedi → “değişiklik gerek yok, sistem stabil”</li>
 </ul>
 <hr />
-<h2 id="model-güncelleme-ne-sıklıkla">8. Model güncelleme — ne
-sıklıkla?</h2>
+<h2 id="model-güncelleme-ne-sıklıkla">8. Model güncelleme — ne sıklıkla?</h2>
 <table>
 <colgroup>
 <col style="width: 22%" />
@@ -737,8 +678,7 @@ sıklıkla?</h2>
 </tbody>
 </table>
 <hr />
-<h2 id="açıklanabilirlik-neden-bu-tahmin">9. Açıklanabilirlik — “neden
-bu tahmin?”</h2>
+<h2 id="açıklanabilirlik-neden-bu-tahmin">9. Açıklanabilirlik — “neden bu tahmin?”</h2>
 <h3 id="kullanıcı-sorduğunda">9.1 Kullanıcı sorduğunda</h3>
 <pre><code>KULLANICI: &quot;BAY-042 için 250 adet diyor, neden?&quot;
 
@@ -755,12 +695,10 @@ SİSTEM:
     ⚠ Geçen ay outlier (kampanya); modelden çıkarıldı
     ⚠ Bayi son 3 ayda %20 azalma — ileri trend kırılma riski</code></pre>
 <h3 id="shap-xgboost-için">9.2 SHAP (XGBoost için)</h3>
-<p>XGBoost modeli kullanılınca her tahmin için SHAP değerleri saklanır →
-“hangi özellik tahmini ne kadar etkiledi” görselleştirilir.</p>
+<p>XGBoost modeli kullanılınca her tahmin için SHAP değerleri saklanır → “hangi özellik tahmini ne kadar etkiledi” görselleştirilir.</p>
 <hr />
 <h2 id="tablolar-db-şeması">10. Tablolar — DB şeması</h2>
-<div class="sourceCode" id="cb14"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> tahmin_calistirma (</span>
+<div class="sourceCode" id="cb14"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> tahmin_calistirma (</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  bayi_id <span class="dt">char</span>(<span class="dv">36</span>),</span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  urun_id <span class="dt">char</span>(<span class="dv">36</span>),</span>
@@ -802,12 +740,10 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb14-1"><a href="#
 <span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a>  yuklendi_at datetime</span>
 <span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
 <hr />
-<h2 id="ui-admintahmin-motoru">11. UI —
-<code>/admin/tahmin-motoru</code></h2>
+<h2 id="ui-admintahmin-motoru">11. UI — <code>/admin/tahmin-motoru</code></h2>
 <h3 id="ana-sayfa">11.1 Ana sayfa</h3>
 <ul>
-<li>Aktif bayiler tablosu: bayi adı, son 30 gün ciro, sonraki 30 gün
-tahmini</li>
+<li>Aktif bayiler tablosu: bayi adı, son 30 gün ciro, sonraki 30 gün tahmini</li>
 <li>Heatmap: bayi × ay → tahmini sipariş hacmi</li>
 <li>Top 5 yükselen, Top 5 düşen bayi</li>
 </ul>
@@ -818,8 +754,7 @@ tahmini</li>
 <li>“Hangi ürün, ne kadar, ne zaman” tablosu</li>
 <li>Açıklayıcı sinyal listesi</li>
 </ul>
-<h3 id="model-laboratuvarı-admin-only">11.3 Model laboratuvarı (admin
-only)</h3>
+<h3 id="model-laboratuvarı-admin-only">11.3 Model laboratuvarı (admin only)</h3>
 <ul>
 <li>Eğitim çalıştır / durdur</li>
 <li>Algoritma karşılaştırma: 5 model yan yana metrikler</li>
@@ -834,33 +769,19 @@ only)</h3>
 <li>Hata düzeltme inline</li>
 </ul>
 <hr />
-<h2 id="açık-karar-noktaları-faz-2">12. Açık karar noktaları (Faz
-2)</h2>
+<h2 id="açık-karar-noktaları-faz-2">12. Açık karar noktaları (Faz 2)</h2>
 <ol type="1">
-<li><strong>Varsayılan algoritma:</strong> Prophet mu, ARIMA mı?
-(Önerim: Prophet)</li>
-<li><strong>Tatil takvimi:</strong> sabit JSON mu, kullanıcı
-yönetebilsin mi?</li>
-<li><strong>Excel upload:</strong> zorunlu mu, opsiyonel mi? (Önerim:
-opsiyonel — DB içi veriden başla)</li>
-<li><strong>Model storage:</strong> disk mi, S3 mü? (Önerim: ilk faz
-disk; ölçek olunca S3)</li>
-<li><strong>MAPE açıklama UI:</strong> SHAP plot mu, basit liste mi?
-(Önerim: basit liste; SHAP advanced mode)</li>
+<li><strong>Varsayılan algoritma:</strong> Prophet mu, ARIMA mı? (Önerim: Prophet)</li>
+<li><strong>Tatil takvimi:</strong> sabit JSON mu, kullanıcı yönetebilsin mi?</li>
+<li><strong>Excel upload:</strong> zorunlu mu, opsiyonel mi? (Önerim: opsiyonel — DB içi veriden başla)</li>
+<li><strong>Model storage:</strong> disk mi, S3 mü? (Önerim: ilk faz disk; ölçek olunca S3)</li>
+<li><strong>MAPE açıklama UI:</strong> SHAP plot mu, basit liste mi? (Önerim: basit liste; SHAP advanced mode)</li>
 <li><strong>Re-train sıklığı:</strong> haftalık mı, günlük mü?</li>
-<li><strong>Naive baseline aşama:</strong> sadece test set mi, üretimde
-de paralel koşsun mu?</li>
+<li><strong>Naive baseline aşama:</strong> sadece test set mi, üretimde de paralel koşsun mu?</li>
 </ol>
 <hr />
-<h2 id="faz-2-çıktı-listesi-kabul-kriterleri">13. Faz 2 çıktı listesi
-(kabul kriterleri)</h2>
-<p>✅ DB tabloları oluşturuldu ✅ <code>siparis_gecmisi_yuklenen</code>
-Excel upload UI çalışıyor ✅ Naive + Mevsimsel + Lineer Regresyon +
-Prophet 4 algoritma implement edildi ✅ Champion/challenger seçimi
-otomatik ✅ Tahmin sonucu UI’da gösteriliyor (bayi-ürün heatmap) ✅
-Açıklanabilirlik (sinyal listesi) çalışıyor ✅ MAPE % 35 altı en az 10
-bayide ✅ Yönetici “manuel re-train” yapabiliyor ✅ Audit log: her
-tahmin saklanır, gerçekleşen ile karşılaştırılır</p>
+<h2 id="faz-2-çıktı-listesi-kabul-kriterleri">13. Faz 2 çıktı listesi (kabul kriterleri)</h2>
+<p>✅ DB tabloları oluşturuldu ✅ <code>siparis_gecmisi_yuklenen</code> Excel upload UI çalışıyor ✅ Naive + Mevsimsel + Lineer Regresyon + Prophet 4 algoritma implement edildi ✅ Champion/challenger seçimi otomatik ✅ Tahmin sonucu UI’da gösteriliyor (bayi-ürün heatmap) ✅ Açıklanabilirlik (sinyal listesi) çalışıyor ✅ MAPE % 35 altı en az 10 bayide ✅ Yönetici “manuel re-train” yapabiliyor ✅ Audit log: her tahmin saklanır, gerçekleşen ile karşılaştırılır</p>
 
   <!--
     Yorum/not paneli artık Paspas admin panelinde native React component olarak
@@ -877,8 +798,9 @@ tahmin saklanır, gerçekleşen ile karşılaştırılır</p>
 </div>
 
 <script>
-  window.DOC_ID = "12 — Tahmin Motoru: Derinlemesine Teknik Tasarım (Faz
-2)".replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  // Pandoc bazen uzun basligi multi-line yaziyor; once whitespace'leri tek
+  // bosluga indirgeyip sonra slug uret. Aksi halde JS literal newline hatasi.
+  window.DOC_ID = ("12 — Tahmin Motoru: Derinlemesine Teknik Tasarım (Faz 2)").replace(/\s+/g, ' ').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
   // Aktif sidebar linki
   document.addEventListener('DOMContentLoaded', function() {
     var path = window.location.pathname.split('/').pop().replace('.html', '');

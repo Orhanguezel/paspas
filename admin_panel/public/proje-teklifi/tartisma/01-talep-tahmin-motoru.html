@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>01 — Talep Toplama &amp; Üretim Tahmin
-Motoru — MatPortal Proje Teklifi</title>
+<title>01 — Talep Toplama &amp; Üretim Tahmin Motoru — MatPortal Proje Teklifi</title>
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
@@ -56,8 +55,7 @@ Motoru — MatPortal Proje Teklifi</title>
 
 <div>
 <div class="top-banner">
-  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>01 — Talep
-Toplama &amp; Üretim Tahmin Motoru</strong></div>
+  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>01 — Talep Toplama &amp; Üretim Tahmin Motoru</strong></div>
   <div class="actions">
     <a href="../index.html">← Ana Sayfa</a>
   </div>
@@ -68,35 +66,17 @@ Toplama &amp; Üretim Tahmin Motoru</strong></div>
     Versiyon 1.1 · 2026-05-01 · MatPortal Proje Teklifi
   </div>
 
-<h1 id="talep-toplama-üretim-tahmin-motoru">01 — Talep Toplama &amp;
-Üretim Tahmin Motoru</h1>
+<h1 id="talep-toplama-üretim-tahmin-motoru">01 — Talep Toplama &amp; Üretim Tahmin Motoru</h1>
 <blockquote>
-<p><strong>Bağlam (v1.1):</strong> Bu doküman ilk taslakta talep +
-tahmini birleşik anlattı. Sonradan ikiye ayrıldı: - <strong>Talep
-havuzu</strong> = Faz 1 (<a
-href="../proje-teklifi/02-cozum-genel-bakis.md"><code>proje-teklifi/02-cozum-genel-bakis.md</code></a>)
-- <strong>Sipariş tahmin motoru</strong> = Faz 2 — derinlemesine teknik
-tasarım: <a
-href="./12-tahmin-motoru-derinlemesine.md"><code>12-tahmin-motoru-derinlemesine.md</code></a>
-(kademeli algoritma paketi, MAPE hedefleri, Excel girdi,
-mevsimsellik)</p>
-<p>Bu dokümandaki kavramsal yaklaşım hâlâ geçerli; teknik detay
-derinlemesine doc’ta.</p>
+<p><strong>Bağlam (v1.1):</strong> Bu doküman ilk taslakta talep + tahmini birleşik anlattı. Sonradan ikiye ayrıldı: - <strong>Talep havuzu</strong> = Faz 1 (<a href="../proje-teklifi/02-cozum-genel-bakis.md"><code>proje-teklifi/02-cozum-genel-bakis.md</code></a>) - <strong>Sipariş tahmin motoru</strong> = Faz 2 — derinlemesine teknik tasarım: <a href="./12-tahmin-motoru-derinlemesine.md"><code>12-tahmin-motoru-derinlemesine.md</code></a> (kademeli algoritma paketi, MAPE hedefleri, Excel girdi, mevsimsellik)</p>
+<p>Bu dokümandaki kavramsal yaklaşım hâlâ geçerli; teknik detay derinlemesine doc’ta.</p>
 </blockquote>
 <h2 id="hipotez">Hipotez</h2>
 <blockquote>
-<p>Birden fazla kanaldan gelen ham talepleri yapılandıran, bekleyen +
-tahmini taleplere göre üretim önerisi sunan, gerçekleşenle modeli
-kalibre eden bir döngü kurulursa: (a) talep cevap süresi düşer, (b)
-makine boş kalmaz, (c) acil sipariş üretim planını darbelemez.</p>
+<p>Birden fazla kanaldan gelen ham talepleri yapılandıran, bekleyen + tahmini taleplere göre üretim önerisi sunan, gerçekleşenle modeli kalibre eden bir döngü kurulursa: (a) talep cevap süresi düşer, (b) makine boş kalmaz, (c) acil sipariş üretim planını darbelemez.</p>
 </blockquote>
 <h2 id="sorun-tanımı">Sorun tanımı</h2>
-<p>Bugün: - Talep formal sipariş haline gelmeden önce <strong>WhatsApp,
-email, telefon notu, ziyaret defteri</strong>’nde dağılmış. - Üretim
-emri sadece <strong>onaylı</strong> sipariş geldikten sonra açılır →
-makine kapasitesi geç planlanır. - Sezonsal/tekrarlayan paternler (örn.
-her Mart ayı X müşterisi 5000 adet alır) <strong>insan
-hafızasında</strong> kalır.</p>
+<p>Bugün: - Talep formal sipariş haline gelmeden önce <strong>WhatsApp, email, telefon notu, ziyaret defteri</strong>’nde dağılmış. - Üretim emri sadece <strong>onaylı</strong> sipariş geldikten sonra açılır → makine kapasitesi geç planlanır. - Sezonsal/tekrarlayan paternler (örn. her Mart ayı X müşterisi 5000 adet alır) <strong>insan hafızasında</strong> kalır.</p>
 <h2 id="önerilen-mimari">Önerilen mimari</h2>
 <h3 id="adım-1-talep-girişleri">Adım 1 — Talep girişleri</h3>
 <table style="width:100%;">
@@ -120,8 +100,7 @@ hafızasında</strong> kalır.</p>
 </tr>
 <tr class="even">
 <td>Email</td>
-<td>IMAP polling (<code>/modules/mail</code>’in genişletilmesi) → AI
-özet</td>
+<td>IMAP polling (<code>/modules/mail</code>’in genişletilmesi) → AI özet</td>
 <td>Yarı yapılandırılmış</td>
 </tr>
 <tr class="odd">
@@ -142,8 +121,7 @@ hafızasında</strong> kalır.</p>
 </tbody>
 </table>
 <p>Her giriş tek bir tabloda toplanır:</p>
-<div class="sourceCode" id="cb1"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> talep_havuzu (</span>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> talep_havuzu (</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  kaynak ENUM(<span class="st">&#39;form&#39;</span>,<span class="st">&#39;email&#39;</span>,<span class="st">&#39;telefon&#39;</span>,<span class="st">&#39;whatsapp&#39;</span>,<span class="st">&#39;tahmin&#39;</span>),</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  ham_metin TEXT,</span>
@@ -155,8 +133,7 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb1-1"><a href="#c
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  created_at, updated_at</span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
 <h3 id="adım-2-ai-ile-yapılandırma">Adım 2 — AI ile yapılandırma</h3>
-<p>Mevcut <code>test_center/ai_provider.ts</code> altyapısını yeniden
-kullan. Yeni provider modülü gerekmiyor.</p>
+<p>Mevcut <code>test_center/ai_provider.ts</code> altyapısını yeniden kullan. Yeni provider modülü gerekmiyor.</p>
 <p>Prompt stratejisi (örnek):</p>
 <pre><code>SİSTEM: Aşağıdaki ham müşteri talebini incele. Ürün katalogu ve mevcut müşteri
 listesi referans olarak verilmiştir. Ürün/miktar/termin/müşteri eşleşmelerini JSON
@@ -181,26 +158,12 @@ YANIT:
 }</code></pre>
 <h3 id="adım-3-üretim-tahmini">Adım 3 — Üretim tahmini</h3>
 <p>Modeller (basitten karmaşığa):</p>
-<p><strong>Faz A — istatistiksel:</strong> - Onaylı sipariş kalemlerinin
-termin/miktar dağılımını çıkar - <code>talep_havuzu</code> üzerinden
-henüz onaylanmayan (durum=yeni/işlendi) talepleri “olası gelir”
-listesine al - Her ürün için son 90/180 günün haftalık ortalaması
-(mevsimsellik için aylık ortalamayı da al) - Olasılık ağırlıklı toplam:
-<code>tahmin_uretim = onayli_siparis + olasi_talep × guven_skoru + dönemlik_baseline</code></p>
-<p><strong>Faz B — zaman serisi:</strong> - <code>prophet</code>
-(Facebook) veya <code>statsforecast</code> Python kütüphaneleri —
-Bun/Fastify dışında ayrı bir Python servisi - Haftalık tahmin + güven
-aralığı - Tatil/fuar takvimi external regressor olarak</p>
-<p><strong>Faz C — LLM kararsal asistan:</strong> - “Şu son 30 günün
-siparişleri var, şu makinelerde X kapasite var, şu olası talepler
-bekliyor — önümüzdeki 4 hafta için optimal üretim planı öner” promptu -
-Çıktı yapılandırılmış: hangi gün hangi makinede ne üretmeli - İnsan
-onayı zorunlu</p>
-<p>Faz A yeterli zaman çoğunlukla — Faz B/C üzerinde durmadan önce A
-iyice oturmalı.</p>
+<p><strong>Faz A — istatistiksel:</strong> - Onaylı sipariş kalemlerinin termin/miktar dağılımını çıkar - <code>talep_havuzu</code> üzerinden henüz onaylanmayan (durum=yeni/işlendi) talepleri “olası gelir” listesine al - Her ürün için son 90/180 günün haftalık ortalaması (mevsimsellik için aylık ortalamayı da al) - Olasılık ağırlıklı toplam: <code>tahmin_uretim = onayli_siparis + olasi_talep × guven_skoru + dönemlik_baseline</code></p>
+<p><strong>Faz B — zaman serisi:</strong> - <code>prophet</code> (Facebook) veya <code>statsforecast</code> Python kütüphaneleri — Bun/Fastify dışında ayrı bir Python servisi - Haftalık tahmin + güven aralığı - Tatil/fuar takvimi external regressor olarak</p>
+<p><strong>Faz C — LLM kararsal asistan:</strong> - “Şu son 30 günün siparişleri var, şu makinelerde X kapasite var, şu olası talepler bekliyor — önümüzdeki 4 hafta için optimal üretim planı öner” promptu - Çıktı yapılandırılmış: hangi gün hangi makinede ne üretmeli - İnsan onayı zorunlu</p>
+<p>Faz A yeterli zaman çoğunlukla — Faz B/C üzerinde durmadan önce A iyice oturmalı.</p>
 <h3 id="adım-4-geri-besleme">Adım 4 — Geri besleme</h3>
-<div class="sourceCode" id="cb3"><pre
-class="sourceCode sql"><code class="sourceCode sql"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> talep_tahmin_sonuclari (</span>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> talep_tahmin_sonuclari (</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">id</span> <span class="dt">char</span>(<span class="dv">36</span>) PK,</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  tahmin_tarihi <span class="dt">date</span>,           <span class="co">-- hangi günün tahmini</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  tahmin_pencere ENUM(<span class="st">&#39;1g&#39;</span>,<span class="st">&#39;7g&#39;</span>,<span class="st">&#39;30g&#39;</span>),</span>
@@ -210,9 +173,7 @@ class="sourceCode sql"><code class="sourceCode sql"><span id="cb3-1"><a href="#c
 <span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  urun_id <span class="dt">char</span>(<span class="dv">36</span>),</span>
 <span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  hesaplandi_at datetime</span>
 <span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
-<p>Haftada bir cron: bir önceki haftanın tahminlerini gerçekleşenle
-karşılaştır → sapmayı hesapla → modelin parametrelerini güncelle (Faz A
-için baseline ağırlıkları, Faz B için model retraining).</p>
+<p>Haftada bir cron: bir önceki haftanın tahminlerini gerçekleşenle karşılaştır → sapmayı hesapla → modelin parametrelerini güncelle (Faz A için baseline ağırlıkları, Faz B için model retraining).</p>
 <h2 id="riskler">Riskler</h2>
 <table>
 <colgroup>
@@ -231,8 +192,7 @@ için baseline ağırlıkları, Faz B için model retraining).</p>
 <tr class="odd">
 <td>AI yanlış müşteri/ürün eşleşmesi</td>
 <td>Yetkisiz iletişim, üretim hatası</td>
-<td>Düşük guven_skorlu eşleşmeler “manuel onay” durumunda kalsın; hiç
-bir aksiyon AI ile otomatik tetiklenmesin</td>
+<td>Düşük guven_skorlu eşleşmeler “manuel onay” durumunda kalsın; hiç bir aksiyon AI ile otomatik tetiklenmesin</td>
 </tr>
 <tr class="even">
 <td>Email phishing/spam’e cevap üretmek</td>
@@ -247,35 +207,23 @@ bir aksiyon AI ile otomatik tetiklenmesin</td>
 <tr class="even">
 <td>KVKK uyumsuzluğu</td>
 <td>Yasal risk</td>
-<td>Müşteri verileri saklama süresi tanımlı; e-mail içeriği AI’a
-gönderiliyorsa açık onay</td>
+<td>Müşteri verileri saklama süresi tanımlı; e-mail içeriği AI’a gönderiliyorsa açık onay</td>
 </tr>
 </tbody>
 </table>
 <h2 id="açık-sorular">Açık sorular</h2>
 <ol type="1">
-<li><strong>Email kaynak:</strong> Hangi email hesabı(ları) IMAP ile
-dinlenecek? Genel <code>info@</code> mı, satış ekibi kişiselleri
-mi?</li>
-<li><strong>Whatsapp Business API:</strong> kurulu mu, yoksa şimdilik
-manuel kopyala-yapıştır arayüzü mü?</li>
-<li><strong>Onay sınırı:</strong> AI’nın önerdiği
-<code>talep_havuzu → siparis</code> dönüşümü hangi
-<code>guven_skoru</code>nun üzerinde otomatik gerçekleşsin?
-<code>0.95</code> mi (çok muhafazakar), <code>0.80</code> mi?</li>
-<li><strong>Tahmin pencere:</strong> üretim planlama 7 gün ileri mi 30
-gün ileri mi yapılsın? Her ikisi mi?</li>
-<li><strong>Manuel “tahmini sipariş” girişi:</strong> satış ekibi “bu
-müşteriden Şubat’ta sipariş geleceği kesin” diye manuel ekleyebilsin
-mi?</li>
+<li><strong>Email kaynak:</strong> Hangi email hesabı(ları) IMAP ile dinlenecek? Genel <code>info@</code> mı, satış ekibi kişiselleri mi?</li>
+<li><strong>Whatsapp Business API:</strong> kurulu mu, yoksa şimdilik manuel kopyala-yapıştır arayüzü mü?</li>
+<li><strong>Onay sınırı:</strong> AI’nın önerdiği <code>talep_havuzu → siparis</code> dönüşümü hangi <code>guven_skoru</code>nun üzerinde otomatik gerçekleşsin? <code>0.95</code> mi (çok muhafazakar), <code>0.80</code> mi?</li>
+<li><strong>Tahmin pencere:</strong> üretim planlama 7 gün ileri mi 30 gün ileri mi yapılsın? Her ikisi mi?</li>
+<li><strong>Manuel “tahmini sipariş” girişi:</strong> satış ekibi “bu müşteriden Şubat’ta sipariş geleceği kesin” diye manuel ekleyebilsin mi?</li>
 </ol>
 <h2 id="bağımlılıklar">Bağımlılıklar</h2>
 <ul>
-<li>✅ <code>test_center/ai_provider.ts</code> — provider abstraction
-zaten hazır</li>
+<li>✅ <code>test_center/ai_provider.ts</code> — provider abstraction zaten hazır</li>
 <li>⚠️ Mail modülü IMAP polling — şu an yok</li>
-<li>⚠️ B2B portal/web form — şu an yok (basit bir public form sayfası
-ile başlanabilir)</li>
+<li>⚠️ B2B portal/web form — şu an yok (basit bir public form sayfası ile başlanabilir)</li>
 <li>⚠️ Whatsapp Business API — opsiyonel, faz 2</li>
 </ul>
 <h2 id="tahmini-iş-büyüklüğü">Tahmini iş büyüklüğü</h2>
@@ -336,8 +284,9 @@ ile başlanabilir)</li>
 </div>
 
 <script>
-  window.DOC_ID = "01 — Talep Toplama &amp; Üretim Tahmin
-Motoru".replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  // Pandoc bazen uzun basligi multi-line yaziyor; once whitespace'leri tek
+  // bosluga indirgeyip sonra slug uret. Aksi halde JS literal newline hatasi.
+  window.DOC_ID = ("01 — Talep Toplama &amp; Üretim Tahmin Motoru").replace(/\s+/g, ' ').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
   // Aktif sidebar linki
   document.addEventListener('DOMContentLoaded', function() {
     var path = window.location.pathname.split('/').pop().replace('.html', '');

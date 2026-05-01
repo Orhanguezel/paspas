@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>10 — CRM Kararı: Paspas İçi mi, Ayrı CRM mi, Hiç
-mi? — MatPortal Proje Teklifi</title>
+<title>10 — CRM Kararı: Paspas İçi mi, Ayrı CRM mi, Hiç mi? — MatPortal Proje Teklifi</title>
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
@@ -56,8 +55,7 @@ mi? — MatPortal Proje Teklifi</title>
 
 <div>
 <div class="top-banner">
-  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>10 — CRM
-Kararı: Paspas İçi mi, Ayrı CRM mi, Hiç mi?</strong></div>
+  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>10 — CRM Kararı: Paspas İçi mi, Ayrı CRM mi, Hiç mi?</strong></div>
   <div class="actions">
     <a href="../index.html">← Ana Sayfa</a>
   </div>
@@ -68,29 +66,17 @@ Kararı: Paspas İçi mi, Ayrı CRM mi, Hiç mi?</strong></div>
     Versiyon 1.1 · 2026-05-01 · MatPortal Proje Teklifi
   </div>
 
-<h1 id="crm-kararı-paspas-içi-mi-ayrı-crm-mi-hiç-mi">10 — CRM Kararı:
-Paspas İçi mi, Ayrı CRM mi, Hiç mi?</h1>
+<h1 id="crm-kararı-paspas-içi-mi-ayrı-crm-mi-hiç-mi">10 — CRM Kararı: Paspas İçi mi, Ayrı CRM mi, Hiç mi?</h1>
 <blockquote>
-<p><strong>Bağlam (v1.1):</strong> Bu doküman <strong>Faz 3 (Müşteri
-Keşif)</strong> kapsamında CRM seçenekleri analizini içerir.
-<strong>Karar: D — Hibrit</strong> (Paspas içi minimum modül + Apollo.io
-yurt dışı). Müşteri keşif felsefesi: <a
-href="./02-musteri-kesif.md"><code>02-musteri-kesif.md</code></a>.
-Bütçe: <a
-href="./08-saas-butce-analizi.md"><code>08-saas-butce-analizi.md</code></a>.</p>
+<p><strong>Bağlam (v1.1):</strong> Bu doküman <strong>Faz 3 (Müşteri Keşif)</strong> kapsamında CRM seçenekleri analizini içerir. <strong>Karar: D — Hibrit</strong> (Paspas içi minimum modül + Apollo.io yurt dışı). Müşteri keşif felsefesi: <a href="./02-musteri-kesif.md"><code>02-musteri-kesif.md</code></a>. Bütçe: <a href="./08-saas-butce-analizi.md"><code>08-saas-butce-analizi.md</code></a>.</p>
 </blockquote>
 <h2 id="soru">Soru</h2>
 <blockquote>
-<p>Lead pipeline yönetimi (yeni müşteri keşif + outreach + dönüşüm) için
-ne kullanılsın?</p>
+<p>Lead pipeline yönetimi (yeni müşteri keşif + outreach + dönüşüm) için ne kullanılsın?</p>
 </blockquote>
 <h2 id="seçenek">4 Seçenek</h2>
-<h3 id="a-paspas-içi-minimum-modül-adminlead-pipeline">A) Paspas içi
-minimum modül (<code>/admin/lead-pipeline</code>)</h3>
-<p><strong>Ne yapar:</strong> Mevcut Paspas DB’sine
-<code>lead_havuzu</code>, <code>lead_etkilesim</code>,
-<code>outreach_kampanya</code> tabloları + admin panelde kanban/liste
-UI.</p>
+<h3 id="a-paspas-içi-minimum-modül-adminlead-pipeline">A) Paspas içi minimum modül (<code>/admin/lead-pipeline</code>)</h3>
+<p><strong>Ne yapar:</strong> Mevcut Paspas DB’sine <code>lead_havuzu</code>, <code>lead_etkilesim</code>, <code>outreach_kampanya</code> tabloları + admin panelde kanban/liste UI.</p>
 <table>
 <colgroup>
 <col style="width: 50%" />
@@ -117,17 +103,13 @@ UI.</p>
 </tr>
 <tr class="even">
 <td>Müşteri/sipariş ile direkt JOIN</td>
-<td>“CRM” değil “tablo” — satış ekibi standart CRM features
-bekleyebilir</td>
+<td>“CRM” değil “tablo” — satış ekibi standart CRM features bekleyebilir</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Kapsam:</strong> ~10-15 iş günü. Lead listesi, segment
-filtre, etkileşim notu, basit follow-up reminder.</p>
-<h3 id="b-ayrı-self-hosted-crm-espocrm-twenty-krayin">B) Ayrı
-self-hosted CRM (EspoCRM / Twenty / Krayin)</h3>
-<p><strong>Ne yapar:</strong> Bağımsız CRM sunucusu kur, REST API ile
-Paspas’la senkron.</p>
+<p><strong>Kapsam:</strong> ~10-15 iş günü. Lead listesi, segment filtre, etkileşim notu, basit follow-up reminder.</p>
+<h3 id="b-ayrı-self-hosted-crm-espocrm-twenty-krayin">B) Ayrı self-hosted CRM (EspoCRM / Twenty / Krayin)</h3>
+<p><strong>Ne yapar:</strong> Bağımsız CRM sunucusu kur, REST API ile Paspas’la senkron.</p>
 <table>
 <colgroup>
 <col style="width: 16%" />
@@ -202,11 +184,9 @@ Paspas’la senkron.</p>
 </tr>
 </tbody>
 </table>
-<p><strong>Önerilen:</strong> EspoCRM (kurulum kolay, REST iyi) veya
-Twenty (modern stack).</p>
+<p><strong>Önerilen:</strong> EspoCRM (kurulum kolay, REST iyi) veya Twenty (modern stack).</p>
 <h3 id="c-apollo.io-uisı-sıfır-kod">C) Apollo.io UI’sı (sıfır kod)</h3>
-<p><strong>Ne yapar:</strong> Lead keşfi + email + sequence Apollo’da;
-Paspas’ta sadece “müşteriye dönüşen” lead’ler kayıt.</p>
+<p><strong>Ne yapar:</strong> Lead keşfi + email + sequence Apollo’da; Paspas’ta sadece “müşteriye dönüşen” lead’ler kayıt.</p>
 <table>
 <colgroup>
 <col style="width: 50%" />
@@ -237,11 +217,8 @@ Paspas’ta sadece “müşteriye dönüşen” lead’ler kayıt.</p>
 </tr>
 </tbody>
 </table>
-<h3 id="d-hibrit-paspas-içi-minimum-apollo.io-ui">D) Hibrit — Paspas içi
-minimum + Apollo.io UI</h3>
-<p><strong>Ne yapar:</strong> Yurt içi lead → Paspas içi modül (TR
-verisi orada). Yurt dışı outreach → Apollo.io. Müşteriye dönüştürünce
-Paspas’a sync.</p>
+<h3 id="d-hibrit-paspas-içi-minimum-apollo.io-ui">D) Hibrit — Paspas içi minimum + Apollo.io UI</h3>
+<p><strong>Ne yapar:</strong> Yurt içi lead → Paspas içi modül (TR verisi orada). Yurt dışı outreach → Apollo.io. Müşteriye dönüştürünce Paspas’a sync.</p>
 <table>
 <colgroup>
 <col style="width: 50%" />
@@ -341,20 +318,13 @@ Paspas’a sync.</p>
 <h2 id="önerim">Önerim</h2>
 <p><strong>D — Hibrit.</strong> Aşağıdaki gerekçelerle:</p>
 <ol type="1">
-<li>Yurt içi lead için <strong>TR sektör verisi</strong> (TOBB,
-sanayim.net) Apollo’da yok → Paspas içi tutmalı</li>
-<li>Yurt dışı outreach için <strong>profesyonel sequence + GDPR
-uyumlu</strong> ortam = Apollo (yeniden yazmaya değmez)</li>
+<li>Yurt içi lead için <strong>TR sektör verisi</strong> (TOBB, sanayim.net) Apollo’da yok → Paspas içi tutmalı</li>
+<li>Yurt dışı outreach için <strong>profesyonel sequence + GDPR uyumlu</strong> ortam = Apollo (yeniden yazmaya değmez)</li>
 <li>Geliştirme yükü ortalama (~1-2 hafta), B’nin yarısı kadar</li>
-<li>Apollo’dan vazgeçmek istersek Paspas içi modül zaten var → riski
-düşük</li>
-<li>Yurt dışı tarafı esnek olduğu için (kullanıcı kararı) Apollo
-aboneliği gerçekten ihtiyaç doğunca aktive edilir; ilk başta C’siz
-başlanabilir, gerekirse eklenir</li>
+<li>Apollo’dan vazgeçmek istersek Paspas içi modül zaten var → riski düşük</li>
+<li>Yurt dışı tarafı esnek olduğu için (kullanıcı kararı) Apollo aboneliği gerçekten ihtiyaç doğunca aktive edilir; ilk başta C’siz başlanabilir, gerekirse eklenir</li>
 </ol>
-<p><strong>Kademeli yaklaşım:</strong> - Faz 3: Paspas içi minimum modül
-+ lokal crawler → yurt içi başlar - Faz 4: İhtiyaç çıkarsa Apollo Free
-tier başla → büyürse Apollo Basic $59/ay</p>
+<p><strong>Kademeli yaklaşım:</strong> - Faz 3: Paspas içi minimum modül + lokal crawler → yurt içi başlar - Faz 4: İhtiyaç çıkarsa Apollo Free tier başla → büyürse Apollo Basic $59/ay</p>
 <h2 id="karar-matrisinin-özeti">Karar matrisinin özeti</h2>
 <table>
 <thead>
@@ -385,12 +355,9 @@ tier başla → büyürse Apollo Basic $59/ay</p>
 <h2 id="açık-karar-noktaları">Açık karar noktaları</h2>
 <ol type="1">
 <li>A/B/C/D’den hangisi onaylanır?</li>
-<li>D seçilirse: Apollo aktif edilme zamanı <strong>şimdi mi</strong>
-(Faz 3’te) yoksa <strong>Faz 4’e</strong> mi bırakılsın?</li>
-<li>Eğer ileride B’ye geçilmek istenirse hangi CRM (EspoCRM mi Twenty
-mi)?</li>
-<li>Sequence/email kampanya altyapısı kim tarafından yazılsın (D’de)?
-Paspas mı Apollo mu yoksa Brevo gibi ayrı bir tool mu?</li>
+<li>D seçilirse: Apollo aktif edilme zamanı <strong>şimdi mi</strong> (Faz 3’te) yoksa <strong>Faz 4’e</strong> mi bırakılsın?</li>
+<li>Eğer ileride B’ye geçilmek istenirse hangi CRM (EspoCRM mi Twenty mi)?</li>
+<li>Sequence/email kampanya altyapısı kim tarafından yazılsın (D’de)? Paspas mı Apollo mu yoksa Brevo gibi ayrı bir tool mu?</li>
 </ol>
 
   <!--
@@ -408,8 +375,9 @@ Paspas mı Apollo mu yoksa Brevo gibi ayrı bir tool mu?</li>
 </div>
 
 <script>
-  window.DOC_ID = "10 — CRM Kararı: Paspas İçi mi, Ayrı CRM mi, Hiç
-mi?".replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  // Pandoc bazen uzun basligi multi-line yaziyor; once whitespace'leri tek
+  // bosluga indirgeyip sonra slug uret. Aksi halde JS literal newline hatasi.
+  window.DOC_ID = ("10 — CRM Kararı: Paspas İçi mi, Ayrı CRM mi, Hiç mi?").replace(/\s+/g, ' ').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
   // Aktif sidebar linki
   document.addEventListener('DOMContentLoaded', function() {
     var path = window.location.pathname.split('/').pop().replace('.html', '');

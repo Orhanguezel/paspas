@@ -55,8 +55,7 @@
 
 <div>
 <div class="top-banner">
-  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>08 — SaaS
-API Bütçe Analizi</strong></div>
+  <div class="breadcrumb">MatPortal · Proje Teklifi · <strong>08 — SaaS API Bütçe Analizi</strong></div>
   <div class="actions">
     <a href="../index.html">← Ana Sayfa</a>
   </div>
@@ -69,30 +68,17 @@ API Bütçe Analizi</strong></div>
 
 <h1 id="saas-api-bütçe-analizi">08 — SaaS API Bütçe Analizi</h1>
 <blockquote>
-<p><strong>Bağlam (v1.1):</strong> Bu doküman dış servis (Hunter,
-Apollo, Google Places, LLM) maliyetlerinin <strong>detaylı
-analizini</strong> içerir. Bütçe genel resmi (3 senaryo, donanım, ROI):
-<a
-href="../proje-teklifi/08-butce-kaynak.md"><code>proje-teklifi/08-butce-kaynak.md</code></a>.
-Bu doküman <strong>karşılaştırma matrisi ve alternatifler</strong> için
-referanstır.</p>
+<p><strong>Bağlam (v1.1):</strong> Bu doküman dış servis (Hunter, Apollo, Google Places, LLM) maliyetlerinin <strong>detaylı analizini</strong> içerir. Bütçe genel resmi (3 senaryo, donanım, ROI): <a href="../proje-teklifi/08-butce-kaynak.md"><code>proje-teklifi/08-butce-kaynak.md</code></a>. Bu doküman <strong>karşılaştırma matrisi ve alternatifler</strong> için referanstır.</p>
 </blockquote>
 <h2 id="soru">Soru</h2>
 <blockquote>
-<p>“Hunter.io $49 + Apollo.io $59 + Google Places ~$50 = ~$160/ay onaylı
-mı?”</p>
+<p>“Hunter.io $49 + Apollo.io $59 + Google Places ~$50 = ~$160/ay onaylı mı?”</p>
 </blockquote>
-<p>İlk teklif rakam atılmıştı. Bu doküman <strong>ne için ödendiğini,
-alternatifleri ve free tier’la ne kadar gidilebileceğini</strong>
-netleştirir. Karar verme yerine <strong>karar için zemin</strong>
-sunar.</p>
-<h2 id="hunter.io-email-bulma-doğrulama">1. Hunter.io — email bulma +
-doğrulama</h2>
+<p>İlk teklif rakam atılmıştı. Bu doküman <strong>ne için ödendiğini, alternatifleri ve free tier’la ne kadar gidilebileceğini</strong> netleştirir. Karar verme yerine <strong>karar için zemin</strong> sunar.</p>
+<h2 id="hunter.io-email-bulma-doğrulama">1. Hunter.io — email bulma + doğrulama</h2>
 <h3 id="ne-işe-yarar">Ne işe yarar</h3>
 <ul>
-<li>Şirket domain’inden çalışanların kurumsal email’lerini bulma
-(<code>linkedin.com/company/X</code> →
-<code>firstname.lastname@x.com</code> pattern keşfi)</li>
+<li>Şirket domain’inden çalışanların kurumsal email’lerini bulma (<code>linkedin.com/company/X</code> → <code>firstname.lastname@x.com</code> pattern keşfi)</li>
 <li>Email doğrulama (<code>SMTP probe + DNS + bounce risk</code>)</li>
 <li>“Find email” + “Verify email” iki ayrı kullanım</li>
 </ul>
@@ -196,20 +182,15 @@ doğrulama</h2>
 </table>
 <h3 id="önerim">Önerim</h3>
 <ul>
-<li><strong>Faz 0-2:</strong> Free tier ($0) yeter. 25 email/ay
-test/dogrulama için kafi.</li>
-<li><strong>Faz 3 başlangıç:</strong> Snov.io $39/ay (en hesaplı; Hunter
-alternatifi)</li>
-<li><strong>Faz 4 ölçeklendirme:</strong> Hunter Starter $49/ay veya
-Growth $149/ay (yurt dışı outreach açıldığında)</li>
+<li><strong>Faz 0-2:</strong> Free tier ($0) yeter. 25 email/ay test/dogrulama için kafi.</li>
+<li><strong>Faz 3 başlangıç:</strong> Snov.io $39/ay (en hesaplı; Hunter alternatifi)</li>
+<li><strong>Faz 4 ölçeklendirme:</strong> Hunter Starter $49/ay veya Growth $149/ay (yurt dışı outreach açıldığında)</li>
 </ul>
-<h2 id="apollo.io-b2b-contact-iletişim-enrichment">2. Apollo.io — B2B
-contact + iletişim enrichment</h2>
+<h2 id="apollo.io-b2b-contact-iletişim-enrichment">2. Apollo.io — B2B contact + iletişim enrichment</h2>
 <h3 id="ne-işe-yarar-1">Ne işe yarar</h3>
 <ul>
 <li>275M+ kişi + 60M şirket veritabanı</li>
-<li>Filtre ile “Almanya’da, tekstil sektöründe, 50-200 çalışan, son 1
-yılda yeni satış müdürü” sorgusu</li>
+<li>Filtre ile “Almanya’da, tekstil sektöründe, 50-200 çalışan, son 1 yılda yeni satış müdürü” sorgusu</li>
 <li>Email + telefon (mobil dahil) verisi</li>
 <li>Sequence (otomatik email akışı) ve dialer dahil</li>
 </ul>
@@ -325,27 +306,20 @@ yılda yeni satış müdürü” sorgusu</li>
 </table>
 <h3 id="önerim-1">Önerim</h3>
 <ul>
-<li><strong>Faz 0-2:</strong> Free tier ($0). 50 email aç + 100 export →
-keşif crawler ile birleştirilirse ayda ~50-100 lead test
-edilebilir.</li>
-<li><strong>Faz 3 lokal başlangıç:</strong> Apollo Free yetebilir; lokal
-scraper (TOBB, Google Places) bedava.</li>
-<li><strong>Faz 4 yurt dışı:</strong> Apollo Basic $59/ay veya
-Saleshandy $25/ay (en hesaplı). Tercih nedeni: free tier’da veri çekmek
-mümkün ama ölçek için ödemek lazım.</li>
+<li><strong>Faz 0-2:</strong> Free tier ($0). 50 email aç + 100 export → keşif crawler ile birleştirilirse ayda ~50-100 lead test edilebilir.</li>
+<li><strong>Faz 3 lokal başlangıç:</strong> Apollo Free yetebilir; lokal scraper (TOBB, Google Places) bedava.</li>
+<li><strong>Faz 4 yurt dışı:</strong> Apollo Basic $59/ay veya Saleshandy $25/ay (en hesaplı). Tercih nedeni: free tier’da veri çekmek mümkün ama ölçek için ödemek lazım.</li>
 </ul>
 <h2 id="google-places-api">3. Google Places API</h2>
 <h3 id="ne-işe-yarar-2">Ne işe yarar</h3>
 <ul>
-<li>Konum + sektör filtreli işletme bilgisi (firma adı, adres, telefon,
-web, çalışma saati)</li>
+<li>Konum + sektör filtreli işletme bilgisi (firma adı, adres, telefon, web, çalışma saati)</li>
 <li>Türkçe sektör isimleriyle çalışır</li>
 <li>Nearby Search, Text Search, Place Details endpoint’leri</li>
 </ul>
 <h3 id="fiyatlandırma-2026-2">Fiyatlandırma (2026)</h3>
 <ul>
-<li><strong>$200/ay free credit</strong> (Google Cloud Platform — her
-hesaba)</li>
+<li><strong>$200/ay free credit</strong> (Google Cloud Platform — her hesaba)</li>
 <li>Endpoint başına farklı fiyat:
 <ul>
 <li>Place Search (Basic): $32 / 1000 req</li>
@@ -358,8 +332,7 @@ hesaba)</li>
 <ul>
 <li>Bir lead için tipik akış: 1 Search + 1 Details = ~$0.05</li>
 <li>$200 free → ~4000 lead/ay free</li>
-<li>Bu <strong>Faz 3 için fazlasıyla yeter</strong> (planlanan: 100-500
-lead/gün ≈ 3000-15000/ay)</li>
+<li>Bu <strong>Faz 3 için fazlasıyla yeter</strong> (planlanan: 100-500 lead/gün ≈ 3000-15000/ay)</li>
 <li>Sadece ölçek 4000’i geçerse aylık ödeme başlar</li>
 </ul>
 <h3 id="alternatifler-2">Alternatifler</h3>
@@ -413,14 +386,11 @@ lead/gün ≈ 3000-15000/ay)</li>
 </table>
 <h3 id="önerim-2">Önerim</h3>
 <ul>
-<li><strong>Google Places</strong> birinci tercih — $200 free ile büyük
-lead taraması yapılır.</li>
-<li>Yedek olarak <strong>OpenStreetMap Overpass</strong> (free) yurt içi
-sokak/sektör verisi için.</li>
+<li><strong>Google Places</strong> birinci tercih — $200 free ile büyük lead taraması yapılır.</li>
+<li>Yedek olarak <strong>OpenStreetMap Overpass</strong> (free) yurt içi sokak/sektör verisi için.</li>
 </ul>
 <h2 id="ai-provider-mevcut-bütçe">4. AI provider — mevcut bütçe</h2>
-<p>Şu an <code>.env</code>’de zaten kurulu: Anthropic + OpenAI + Groq.
-Bunlar kullanım başına ödenir, sabit aylık değil.</p>
+<p>Şu an <code>.env</code>’de zaten kurulu: Anthropic + OpenAI + Groq. Bunlar kullanım başına ödenir, sabit aylık değil.</p>
 <table>
 <thead>
 <tr class="header">
@@ -443,8 +413,7 @@ Bunlar kullanım başına ödenir, sabit aylık değil.</p>
 </tr>
 </tbody>
 </table>
-<p>Ölçeğe göre $35-105/ay. Talep motoru + lead skorlama + outreach metni
-ekleyince yıl ortasında $100-200 olabilir.</p>
+<p>Ölçeğe göre $35-105/ay. Talep motoru + lead skorlama + outreach metni ekleyince yıl ortasında $100-200 olabilir.</p>
 <h2 id="email-gönderim-altyapısı">5. Email gönderim altyapısı</h2>
 <p>Outreach için (Faz 4):</p>
 <table>
@@ -493,10 +462,8 @@ ekleyince yıl ortasında $100-200 olabilir.</p>
 <li><strong>Brevo Free</strong> (300/gün) Faz 4 başlangıçta yeter</li>
 <li>Kampanya büyürse <strong>Mailgun $15/ay</strong></li>
 </ul>
-<h2 id="toplam-tahminleri-3-senaryo">6. Toplam tahminleri — 3
-senaryo</h2>
-<h3 id="senaryo-a-free-tier-ile-başla-faz-0-3-ilk-ay">Senaryo A — “Free
-tier ile başla” (Faz 0-3 ilk ay)</h3>
+<h2 id="toplam-tahminleri-3-senaryo">6. Toplam tahminleri — 3 senaryo</h2>
+<h3 id="senaryo-a-free-tier-ile-başla-faz-0-3-ilk-ay">Senaryo A — “Free tier ile başla” (Faz 0-3 ilk ay)</h3>
 <table>
 <thead>
 <tr class="header">
@@ -531,10 +498,8 @@ tier ile başla” (Faz 0-3 ilk ay)</h3>
 </tr>
 </tbody>
 </table>
-<p>Yapılabilenler: Lokal lead crawler, TOBB/Google Places ile yurt içi
-3000-4000 lead, AI ile yapılandırma + skorlama, manuel takip.</p>
-<h3 id="senaryo-b-operasyonel-ölçek-faz-3-4-olgun">Senaryo B —
-“Operasyonel ölçek” (Faz 3-4 olgun)</h3>
+<p>Yapılabilenler: Lokal lead crawler, TOBB/Google Places ile yurt içi 3000-4000 lead, AI ile yapılandırma + skorlama, manuel takip.</p>
+<h3 id="senaryo-b-operasyonel-ölçek-faz-3-4-olgun">Senaryo B — “Operasyonel ölçek” (Faz 3-4 olgun)</h3>
 <table>
 <thead>
 <tr class="header">
@@ -569,10 +534,8 @@ tier ile başla” (Faz 0-3 ilk ay)</h3>
 </tr>
 </tbody>
 </table>
-<p>Yapılabilenler: Yurt dışı outreach + sequence, mobile contact, 5000+
-doğrulanmış email/ay, geniş Google taraması.</p>
-<h3 id="senaryo-c-hızlı-büyüme-faz-5-veya-kurumsal">Senaryo C — “Hızlı
-büyüme” (Faz 5+ veya kurumsal)</h3>
+<p>Yapılabilenler: Yurt dışı outreach + sequence, mobile contact, 5000+ doğrulanmış email/ay, geniş Google taraması.</p>
+<h3 id="senaryo-c-hızlı-büyüme-faz-5-veya-kurumsal">Senaryo C — “Hızlı büyüme” (Faz 5+ veya kurumsal)</h3>
 <table>
 <thead>
 <tr class="header">
@@ -611,47 +574,30 @@ büyüme” (Faz 5+ veya kurumsal)</h3>
 </tr>
 </tbody>
 </table>
-<p>Yapılabilenler: 50K+ email/ay, telefon dahil, çoklu sequence, ileri
-analiz.</p>
+<p>Yapılabilenler: 50K+ email/ay, telefon dahil, çoklu sequence, ileri analiz.</p>
 <h2 id="önerilen-yol">7. Önerilen yol</h2>
 <p><strong>Aşamalı:</strong></p>
 <ol type="1">
-<li><strong>Şimdi (Faz 0-2):</strong> Hiçbir SaaS ödemesi yapma. Free
-tier’larla başla. AI dışında maliyet <strong>$0-20/ay</strong>.</li>
-<li><strong>Faz 3 başında:</strong> Snov.io $39/ay (Hunter alternatifi)
-— ihtiyaç gerçekten doğunca aktive et.</li>
-<li><strong>Faz 3 sonu:</strong> Apollo Free yetmiyorsa Apollo Basic
-$59/ay.</li>
-<li><strong>Faz 4 başında:</strong> Brevo paid $25/ay (kampanyaya
-göre).</li>
-<li><strong>Toplam orta vade:</strong> ~$120-180/ay (önerdiğin $160
-aralığında).</li>
+<li><strong>Şimdi (Faz 0-2):</strong> Hiçbir SaaS ödemesi yapma. Free tier’larla başla. AI dışında maliyet <strong>$0-20/ay</strong>.</li>
+<li><strong>Faz 3 başında:</strong> Snov.io $39/ay (Hunter alternatifi) — ihtiyaç gerçekten doğunca aktive et.</li>
+<li><strong>Faz 3 sonu:</strong> Apollo Free yetmiyorsa Apollo Basic $59/ay.</li>
+<li><strong>Faz 4 başında:</strong> Brevo paid $25/ay (kampanyaya göre).</li>
+<li><strong>Toplam orta vade:</strong> ~$120-180/ay (önerdiğin $160 aralığında).</li>
 </ol>
-<p><strong>Karar ihtiyacı:</strong> - (A) Kademeli yaklaşımı onayla — şu
-an hiç ödeme yok, ihtiyaç çıktıkça aç. - (B) Doğrudan Senaryo B’ye geç —
-Faz 3’le birlikte $255/ay. - (C) Daha hesaplı bir alternatif paket
-önereyim mi (örn. Saleshandy $25 + Apollo Free + Google Places)?</p>
-<h2 id="bir-not-neden-yine-de-free-tier-yetmiyor">8. Bir not — neden
-yine de free tier yetmiyor</h2>
-<p>Free tier’lar <strong>tek seferlik test</strong> için yeter; ama 4
-kritik ihtiyaç ödeme gerektirir:</p>
+<p><strong>Karar ihtiyacı:</strong> - (A) Kademeli yaklaşımı onayla — şu an hiç ödeme yok, ihtiyaç çıktıkça aç. - (B) Doğrudan Senaryo B’ye geç — Faz 3’le birlikte $255/ay. - (C) Daha hesaplı bir alternatif paket önereyim mi (örn. Saleshandy $25 + Apollo Free + Google Places)?</p>
+<h2 id="bir-not-neden-yine-de-free-tier-yetmiyor">8. Bir not — neden yine de free tier yetmiyor</h2>
+<p>Free tier’lar <strong>tek seferlik test</strong> için yeter; ama 4 kritik ihtiyaç ödeme gerektirir:</p>
 <ol type="1">
-<li><strong>Email doğrulama hacmi</strong> — yüzlerce email
-göndereceksen ödemen şart, yoksa domain reputation çöker</li>
-<li><strong>Mobile telefon verisi</strong> — ücretsiz değil,
-premium</li>
-<li><strong>GDPR-uyumlu Avrupa lead’i</strong> — ücretsiz kaynaklar ABD
-ağırlıklı, AB için Apollo/Cognism gerek</li>
-<li><strong>Sequence/follow-up otomasyonu</strong> — manuel takip ölçek
-almıyor</li>
+<li><strong>Email doğrulama hacmi</strong> — yüzlerce email göndereceksen ödemen şart, yoksa domain reputation çöker</li>
+<li><strong>Mobile telefon verisi</strong> — ücretsiz değil, premium</li>
+<li><strong>GDPR-uyumlu Avrupa lead’i</strong> — ücretsiz kaynaklar ABD ağırlıklı, AB için Apollo/Cognism gerek</li>
+<li><strong>Sequence/follow-up otomasyonu</strong> — manuel takip ölçek almıyor</li>
 </ol>
 <h2 id="açık-karar-noktaları">Açık karar noktaları</h2>
 <ol type="1">
 <li>Senaryo A/B/C’den hangisi tercih?</li>
-<li>AI provider tarafında token limiti koymak isteyelim mi (örn. ay
-başına $100 üst sınır)?</li>
-<li>Yurt dışı baştan mı (Faz 4’le aynı anda) yoksa yurt içi olgunlaşınca
-mı?</li>
+<li>AI provider tarafında token limiti koymak isteyelim mi (örn. ay başına $100 üst sınır)?</li>
+<li>Yurt dışı baştan mı (Faz 4’le aynı anda) yoksa yurt içi olgunlaşınca mı?</li>
 </ol>
 
   <!--
@@ -669,8 +615,9 @@ mı?</li>
 </div>
 
 <script>
-  window.DOC_ID = "08 — SaaS API Bütçe
-Analizi".replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  // Pandoc bazen uzun basligi multi-line yaziyor; once whitespace'leri tek
+  // bosluga indirgeyip sonra slug uret. Aksi halde JS literal newline hatasi.
+  window.DOC_ID = ("08 — SaaS API Bütçe Analizi").replace(/\s+/g, ' ').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
   // Aktif sidebar linki
   document.addEventListener('DOMContentLoaded', function() {
     var path = window.location.pathname.split('/').pop().replace('.html', '');
