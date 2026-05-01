@@ -58,6 +58,7 @@ function extractJsonObject(raw: string): unknown {
 type ParsedAnalysis = {
   severity: 'high' | 'medium' | 'low';
   summary: string;
+  rootCause: string | null;
   suggestedActions: string[];
   risks: string[];
   relatedFiles: string[];
@@ -71,6 +72,9 @@ function parseAnalysisJson(rawText: string): ParsedAnalysis {
     sev === 'high' || sev === 'medium' || sev === 'low' ? sev : 'low';
 
   const summary = String(obj.summary ?? '').slice(0, 1900);
+  const rootCauseRaw = String(obj.root_cause ?? obj.rootCause ?? '').slice(0, 1900).trim();
+  const rootCause = rootCauseRaw && rootCauseRaw.toLowerCase() !== 'yok' ? rootCauseRaw : null;
+
   const arr = (key: string): string[] => {
     const v = obj[key];
     if (!Array.isArray(v)) return [];
@@ -80,6 +84,7 @@ function parseAnalysisJson(rawText: string): ParsedAnalysis {
   return {
     severity,
     summary,
+    rootCause,
     suggestedActions: arr('suggested_actions'),
     risks: arr('risks'),
     relatedFiles: arr('related_files'),
@@ -174,6 +179,7 @@ export async function analyzeTestRun(
       model,
       severity: parsed.severity,
       summary: parsed.summary,
+      root_cause: parsed.rootCause,
       suggested_actions: parsed.suggestedActions,
       risks: parsed.risks,
       related_files: parsed.relatedFiles,

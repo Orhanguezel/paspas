@@ -122,6 +122,7 @@ export const testCenterRunAnalyses = mysqlTable('test_center_run_analyses', {
   model: varchar('model', { length: 128 }).notNull(),
   severity: varchar('severity', { length: 16 }).notNull(),
   summary: varchar('summary', { length: 2000 }).notNull(),
+  root_cause: varchar('root_cause', { length: 2000 }),
   suggested_actions: json('suggested_actions'),
   risks: json('risks'),
   related_files: json('related_files'),
@@ -163,6 +164,7 @@ export type TestCenterRunAnalysisDto = {
   model: string;
   severity: 'high' | 'medium' | 'low' | string;
   summary: string;
+  rootCause: string | null;
   suggestedActions: string[];
   risks: string[];
   relatedFiles: string[];
@@ -217,6 +219,7 @@ export function runAnalysisRowToDto(row: TestCenterRunAnalysisRow): TestCenterRu
     model: row.model,
     severity: row.severity,
     summary: row.summary,
+    rootCause: row.root_cause ?? null,
     suggestedActions: parseJsonArray(row.suggested_actions),
     risks: parseJsonArray(row.risks),
     relatedFiles: parseJsonArray(row.related_files),
