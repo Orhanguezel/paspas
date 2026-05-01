@@ -128,6 +128,7 @@ export type TestCenterRunAnalysis = {
   model: string;
   severity: TestCenterRunAnalysisSeverity;
   summary: string;
+  rootCause: string | null;
   suggestedActions: string[];
   risks: string[];
   relatedFiles: string[];

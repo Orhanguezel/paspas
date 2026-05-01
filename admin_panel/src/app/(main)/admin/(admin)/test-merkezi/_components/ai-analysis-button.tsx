@@ -104,6 +104,17 @@ function AnalysisCard({ analysis }: { analysis: TestCenterRunAnalysis }) {
 
       <p className="text-sm leading-5 font-medium">{analysis.summary}</p>
 
+      {analysis.rootCause && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-900 dark:bg-amber-950/30">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-200">
+            Niye çalışmadı (kök sebep)
+          </p>
+          <p className="mt-1 text-sm leading-5 text-amber-900 dark:text-amber-100">
+            {analysis.rootCause}
+          </p>
+        </div>
+      )}
+
       {analysis.suggestedActions.length > 0 && (
         <div className="space-y-1.5">
           <p className="text-[11px] font-semibold uppercase text-muted-foreground tracking-wide">
