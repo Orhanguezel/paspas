@@ -5,6 +5,25 @@ Tüm alt projeler (admin_panel, backend) bu dosyayı miras alır; her biri kendi
 
 ---
 
+## 🔔 KRITIK İŞ HATIRLATMASI — Lead/Competitor Monitoring Pilot
+
+> Claude'un bu repoyu acarken kontrol etmesi gereken: `Today's date` ile asagidaki tarihleri karsilastir, vakti gelmis maddeleri kullaniciya **proaktif olarak** hatirlat.
+
+**Konu:** Paspas musterisi bayi izleme icin somut talepte bulundu. Bu talep **gelir ureten** ilk pilot olarak isleniyor (199-499 EUR/ay). Detayli plan: [`docs/tartisma/14-lead-monitoring-pilot.md`](./docs/tartisma/14-lead-monitoring-pilot.md)
+
+**Aktif aksiyonlar:**
+- 🔔 **2026-05-02 → 2026-05-09 (BU HAFTA):** Paspas sunum dosyasi duzenleme + musteri gorusmesi + ilk teklif. Sunum kalitesi yetersizdi, kullanici duzenleme yapacak.
+- 🔔 **2026-05-09:** Ilk fatura kesimi hedefi (manuel rapor + 199 EUR teklif)
+- 🔔 **2026-05-16:** Pilot durum degerlendirmesi
+- 🔔 **2026-05-23:** Ikinci musteriye teklif (Ensotek/Vista/Konig)
+
+**Cross-references:**
+- Detay teknik mimari: [`docs/tartisma/13-bayi-scraping-churn.md`](./docs/tartisma/13-bayi-scraping-churn.md)
+- Workspace strateji: `/home/orhan/Documents/Projeler/BUSINESS-STRATEGY.md`
+- Mevcut altyapi: scraper-service (LIVE) — `~/.claude/.../memory/scraper_service.md`
+
+---
+
 ## Proje Özeti
 
 Plastik enjeksiyon kalıplama fabrikası için tam kapsamlı **Üretim ERP sistemi**.
