@@ -13,6 +13,7 @@ import {
   listAmazonJobs,
   listB2bJobs,
   listDrafts,
+  listEnrichment,
   listFairJobs,
   listIcp,
   listLeadCandidates,
@@ -51,6 +52,7 @@ export async function registerLeadMachineAdmin(app: FastifyInstance) {
   app.get('/lead-machine/fair/suggestions', fairSuggestions);
 
   app.post('/lead-machine/enrich/:candidateId', enrichOne);
+  app.get('/lead-machine/enrich/:candidateId', listEnrichment);
   app.post('/lead-machine/enrich/batch', enrichBatch);
 
   app.post('/lead-machine/outreach/generate/:candidateId', generateOutreach);

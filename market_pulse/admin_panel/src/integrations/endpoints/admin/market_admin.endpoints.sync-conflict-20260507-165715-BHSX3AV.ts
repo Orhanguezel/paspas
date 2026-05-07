@@ -1,0 +1,478 @@
+import { baseApi } from '@/integrations/baseApi';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export interface MarketTarget {
+  id:             string;
+  name:           string;
+  category:       string;
+  status:         string;
+  website:        string | null;
+  phone:          string | null;
+  email:          string | null;
+  contactName:    string | null;
+  city:           string | null;
+  district:       string | null;
+  instagramUrl:   string | null;
+  googleMapsUrl:  string | null;
+  notes:          string | null;
+  churnRiskScore: number;
+  lastSeenAt:     string | null;
+  createdAt:      string;
+  updatedAt:      string;
+}
+
+export interface MarketLead {
+  id:          string;
+  name:        string;
+  category:    string | null;
+  source:      string;
+  status:      string;
+  priority:    string;
+  score:       number;
+  website:     string | null;
+  phone:       string | null;
+  email:       string | null;
+  contactName: string | null;
+  city:        string | null;
+  district:    string | null;
+  notes:       string | null;
+  assignedTo:  string | null;
+  createdAt:   string;
+  updatedAt:   string;
+}
+
+export interface MarketSignal {
+  id:          string;
+  targetId:    string | null;
+  leadId:      string | null;
+  signalType:  string;
+  severity:    'critical' | 'high' | 'medium' | 'low';
+  title:       string;
+  description: string | null;
+  sourceUrl:   string | null;
+  isReviewed:  boolean;
+  reviewedAt:  string | null;
+  createdAt:   string;
+}
+
+export interface MarketStats {
+  totalTargets:   number;
+  totalLeads:     number;
+  pendingSignals: number;
+}
+
+export interface PaspasCustomer {
+  id: string;
+  tur: string;
+  name: string;
+  phone: string | null;
+  address: string | null;
+  discount: number | null;
+}
+
+export interface PaspasProduct {
+  id: string;
+  kategori: string;
+  kod: string;
+  name: string;
+  birim: string;
+  stock: number;
+  reservedStock: number;
+  criticalStock: number;
+  unitPrice: number | null;
+}
+
+export interface PaspasOrder {
+  id: string;
+  siparisNo: string;
+  customerId: string;
+  siparisTarihi: string;
+  terminTarihi: string | null;
+  durum: string;
+  toplamTutar: number;
+}
+
+export type LeadCandidateStatus = 'pending' | 'approved' | 'rejected' | 'favorite';
+export type LeadCandidateChannel = 'amazon' | 'b2b_directory' | 'trade_fair' | 'icp_match';
+
+export interface LeadCandidate {
+  id: string;
+  job_id: string;
+  channel: LeadCandidateChannel;
+  icp_id: string | null;
+  status: LeadCandidateStatus;
+  name: string;
+  website: string | null;
+  country: string | null;
+  city: string | null;
+  phone: string | null;
+  email: string | null;
+  contact_name: string | null;
+  raw_data: Record<string, unknown> | null;
+  ai_summary: string | null;
+  lead_score: number | string;
+  reject_reason: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+}
+
+export interface LeadSearchJob {
+  id: string;
+  channel: LeadCandidateChannel;
+  status: 'pending' | 'running' | 'done' | 'failed';
+  icp_id: string | null;
+  params: Record<string, unknown>;
+  result_count: number;
+  error_msg: string | null;
+  created_by: string | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface IcpDefinition {
+  sectors?: string[];
+  sub_sectors?: string[];
+  firm_types?: string[];
+  geographies?: string[];
+  sales_types?: string[];
+  sales_channels?: string[];
+  price_segment?: string;
+  min_employees?: number | null;
+  max_employees?: number | null;
+  exclude_countries?: string[];
+  exclude_patterns?: string[];
+}
+
+export interface IcpProfile {
+  id: string;
+  name: string;
+  is_active: number;
+  definition: IcpDefinition;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BulkImportRow {
+  name:         string;
+  category?:    string;
+  website?:     string;
+  phone?:       string;
+  email?:       string;
+  contact_name?: string;
+  city?:        string;
+  district?:    string;
+  notes?:       string;
+}
+
+export interface BulkImportPreviewRow extends BulkImportRow {
+  _action: 'insert' | 'update' | 'skip';
+}
+
+export interface BulkImportResult {
+  inserted: number;
+  updated:  number;
+  skipped:  number;
+  total:    number;
+  dry_run:  boolean;
+  preview:  BulkImportPreviewRow[];
+}
+
+export interface PaspasSyncResult {
+  ok:       boolean;
+  inserted: number;
+  updated:  number;
+  total:    number;
+  message:  string;
+}
+
+export interface LeadEnrichment {
+  id: string;
+  candidate_id: string | null;
+  market_lead_id: string | null;
+  decision_maker: {
+    name?: string | null;
+    title?: string | null;
+    linkedin_url?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  } | Record<string, unknown> | null;
+  company_size: string | null;
+  pain_points: string[] | null;
+  growth_signals: Record<string, unknown> | null;
+  source_vendor: string | null;
+  enriched_at: string;
+}
+
+// ─── Endpoints ───────────────────────────────────────────────────────────────
+
+export const marketAdminApi = baseApi.injectEndpoints({
+  endpoints: (b) => ({
+    getMarketStats: b.query<MarketStats, void>({
+      query: () => ({ url: '/admin/market/stats' }),
+      providesTags: ['MarketStats'],
+    }),
+
+    listMarketTargets: b.query<MarketTarget[], {
+      q?: string;
+      category?: string;
+      status?: string;
+      limit?: number;
+      offset?: number;
+    }>({
+      query: (params) => ({ url: '/admin/market/targets', params }),
+      providesTags: ['MarketTargets'],
+    }),
+    createMarketTarget: b.mutation<MarketTarget, Partial<MarketTarget> & { name: string }>({
+      query: (body) => ({ url: '/admin/market/targets', method: 'POST', body }),
+      invalidatesTags: ['MarketTargets', 'MarketStats'],
+    }),
+    updateMarketTarget: b.mutation<MarketTarget, { id: string; body: Partial<MarketTarget> }>({
+      query: ({ id, body }) => ({ url: `/admin/market/targets/${id}`, method: 'PATCH', body }),
+      invalidatesTags: ['MarketTargets'],
+    }),
+    deleteMarketTarget: b.mutation<void, string>({
+      query: (id) => ({ url: `/admin/market/targets/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['MarketTargets', 'MarketStats'],
+    }),
+    recalculateChurn: b.mutation<{ score: number }, string>({
+      query: (id) => ({ url: `/admin/market/targets/${id}/recalculate-churn`, method: 'POST' }),
+      invalidatesTags: ['MarketTargets', 'MarketStats'],
+    }),
+
+    listMarketLeads: b.query<MarketLead[], {
+      q?: string;
+      status?: string;
+      priority?: string;
+      source?: string;
+      sort?: string;
+      order?: 'asc' | 'desc';
+      limit?: number;
+      offset?: number;
+    }>({
+      query: (params) => ({ url: '/admin/market/leads', params }),
+      providesTags: ['MarketLeads'],
+    }),
+    createMarketLead: b.mutation<MarketLead, Partial<MarketLead> & { name: string }>({
+      query: (body) => ({ url: '/admin/market/leads', method: 'POST', body }),
+      invalidatesTags: ['MarketLeads', 'MarketStats'],
+    }),
+    updateMarketLead: b.mutation<MarketLead, { id: string; body: Partial<MarketLead> }>({
+      query: ({ id, body }) => ({ url: `/admin/market/leads/${id}`, method: 'PATCH', body }),
+      invalidatesTags: ['MarketLeads'],
+    }),
+    deleteMarketLead: b.mutation<void, string>({
+      query: (id) => ({ url: `/admin/market/leads/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['MarketLeads', 'MarketStats'],
+    }),
+
+    listMarketSignals: b.query<MarketSignal[], {
+      target_id?: string;
+      lead_id?: string;
+      severity?: string;
+      is_reviewed?: boolean;
+      limit?: number;
+    }>({
+      query: (params) => ({ url: '/admin/market/signals', params }),
+      providesTags: ['MarketSignals'],
+    }),
+    createMarketSignal: b.mutation<MarketSignal, {
+      signalType?: string;
+      severity?: string;
+      title: string;
+      description?: string;
+      sourceUrl?: string;
+      targetId?: string;
+      leadId?: string;
+    }>({
+      query: ({ signalType, sourceUrl, targetId, leadId, ...rest }) => ({
+        url: '/admin/market/signals',
+        method: 'POST',
+        body: {
+          ...rest,
+          signal_type: signalType,
+          source_url:  sourceUrl,
+          target_id:   targetId,
+          lead_id:     leadId,
+        },
+      }),
+      invalidatesTags: ['MarketSignals', 'MarketStats'],
+    }),
+    reviewMarketSignal: b.mutation<MarketSignal, { id: string }>({
+      query: ({ id }) => ({ url: `/admin/market/signals/${id}/review`, method: 'POST' }),
+      invalidatesTags: ['MarketSignals', 'MarketStats'],
+    }),
+    deleteMarketSignal: b.mutation<void, string>({
+      query: (id) => ({ url: `/admin/market/signals/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['MarketSignals', 'MarketStats'],
+    }),
+
+    listPaspasCustomers: b.query<PaspasCustomer[], { q?: string; limit?: number }>({
+      query: (params) => ({ url: '/admin/market/external/paspas/customers', params }),
+    }),
+    listPaspasProducts: b.query<PaspasProduct[], { q?: string; limit?: number }>({
+      query: (params) => ({ url: '/admin/market/external/paspas/products', params }),
+    }),
+    listPaspasCustomerOrders: b.query<PaspasOrder[], string>({
+      query: (id) => ({ url: `/admin/market/external/paspas/customers/${id}/orders` }),
+    }),
+
+    previewWeeklyReport: b.query<Blob, void>({
+      query: () => ({
+        url: '/admin/market/reports/weekly/preview',
+        responseHandler: async (response) => response.blob(),
+      }),
+    }),
+    sendWeeklyReport: b.mutation<{ ok: boolean }, { to: string }>({
+      query: (body) => ({ url: '/admin/market/reports/weekly/send', method: 'POST', body }),
+    }),
+
+    syncPaspasTargets: b.mutation<PaspasSyncResult, { mode?: 'all' | 'customers' | 'dealers' }>({
+      query: (body) => ({ url: '/admin/market/sync-paspas', method: 'POST', body }),
+      invalidatesTags: ['MarketTargets', 'MarketStats'],
+    }),
+    bulkImportTargets: b.mutation<BulkImportResult, {
+      rows: BulkImportRow[];
+      dry_run?: boolean;
+      on_conflict?: 'skip' | 'update';
+    }>({
+      query: (body) => ({ url: '/admin/market/targets/bulk-import', method: 'POST', body }),
+      invalidatesTags: ['MarketTargets', 'MarketStats'],
+    }),
+    downloadImportTemplate: b.query<string, void>({
+      query: () => ({
+        url: '/admin/market/targets/import-template',
+        responseHandler: async (response) => response.text(),
+      }),
+    }),
+
+    listLeadCandidates: b.query<LeadCandidate[], {
+      channel?: LeadCandidateChannel | 'all';
+      status?: LeadCandidateStatus | 'all';
+      job_id?: string;
+      page?: number;
+      limit?: number;
+    }>({
+      query: ({ channel, status, ...params } = {}) => ({
+        url: '/admin/lead-machine/candidates',
+        params: {
+          ...params,
+          channel: channel && channel !== 'all' ? channel : undefined,
+          status: status && status !== 'all' ? status : undefined,
+        },
+      }),
+      providesTags: ['LeadCandidates'],
+    }),
+    reviewCandidate: b.mutation<LeadCandidate, {
+      id: string;
+      action: 'approve' | 'reject' | 'favorite';
+      reject_reason?: string;
+    }>({
+      query: ({ id, ...body }) => ({
+        url: `/admin/lead-machine/candidates/${id}/review`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['LeadCandidates'],
+    }),
+    approveToLead: b.mutation<MarketLead, string>({
+      query: (id) => ({ url: `/admin/lead-machine/candidates/${id}/approve-to-lead`, method: 'POST' }),
+      invalidatesTags: ['LeadCandidates', 'MarketLeads', 'MarketStats'],
+    }),
+    listCandidateEnrichment: b.query<LeadEnrichment[], string>({
+      query: (id) => ({ url: `/admin/lead-machine/enrich/${id}` }),
+      providesTags: ['LeadEnrichment'],
+    }),
+    enrichCandidate: b.mutation<LeadEnrichment, string>({
+      query: (id) => ({ url: `/admin/lead-machine/enrich/${id}`, method: 'POST' }),
+      invalidatesTags: ['LeadEnrichment'],
+    }),
+    listAmazonJobs: b.query<LeadSearchJob[], void>({
+      query: () => ({ url: '/admin/lead-machine/amazon/jobs' }),
+      providesTags: ['LeadMachineJobs'],
+    }),
+    startAmazonJob: b.mutation<LeadSearchJob, Record<string, unknown>>({
+      query: (body) => ({ url: '/admin/lead-machine/amazon/jobs', method: 'POST', body }),
+      invalidatesTags: ['LeadMachineJobs'],
+    }),
+    listB2bJobs: b.query<LeadSearchJob[], void>({
+      query: () => ({ url: '/admin/lead-machine/b2b/jobs' }),
+      providesTags: ['LeadMachineJobs'],
+    }),
+    startB2bJob: b.mutation<LeadSearchJob, Record<string, unknown>>({
+      query: (body) => ({ url: '/admin/lead-machine/b2b/jobs', method: 'POST', body }),
+      invalidatesTags: ['LeadMachineJobs'],
+    }),
+    listFairJobs: b.query<LeadSearchJob[], void>({
+      query: () => ({ url: '/admin/lead-machine/fair/jobs' }),
+      providesTags: ['LeadMachineJobs'],
+    }),
+    startFairJob: b.mutation<LeadSearchJob, Record<string, unknown>>({
+      query: (body) => ({ url: '/admin/lead-machine/fair/jobs', method: 'POST', body }),
+      invalidatesTags: ['LeadMachineJobs'],
+    }),
+    listIcpProfiles: b.query<IcpProfile[], void>({
+      query: () => ({ url: '/admin/lead-machine/icp' }),
+      providesTags: ['IcpProfiles'],
+    }),
+    createIcpProfile: b.mutation<IcpProfile, { name: string; definition: IcpDefinition; is_active?: boolean }>({
+      query: (body) => ({ url: '/admin/lead-machine/icp', method: 'POST', body }),
+      invalidatesTags: ['IcpProfiles'],
+    }),
+    updateIcpProfile: b.mutation<IcpProfile, { id: string; body: { name?: string; definition?: IcpDefinition; is_active?: boolean } }>({
+      query: ({ id, body }) => ({ url: `/admin/lead-machine/icp/${id}`, method: 'PATCH', body }),
+      invalidatesTags: ['IcpProfiles'],
+    }),
+    deleteIcpProfile: b.mutation<void, string>({
+      query: (id) => ({ url: `/admin/lead-machine/icp/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['IcpProfiles'],
+    }),
+  }),
+  overrideExisting: true,
+});
+
+export const {
+  useGetMarketStatsQuery,
+  useListMarketTargetsQuery,
+  useCreateMarketTargetMutation,
+  useUpdateMarketTargetMutation,
+  useDeleteMarketTargetMutation,
+  useRecalculateChurnMutation,
+  useListMarketLeadsQuery,
+  useCreateMarketLeadMutation,
+  useUpdateMarketLeadMutation,
+  useDeleteMarketLeadMutation,
+  useListMarketSignalsQuery,
+  useCreateMarketSignalMutation,
+  useReviewMarketSignalMutation,
+  useDeleteMarketSignalMutation,
+  useListPaspasCustomersQuery,
+  useListPaspasProductsQuery,
+  useListPaspasCustomerOrdersQuery,
+  usePreviewWeeklyReportQuery,
+  useLazyPreviewWeeklyReportQuery,
+  useSendWeeklyReportMutation,
+  useListLeadCandidatesQuery,
+  useReviewCandidateMutation,
+  useApproveToLeadMutation,
+  useListCandidateEnrichmentQuery,
+  useEnrichCandidateMutation,
+  useListAmazonJobsQuery,
+  useStartAmazonJobMutation,
+  useListB2bJobsQuery,
+  useStartB2bJobMutation,
+  useListFairJobsQuery,
+  useStartFairJobMutation,
+  useListIcpProfilesQuery,
+  useCreateIcpProfileMutation,
+  useUpdateIcpProfileMutation,
+  useDeleteIcpProfileMutation,
+  useSyncPaspasTargetsMutation,
+  useBulkImportTargetsMutation,
+  useLazyDownloadImportTemplateQuery,
+} = marketAdminApi;
+
+// Checklist uyumu için alias hook isimleri
+export const useGetPaspasCustomerOrdersQuery = useListPaspasCustomerOrdersQuery;

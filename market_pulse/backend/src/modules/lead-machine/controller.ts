@@ -23,7 +23,7 @@ import {
   listIcpProfiles,
   updateIcpProfile,
 } from './icp/icp.repository';
-import { enrichCandidate } from './enrichment/enrichment.service';
+import { enrichCandidate, listCandidateEnrichment } from './enrichment/enrichment.service';
 import { generateOutreachEmail, listOutreachDrafts, updateOutreachDraft } from './outreach/outreach.service';
 import { scanCompetitorPage } from './competitor/competitor.scraper';
 import { verifyScraperWebhook } from './_shared/scraper.client';
@@ -73,7 +73,7 @@ export const approveToLead: RouteHandler<{ Params: { id: string } }> = async (re
 };
 
 export const scraperCallback: RouteHandler<{ Body: unknown }> = async (req, reply) => {
-  const raw = req.headers['x-scraper-signature'];
+  const raw = req.headers['x-scraper-signature'] ?? req.headers['x-signature'];
   const signature = Array.isArray(raw) ? raw[0] : raw;
   const rawBody = JSON.stringify(req.body ?? {});
   if (!verifyScraperWebhook(Buffer.from(rawBody), signature, process.env.SCRAPER_CALLBACK_SECRET ?? '')) {
@@ -189,6 +189,7 @@ export const listFairJobs: RouteHandler = async () => listSearchJobs('trade_fair
 export const fairSuggestions: RouteHandler = async () => [];
 
 export const enrichOne: RouteHandler<{ Params: { candidateId: string } }> = async (req, reply) => reply.code(201).send(await enrichCandidate(req.params.candidateId));
+export const listEnrichment: RouteHandler<{ Params: { candidateId: string } }> = async (req) => listCandidateEnrichment(req.params.candidateId);
 export const enrichBatch: RouteHandler<{ Body: unknown }> = async (req) => {
   const ids = Array.isArray(asRecord(req.body).candidate_ids) ? asRecord(req.body).candidate_ids as string[] : [];
   const selected = ids.slice(0, 50);

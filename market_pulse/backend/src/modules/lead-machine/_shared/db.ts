@@ -72,7 +72,7 @@ function parseJsonField<T>(row: T, key: keyof T): T {
 export async function createSearchJob(channel: LeadChannel, params: unknown, icpId?: string | null, createdBy?: string | null) {
   const id = randomUUID();
   await pool.execute(
-    'INSERT INTO lead_search_jobs (id, channel, status, icp_id, params, created_by) VALUES (?, ?, ?, ?, CAST(? AS JSON), ?)',
+    'INSERT INTO lead_search_jobs (id, channel, status, icp_id, params, created_by) VALUES (?, ?, ?, ?, ?, ?)',
     [id, channel, 'pending', icpId ?? null, JSON.stringify(params ?? {}), createdBy ?? null],
   );
   return getSearchJob(id);
@@ -118,7 +118,7 @@ export async function insertCandidate(input: CandidateInput) {
   await pool.execute(
     `INSERT INTO lead_candidates
       (id, job_id, channel, icp_id, name, website, country, city, phone, email, contact_name, raw_data, ai_summary, lead_score)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS JSON), ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.jobId,

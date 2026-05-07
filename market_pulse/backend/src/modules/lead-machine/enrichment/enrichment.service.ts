@@ -47,8 +47,26 @@ export async function enrichCandidate(candidateId: string) {
   const id = randomUUID();
   await pool.execute(
     `INSERT INTO lead_enrichment (id, candidate_id, decision_maker, source_vendor)
-     VALUES (?, ?, CAST(? AS JSON), ?)`,
+     VALUES (?, ?, ?, ?)`,
     [id, candidateId, JSON.stringify(decisionMaker), sourceVendor],
   );
   return { id, candidateId, decisionMaker, sourceVendor };
+}
+
+export async function listCandidateEnrichment(candidateId: string) {
+  const [rows] = await pool.execute(
+    'SELECT * FROM lead_enrichment WHERE candidate_id = ? ORDER BY enriched_at DESC LIMIT 10',
+    [candidateId],
+  );
+  return (rows as Array<Record<string, unknown>>).map((row) => {
+    const decisionMaker = row.decision_maker;
+    const painPoints = row.pain_points;
+    const growthSignals = row.growth_signals;
+    return {
+      ...row,
+      decision_maker: typeof decisionMaker === 'string' ? JSON.parse(decisionMaker) : decisionMaker,
+      pain_points: typeof painPoints === 'string' ? JSON.parse(painPoints) : painPoints,
+      growth_signals: typeof growthSignals === 'string' ? JSON.parse(growthSignals) : growthSignals,
+    };
+  });
 }

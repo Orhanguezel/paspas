@@ -35,7 +35,7 @@ export async function getIcpProfile(id: string) {
 export async function createIcpProfile(data: { name: string; definition: unknown; is_active?: boolean }) {
   const id = randomUUID();
   await pool.execute(
-    'INSERT INTO icp_profiles (id, name, is_active, definition) VALUES (?, ?, ?, CAST(? AS JSON))',
+    'INSERT INTO icp_profiles (id, name, is_active, definition) VALUES (?, ?, ?, ?)',
     [id, data.name, data.is_active === false ? 0 : 1, JSON.stringify(data.definition ?? {})],
   );
   return getIcpProfile(id);
@@ -53,7 +53,7 @@ export async function updateIcpProfile(id: string, data: { name?: string; defini
     values.push(data.is_active ? 1 : 0);
   }
   if (data.definition !== undefined) {
-    sets.push('definition = CAST(? AS JSON)');
+    sets.push('definition = ?');
     values.push(JSON.stringify(data.definition));
   }
   if (!sets.length) return getIcpProfile(id);
