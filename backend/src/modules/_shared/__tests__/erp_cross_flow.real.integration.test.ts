@@ -289,9 +289,10 @@ describeIntegration("gerçek veri çapraz ERP akışı", () => {
       makineId: ids.makine,
       planlananBaslangic: "2032-01-03T08:00:00",
     });
+    // Makineye atama stok düşürmez — hammadde gerçekleşen üretimde düşer.
     expect(await getStocks()).toEqual({
       [ids.urun]: { stok: 0, rezerveStok: 0 },
-      [ids.hammadde]: { stok: 80, rezerveStok: 0 },
+      [ids.hammadde]: { stok: 100, rezerveStok: 20 },
     });
 
     const queueId = await getQueueId(uretim.row.id);
@@ -352,9 +353,10 @@ describeIntegration("gerçek veri çapraz ERP akışı", () => {
       .from(hareketler)
       .where(inArray(hareketler.urun_id, [ids.urun, ids.hammadde]))
       .groupBy(hareketler.urun_id, hareketler.hareket_tipi, hareketler.referans_tipi);
-    // Hareket konvansiyonu:
-    //   - `stokDus` (makine atama, hammadde) → referans_tipi='uretim_emri' miktar negatif
-    //   - `consumeRecipeMaterials` (operatör, hammadde) → guard ile çift sayım engellendi (boş)
+    // Hareket konvansiyonu (Hata 1 düzeltmesi sonrası):
+    //   - Hammadde stoku operatör üretim kaydında consumeRecipeMaterials ile düşer
+    //     → referans_tipi='uretim', miktar pozitif (hareket_tipi='cikis' yönü belirtir)
+    //   - Makineye atamada stok hareketi oluşmaz
     //   - Operatör üretim girişi (asıl ürün stoğu artar) → referans_tipi='uretim' miktar pozitif
     //   - Sevkiyat → referans_tipi='sevkiyat' miktar negatif
     expect(hareketTotals.map((row) => ({
@@ -363,7 +365,7 @@ describeIntegration("gerçek veri çapraz ERP akışı", () => {
       referansTipi: row.referansTipi,
       toplam: Number(row.toplam),
     })).sort((a, b) => `${a.urunId}-${a.referansTipi}`.localeCompare(`${b.urunId}-${b.referansTipi}`))).toEqual([
-      { urunId: ids.hammadde, hareketTipi: "cikis", referansTipi: "uretim_emri", toplam: -20 },
+      { urunId: ids.hammadde, hareketTipi: "cikis", referansTipi: "uretim", toplam: 20 },
       { urunId: ids.urun, hareketTipi: "giris", referansTipi: "uretim", toplam: 10 },
       { urunId: ids.urun, hareketTipi: "cikis", referansTipi: "sevkiyat", toplam: -10 },
     ].sort((a, b) => `${a.urunId}-${a.referansTipi}`.localeCompare(`${b.urunId}-${b.referansTipi}`)));

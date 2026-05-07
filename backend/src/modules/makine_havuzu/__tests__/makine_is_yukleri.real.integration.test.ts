@@ -198,7 +198,8 @@ describeIntegration("gerçek veri makine iş yükleri", () => {
     await repoAtaOperasyon({ emirOperasyonId: await getOperasyonId(emirA.row.id), makineId: ids.makine });
     await repoAtaOperasyon({ emirOperasyonId: await getOperasyonId(emirB.row.id), makineId: ids.makine });
 
-    expect(await getMaterialStock()).toEqual({ stok: 70, rezerveStok: 0 });
+    // Makineye atama stok düşürmez — rezervasyon emir silinene/tamamlanana kadar kalır.
+    expect(await getMaterialStock()).toEqual({ stok: 100, rezerveStok: 30 });
     expect(await getEmirDurum(emirA.row.id)).toBe("planlandi");
     expect(await getEmirDurum(emirB.row.id)).toBe("planlandi");
 
@@ -233,7 +234,8 @@ describeIntegration("gerçek veri makine iş yükleri", () => {
 
     expect(await repoGetIsYukuById(ikinciIs!.kuyrukId)).toBeNull();
     expect(await getEmirDurum(emirB.row.id)).toBe("atanmamis");
-    expect(await getMaterialStock()).toEqual({ stok: 80, rezerveStok: 10 });
+    // Kuyruktan çıkarma rezervasyonu serbest bırakmaz — emirB hâlâ "atanmamis" durumda, ihtiyaç devam eder.
+    expect(await getMaterialStock()).toEqual({ stok: 100, rezerveStok: 30 });
 
     const kalanIsler = await repoListIsYukleri({
       makineId: ids.makine,
