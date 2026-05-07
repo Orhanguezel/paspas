@@ -421,6 +421,12 @@ export default function IsYukleriClient() {
 
     if (sourceGroupId === targetGroupId && sourceIndex === targetIndex) return;
 
+    // Makineler arası sürükle-bırak kapalı — kullanıcı "Makineden Çıkar" + yeniden ata akışını kullanmalı
+    if (sourceGroupId !== targetGroupId) {
+      toast.warning('Makineler arası taşıma için önce "Makineden Çıkar" deyip yeniden atama yapın.');
+      return;
+    }
+
     const movedItem = sourceGroup.items[sourceIndex];
 
     if (movedItem.durum === 'calisiyor' || movedItem.durum === 'tamamlandi') {

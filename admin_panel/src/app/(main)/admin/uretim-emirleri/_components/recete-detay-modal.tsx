@@ -44,7 +44,7 @@ export function ReceteDetayModal({ emirId, onOpenChange }: Props) {
 
   return (
     <Dialog open={!!emirId} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wrench className="size-5" />
@@ -120,6 +120,7 @@ export function ReceteDetayModal({ emirId, onOpenChange }: Props) {
                       </TableHeader>
                       <TableBody>
                         {recete.items
+                          .filter((k) => k.malzemeKategori !== "operasyonel_ym")
                           .slice()
                           .sort((a, b) => a.sira - b.sira)
                           .map((kalem) => (
@@ -163,7 +164,7 @@ export function ReceteDetayModal({ emirId, onOpenChange }: Props) {
                               <TableCell className="text-right text-xs text-muted-foreground">
                                 {kalem.malzemeBirim ?? "—"}
                               </TableCell>
-                              <TableCell className="max-w-56 text-xs text-muted-foreground">
+                              <TableCell className="text-xs text-muted-foreground whitespace-pre-wrap wrap-break-word max-w-xs">
                                 {kalem.aciklama || "—"}
                               </TableCell>
                             </TableRow>

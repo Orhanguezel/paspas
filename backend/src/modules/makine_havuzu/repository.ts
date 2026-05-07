@@ -6,8 +6,6 @@ import type { SQL } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { kalipUyumluMakineler, kaliplar, tatiller } from '@/modules/tanimlar/schema';
 import { uretimEmirleri, uretimEmriOperasyonlari } from '@/modules/uretim_emirleri/schema';
-import { stokDus, stokGeriAl } from '@/modules/uretim_emirleri/hammadde_service';
-import { ensureCriticalStockDrafts } from '@/modules/satin_alma/repository';
 import { urunler } from '@/modules/urunler/schema';
 import { recalcMakineKuyrukTarihleri, isMakineWorkingDay } from '@/modules/_shared/planlama';
 
@@ -485,20 +483,8 @@ export async function repoAtaOperasyon(data: AtaBody): Promise<void> {
     }
   });
 
-  // İlk makine atamasında hammadde stoktan düş (rezerve → gerçek tüketim)
-  // Stok negatife düşerse otomatik satın alma taslağı oluştur
+  // Stok düşümü makine atamasında değil, operatör üretim kaydında yapılır (gerçekleşen miktar)
   if (ilkAtama) {
-    const [emirInfo] = await db
-      .select({ emirNo: uretimEmirleri.emir_no })
-      .from(uretimEmirleri)
-      .where(eq(uretimEmirleri.id, opRow.uretim_emri_id))
-      .limit(1);
-    await stokDus(opRow.uretim_emri_id);
-    await ensureCriticalStockDrafts(
-      emirInfo?.emirNo ? `Üretim emri ${emirInfo.emirNo} için hammadde eksikliği` : undefined,
-    );
-
-    // Siparis kalemlerinin durumunu makineye_atandi yap
     const kalemIds = await getKalemIdsByUretimEmriId(opRow.uretim_emri_id);
     await transitionMultipleKalemDurum(kalemIds, 'makineye_atandi');
   }
@@ -558,14 +544,13 @@ export async function repoKuyrukCikar(kuyruguId: string): Promise<void> {
     }
   });
 
-  // Tüm atamalar kaldırıldıysa tüketilen hammadde stoku geri al (rezerveye döner)
+  // Stok geri alma kaldırıldı — stok düşümü makine atamasında yapılmıyor
   if (affectedEmriId) {
     const [check] = await db
       .select({ count: sql<number>`count(*)` })
       .from(makineKuyrugu)
       .where(eq(makineKuyrugu.uretim_emri_id, affectedEmriId));
     if (Number(check?.count ?? 0) === 0) {
-      await stokGeriAl(affectedEmriId);
       // Tüm kuyruk girişleri silindiyse, makineye_atandi + uretiliyor + duraklatildi
       // durumundaki tüm kalemleri uretime_aktarildi'ye geri al.
       // (Makine ataması kalmadığında "uretiliyor" takılı kalmasını önler.)

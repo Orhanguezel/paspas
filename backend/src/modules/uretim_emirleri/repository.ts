@@ -775,7 +775,14 @@ export async function repoGetHammaddeYeterlilik(id: string): Promise<HammaddeYet
       miktar: hammaddeRezervasyonlari.miktar,
     })
     .from(hammaddeRezervasyonlari)
-    .where(and(eq(hammaddeRezervasyonlari.uretim_emri_id, id), eq(hammaddeRezervasyonlari.durum, 'rezerve')));
+    .innerJoin(urunler, eq(hammaddeRezervasyonlari.urun_id, urunler.id))
+    .where(
+      and(
+        eq(hammaddeRezervasyonlari.uretim_emri_id, id),
+        eq(hammaddeRezervasyonlari.durum, 'rezerve'),
+        sql`${urunler.kategori} != 'operasyonel_ym'`,
+      ),
+    );
 
   if (myRez.length === 0) return { yeterli: true, items: [] };
 
@@ -802,6 +809,7 @@ export async function repoGetHammaddeYeterlilik(id: string): Promise<HammaddeYet
         eq(hammaddeRezervasyonlari.durum, 'rezerve'),
         sql`${hammaddeRezervasyonlari.uretim_emri_id} != ${id}`,
         eq(uretimEmirleri.is_active, 1),
+        sql`${uretimEmirleri.durum} NOT IN ('tamamlandi', 'iptal')`,
       ),
     );
 

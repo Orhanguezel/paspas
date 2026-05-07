@@ -213,7 +213,7 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
 
     // Sadece beklemede olanlar aktarilabilir — digerleri sessizce atlanir
     const aktarilacaklar = kalemRows.filter((k) => k.uretimDurumu === 'beklemede');
-    const atlananSayisi = kalemRows.length - aktarilacaklar.length;
+    let atlananSayisi = kalemRows.length - aktarilacaklar.length;
 
     if (aktarilacaklar.length === 0) {
       return reply.code(409).send({
@@ -232,6 +232,15 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
         for (const r of results) olusturulanEmirler.push(r.row.emir_no);
       } catch (err) {
         if (!(err instanceof SiparisUretimEmirHatasi)) throw err;
+        // Kalem zaten aktarıldı veya geçersiz geçiş — fallback oluşturma, sadece atla
+        const alreadyDone =
+          err.code === 'siparis_kalemi_zaten_uretime_aktarildi' ||
+          err.code.startsWith('gecersiz_gecis:');
+        if (alreadyDone) {
+          req.log.info({ error: err.code, kalemId: k.id }, 'kalem_zaten_aktarildi_atlandi');
+          atlananSayisi += 1;
+          continue;
+        }
         req.log.warn(
           { error: err.code, detay: err.detay, kalemId: k.id },
           'yari_mamul_emri_acilamadi_fallback_asil_urun',

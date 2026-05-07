@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { hareketler } from '@/modules/hareketler/schema';
@@ -101,7 +101,8 @@ async function getReceteIhtiyaclari(
       fireOrani: receteKalemleri.fire_orani,
     })
     .from(receteKalemleri)
-    .where(eq(receteKalemleri.recete_id, receteId));
+    .innerJoin(urunler, eq(receteKalemleri.urun_id, urunler.id))
+    .where(and(eq(receteKalemleri.recete_id, receteId), ne(urunler.kategori, 'operasyonel_ym')));
 
   return calculateReceteIhtiyaclari(kalemRows, hedefMiktar, planlananMiktar);
 }

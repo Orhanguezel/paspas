@@ -14,6 +14,7 @@ import { refreshSiparisDurum, getSiparisIdsByUretimEmriId, getKalemIdsByUretimEm
 import { transitionMultipleKalemDurum } from '@/modules/satis_siparisleri/kalem-durum.service';
 import { receteler, receteKalemleri } from '@/modules/receteler/schema';
 import { tryMontajForUretimEmri, tryPendingMontajlarAfterStokArtis } from '@/modules/uretim_emirleri/service';
+import { iptalRezervasyon } from '@/modules/uretim_emirleri/hammadde_service';
 import { repoCreate as malKabulRepoCreate } from '@/modules/mal_kabul/repository';
 import { createAdminNotification } from '@/modules/notifications/controller';
 import { isMakineWorkingDay, recalcMakineKuyrukTarihleri } from '@/modules/_shared/planlama';
@@ -389,20 +390,6 @@ async function consumeRecipeMaterials(
     .limit(1);
 
   if (!emir?.recete_id) return;
-
-  // Çift düşüm koruması: bu emir için hammadde zaten `stokDus` (makine atama) ile
-  // gerçek stoktan düşürülmüşse (rezervasyon durumu 'tamamlandi'), reçete üzerinden
-  // ikinci düşüm yapma. Aksi halde hammadde 2 kez düşer.
-  const [rezervasyonStat] = await tx
-    .select({ count: sql<number>`count(*)` })
-    .from(hammaddeRezervasyonlari)
-    .where(
-      and(
-        eq(hammaddeRezervasyonlari.uretim_emri_id, uretimEmriId),
-        eq(hammaddeRezervasyonlari.durum, 'tamamlandi'),
-      ),
-    );
-  if (Number(rezervasyonStat?.count ?? 0) > 0) return;
 
   const [recHeader] = await tx
     .select({ hedef_miktar: receteler.hedef_miktar })
@@ -1112,6 +1099,11 @@ export async function repoUretimBitir(
       .where(eq(uretimEmirleri.id, kqRef2.uretim_emri_id))
       .limit(1);
     const isEmirTamamlandi = emirRow?.durum === 'tamamlandi';
+
+    // Emir tamamlandığında rezervasyonları kapat (yeterlilik hesabı temizlensin)
+    if (isEmirTamamlandi) {
+      await iptalRezervasyon(kqRef2.uretim_emri_id);
+    }
 
     // Cift tarafli uretim kontrolu:
     // montaj operasyonu VEYA tek taraflı VEYA tüm operasyonlar bitti (UE tamamlandi) ise kalem tamamlandi
