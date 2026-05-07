@@ -120,17 +120,17 @@ export async function createAdminNotification(input: {
  * HTTP Handlers
  * --------------------------------------------------------------- */
 
-// GET /notifications/:id → tek bildirim
+// GET /notifications/:id → tek bildirim (admin herhangi birini okuyabilir)
 export const getNotification: RouteHandler = async (req, reply) => {
   const { id } = req.params as { id: string };
   try {
-    const userId = getAuthUserId(req);
+    getAuthUserId(req); // auth kontrolü
     const [row] = await db
       .select()
       .from(notifications)
       .where(eq(notifications.id, id))
       .limit(1);
-    if (!row || row.user_id !== userId) {
+    if (!row) {
       return reply.code(404).send({ error: { message: "not_found" } });
     }
     return reply.send(row);
