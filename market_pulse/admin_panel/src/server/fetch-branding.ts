@@ -37,6 +37,37 @@ function getServerApiUrl(): string {
   return 'http://127.0.0.1:8086/api/v1';
 }
 
+const ASSET_FIELDS = [
+  'admin_login_background_url',
+  'favicon_16',
+  'favicon_32',
+  'favicon_url',
+  'logo_url',
+  'apple_touch_icon',
+] as const;
+
+/** DB'den gelen path'lerin basePath prefix'i eksikse ekler. */
+function normalizeBrandingPaths(branding: Record<string, unknown>): Record<string, unknown> {
+  const basePath = (process.env.NEXT_PUBLIC_BASE_PATH || '').replace(/\/$/, '');
+  if (!basePath) return branding;
+
+  const out = { ...branding };
+  for (const field of ASSET_FIELDS) {
+    const v = out[field];
+    if (typeof v === 'string' && v.startsWith('/') && !v.startsWith(basePath)) {
+      out[field] = `${basePath}${v}`;
+    }
+  }
+  if (out.meta && typeof out.meta === 'object') {
+    const meta = { ...(out.meta as Record<string, unknown>) };
+    if (typeof meta.og_image === 'string' && meta.og_image.startsWith('/') && !meta.og_image.startsWith(basePath)) {
+      meta.og_image = `${basePath}${meta.og_image}`;
+    }
+    out.meta = meta;
+  }
+  return out;
+}
+
 /**
  * SSR'da `ui_admin_config` key'ini public endpoint üzerinden çeker,
  * `branding` alt-objesini döndürür.
@@ -57,10 +88,12 @@ export async function fetchBrandingConfig(): Promise<AdminBrandingConfig> {
 
     if (!branding || typeof branding !== 'object') return DEFAULT_BRANDING;
 
+    const normalized = normalizeBrandingPaths(branding as Record<string, unknown>);
+
     return {
       ...DEFAULT_BRANDING,
-      ...branding,
-      meta: { ...DEFAULT_BRANDING.meta, ...(branding.meta && typeof branding.meta === 'object' ? branding.meta : {}) },
+      ...normalized,
+      meta: { ...DEFAULT_BRANDING.meta, ...(normalized.meta && typeof normalized.meta === 'object' ? normalized.meta : {}) },
     };
   } catch {
     return DEFAULT_BRANDING;
