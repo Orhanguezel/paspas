@@ -216,7 +216,9 @@ WHRAI_API_KEY=
   - Kanal bazlı: hangi ülkeden / firm type'tan en çok red geliyor
   - Döndürür: `{ channel, pattern, count, last_seen }[]`
 
-- [ ] Pattern'ları ICP `exclude_patterns` alanına manuel ekleme UI'ı (ICP düzenleme formunda)
+- [x] Pattern'ları ICP `exclude_patterns` alanına manuel ekleme UI'ı (ICP düzenleme formunda)
+
+Codex doğrulama notu (2026-05-07): ICP oluşturma/düzenleme formunda `Hariç Pattern` tag input'u `exclude_patterns` alanına bağlı. Admin API ile `exclude_patterns` içeren ICP create/update akışı doğrulandı.
 
 ---
 

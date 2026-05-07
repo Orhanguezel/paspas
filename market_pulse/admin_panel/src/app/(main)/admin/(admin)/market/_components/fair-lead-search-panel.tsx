@@ -83,7 +83,7 @@ export default function FairLeadSearchPanel() {
             <span className="h-px w-8 bg-gm-gold" />
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-gold">Lead Machine</span>
           </div>
-          <h1 className="font-serif text-4xl text-white">Fuar Tarama</h1>
+          <h1 className="font-serif text-4xl text-gm-text">Fuar Tarama</h1>
           <p className="max-w-xl font-serif text-sm italic text-gm-muted">
             Fuar katılımcı listelerini ICP ile eşleştirip satış öncesi aday havuzu oluşturun.
           </p>
@@ -94,7 +94,7 @@ export default function FairLeadSearchPanel() {
           size="sm"
           onClick={() => refetch()}
           disabled={isFetching}
-          className="h-12 rounded-full border-gm-border-soft bg-gm-surface/20 px-8 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-gm-surface"
+            className="h-12 rounded-full border-gm-border-soft bg-gm-surface/20 px-8 text-[10px] font-bold uppercase tracking-widest text-gm-text hover:bg-gm-surface"
         >
           <RefreshCw className={cn('mr-2 size-4', isFetching && 'animate-spin')} />
           Yenile
@@ -111,7 +111,7 @@ export default function FairLeadSearchPanel() {
                   value={fairName}
                   onChange={(e) => setFairName(e.target.value)}
                   placeholder="Automechanika Frankfurt"
-                  className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-white placeholder:text-white/25"
+                  className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-gm-text placeholder:text-gm-muted/70"
                 />
               </div>
               <div className="space-y-2">
@@ -120,7 +120,7 @@ export default function FairLeadSearchPanel() {
                   type="date"
                   value={fairDate}
                   onChange={(e) => setFairDate(e.target.value)}
-                  className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-white"
+                  className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-gm-text"
                 />
               </div>
             </div>
@@ -132,16 +132,16 @@ export default function FairLeadSearchPanel() {
                   value={fairUrl}
                   onChange={(e) => setFairUrl(e.target.value)}
                   placeholder="https://..."
-                  className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-white placeholder:text-white/25"
+                  className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-gm-text placeholder:text-gm-muted/70"
                 />
               </div>
               <div className="space-y-2">
                 <Label className="ml-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">ICP Filtresi</Label>
                 <Select value={icpId} onValueChange={setIcpId} disabled={isIcpLoading}>
-                  <SelectTrigger className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-white">
+                  <SelectTrigger className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-gm-text">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-gm-border-soft bg-gm-bg-deep text-white">
+                  <SelectContent className="rounded-2xl border-gm-border-soft bg-gm-bg-deep text-gm-text">
                     <SelectItem value="none">ICP kullanma</SelectItem>
                     {(icps ?? []).map((icp) => (
                       <SelectItem key={icp.id} value={icp.id}>
@@ -167,7 +167,7 @@ export default function FairLeadSearchPanel() {
       <Card className="rounded-[28px] border-gm-border-soft bg-gm-bg-deep/50 shadow-2xl">
         <CardContent className="space-y-4 p-6">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="font-serif text-2xl text-white">Fuar Job Listesi</h2>
+            <h2 className="font-serif text-2xl text-gm-text">Fuar Job Listesi</h2>
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">{jobs?.length ?? 0} Job</span>
           </div>
 
@@ -186,18 +186,18 @@ export default function FairLeadSearchPanel() {
                     <div className="min-w-0 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         {statusBadge(job)}
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/50">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">
                           <CalendarDays className="size-3" />
                           {String(params.fair_date ?? 'Tarih yok')}
                         </span>
                       </div>
-                      <div className="font-serif text-xl text-white">{String(params.fair_name ?? 'Fuar taraması')}</div>
+                      <div className="font-serif text-xl text-gm-text">{String(params.fair_name ?? 'Fuar taraması')}</div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono text-gm-muted">
                         <span>Aday {job.result_count}</span>
                         {job.error_msg && <span className="text-gm-error">{job.error_msg}</span>}
                       </div>
                     </div>
-                    <Button asChild variant="outline" size="sm" className="rounded-full border-gm-border-soft bg-gm-surface/20 text-white hover:bg-gm-surface">
+                    <Button asChild variant="outline" size="sm" className="rounded-full border-gm-border-soft bg-gm-surface/20 text-gm-text hover:bg-gm-surface">
                       <Link href={`/admin/market/lead-machine/candidates?channel=trade_fair&job_id=${job.id}`}>
                         İncele
                         <ArrowRight className="ml-2 size-4" />

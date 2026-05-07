@@ -220,7 +220,7 @@ export default function UserRolesClient() {
             <span className="w-8 h-px bg-gm-gold" />
             <span className="text-gm-gold font-bold text-[10px] tracking-[0.2em] uppercase">Erişim Yönetimi</span>
           </div>
-          <h1 className="font-serif text-4xl text-gm-text text-white">{t('title')}</h1>
+          <h1 className="font-serif text-4xl text-gm-text">{t('title')}</h1>
           <p className="text-gm-muted text-sm font-serif italic opacity-70">
             {t('description')}
           </p>
@@ -230,7 +230,7 @@ export default function UserRolesClient() {
           onClick={() => rolesQ.refetch()} 
           disabled={busy} 
           variant="outline"
-          className="rounded-full border-gm-border-soft px-8 h-12 text-[10px] font-bold tracking-widest uppercase transition-all hover:bg-gm-surface shadow-lg backdrop-blur-sm text-white"
+          className="rounded-full border-gm-border-soft px-8 h-12 text-[10px] font-bold tracking-widest uppercase transition-all hover:bg-gm-surface shadow-lg backdrop-blur-sm text-gm-text"
         >
           <RefreshCcw className={cn("mr-2 size-4 text-gm-gold", rolesQ.isFetching && "animate-spin")} />
           Yenile
@@ -245,17 +245,17 @@ export default function UserRolesClient() {
               <div className="size-12 rounded-2xl bg-gm-gold/10 flex items-center justify-center text-gm-gold border border-gm-gold/20 shadow-inner">
                 <ShieldAlert size={24} />
               </div>
-              <h3 className="text-white font-serif text-xl">Yeni Yetki Atama</h3>
+              <h3 className="text-gm-text font-serif text-xl">Yeni Yetki Atama</h3>
             </div>
 
             <form onSubmit={onCreate} className="space-y-6">
               <div className="space-y-3">
                 <Label className="text-[10px] font-bold text-gm-muted tracking-[0.2em] uppercase ml-1">Kullanıcı Seçimi</Label>
                 <Select value={newUserId} onValueChange={setNewUserId} disabled={busy}>
-                  <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-14 focus:ring-gm-gold/50 text-sm text-white">
+                  <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-14 focus:ring-gm-gold/50 text-sm text-gm-text">
                     <SelectValue placeholder={usersQ.isFetching ? t('create.usersLoading') : t('create.userPlaceholder')} />
                   </SelectTrigger>
-                  <SelectContent className="bg-gm-bg-deep border-gm-border-soft rounded-2xl text-white">
+                  <SelectContent className="bg-gm-bg-deep border-gm-border-soft rounded-2xl text-gm-text">
                     {baseUserOptions.map((u) => (
                       <SelectItem key={u.id} value={u.id} className="rounded-xl focus:bg-gm-gold/10 focus:text-gm-gold">
                         {u.name}
@@ -268,10 +268,10 @@ export default function UserRolesClient() {
               <div className="space-y-3">
                 <Label className="text-[10px] font-bold text-gm-muted tracking-[0.2em] uppercase ml-1">Rol / Yetki</Label>
                 <Select value={newRole} onValueChange={(v) => setNewRole(v as UserRoleName)} disabled={busy}>
-                  <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-14 focus:ring-gm-gold/50 text-sm text-white">
+                  <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-14 focus:ring-gm-gold/50 text-sm text-gm-text">
                     <SelectValue placeholder={t('create.rolePlaceholder')} />
                   </SelectTrigger>
-                  <SelectContent className="bg-gm-bg-deep border-gm-border-soft rounded-2xl text-white">
+                  <SelectContent className="bg-gm-bg-deep border-gm-border-soft rounded-2xl text-gm-text">
                     <SelectItem value="admin" className="rounded-xl focus:bg-gm-gold/10 focus:text-gm-gold">{t('roles.admin')}</SelectItem>
                     <SelectItem value="consultant" className="rounded-xl focus:bg-gm-gold/10 focus:text-gm-gold">{t('roles.consultant')}</SelectItem>
                     <SelectItem value="user" className="rounded-xl focus:bg-gm-gold/10 focus:text-gm-gold">{t('roles.user')}</SelectItem>
@@ -303,10 +303,10 @@ export default function UserRolesClient() {
               
               <div className="flex-1 min-w-[200px]">
                 <Select value={filterUserId} onValueChange={setFilterUserId} disabled={busy}>
-                  <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-10 text-xs text-white">
+                  <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-10 text-xs text-gm-text">
                     <SelectValue placeholder="Kullanıcı Seç" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gm-bg-deep border-gm-border-soft rounded-2xl text-white">
+                  <SelectContent className="bg-gm-bg-deep border-gm-border-soft rounded-2xl text-gm-text">
                     <SelectItem value="all">Tüm Kullanıcılar</SelectItem>
                     {baseUserOptions.map((u) => (
                       <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
@@ -317,10 +317,10 @@ export default function UserRolesClient() {
 
               <div className="w-40">
                 <Select value={role} onValueChange={(v) => setRole(v as any)} disabled={busy}>
-                  <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-10 text-xs text-white">
+                  <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-10 text-xs text-gm-text">
                     <SelectValue placeholder="Tüm Roller" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gm-bg-deep border-gm-border-soft rounded-2xl text-white">
+                  <SelectContent className="bg-gm-bg-deep border-gm-border-soft rounded-2xl text-gm-text">
                     <SelectItem value="all">Tüm Roller</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="consultant">Danışman</SelectItem>
@@ -367,14 +367,14 @@ export default function UserRolesClient() {
                       const u = userNameById(row.user_id);
                       const isAdmin = row.role === 'admin';
                       return (
-                        <TableRow key={row.id} className="border-gm-border-soft hover:bg-gm-primary/[0.02] group transition-colors">
+                        <TableRow key={row.id} className="border-gm-border-soft hover:bg-gm-primary/2 group transition-colors">
                           <TableCell className="py-6 px-8">
                             <div className="flex items-center gap-3">
                               <div className="size-10 rounded-full bg-gm-surface flex items-center justify-center text-gm-muted border border-gm-border-soft">
                                 <User size={18} />
                               </div>
                               <div className="space-y-0.5">
-                                <div className="text-white font-serif text-lg leading-tight">{u.text}</div>
+                                <div className="text-gm-text font-serif text-lg leading-tight">{u.text}</div>
                                 <div className="text-[10px] text-gm-muted font-mono uppercase tracking-tighter opacity-60">ID: {row.user_id.slice(0, 8)}...</div>
                               </div>
                             </div>

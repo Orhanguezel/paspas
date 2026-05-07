@@ -55,7 +55,7 @@ export function PasswordForm() {
               <ShieldCheck size={24} />
             </div>
             <div>
-              <h3 className="text-white font-serif text-xl">{t('admin.profile.security') || 'Güvenlik'}</h3>
+              <h3 className="text-gm-text font-serif text-xl">{t('admin.profile.security') || 'Güvenlik'}</h3>
               <p className="text-[10px] font-bold text-gm-muted tracking-widest uppercase">
                 {t('admin.profile.securityDesc') || 'Hesap güvenliğinizi koruyun'}
               </p>
@@ -76,7 +76,7 @@ export function PasswordForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   disabled={isLoading}
-                  className="pl-12 bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-white transition-all"
+                  className="pl-12 bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-gm-text transition-all"
                 />
               </div>
             </div>
@@ -93,7 +93,7 @@ export function PasswordForm() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
                   disabled={isLoading}
-                  className="pl-12 bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-white transition-all"
+                  className="pl-12 bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-gm-text transition-all"
                 />
               </div>
             </div>
@@ -109,7 +109,7 @@ export function PasswordForm() {
           <Button 
             type="submit" 
             disabled={isLoading}
-            className="w-full bg-gm-surface hover:bg-gm-primary/[0.05] border border-gm-border-soft text-white rounded-full h-14 font-bold tracking-widest uppercase text-[10px] shadow-lg transition-all active:scale-95"
+            className="w-full bg-gm-surface hover:bg-gm-primary/5 border border-gm-border-soft text-gm-text rounded-full h-14 font-bold tracking-widest uppercase text-[10px] shadow-lg transition-all active:scale-95"
           >
             {isLoading ? (
               <>

@@ -15,3 +15,10 @@ docs/vps_dump_*.sql
 docs/vps_*.tsv
 .env.test
 .env.development
+
+# Dokümantasyon (build çıktıları, office dosyaları, kişisel notlar)
+docs/
+
+# Syncthing
+*.sync-conflict-*
+.syncthing.*.tmp

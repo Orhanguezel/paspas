@@ -212,7 +212,7 @@ export default function AdminStorageClient() {
             <span className="w-8 h-px bg-gm-gold" />
             <span className="text-gm-gold font-bold text-[10px] tracking-[0.2em] uppercase">Varlık Yönetimi</span>
           </div>
-          <h1 className="font-serif text-4xl text-gm-text text-white">Dosya Deposu</h1>
+          <h1 className="font-serif text-4xl text-gm-text">Dosya Deposu</h1>
           <p className="text-gm-muted text-sm font-serif italic opacity-70">
             Medya varlıklarını, dökümanları ve statik dosyaları organize edin.
           </p>
@@ -234,7 +234,7 @@ export default function AdminStorageClient() {
             onClick={() => refetch()} 
             disabled={busy} 
             variant="outline"
-            className="rounded-full border-gm-border-soft px-8 h-12 text-[10px] font-bold tracking-widest uppercase transition-all hover:bg-gm-surface shadow-lg backdrop-blur-sm text-white"
+            className="rounded-full border-gm-border-soft px-8 h-12 text-[10px] font-bold tracking-widest uppercase transition-all hover:bg-gm-surface shadow-lg backdrop-blur-sm text-gm-text"
           >
             <RefreshCcw className={cn("mr-2 size-4 text-gm-gold", isFetching && "animate-spin")} />
             Yenile
@@ -251,7 +251,7 @@ export default function AdminStorageClient() {
 
       {/* Filters Card */}
       <Card className="bg-gm-bg-deep/50 border-gm-border-soft rounded-[32px] overflow-hidden backdrop-blur-md shadow-2xl">
-        <CardContent className="p-8 flex flex-wrap gap-8 items-end text-white">
+        <CardContent className="p-8 flex flex-wrap gap-8 items-end text-gm-text">
           <div className="flex-1 min-w-[300px] space-y-3">
             <label className="text-[10px] font-bold text-gm-muted tracking-[0.2em] uppercase ml-1">Arama</label>
             <div className="relative group">
@@ -260,7 +260,7 @@ export default function AdminStorageClient() {
                 placeholder="Dosya adı veya yol ara..."
                 value={filters.search}
                 onChange={(e) => setFilters(p => ({ ...p, search: e.target.value }))}
-                className="pl-12 bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-white"
+                className="pl-12 bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-gm-text"
               />
             </div>
           </div>
@@ -268,10 +268,10 @@ export default function AdminStorageClient() {
           <div className="w-48 space-y-3">
             <label className="text-[10px] font-bold text-gm-muted tracking-[0.2em] uppercase ml-1">Bucket</label>
             <Select value={filters.bucket} onValueChange={(v) => setFilters(p => ({ ...p, bucket: v }))}>
-              <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 text-sm text-white">
+              <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 text-sm text-gm-text">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-gm-bg-deep border-gm-border-soft rounded-2xl text-white">
+              <SelectContent className="bg-gm-bg-deep border-gm-border-soft rounded-2xl text-gm-text">
                 <SelectItem value="all">Tümü</SelectItem>
                 {buckets.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
               </SelectContent>
@@ -281,10 +281,10 @@ export default function AdminStorageClient() {
           <div className="w-48 space-y-3">
             <label className="text-[10px] font-bold text-gm-muted tracking-[0.2em] uppercase ml-1">Klasör</label>
             <Select value={filters.folder} onValueChange={(v) => setFilters(p => ({ ...p, folder: v }))}>
-              <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 text-sm text-white">
+              <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 text-sm text-gm-text">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-gm-bg-deep border-gm-border-soft rounded-2xl text-white">
+              <SelectContent className="bg-gm-bg-deep border-gm-border-soft rounded-2xl text-gm-text">
                 <SelectItem value="all">Tümü</SelectItem>
                 <SelectItem value={ROOT_FOLDER_VALUE}>Kök Dizin</SelectItem>
                 {folders.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
@@ -295,10 +295,10 @@ export default function AdminStorageClient() {
           <div className="w-48 space-y-3">
             <label className="text-[10px] font-bold text-gm-muted tracking-[0.2em] uppercase ml-1">Dosya Tipi</label>
             <Select value={filters.mime} onValueChange={(v) => setFilters(p => ({ ...p, mime: v }))}>
-              <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 text-sm text-white">
+              <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 text-sm text-gm-text">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-gm-bg-deep border-gm-border-soft rounded-2xl text-white">
+              <SelectContent className="bg-gm-bg-deep border-gm-border-soft rounded-2xl text-gm-text">
                 <SelectItem value="all">Tümü</SelectItem>
                 <SelectItem value="image/">Resimler</SelectItem>
                 <SelectItem value="video/">Videolar</SelectItem>
@@ -365,7 +365,7 @@ export default function AdminStorageClient() {
                   const isSelected = selectedIds.has(item.id);
                   return (
                     <TableRow key={item.id} className={cn(
-                      "border-gm-border-soft hover:bg-gm-primary/[0.02] group transition-colors",
+                      "border-gm-border-soft hover:bg-gm-primary/2 group transition-colors",
                       isSelected && "bg-gm-gold/[0.03]"
                     )}>
                       <TableCell className="py-6 px-8 text-center">
@@ -386,7 +386,7 @@ export default function AdminStorageClient() {
                             )}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-white font-serif text-lg leading-tight truncate max-w-[200px]">{item.name}</div>
+                            <div className="text-gm-text font-serif text-lg leading-tight truncate max-w-[200px]">{item.name}</div>
                             <div className="text-[10px] text-gm-muted font-mono truncate max-w-[300px] opacity-60">Path: {item.path || '/'}</div>
                           </div>
                         </div>
@@ -430,7 +430,7 @@ export default function AdminStorageClient() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="size-9 rounded-full hover:bg-gm-surface text-gm-muted hover:text-white"
+                            className="size-9 rounded-full hover:bg-gm-surface text-gm-muted hover:text-gm-text"
                             onClick={() => router.push(`/admin/storage/${item.id}`)}
                           >
                             <Pencil size={14} />
@@ -456,7 +456,7 @@ export default function AdminStorageClient() {
 
       {/* Delete Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-gm-bg-deep border-gm-border-soft rounded-[32px] p-8 text-white">
+        <AlertDialogContent className="bg-gm-bg-deep border-gm-border-soft rounded-[32px] p-8 text-gm-text">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-serif text-2xl">Dosya Silinsin mi?</AlertDialogTitle>
             <AlertDialogDescription className="text-gm-muted font-serif italic">
@@ -464,7 +464,7 @@ export default function AdminStorageClient() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 gap-4">
-            <AlertDialogCancel className="rounded-full border-gm-border-soft bg-transparent hover:bg-gm-surface text-white h-12 px-8 font-bold tracking-widest uppercase text-[10px]">
+            <AlertDialogCancel className="rounded-full border-gm-border-soft bg-transparent hover:bg-gm-surface text-gm-text h-12 px-8 font-bold tracking-widest uppercase text-[10px]">
               Vazgeç
             </AlertDialogCancel>
             <AlertDialogAction 

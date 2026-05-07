@@ -103,7 +103,7 @@ export default function CacheManagementClient() {
           <span className="w-8 h-px bg-gm-gold" />
           <span className="text-gm-gold font-bold text-[10px] tracking-[0.2em] uppercase">Performans & Veri</span>
         </div>
-        <h1 className="font-serif text-4xl text-gm-text text-white">Cache Yönetimi</h1>
+        <h1 className="font-serif text-4xl text-gm-text">Cache Yönetimi</h1>
         <p className="text-gm-muted text-sm font-serif italic opacity-70">
           Frontend sayfalarının cache'ini temizleyerek içerik güncellemelerinin anında yansımasını sağlayın.
         </p>
@@ -117,7 +117,7 @@ export default function CacheManagementClient() {
                 <Zap size={24} />
               </div>
               <div>
-                <h3 className="text-white font-serif text-xl">Hızlı Temizleme</h3>
+                <h3 className="text-gm-text font-serif text-xl">Hızlı Temizleme</h3>
                 <p className="text-[10px] font-bold text-gm-muted tracking-widest uppercase">Sayfa Bazlı Cache Kontrolü</p>
               </div>
             </div>
@@ -140,7 +140,7 @@ export default function CacheManagementClient() {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-3">
-                        <span className="text-lg font-serif text-white">{item.label}</span>
+                        <span className="text-lg font-serif text-gm-text">{item.label}</span>
                         {lastCleared[item.id] && (
                           <Badge className="bg-gm-gold/10 text-gm-gold border-gm-gold/20 text-[9px] font-mono rounded-full px-2">
                             {lastCleared[item.id]}
@@ -157,8 +157,8 @@ export default function CacheManagementClient() {
                     className={cn(
                       "rounded-full px-8 h-12 text-[10px] font-bold tracking-widest uppercase transition-all shadow-lg backdrop-blur-sm shrink-0",
                       item.id === 'all' 
-                        ? "bg-gm-error/10 border-gm-error/40 text-gm-error hover:bg-gm-error hover:text-white" 
-                        : "border-gm-border-soft text-white hover:bg-gm-surface"
+                        ? "bg-gm-error/10 border-gm-error/40 text-gm-error hover:bg-gm-error hover:text-black" 
+                        : "border-gm-border-soft text-gm-text hover:bg-gm-surface"
                     )}
                   >
                     {loading === item.id ? (
@@ -191,7 +191,7 @@ export default function CacheManagementClient() {
               </p>
               <Separator className="bg-gm-border-soft" />
               <p>
-                Tema şablonu veya global site ayarı değiştirildiğinde tüm cache <span className="text-white not-italic font-bold underline decoration-gm-gold/50">otomatik</span> olarak temizlenir.
+                Tema şablonu veya global site ayarı değiştirildiğinde tüm cache <span className="text-gm-text not-italic font-bold underline decoration-gm-gold/50">otomatik</span> olarak temizlenir.
               </p>
             </div>
 

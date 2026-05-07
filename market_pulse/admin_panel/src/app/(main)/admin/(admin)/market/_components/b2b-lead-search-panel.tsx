@@ -97,7 +97,7 @@ export default function B2bLeadSearchPanel() {
             <span className="h-px w-8 bg-gm-gold" />
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-gold">Lead Machine</span>
           </div>
-          <h1 className="font-serif text-4xl text-white">B2B Arama</h1>
+          <h1 className="font-serif text-4xl text-gm-text">B2B Arama</h1>
           <p className="max-w-xl font-serif text-sm italic text-gm-muted">
             ICP profilini kullanarak dizinlerden ve Google Maps’ten aday firmalar çıkarın.
           </p>
@@ -108,7 +108,7 @@ export default function B2bLeadSearchPanel() {
           size="sm"
           onClick={() => refetch()}
           disabled={isFetching}
-          className="h-12 rounded-full border-gm-border-soft bg-gm-surface/20 px-8 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-gm-surface"
+            className="h-12 rounded-full border-gm-border-soft bg-gm-surface/20 px-8 text-[10px] font-bold uppercase tracking-widest text-gm-text hover:bg-gm-surface"
         >
           <RefreshCw className={cn('mr-2 size-4', isFetching && 'animate-spin')} />
           Yenile
@@ -122,10 +122,10 @@ export default function B2bLeadSearchPanel() {
               <div className="space-y-2">
                 <Label className="ml-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">ICP Profili</Label>
                 <Select value={icpId} onValueChange={setIcpId} disabled={isIcpLoading}>
-                  <SelectTrigger className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-white">
+                  <SelectTrigger className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-gm-text">
                     <SelectValue placeholder="ICP seç" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-gm-border-soft bg-gm-bg-deep text-white">
+                  <SelectContent className="rounded-2xl border-gm-border-soft bg-gm-bg-deep text-gm-text">
                     {(icps ?? []).map((icp) => (
                       <SelectItem key={icp.id} value={icp.id}>
                         {icp.name}
@@ -138,10 +138,10 @@ export default function B2bLeadSearchPanel() {
               <div className="space-y-2">
                 <Label className="ml-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">Kaynak</Label>
                 <Select value={source} onValueChange={setSource}>
-                  <SelectTrigger className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-white">
+                  <SelectTrigger className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-gm-text">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-gm-border-soft bg-gm-bg-deep text-white">
+                  <SelectContent className="rounded-2xl border-gm-border-soft bg-gm-bg-deep text-gm-text">
                     {SOURCES.map((item) => (
                       <SelectItem key={item.value} value={item.value}>
                         {item.label}
@@ -154,10 +154,10 @@ export default function B2bLeadSearchPanel() {
               <div className="space-y-2">
                 <Label className="ml-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">Ülke</Label>
                 <Select value={country} onValueChange={setCountry}>
-                  <SelectTrigger className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-white">
+                  <SelectTrigger className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-gm-text">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-gm-border-soft bg-gm-bg-deep text-white">
+                  <SelectContent className="rounded-2xl border-gm-border-soft bg-gm-bg-deep text-gm-text">
                     {COUNTRIES.map((item) => (
                       <SelectItem key={item} value={item}>
                         {item}
@@ -177,7 +177,7 @@ export default function B2bLeadSearchPanel() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="automotive accessories distributor"
-                    className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 pl-12 text-white placeholder:text-white/25"
+                    className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 pl-12 text-gm-text placeholder:text-gm-muted/70"
                   />
                 </div>
               </div>
@@ -190,7 +190,7 @@ export default function B2bLeadSearchPanel() {
                   max={100}
                   value={limit}
                   onChange={(e) => setLimit(Number(e.target.value))}
-                  className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-white"
+                  className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-gm-text"
                 />
               </div>
 
@@ -210,7 +210,7 @@ export default function B2bLeadSearchPanel() {
       <Card className="rounded-[28px] border-gm-border-soft bg-gm-bg-deep/50 shadow-2xl">
         <CardContent className="space-y-4 p-6">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="font-serif text-2xl text-white">B2B Job Listesi</h2>
+            <h2 className="font-serif text-2xl text-gm-text">B2B Job Listesi</h2>
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">{jobs?.length ?? 0} Job</span>
           </div>
 
@@ -232,19 +232,19 @@ export default function B2bLeadSearchPanel() {
                         <Badge variant="outline" className="rounded-full border-gm-border-soft bg-gm-bg-deep/40 text-[9px] font-bold uppercase tracking-widest text-gm-muted">
                           {String(params.source ?? 'google_maps')}
                         </Badge>
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/50">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">
                           <MapPin className="size-3" />
                           {String(params.country ?? 'DE')}
                         </span>
                       </div>
-                      <div className="font-serif text-xl text-white">{String(params.search_query ?? 'B2B araması')}</div>
+                      <div className="font-serif text-xl text-gm-text">{String(params.search_query ?? 'B2B araması')}</div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono text-gm-muted">
                         <span>Limit {String(params.limit ?? 25)}</span>
                         <span>Aday {job.result_count}</span>
                         {job.error_msg && <span className="text-gm-error">{job.error_msg}</span>}
                       </div>
                     </div>
-                    <Button asChild variant="outline" size="sm" className="rounded-full border-gm-border-soft bg-gm-surface/20 text-white hover:bg-gm-surface">
+                    <Button asChild variant="outline" size="sm" className="rounded-full border-gm-border-soft bg-gm-surface/20 text-gm-text hover:bg-gm-surface">
                       <Link href={`/admin/market/lead-machine/candidates?channel=b2b_directory&job_id=${job.id}`}>
                         İncele
                         <ArrowRight className="ml-2 size-4" />

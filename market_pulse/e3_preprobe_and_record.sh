@@ -23,6 +23,7 @@ cat > "$OUT_FILE" <<EOF
 ## Run Info
 
 - Komut: \`bash ./e3_preprobe.sh\`
+- Komut: \`bash ./e3_preprobe_and_record.sh\`
 - Zaman: \`$NOW_HUMAN\`
 - ISO: \`$NOW_ISO\`
 - Sonuc: \`$RESULT\`

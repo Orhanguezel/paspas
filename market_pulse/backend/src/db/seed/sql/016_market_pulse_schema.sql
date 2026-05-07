@@ -24,6 +24,13 @@ CREATE TABLE IF NOT EXISTS `market_targets` (
   UNIQUE KEY `uq_market_targets_paspas_id` (`paspas_customer_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Eski dev veritabanlarında CREATE TABLE IF NOT EXISTS mevcut tabloyu genişletmez.
+ALTER TABLE `market_targets`
+  ADD COLUMN IF NOT EXISTS `paspas_customer_id` char(36) DEFAULT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS `uq_market_targets_paspas_id`
+  ON `market_targets` (`paspas_customer_id`);
+
 CREATE TABLE IF NOT EXISTS `market_leads` (
   `id`           char(36)     NOT NULL,
   `name`         varchar(255) NOT NULL,

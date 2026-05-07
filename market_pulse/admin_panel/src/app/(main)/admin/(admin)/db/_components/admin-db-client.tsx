@@ -30,7 +30,7 @@ export const AdminDbClient: React.FC = () => {
                 <span className="text-gm-gold font-bold text-[10px] tracking-[0.2em] uppercase">Sistem & Veri</span>
               </div>
               <div className="flex items-center gap-4">
-                <h1 className="font-serif text-4xl text-gm-text text-white">{t("title")}</h1>
+                <h1 className="font-serif text-4xl text-gm-text">{t("title")}</h1>
                 
                 <Popover>
                   <PopoverTrigger asChild>
@@ -38,7 +38,7 @@ export const AdminDbClient: React.FC = () => {
                       <HelpCircle size={16} />
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent align="start" className="w-96 bg-gm-bg-deep border-gm-border-soft rounded-[24px] p-6 text-white shadow-2xl backdrop-blur-md">
+                  <PopoverContent align="start" className="w-96 bg-gm-bg-deep border-gm-border-soft rounded-[24px] p-6 text-gm-text shadow-2xl backdrop-blur-md">
                     <div className="space-y-4">
                       <div className="flex items-center gap-3 text-gm-gold">
                         <Lightbulb size={20} />
@@ -47,15 +47,15 @@ export const AdminDbClient: React.FC = () => {
                       <Separator className="bg-gm-border-soft" />
                       <ul className="space-y-4 text-gm-muted text-sm font-serif italic">
                         <li>
-                          <span className="text-white not-italic font-bold tracking-widest uppercase text-[10px] block mb-1">Full DB</span>
+                          <span className="text-gm-text not-italic font-bold tracking-widest uppercase text-[10px] block mb-1">Full DB</span>
                           {t("help.fullDbDesc")}
                         </li>
                         <li>
-                          <span className="text-white not-italic font-bold tracking-widest uppercase text-[10px] block mb-1">Snapshot</span>
+                          <span className="text-gm-text not-italic font-bold tracking-widest uppercase text-[10px] block mb-1">Snapshot</span>
                           {t("help.snapshotDesc")}
                         </li>
                         <li>
-                          <span className="text-white not-italic font-bold tracking-widest uppercase text-[10px] block mb-1">Module Export/Import</span>
+                          <span className="text-gm-text not-italic font-bold tracking-widest uppercase text-[10px] block mb-1">Module Export/Import</span>
                           {t("help.moduleDesc")}
                         </li>
                       </ul>
@@ -68,7 +68,7 @@ export const AdminDbClient: React.FC = () => {
 
             <div className="flex items-center gap-3 rounded-full bg-gm-surface/40 border border-gm-border-soft px-6 py-3 backdrop-blur-sm shadow-inner">
               <ShieldCheck className="size-4 text-gm-gold" />
-              <span className="text-[10px] font-bold text-white tracking-[0.2em] uppercase">Yetkili Erişim</span>
+              <span className="text-[10px] font-bold text-gm-text tracking-[0.2em] uppercase">Yetkili Erişim</span>
             </div>
           </div>
 
@@ -81,7 +81,7 @@ export const AdminDbClient: React.FC = () => {
                     <Database size={24} />
                   </div>
                   <div>
-                    <h3 className="text-white font-serif text-xl">Full DB Operations</h3>
+                    <h3 className="text-gm-text font-serif text-xl">Full DB Operations</h3>
                     <p className="text-[10px] font-bold text-gm-muted tracking-widest uppercase">Global Veri Yönetimi</p>
                   </div>
                 </div>
@@ -102,7 +102,7 @@ export const AdminDbClient: React.FC = () => {
                       <Download size={20} />
                     </div>
                     <div>
-                      <h3 className="text-white font-serif text-lg">Snapshots</h3>
+                      <h3 className="text-gm-text font-serif text-lg">Snapshots</h3>
                       <p className="text-[10px] font-bold text-gm-muted tracking-widest uppercase">Yedekleme ve Geri Yükleme</p>
                     </div>
                   </div>
@@ -118,7 +118,7 @@ export const AdminDbClient: React.FC = () => {
                       <Upload size={20} />
                     </div>
                     <div>
-                      <h3 className="text-white font-serif text-lg">Module Export / Import</h3>
+                      <h3 className="text-gm-text font-serif text-lg">Module Export / Import</h3>
                       <p className="text-[10px] font-bold text-gm-muted tracking-widest uppercase">Modüler Veri Transferi</p>
                     </div>
                   </div>

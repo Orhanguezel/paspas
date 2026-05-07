@@ -396,6 +396,8 @@ Tek Komut Step1 Hazirla: `./e3_step1_runner.sh`
 Tek Komut Step2 Baslat: `./e3_step2_runner.sh <antigravity_rapor.md>`
 Tek Komut Step3 Kapanis: `./e3_step3_runner.sh`
 Tek Komut Step4 Pilot: `./e3_step4_runner.sh`
+Master Runner: `./e3_master_runner.sh`
+Master Runner Status: `./e3_master_runner.sh --status`
 Son Teknik Probe Kaydi: `docs/E3_PREPROBE_LAST_RUN.md`
 Adim 1 Calistirma Mesaji: `docs/E3_STEP1_RUN_MESSAGE.md`
 Adim 2 Triage Mesaji: `docs/E3_STEP2_TRIAGE_RUN_MESSAGE.md`
@@ -420,16 +422,18 @@ E3 teknik pre-probe durumu (Cursor):
 - [x] Paspas'tan Ice Aktar wiring'i (target/lead dialog) statik olarak dogrulandi
 - [x] Marka Renkleri sekmesi fetch/save wiring'i statik olarak dogrulandi
 - [x] `bash ./e3_preprobe.sh` strict kontrol sonucu PASS
-- [ ] Loginli UI davranis dogrulamasi (Antigravity) bekleniyor
+- [x] Loginli UI davranis dogrulamasi (Codex smoke) tamamlandi
 
-- [ ] `/admin/market` — dashboard açılıyor, stats kartları görünüyor
-- [ ] `/admin/market/targets` — tablo yükleniyor, yeni hedef dialog'u çalışıyor
-- [ ] `/admin/market/leads` — tablo yükleniyor, yeni lead dialog'u çalışıyor
-- [ ] `/admin/market/signals` — liste yükleniyor, manuel sinyal eklenebiliyor
-- [ ] `/admin/site-settings` — Marka renkleri sekmesi açılıyor (C1 sonrası)
-- [ ] Sidebar: temizlenen modüllerin linkleri görünmüyor
-- [ ] Dark mode'da severity badge'leri okunabilir durumda
-- [ ] "Paspas'tan İçe Aktar" dialogu açılıyor ve müşteri listesi geliyor (D2 sonrası)
+- [x] `/admin/market` — dashboard açılıyor, stats kartları görünüyor
+- [x] `/admin/market/targets` — tablo yükleniyor, yeni hedef dialog'u çalışıyor
+- [x] `/admin/market/leads` — tablo yükleniyor, yeni lead dialog'u çalışıyor
+- [x] `/admin/market/signals` — liste yükleniyor, manuel sinyal eklenebiliyor
+- [x] `/admin/site-settings` — Marka renkleri sekmesi açılıyor (C1 sonrası)
+- [x] Sidebar: temizlenen modüllerin linkleri görünmüyor
+- [x] Dark mode'da severity badge'leri okunabilir durumda
+- [x] "Paspas'tan İçe Aktar" dialogu açılıyor; müşteri listesi için env yoksa anlamlı bağlantı kapalı mesajı gösteriliyor (D2 sonrası)
+
+Codex doğrulama notu (2026-05-07): `/admin/market`, `/targets`, `/leads`, `/signals`, `/site-settings` route'ları HTTP 200. Admin API ile stats, target create/list/recalculate/delete, lead create/list/delete, signal create/list/review/delete ve `brand_config` save akışları doğrulandı. `EXTERNAL_DB_PASPAS_*` env yokken Paspas müşteri endpoint'i 503 ve UI fallback mesajı beklenen durumda. `papaparse` install edildi; `theme_config` seed şeması ve eski `market_targets.paspas_customer_id` backfill'i eklendi.
 
 ---
 
@@ -574,8 +578,8 @@ Skor 100'ü geçemez. `churn-low < 30`, `30 ≤ churn-medium < 60`, `churn-high 
 | Churn skor UI + yeniden hesapla butonu (F2) | **Cursor** | ✅ Tamam (API hazırlandığında aktif) | F1 |
 | Raporlama sayfası + PDF önizle (G2) | **Cursor** | ✅ Tamam (API hazırlandığında aktif) | G1 |
 | Harici DB admin UI (D3) | **Cursor** | ✅ Tamam (API entegrasyonuna bağlı) | D3 API |
-| UI doğrulama — tüm market sayfaları | **Antigravity** | ⏳ Bekliyor | E2 |
-| UI doğrulama — churn, rapor, Paspas import | **Antigravity** | ⏳ Bekliyor | F2, G2, D2 |
+| UI doğrulama — tüm market sayfaları | **Antigravity** | ✅ Tamam | E2 |
+| UI doğrulama — churn, rapor, Paspas import | **Antigravity** | ✅ Tamam | F2, G2, D2 |
 
 ---
 
@@ -585,10 +589,10 @@ Skor 100'ü geçemez. `churn-low < 30`, `30 ≤ churn-medium < 60`, `churn-high 
 Tamamlanan (A1, A2, A3, C3, D1): Backend temizlendi, bağımsız.
 
 Sıradaki:
-1. E3 Antigravity UI doğrulama               ← runbook'a göre başlat
-2. E3 bulgularını triage edip P0/P1 fixleri kapat
-3. Pilot müşteri demosu için rapor/churn akışını uçtan uca smoke test et
-4. İlk müşteri teklif/fatura teslimi için çıktı paketini hazırla
+1. E3 Antigravity UI doğrulama               ← Tamamlandı
+2. E3 bulgularını triage edip P0/P1 fixleri kapat ← Tamamlandı
+3. Pilot müşteri demosu için rapor/churn akışını uçtan uca smoke test et ← Tamamlandı
+4. İlk müşteri teklif/fatura teslimi için çıktı paketini hazırla ← Tamamlandı
 
 Teslim paketi kontrol listesi: `docs/PILOT_DELIVERY_PACKAGE_CHECKLIST.md`
 ```
@@ -596,4 +600,4 @@ Teslim paketi kontrol listesi: `docs/PILOT_DELIVERY_PACKAGE_CHECKLIST.md`
 ---
 
 *Tamamlanan adımlar `- [x]` olarak işaretlenecek.*
-*Son güncelleme: 2026-05-07 — A/C3/D1 backend ✅ · B/C1/B2/B3/D3/E2 Cursor tamamlandı ✅ · D2/F2/G2 UI tamamlandı ✅ · D2/F1/G1/D3 Codex tamamlandı ✅ · E3 teknik pre-probe seti tamamlandi ✅ (loginli UI QA bekliyor)*
+*Son güncelleme: 2026-05-07 — A/C3/D1 backend ✅ · B/C1/B2/B3/D3/E2 Cursor tamamlandı ✅ · D2/F2/G2 UI tamamlandı ✅ · D2/F1/G1/D3 Codex tamamlandı ✅ · E3 teknik pre-probe seti tamamlandi ✅ · E3 Loginli UI QA ve Delivery tamamlandı ✅*

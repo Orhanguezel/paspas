@@ -138,7 +138,7 @@ export default function TargetsPanel() {
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <span className="w-8 h-px bg-gm-gold" />
-            <span className="text-gm-text/70 font-bold text-[10px] tracking-[0.2em] uppercase">Pazar İstihbaratı</span>
+            <span className="text-gm-text font-bold text-[10px] tracking-[0.2em] uppercase opacity-70">Pazar İstihbaratı</span>
           </div>
           <h1 className="font-serif text-4xl text-gm-text">Hedef Firmalar</h1>
           <p className="text-gm-muted text-sm font-serif italic max-w-xl">
@@ -191,7 +191,7 @@ export default function TargetsPanel() {
       <Card className="bg-gm-bg-deep/50 border-gm-border-soft rounded-[32px] overflow-hidden backdrop-blur-md shadow-2xl">
         <CardContent className="p-8 grid gap-8 md:grid-cols-2 lg:grid-cols-4 items-end text-gm-text">
           <div className="space-y-3 md:col-span-2">
-            <label className="text-[10px] font-bold text-gm-text/60 tracking-[0.2em] uppercase ml-1">Arama</label>
+            <label className="text-[10px] font-bold text-gm-text tracking-[0.2em] uppercase ml-1 opacity-70">Arama</label>
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-gm-muted/60" />
               <Input
@@ -204,7 +204,7 @@ export default function TargetsPanel() {
           </div>
 
           <div className="space-y-3">
-            <label className="text-[10px] font-bold text-gm-text/60 tracking-[0.2em] uppercase ml-1">Kategori</label>
+            <label className="text-[10px] font-bold text-gm-text tracking-[0.2em] uppercase ml-1 opacity-70">Kategori</label>
             <Select value={category || 'all'} onValueChange={(v) => setCategory(v === 'all' ? '' : v)}>
               <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm">
                 <SelectValue placeholder="Kategori Seç" />
@@ -220,7 +220,7 @@ export default function TargetsPanel() {
           </div>
 
           <div className="space-y-3">
-            <label className="text-[10px] font-bold text-gm-text/60 tracking-[0.2em] uppercase ml-1">Durum</label>
+            <label className="text-[10px] font-bold text-gm-text tracking-[0.2em] uppercase ml-1 opacity-70">Durum</label>
             <Select value={status || 'all'} onValueChange={(v) => setStatus(v === 'all' ? '' : v)}>
               <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm">
                 <SelectValue placeholder="Durum Seç" />
@@ -244,12 +244,12 @@ export default function TargetsPanel() {
           <Table>
             <TableHeader className="bg-gm-surface/40">
               <TableRow className="border-gm-border-soft hover:bg-transparent">
-                <TableHead className="py-6 px-8 text-[10px] font-bold uppercase tracking-widest text-gm-text/60">Firma Bilgileri</TableHead>
-                <TableHead className="py-6 text-[10px] font-bold uppercase tracking-widest text-gm-text/60 text-center">Kategori</TableHead>
-                <TableHead className="py-6 text-[10px] font-bold uppercase tracking-widest text-gm-text/60 text-center">Durum</TableHead>
-                <TableHead className="py-6 text-[10px] font-bold uppercase tracking-widest text-gm-text/60 text-center">Şehir</TableHead>
-                <TableHead className="py-6 text-[10px] font-bold uppercase tracking-widest text-gm-text/60 text-right pr-12">Churn Riski</TableHead>
-                <TableHead className="py-6 px-8 text-right text-[10px] font-bold uppercase tracking-widest text-gm-text/60">İşlemler</TableHead>
+                <TableHead className="py-6 px-8 text-[10px] font-bold uppercase tracking-widest text-gm-text">Firma Bilgileri</TableHead>
+                <TableHead className="py-6 text-[10px] font-bold uppercase tracking-widest text-gm-text text-center">Kategori</TableHead>
+                <TableHead className="py-6 text-[10px] font-bold uppercase tracking-widest text-gm-text text-center">Durum</TableHead>
+                <TableHead className="py-6 text-[10px] font-bold uppercase tracking-widest text-gm-text text-center">Şehir</TableHead>
+                <TableHead className="py-6 text-[10px] font-bold uppercase tracking-widest text-gm-text text-right pr-12">Churn Riski</TableHead>
+                <TableHead className="py-6 px-8 text-right text-[10px] font-bold uppercase tracking-widest text-gm-text">İşlemler</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

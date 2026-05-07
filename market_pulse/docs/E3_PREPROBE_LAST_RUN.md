@@ -3,8 +3,9 @@
 ## Run Info
 
 - Komut: `bash ./e3_preprobe.sh`
-- Zaman: `2026-05-07 17:10 (CEST)`
-- ISO: `2026-05-07T17:10:53+02:00`
+- Komut: `bash ./e3_preprobe_and_record.sh`
+- Zaman: `2026-05-07 17:17 (CEST)`
+- ISO: `2026-05-07T17:17:55+02:00`
 - Sonuc: `PASS`
 
 ## Ham Cikti

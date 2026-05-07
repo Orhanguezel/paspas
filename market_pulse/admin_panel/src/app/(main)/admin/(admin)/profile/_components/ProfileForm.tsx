@@ -97,7 +97,7 @@ export function ProfileForm() {
               <User size={24} />
             </div>
             <div>
-              <h3 className="text-white font-serif text-xl">{t('admin.profile.personalInfo') || 'Kişisel Bilgiler'}</h3>
+              <h3 className="text-gm-text font-serif text-xl">{t('admin.profile.personalInfo') || 'Kişisel Bilgiler'}</h3>
               <p className="text-[10px] font-bold text-gm-muted tracking-widest uppercase">
                 {t('admin.profile.personalInfoDesc') || 'Profil Kimliğinizi Yönetin'}
               </p>
@@ -106,7 +106,7 @@ export function ProfileForm() {
 
           <div className="flex flex-col items-center gap-8 sm:flex-row p-6 rounded-[24px] bg-gm-surface/40 border border-gm-border-soft shadow-inner">
             <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-tr from-gm-gold/40 to-transparent rounded-full blur opacity-25 group-hover:opacity-50 transition-opacity" />
+              <div className="absolute -inset-1 bg-linear-to-tr from-gm-gold/40 to-transparent rounded-full blur opacity-25 group-hover:opacity-50 transition-opacity" />
               <Avatar className="h-24 w-24 border-2 border-gm-border-soft relative bg-gm-bg-deep">
                 <AvatarImage src={avatarUrl || undefined} alt={fullName} className="object-cover" />
                 <AvatarFallback className="text-2xl font-serif text-gm-gold">
@@ -116,7 +116,7 @@ export function ProfileForm() {
               <label 
                 htmlFor="avatar-upload" 
                 className={cn(
-                  "absolute inset-0 flex items-center justify-center bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-all backdrop-blur-sm border border-gm-gold/30 scale-95 group-hover:scale-100",
+                  "absolute inset-0 flex items-center justify-center bg-black/60 text-gm-text rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-all backdrop-blur-sm border border-gm-gold/30 scale-95 group-hover:scale-100",
                   isUploading && "opacity-100"
                 )}
               >
@@ -132,7 +132,7 @@ export function ProfileForm() {
               />
             </div>
             <div className="flex-1 space-y-2 text-center sm:text-left">
-              <h4 className="font-serif text-2xl text-white leading-none">{fullName || email || 'Admin'}</h4>
+              <h4 className="font-serif text-2xl text-gm-text leading-none">{fullName || email || 'Admin'}</h4>
               <p className="text-xs text-gm-muted font-serif italic opacity-70">
                 {avatarUrl ? (t('admin.profile.avatarSet') || 'Özel profil resmi ayarlandı') : (t('admin.profile.noAvatar') || 'Varsayılan avatar kullanılıyor')}
               </p>
@@ -157,7 +157,7 @@ export function ProfileForm() {
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="John Doe"
                   disabled={isAnyLoading}
-                  className="pl-12 bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-white transition-all"
+                  className="pl-12 bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-gm-text transition-all"
                 />
               </div>
             </div>
@@ -174,7 +174,7 @@ export function ProfileForm() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@example.com"
                   disabled={isAnyLoading}
-                  className="pl-12 bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-white transition-all"
+                  className="pl-12 bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-gm-text transition-all"
                 />
               </div>
             </div>

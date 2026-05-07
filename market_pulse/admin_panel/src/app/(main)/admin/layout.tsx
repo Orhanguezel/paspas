@@ -28,7 +28,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
   return (
     <AdminAuthGate>
       <AdminSettingsProvider>
-        <SidebarProvider defaultOpen className="bg-gm-bg">
+        <SidebarProvider defaultOpen className="bg-gm-bg bg-sidebar">
           <AppSidebar
             variant="inset"
             collapsible="icon"

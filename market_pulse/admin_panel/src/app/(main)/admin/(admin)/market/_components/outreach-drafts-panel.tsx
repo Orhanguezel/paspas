@@ -63,18 +63,18 @@ function DraftEditor({ draft }: { draft: OutreachDraft }) {
               <Badge variant="outline" className={cn('rounded-full text-[9px] font-bold uppercase tracking-widest', status.cls)}>
                 {status.label}
               </Badge>
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/50">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">
                 {new Date(draft.created_at).toLocaleString('tr-TR')}
               </span>
             </div>
-            <div className="font-serif text-2xl text-white">E-posta Taslağı</div>
+            <div className="font-serif text-2xl text-gm-text">E-posta Taslağı</div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={handleCopy} className="rounded-full border-gm-border-soft bg-gm-surface/20 text-white hover:bg-gm-surface">
+            <Button variant="outline" size="sm" onClick={handleCopy} className="rounded-full border-gm-border-soft bg-gm-surface/20 text-gm-text hover:bg-gm-surface">
               <Clipboard className="mr-2 size-4" />
               Kopyala
             </Button>
-            <Button variant="outline" size="sm" disabled={updateState.isLoading} onClick={() => handleSave('archived')} className="rounded-full border-gm-border-soft bg-gm-surface/20 text-white hover:bg-gm-surface">
+            <Button variant="outline" size="sm" disabled={updateState.isLoading} onClick={() => handleSave('archived')} className="rounded-full border-gm-border-soft bg-gm-surface/20 text-gm-text hover:bg-gm-surface">
               <Archive className="mr-2 size-4" />
               Arşivle
             </Button>
@@ -89,12 +89,12 @@ function DraftEditor({ draft }: { draft: OutreachDraft }) {
           <Input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/30 font-serif text-lg text-white"
+            className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/30 font-serif text-lg text-gm-text"
           />
           <Textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            className="min-h-48 rounded-2xl border-gm-border-soft bg-gm-surface/30 text-sm leading-6 text-white"
+            className="min-h-48 rounded-2xl border-gm-border-soft bg-gm-surface/30 text-sm leading-6 text-gm-text"
           />
         </div>
       </CardContent>
@@ -113,7 +113,7 @@ export default function OutreachDraftsPanel() {
             <span className="h-px w-8 bg-gm-gold" />
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-gold">Lead Machine</span>
           </div>
-          <h1 className="font-serif text-4xl text-white">Outreach Taslakları</h1>
+          <h1 className="font-serif text-4xl text-gm-text">Outreach Taslakları</h1>
           <p className="max-w-xl font-serif text-sm italic text-gm-muted">
             Adaylardan üretilen kişiselleştirilmiş e-posta taslaklarını düzenleyin ve kopyalayın.
           </p>
@@ -124,7 +124,7 @@ export default function OutreachDraftsPanel() {
           size="sm"
           onClick={() => refetch()}
           disabled={isFetching}
-          className="h-12 rounded-full border-gm-border-soft bg-gm-surface/20 px-8 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-gm-surface"
+          className="h-12 rounded-full border-gm-border-soft bg-gm-surface/20 px-8 text-[10px] font-bold uppercase tracking-widest text-gm-text hover:bg-gm-surface"
         >
           <RefreshCw className={cn('mr-2 size-4', isFetching && 'animate-spin')} />
           Yenile

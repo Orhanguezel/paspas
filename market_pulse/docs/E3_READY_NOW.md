@@ -2,6 +2,8 @@
 
 Bu dosya, su anki durumda zaman kaybetmeden uygulanacak net akisi verir.
 
+Master komut (yardim/yonlendirme): `bash ./e3_master_runner.sh`
+
 ## 1) Hemen Gonder
 
 - Mesaj kaynagi: `docs/E3_ANTIGRAVITY_FINAL_MESSAGE.md`
@@ -23,3 +25,4 @@ Bu dosya, su anki durumda zaman kaybetmeden uygulanacak net akisi verir.
 - `docs/E3_STEP2_TRIAGE_RUN_MESSAGE.md` ile fix turunu baslat
 - `docs/E3_SMOKE_TEST_COMMANDS.md` ile build/smoke dogrulama yap
 - `bash ./e3_step3_runner.sh` ile kapanis adimini baslat
+- `bash ./e3_step4_runner.sh` ile pilot handoff adimini baslat

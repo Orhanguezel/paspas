@@ -215,17 +215,17 @@ function CandidateCard({
           <div className="grid gap-3 rounded-2xl border border-gm-gold/20 bg-gm-gold/5 p-4 md:grid-cols-4">
             <div>
               <div className="mb-1 text-[9px] font-bold uppercase tracking-[0.2em] text-gm-muted">Karar Verici</div>
-              <div className="text-sm text-white">
+              <div className="text-sm text-gm-text">
                 {String(decisionMaker?.name ?? 'Tespit edilemedi')}
               </div>
             </div>
             <div>
               <div className="mb-1 text-[9px] font-bold uppercase tracking-[0.2em] text-gm-muted">Unvan</div>
-              <div className="text-sm text-white">{String(decisionMaker?.title ?? 'Yok')}</div>
+              <div className="text-sm text-gm-text">{String(decisionMaker?.title ?? 'Yok')}</div>
             </div>
             <div>
               <div className="mb-1 text-[9px] font-bold uppercase tracking-[0.2em] text-gm-muted">E-posta</div>
-              <div className="text-sm text-white">
+              <div className="text-sm text-gm-text">
                 {decisionMaker?.email ? (
                   <a className="text-gm-gold hover:underline" href={`mailto:${String(decisionMaker.email)}`}>
                     {String(decisionMaker.email)}
@@ -235,7 +235,7 @@ function CandidateCard({
             </div>
             <div>
               <div className="mb-1 text-[9px] font-bold uppercase tracking-[0.2em] text-gm-muted">LinkedIn</div>
-              <div className="text-sm text-white">
+              <div className="text-sm text-gm-text">
                 {decisionMaker?.linkedin_url ? (
                   <a className="text-gm-gold hover:underline" href={String(decisionMaker.linkedin_url)} target="_blank" rel="noreferrer">
                     Profil

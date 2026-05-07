@@ -101,7 +101,7 @@ export default function AmazonLeadSearchPanel() {
             <span className="h-px w-8 bg-gm-gold" />
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-gold">Lead Machine</span>
           </div>
-          <h1 className="font-serif text-4xl text-white">Amazon Arama</h1>
+          <h1 className="font-serif text-4xl text-gm-text">Amazon Arama</h1>
           <p className="max-w-xl font-serif text-sm italic text-gm-muted">
             Amazon ürünlerinden problem yaşayan satıcıları aday lead olarak çıkarın.
           </p>
@@ -112,7 +112,7 @@ export default function AmazonLeadSearchPanel() {
           size="sm"
           onClick={() => refetch()}
           disabled={isFetching}
-          className="h-12 rounded-full border-gm-border-soft bg-gm-surface/20 px-8 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-gm-surface"
+            className="h-12 rounded-full border-gm-border-soft bg-gm-surface/20 px-8 text-[10px] font-bold uppercase tracking-widest text-gm-text hover:bg-gm-surface"
         >
           <RefreshCw className={cn('mr-2 size-4', isFetching && 'animate-spin')} />
           Yenile
@@ -131,7 +131,7 @@ export default function AmazonLeadSearchPanel() {
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
                     placeholder="car floor mats"
-                    className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 pl-12 text-white placeholder:text-white/25"
+                    className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 pl-12 text-gm-text placeholder:text-gm-muted/70"
                   />
                 </div>
               </div>
@@ -139,10 +139,10 @@ export default function AmazonLeadSearchPanel() {
               <div className="space-y-2">
                 <Label className="ml-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">Marketplace</Label>
                 <Select value={marketplace} onValueChange={setMarketplace}>
-                  <SelectTrigger className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-white">
+                  <SelectTrigger className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 text-gm-text">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-gm-border-soft bg-gm-bg-deep text-white">
+                  <SelectContent className="rounded-2xl border-gm-border-soft bg-gm-bg-deep text-gm-text">
                     {MARKETPLACES.map((item) => (
                       <SelectItem key={item.value} value={item.value}>
                         {item.label} - {item.domain}
@@ -157,24 +157,24 @@ export default function AmazonLeadSearchPanel() {
               <div className="space-y-3 rounded-2xl border border-gm-border-soft bg-gm-surface/10 p-4">
                 <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">Review Aralığı</Label>
                 <div className="grid grid-cols-2 gap-3">
-                  <Input type="number" min={0} value={numberInputValue(reviewMin)} onChange={(e) => setReviewMin(Number(e.target.value))} className="h-11 rounded-xl border-gm-border-soft bg-gm-bg-deep/60 text-white" />
-                  <Input type="number" min={0} value={numberInputValue(reviewMax)} onChange={(e) => setReviewMax(Number(e.target.value))} className="h-11 rounded-xl border-gm-border-soft bg-gm-bg-deep/60 text-white" />
+                  <Input type="number" min={0} value={numberInputValue(reviewMin)} onChange={(e) => setReviewMin(Number(e.target.value))} className="h-11 rounded-xl border-gm-border-soft bg-gm-bg-deep/60 text-gm-text" />
+                  <Input type="number" min={0} value={numberInputValue(reviewMax)} onChange={(e) => setReviewMax(Number(e.target.value))} className="h-11 rounded-xl border-gm-border-soft bg-gm-bg-deep/60 text-gm-text" />
                 </div>
               </div>
 
               <div className="space-y-3 rounded-2xl border border-gm-border-soft bg-gm-surface/10 p-4">
                 <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">Rating Aralığı</Label>
                 <div className="grid grid-cols-2 gap-3">
-                  <Input type="number" min={0} max={5} step={0.1} value={numberInputValue(ratingMin)} onChange={(e) => setRatingMin(Number(e.target.value))} className="h-11 rounded-xl border-gm-border-soft bg-gm-bg-deep/60 text-white" />
-                  <Input type="number" min={0} max={5} step={0.1} value={numberInputValue(ratingMax)} onChange={(e) => setRatingMax(Number(e.target.value))} className="h-11 rounded-xl border-gm-border-soft bg-gm-bg-deep/60 text-white" />
+                  <Input type="number" min={0} max={5} step={0.1} value={numberInputValue(ratingMin)} onChange={(e) => setRatingMin(Number(e.target.value))} className="h-11 rounded-xl border-gm-border-soft bg-gm-bg-deep/60 text-gm-text" />
+                  <Input type="number" min={0} max={5} step={0.1} value={numberInputValue(ratingMax)} onChange={(e) => setRatingMax(Number(e.target.value))} className="h-11 rounded-xl border-gm-border-soft bg-gm-bg-deep/60 text-gm-text" />
                 </div>
               </div>
 
               <div className="space-y-3 rounded-2xl border border-gm-border-soft bg-gm-surface/10 p-4">
                 <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">Fiyat Aralığı</Label>
                 <div className="grid grid-cols-2 gap-3">
-                  <Input type="number" min={0} value={numberInputValue(priceMin)} onChange={(e) => setPriceMin(Number(e.target.value))} className="h-11 rounded-xl border-gm-border-soft bg-gm-bg-deep/60 text-white" />
-                  <Input type="number" min={0} value={numberInputValue(priceMax)} onChange={(e) => setPriceMax(Number(e.target.value))} className="h-11 rounded-xl border-gm-border-soft bg-gm-bg-deep/60 text-white" />
+                  <Input type="number" min={0} value={numberInputValue(priceMin)} onChange={(e) => setPriceMin(Number(e.target.value))} className="h-11 rounded-xl border-gm-border-soft bg-gm-bg-deep/60 text-gm-text" />
+                  <Input type="number" min={0} value={numberInputValue(priceMax)} onChange={(e) => setPriceMax(Number(e.target.value))} className="h-11 rounded-xl border-gm-border-soft bg-gm-bg-deep/60 text-gm-text" />
                 </div>
               </div>
             </div>
@@ -196,7 +196,7 @@ export default function AmazonLeadSearchPanel() {
       <Card className="rounded-[28px] border-gm-border-soft bg-gm-bg-deep/50 shadow-2xl">
         <CardContent className="space-y-4 p-6">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="font-serif text-2xl text-white">Arama Geçmişi</h2>
+            <h2 className="font-serif text-2xl text-gm-text">Arama Geçmişi</h2>
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">{jobs?.length ?? 0} Job</span>
           </div>
 
@@ -218,11 +218,11 @@ export default function AmazonLeadSearchPanel() {
                         <Badge variant="outline" className="rounded-full border-gm-border-soft bg-gm-bg-deep/40 text-[9px] font-bold uppercase tracking-widest text-gm-muted">
                           {String(params.marketplace ?? 'com')}
                         </Badge>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/50">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">
                           {new Date(job.created_at).toLocaleString('tr-TR')}
                         </span>
                       </div>
-                      <div className="font-serif text-xl text-white">{String(params.keyword ?? 'Amazon araması')}</div>
+                      <div className="font-serif text-xl text-gm-text">{String(params.keyword ?? 'Amazon araması')}</div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono text-gm-muted">
                         <span>Review {String(params.review_min ?? 50)}-{String(params.review_max ?? 500)}</span>
                         <span>Rating {String(params.rating_min ?? 4)}-{String(params.rating_max ?? 4.5)}</span>
@@ -231,7 +231,7 @@ export default function AmazonLeadSearchPanel() {
                       </div>
                     </div>
                     <div className="flex flex-wrap justify-end gap-2">
-                      <Button asChild variant="outline" size="sm" className="rounded-full border-gm-border-soft bg-gm-surface/20 text-white hover:bg-gm-surface">
+                      <Button asChild variant="outline" size="sm" className="rounded-full border-gm-border-soft bg-gm-surface/20 text-gm-text hover:bg-gm-surface">
                         <Link href={`/admin/market/lead-machine/candidates?channel=amazon&job_id=${job.id}`}>
                           İncele
                           <ArrowRight className="ml-2 size-4" />

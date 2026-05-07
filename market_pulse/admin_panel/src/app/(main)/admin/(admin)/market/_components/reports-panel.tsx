@@ -57,7 +57,7 @@ export default function ReportsPanel() {
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <span className="w-8 h-px bg-gm-gold" />
-            <span className="text-gm-text/70 font-bold text-[10px] tracking-[0.2em] uppercase">Raporlama</span>
+            <span className="text-gm-text font-bold text-[10px] tracking-[0.2em] uppercase opacity-70">Raporlama</span>
           </div>
           <h1 className="font-serif text-4xl text-gm-text">İstihbarat Raporları</h1>
           <p className="text-gm-muted text-sm font-serif italic max-w-xl">
@@ -75,7 +75,7 @@ export default function ReportsPanel() {
                 <FileText size={32} />
               </div>
               <div className="text-right">
-                <div className="text-[10px] font-bold text-gm-text/70 tracking-widest uppercase">Otomatik Oluşturulan</div>
+                <div className="text-[10px] font-bold text-gm-text tracking-widest uppercase opacity-70">Otomatik Oluşturulan</div>
                 <div className="text-gm-text font-serif text-2xl">Haftalık Özet</div>
               </div>
             </div>
@@ -118,7 +118,7 @@ export default function ReportsPanel() {
 
             <div className="space-y-6">
               <div className="space-y-3">
-                <label className="ml-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gm-text/60">E-posta Adresi</label>
+                <label className="ml-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gm-text opacity-70">E-posta Adresi</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-gm-muted/60" />
                   <Input

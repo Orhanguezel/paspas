@@ -252,7 +252,7 @@ export default function AdminNotificationsClient() {
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             {/* Search */}
             <div className="space-y-3">
-              <Label className="text-[10px] font-bold text-gm-muted tracking-[0.2em] uppercase ml-1">{t('filters.search')}</Label>
+              <Label className="text-[10px] font-bold text-gm-text tracking-[0.2em] uppercase ml-1 opacity-70">{t('filters.search')}</Label>
               <div className="relative group">
                 <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-gm-muted/50 group-focus-within:text-gm-gold transition-colors" />
                 <Input
@@ -266,7 +266,7 @@ export default function AdminNotificationsClient() {
 
             {/* Read Filter */}
             <div className="space-y-3">
-              <Label className="text-[10px] font-bold text-gm-muted tracking-[0.2em] uppercase ml-1">{t('filters.status')}</Label>
+              <Label className="text-[10px] font-bold text-gm-text tracking-[0.2em] uppercase ml-1 opacity-70">{t('filters.status')}</Label>
               <Select
                 value={filters.readFilter}
                 onValueChange={(v) => setFilters((p) => ({ ...p, readFilter: v as ReadFilter }))}
@@ -284,7 +284,7 @@ export default function AdminNotificationsClient() {
 
             {/* Type Filter */}
             <div className="space-y-3">
-              <Label className="text-[10px] font-bold text-gm-muted tracking-[0.2em] uppercase ml-1">{t('filters.type')}</Label>
+              <Label className="text-[10px] font-bold text-gm-text tracking-[0.2em] uppercase ml-1 opacity-70">{t('filters.type')}</Label>
               <Select
                 value={filters.type}
                 onValueChange={(v) => setFilters((p) => ({ ...p, type: v }))}
@@ -312,12 +312,12 @@ export default function AdminNotificationsClient() {
           <Table>
             <TableHeader className="bg-gm-surface/40">
               <TableRow className="border-gm-border-soft hover:bg-transparent">
-                <TableHead className="w-16 py-6 px-8 text-center text-[10px] font-bold uppercase tracking-widest text-gm-muted">{t('table.status')}</TableHead>
-                <TableHead className="py-6 text-[10px] font-bold uppercase tracking-widest text-gm-muted">{t('table.title')}</TableHead>
-                <TableHead className="py-6 text-[10px] font-bold uppercase tracking-widest text-gm-muted">{t('table.message')}</TableHead>
-                <TableHead className="py-6 text-[10px] font-bold uppercase tracking-widest text-gm-muted">{t('table.type')}</TableHead>
-                <TableHead className="py-6 text-[10px] font-bold uppercase tracking-widest text-center text-gm-muted">{t('table.date')}</TableHead>
-                <TableHead className="py-6 px-8 text-right text-[10px] font-bold uppercase tracking-widest text-gm-muted">{t('table.actions')}</TableHead>
+                <TableHead className="w-16 py-6 px-8 text-center text-[10px] font-bold uppercase tracking-widest text-gm-text">{t('table.status')}</TableHead>
+                <TableHead className="py-6 text-[10px] font-bold uppercase tracking-widest text-gm-text">{t('table.title')}</TableHead>
+                <TableHead className="py-6 text-[10px] font-bold uppercase tracking-widest text-gm-text">{t('table.message')}</TableHead>
+                <TableHead className="py-6 text-[10px] font-bold uppercase tracking-widest text-gm-text">{t('table.type')}</TableHead>
+                <TableHead className="py-6 text-[10px] font-bold uppercase tracking-widest text-center text-gm-text">{t('table.date')}</TableHead>
+                <TableHead className="py-6 px-8 text-right text-[10px] font-bold uppercase tracking-widest text-gm-text">{t('table.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

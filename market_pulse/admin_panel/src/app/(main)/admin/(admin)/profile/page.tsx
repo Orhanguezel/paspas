@@ -15,7 +15,7 @@ export default function ProfilePage() {
           <span className="w-8 h-px bg-gm-gold" />
           <span className="text-gm-gold font-bold text-[10px] tracking-[0.2em] uppercase">Hesap Yönetimi</span>
         </div>
-        <h1 className="font-serif text-4xl text-gm-text text-white">{t('admin.sidebar.user.account')}</h1>
+        <h1 className="font-serif text-4xl text-gm-text">{t('admin.sidebar.user.account')}</h1>
         <p className="text-gm-muted text-sm font-serif italic opacity-70">
           {t('admin.profile.subtitle') || 'Profil bilgilerinizi ve şifrenizi buradan güncelleyebilirsiniz.'}
         </p>

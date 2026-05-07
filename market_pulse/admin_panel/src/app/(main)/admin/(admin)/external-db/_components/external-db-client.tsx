@@ -96,7 +96,7 @@ export default function ExternalDbClient() {
             <span className="w-8 h-px bg-gm-gold" />
             <span className="text-gm-gold font-bold text-[10px] tracking-[0.2em] uppercase">Entegrasyon</span>
           </div>
-          <h1 className="font-serif text-4xl text-gm-text text-white">Harici Veritabanı</h1>
+          <h1 className="font-serif text-4xl text-gm-text">Harici Veritabanı</h1>
           <p className="text-gm-muted text-sm font-serif italic opacity-70">
             Paspas ERP ve diğer harici veri kaynaklarına güvenli bağlantılar kurun.
           </p>
@@ -106,7 +106,7 @@ export default function ExternalDbClient() {
           onClick={() => refetch()} 
           disabled={isLoading || isFetching} 
           variant="outline"
-          className="rounded-full border-gm-border-soft px-8 h-12 text-[10px] font-bold tracking-widest uppercase transition-all hover:bg-gm-surface shadow-lg backdrop-blur-sm text-white"
+          className="rounded-full border-gm-border-soft px-8 h-12 text-[10px] font-bold tracking-widest uppercase transition-all hover:bg-gm-surface shadow-lg backdrop-blur-sm text-gm-text"
         >
           <RefreshCcw className={cn("mr-2 size-4 text-gm-gold", isFetching && "animate-spin")} />
           Yenile
@@ -122,7 +122,7 @@ export default function ExternalDbClient() {
                 <Plus size={24} />
               </div>
               <div>
-                <h3 className="text-white font-serif text-xl">Yeni Bağlantı Ekle</h3>
+                <h3 className="text-gm-text font-serif text-xl">Yeni Bağlantı Ekle</h3>
                 <p className="text-[10px] font-bold text-gm-muted tracking-widest uppercase">Bağlantı Detaylarını Tanımlayın</p>
               </div>
             </div>
@@ -136,7 +136,7 @@ export default function ExternalDbClient() {
                     placeholder="Örn: PASPAS"
                     value={form.key} 
                     onChange={(e) => setForm((p) => ({ ...p, key: e.target.value.toUpperCase() }))}
-                    className="pl-12 bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-white"
+                    className="pl-12 bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-gm-text"
                   />
                 </div>
               </div>
@@ -146,7 +146,7 @@ export default function ExternalDbClient() {
                   placeholder="Örn: Paspas ERP Üretim"
                   value={form.name} 
                   onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                  className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-white"
+                  className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-gm-text"
                 />
               </div>
               <div className="space-y-3 md:col-span-2">
@@ -155,7 +155,7 @@ export default function ExternalDbClient() {
                   placeholder="Veritabanı hakkında kısa bilgi..."
                   value={form.description} 
                   onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                  className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-white"
+                  className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-gm-text"
                 />
               </div>
 
@@ -169,7 +169,7 @@ export default function ExternalDbClient() {
                     placeholder="127.0.0.1"
                     value={form.host} 
                     onChange={(e) => setForm((p) => ({ ...p, host: e.target.value }))}
-                    className="pl-12 bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-white"
+                    className="pl-12 bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-gm-text"
                   />
                 </div>
               </div>
@@ -179,7 +179,7 @@ export default function ExternalDbClient() {
                   type="number" 
                   value={form.port} 
                   onChange={(e) => setForm((p) => ({ ...p, port: Number(e.target.value || 3306) }))}
-                  className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-white"
+                  className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-gm-text"
                 />
               </div>
               <div className="space-y-3">
@@ -188,7 +188,7 @@ export default function ExternalDbClient() {
                   placeholder="paspas_prod"
                   value={form.db_name} 
                   onChange={(e) => setForm((p) => ({ ...p, db_name: e.target.value }))}
-                  className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-white"
+                  className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-gm-text"
                 />
               </div>
               <div className="space-y-3">
@@ -197,7 +197,7 @@ export default function ExternalDbClient() {
                   placeholder="root"
                   value={form.username} 
                   onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
-                  className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-white"
+                  className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-gm-text"
                 />
               </div>
               <div className="space-y-3 md:col-span-2">
@@ -207,7 +207,7 @@ export default function ExternalDbClient() {
                   placeholder="••••••••"
                   value={form.password} 
                   onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                  className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-white"
+                  className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 focus:ring-gm-gold/50 text-sm text-gm-text"
                 />
               </div>
             </div>
@@ -241,7 +241,7 @@ export default function ExternalDbClient() {
               </Card>
             ) : (
               (data || []).map((row) => (
-                <Card key={row.id} className="bg-gm-surface/20 border-gm-border-soft rounded-[32px] overflow-hidden backdrop-blur-sm shadow-xl hover:bg-gm-primary/[0.02] transition-colors group">
+                <Card key={row.id} className="bg-gm-surface/20 border-gm-border-soft rounded-[32px] overflow-hidden backdrop-blur-sm shadow-xl hover:bg-gm-primary/2 transition-colors group">
                   <CardContent className="p-8">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-4">
@@ -250,7 +250,7 @@ export default function ExternalDbClient() {
                         </div>
                         <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-3">
-                            <h4 className="text-white font-serif text-lg leading-tight">{row.name}</h4>
+                            <h4 className="text-gm-text font-serif text-lg leading-tight">{row.name}</h4>
                             <Badge className="bg-gm-surface text-gm-muted border-gm-border-soft text-[8px] font-bold tracking-widest uppercase py-0 px-2 rounded-full">
                               {row.key}
                             </Badge>

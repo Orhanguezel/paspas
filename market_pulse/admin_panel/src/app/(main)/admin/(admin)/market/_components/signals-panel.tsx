@@ -90,7 +90,7 @@ export default function SignalsPanel() {
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <span className="w-8 h-px bg-gm-gold" />
-            <span className="text-gm-text/70 font-bold text-[10px] tracking-[0.2em] uppercase">Anlık Takip</span>
+            <span className="text-gm-text font-bold text-[10px] tracking-[0.2em] uppercase opacity-70">Anlık Takip</span>
           </div>
           <h1 className="font-serif text-4xl text-gm-text">Pazar Sinyalleri</h1>
           <p className="text-gm-muted text-sm font-serif italic max-w-xl">
@@ -124,7 +124,7 @@ export default function SignalsPanel() {
       <Card className="bg-gm-bg-deep/50 border-gm-border-soft rounded-[32px] overflow-hidden backdrop-blur-md shadow-2xl">
         <CardContent className="p-8 flex flex-wrap gap-8 items-end text-gm-text">
           <div className="space-y-3">
-            <label className="text-[10px] font-bold text-gm-text/60 tracking-[0.2em] uppercase ml-1">İnceleme Durumu</label>
+            <label className="text-[10px] font-bold text-gm-text tracking-[0.2em] uppercase ml-1 opacity-70">İnceleme Durumu</label>
             <Select value={isReviewed} onValueChange={setIsReviewed}>
               <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 w-48 focus:ring-gm-gold/50 text-sm">
                 <SelectValue />
@@ -138,7 +138,7 @@ export default function SignalsPanel() {
           </div>
 
           <div className="space-y-3">
-            <label className="text-[10px] font-bold text-gm-text/60 tracking-[0.2em] uppercase ml-1">Önem Derecesi</label>
+            <label className="text-[10px] font-bold text-gm-text tracking-[0.2em] uppercase ml-1 opacity-70">Önem Derecesi</label>
             <Select value={severity || 'all'} onValueChange={(v) => setSeverity(v === 'all' ? '' : v)}>
               <SelectTrigger className="bg-gm-surface/40 border-gm-border-soft rounded-2xl h-12 w-48 focus:ring-gm-gold/50 text-sm">
                 <SelectValue placeholder="Önem" />

@@ -94,8 +94,11 @@
   --color-gm-primary: var(--brand-gold);
   --color-gm-primary-dark: var(--brand-gold-strong);
   --color-gm-surface: var(--brand-cream);
+  --color-gm-bg: var(--brand-cream);
+  --color-gm-bg-deep: var(--background);
   --color-gm-text: var(--brand-ink);
   --color-gm-text-dim: oklch(0.45 0.012 50);
+  --color-gm-muted: var(--muted-foreground);
   --color-gm-border-soft: var(--brand-gold-border);
   --shadow-glow-primary: 0 0 20px rgba(22, 163, 74, 0.22);
 }
@@ -189,6 +192,8 @@ These serve as the fallback; there is no separate default.css file. */
   --brand-gold-strong: #22c55e;
   --brand-gold-soft: rgba(74, 222, 128, 0.1);
   --brand-gold-border: rgba(167, 243, 208, 0.2);
+  --brand-ink: #f7fee7;
+  --brand-cream: #052e16;
 }
 
 @layer base {

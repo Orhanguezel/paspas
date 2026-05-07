@@ -163,9 +163,9 @@ function IcpDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto rounded-[28px] border-gm-border-soft bg-gm-bg-deep text-white sm:max-w-3xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto rounded-[28px] border-gm-border-soft bg-gm-bg-deep text-gm-text sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle className="font-serif text-2xl text-white">{profile ? 'ICP Düzenle' : 'Yeni ICP'}</DialogTitle>
+          <DialogTitle className="font-serif text-2xl text-gm-text">{profile ? 'ICP Düzenle' : 'Yeni ICP'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -176,7 +176,7 @@ function IcpDialog({
                 value={form.name}
                 onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))}
                 placeholder="Oto Aksesuar Distribütörü - Avrupa"
-                className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/30 text-white"
+                className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/30 text-gm-text"
               />
             </div>
             <div className="flex h-12 items-center gap-3 rounded-2xl border border-gm-border-soft bg-gm-surface/20 px-4">
@@ -197,7 +197,7 @@ function IcpDialog({
                   value={toArrayText(form.definition[field.key])}
                   onChange={(e) => setDefinition(field.key, parseTags(e.target.value) as never)}
                   placeholder={field.placeholder}
-                  className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/30 text-white placeholder:text-white/25"
+                  className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/30 text-gm-text placeholder:text-gm-muted/70"
                 />
               </div>
             ))}
@@ -207,10 +207,10 @@ function IcpDialog({
             <div className="space-y-2">
               <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">Fiyat Segmenti</Label>
               <Select value={form.definition.price_segment} onValueChange={(value) => setDefinition('price_segment', value)}>
-                <SelectTrigger className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/30 text-white">
+                <SelectTrigger className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/30 text-gm-text">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl border-gm-border-soft bg-gm-bg-deep text-white">
+                <SelectContent className="rounded-2xl border-gm-border-soft bg-gm-bg-deep text-gm-text">
                   <SelectItem value="low">Low</SelectItem>
                   <SelectItem value="mid">Mid</SelectItem>
                   <SelectItem value="premium">Premium</SelectItem>
@@ -224,7 +224,7 @@ function IcpDialog({
                 min={0}
                 value={form.definition.min_employees ?? ''}
                 onChange={(e) => setDefinition('min_employees', e.target.value ? Number(e.target.value) : null)}
-                className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/30 text-white"
+                className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/30 text-gm-text"
               />
             </div>
             <div className="space-y-2">
@@ -234,13 +234,13 @@ function IcpDialog({
                 min={0}
                 value={form.definition.max_employees ?? ''}
                 onChange={(e) => setDefinition('max_employees', e.target.value ? Number(e.target.value) : null)}
-                className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/30 text-white"
+                className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/30 text-gm-text"
               />
             </div>
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-full border-gm-border-soft bg-gm-surface/20 text-white hover:bg-gm-surface">
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-full border-gm-border-soft bg-gm-surface/20 text-gm-text hover:bg-gm-surface">
               <X className="mr-2 size-4" />
               Vazgeç
             </Button>
@@ -279,7 +279,7 @@ export default function IcpProfilesPanel() {
             <span className="h-px w-8 bg-gm-gold" />
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-gold">Lead Machine</span>
           </div>
-          <h1 className="font-serif text-4xl text-white">ICP Profilleri</h1>
+          <h1 className="font-serif text-4xl text-gm-text">ICP Profilleri</h1>
           <p className="max-w-xl font-serif text-sm italic text-gm-muted">
             B2B aramalarında kullanılacak ideal müşteri profillerini yönetin.
           </p>
@@ -291,7 +291,7 @@ export default function IcpProfilesPanel() {
             size="sm"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="h-12 rounded-full border-gm-border-soft bg-gm-surface/20 px-6 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-gm-surface"
+            className="h-12 rounded-full border-gm-border-soft bg-gm-surface/20 px-6 text-[10px] font-bold uppercase tracking-widest text-gm-text hover:bg-gm-surface"
           >
             <RefreshCw className={cn('mr-2 size-4', isFetching && 'animate-spin')} />
             Yenile
@@ -343,7 +343,7 @@ export default function IcpProfilesPanel() {
                           </Badge>
                         )}
                       </div>
-                      <h2 className="font-serif text-2xl text-white">{profile.name}</h2>
+                      <h2 className="font-serif text-2xl text-gm-text">{profile.name}</h2>
                     </div>
                     <div className="flex gap-2">
                       <Button
@@ -353,7 +353,7 @@ export default function IcpProfilesPanel() {
                           setEditProfile(profile);
                           setDialogOpen(true);
                         }}
-                        className="rounded-full border-gm-border-soft bg-gm-surface/20 text-white hover:bg-gm-surface"
+                        className="rounded-full border-gm-border-soft bg-gm-surface/20 text-gm-text hover:bg-gm-surface"
                       >
                         <Pencil className="mr-2 size-4" />
                         Düzenle
@@ -382,7 +382,7 @@ export default function IcpProfilesPanel() {
                         <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-gm-muted">{String(label)}</div>
                         <div className="flex flex-wrap gap-1.5">
                           {(Array.isArray(value) ? value : []).slice(0, 5).map((item) => (
-                            <span key={item} className="rounded-full bg-gm-bg-deep/70 px-2 py-1 text-[10px] text-white/80">
+                            <span key={item} className="rounded-full bg-gm-bg-deep/70 px-2 py-1 text-[10px] text-gm-muted">
                               {item}
                             </span>
                           ))}

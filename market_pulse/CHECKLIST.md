@@ -60,7 +60,7 @@
 ## Sonraki Adımlar
 
 - [x] `bun run db:seed` — market_pulse DB'ye tabloları oluştur
-- [ ] Admin paneli dev ortamında test et (`/admin/market`)
+- [x] Admin paneli dev ortamında test et (`/admin/market`)
 - [ ] İlk müşteri verisi (Promat bayileri) manuel olarak gir
 - [x] Scraper-service sinyallerini market_signals tablosuna bağla (`competitor.signal.ts`, `/scan-competitor`, `/scan-all-competitors`)
-- [ ] VPS'e deploy (backend + admin panel)
+- [x] VPS'e deploy — https://panel.avrasyaotomotiv.net/market (mp-api:8086, mp-panel:3096)

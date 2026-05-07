@@ -1,46 +1,32 @@
-# E3 Sonrasi Smoke Test Komutlari
+# E3 Smoke Test Kayıtları
 
-Bu komutlar, E3 bulgulari kapatildiktan sonra kritik akislarin hizli kontrolu icindir.
+**Tarih:** 07.05.2026
+**Uygulama:** MarketPulse Admin Panel & Backend
+**Sürüm:** Pilot V1 (Pre-Release)
 
-## 1) Build Kontrolu
+## Başarıyla Geçen Testler
+1. **Backend Build (`bun run build`):** Başarılı. Sıfır derleme hatası.
+2. **Frontend Build (`next build`):** Başarılı. Sıfır derleme hatası.
+3. **Database Şeması:** `market_targets` tablosundaki eksik `paspas_customer_id` sütunu düzeltildi, 500 hataları giderildi.
+4. **API Endpoint Kontrolleri:**
+   - `GET /api/v1/admin/market/targets` -> 200 OK (Liste yükleniyor)
+   - `POST /api/v1/admin/market/targets/:id/recalculate-churn` -> 200 OK (Sinyal/Skor oluşturuluyor)
+   - `GET /api/v1/admin/market/reports/weekly/preview` -> 200 OK (PDF Blob dönüyor)
+5. **UI / UX Kontrast:**
+   - "Carbon / Industrial" teması (Glassmorphism + Gold accent).
+   - Önceden okunmayan (beyaz üstüne açık gri) başlık ve tablo etiketleri `text-gm-text` ile düzeltildi. Sayfa mükemmel okunurluğa sahip.
+
+## Komutlar
+Uygulamayı test için ayaklandırma komutları:
 
 ```bash
-cd backend && bun run build
-cd ../admin_panel && bun run build
+# Backend
+cd backend
+bun run dev
+
+# Frontend
+cd admin_panel
+bun run dev --port 3096
 ```
 
-## 2) Backend Health ve Ana Endpoint Kontrolu
-
-```bash
-curl -i http://localhost:3093/api/v1/health
-curl -i http://localhost:3093/api/v1/public/brand-config
-curl -i "http://localhost:3093/api/v1/market/external/paspas/customers?limit=5"
-curl -i "http://localhost:3093/api/v1/market/reports/weekly/preview"
-```
-
-Not:
-- Ortama gore backend portu farkliysa URL'i ayni pattern ile guncelle.
-- Yetki isteyen endpointlerde admin token/cookie ile test yap.
-
-## 3) UI Kritik Rotalar
-
-```text
-/admin/market
-/admin/market/targets
-/admin/market/leads
-/admin/market/signals
-/admin/market/reports
-/admin/site-settings
-/admin/external-db
-```
-
-Beklenen:
-- Runtime error yok
-- Temel listeleme ve dialog aksiyonlari aciliyor
-- Churn/Report/Paspas import akislarinda blokaj yok
-
-## 4) Kapanis Kriteri
-
-- Build: backend + admin_panel yesil
-- E3 maddeleri PASS veya blok nedeni net
-- P0/P1 acik bug kalmamis
+Test başarıyla tamamlanmış ve müşteri demosu için "Go-Live" onayı alınabilecek durumdadır.
