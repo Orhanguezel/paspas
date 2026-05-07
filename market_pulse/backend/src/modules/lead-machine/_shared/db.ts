@@ -155,9 +155,11 @@ export async function listCandidates(filters: { channel?: string; status?: strin
     values.push(filters.jobId);
   }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const limitInt = Math.floor(filters.limit);
+  const offsetInt = Math.floor(filters.offset);
   const [rows] = await pool.execute(
-    `SELECT * FROM lead_candidates ${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-    [...values, filters.limit, filters.offset] as never[],
+    `SELECT * FROM lead_candidates ${whereSql} ORDER BY created_at DESC LIMIT ${limitInt} OFFSET ${offsetInt}`,
+    values as never[],
   );
   const [countRows] = await pool.execute(`SELECT COUNT(*) AS count FROM lead_candidates ${whereSql}`, values as never[]);
   return {
