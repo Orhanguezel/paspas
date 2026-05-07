@@ -540,7 +540,13 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
 
   const vardiyaConditions = [
     sql`${vardiyaKayitlari.baslangic} <= ${bitis}`,
-    sql`COALESCE(${vardiyaKayitlari.bitis}, ${bitis}) >= ${baslangic}`,
+    // Kapalı vardiyalar: bitis >= sorgu başlangıcı
+    // Açık vardiyalar (bitis IS NULL): en fazla 2 gün öncesinden başlamış olmalı
+    // (gece vardiyaları için 1 günlük sapma tolere edilir, orphan shift'ler dışlanır)
+    sql`(
+      (${vardiyaKayitlari.bitis} IS NOT NULL AND ${vardiyaKayitlari.bitis} >= ${baslangic})
+      OR (${vardiyaKayitlari.bitis} IS NULL AND ${vardiyaKayitlari.baslangic} >= DATE_SUB(${baslangic}, INTERVAL 2 DAY))
+    )`,
   ];
   if (query.makineId) vardiyaConditions.push(eq(vardiyaKayitlari.makine_id, query.makineId));
 
