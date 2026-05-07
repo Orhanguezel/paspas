@@ -120,6 +120,29 @@ export async function createAdminNotification(input: {
  * HTTP Handlers
  * --------------------------------------------------------------- */
 
+// GET /notifications/:id → tek bildirim
+export const getNotification: RouteHandler = async (req, reply) => {
+  const { id } = req.params as { id: string };
+  try {
+    const userId = getAuthUserId(req);
+    const [row] = await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.id, id))
+      .limit(1);
+    if (!row || row.user_id !== userId) {
+      return reply.code(404).send({ error: { message: "not_found" } });
+    }
+    return reply.send(row);
+  } catch (e: any) {
+    if (e?.message === "unauthorized") {
+      return reply.code(401).send({ error: { message: "unauthorized" } });
+    }
+    req.log.error(e);
+    return reply.code(500).send({ error: { message: "notification_get_failed" } });
+  }
+};
+
 // GET /notifications  → aktif kullanıcının bildirim listesi
 export const listNotifications: RouteHandler = async (req, reply) => {
   try {

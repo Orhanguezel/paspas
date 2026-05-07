@@ -1,16 +1,10 @@
 'use client';
 
-// =============================================================
-// FILE: src/app/(main)/admin/(admin)/notifications/[id]/admin-notification-detail-client.tsx
-// FINAL — Admin Notification Detail/Create (App Router + shadcn)
-// - Create new or Edit existing notification
-// - Form with validation
-// =============================================================
-
 import * as React from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Save, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,13 +21,12 @@ import {
 
 import type { NotificationView, CreateNotificationBody } from '@/integrations/shared';
 import {
-  useListNotificationsQuery,
+  useGetNotificationByIdQuery,
   useCreateNotificationMutation,
   useUpdateNotificationMutation,
   useDeleteNotificationMutation,
 } from '@/integrations/hooks';
 
-// function getErrMsg(e: unknown): string { ... } moved inside or adapted
 import { useAdminT } from '@/app/(main)/admin/_components/common/useAdminT';
 import { usePreferencesStore } from '@/stores/preferences/preferences-provider';
 
@@ -59,6 +52,7 @@ const NOTIFICATION_TYPES = [
   'order_failed',
   'system',
   'custom',
+  'page_feedback',
 ] as const;
 
 type FormData = {
@@ -68,14 +62,25 @@ type FormData = {
   type: string;
 };
 
+/** Parses "page_feedback" message format: "{page_path}: {subject}" */
+function parsePageFeedbackMessage(message: string): { pagePath: string; subject: string } | null {
+  const colonIdx = message.indexOf(': ');
+  if (colonIdx === -1) return null;
+  const pagePath = message.slice(0, colonIdx).trim();
+  const subject = message.slice(colonIdx + 2).trim();
+  if (!pagePath || !subject) return null;
+  return { pagePath, subject };
+}
+
 export default function AdminNotificationDetailClient({ id }: { id: string }) {
   const router = useRouter();
   const t = useAdminT();
   const adminLocale = usePreferencesStore((s) => s.adminLocale);
   const isNew = id === 'new';
 
-  const { data: items = [] } = useListNotificationsQuery();
-  const item = items.find((n) => n.id === id);
+  const { data: item, isLoading: isLoadingItem } = useGetNotificationByIdQuery(id, {
+    skip: isNew,
+  });
 
   const [createNotification, { isLoading: isCreating }] = useCreateNotificationMutation();
   const [updateNotification, { isLoading: isUpdating }] = useUpdateNotificationMutation();
@@ -88,7 +93,6 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
     type: 'system',
   });
 
-  // Load existing data
   React.useEffect(() => {
     if (!isNew && item) {
       setFormData({
@@ -106,7 +110,7 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
     router.push('/admin/notifications');
   };
 
-    const handleSave = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.title.trim()) {
@@ -130,8 +134,6 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
         toast.success(t('notifications.messages.createSuccess'));
         router.push('/admin/notifications');
       } else {
-        // Note: notifications endpoint only supports updating is_read
-        // For full edit, we'd need backend support
         toast.warning(t('notifications.messages.editNotSupported'));
       }
     } catch (err) {
@@ -155,6 +157,11 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
       toast.error(getErrMsg(err, t));
     }
   };
+
+  const feedbackLink =
+    !isNew && item?.type === 'page_feedback'
+      ? parsePageFeedbackMessage(item.message)
+      : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -195,107 +202,142 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
         </CardHeader>
       </Card>
 
+      {/* Feedback thread quick-link */}
+      {feedbackLink && (
+        <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/20">
+          <CardContent className="flex items-center justify-between py-3">
+            <div className="text-sm">
+              <span className="font-medium">Sayfa:</span>{' '}
+              <code className="rounded bg-blue-100 px-1 dark:bg-blue-900">{feedbackLink.pagePath}</code>
+              {' · '}
+              <span className="text-muted-foreground">{feedbackLink.subject}</span>
+            </div>
+            <Button asChild size="sm" variant="outline">
+              <Link href={feedbackLink.pagePath}>
+                <ExternalLink className="mr-1.5 size-3.5" />
+                Sayfaya Git
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Loading state for existing item */}
+      {!isNew && isLoadingItem && (
+        <Card>
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            Yükleniyor...
+          </CardContent>
+        </Card>
+      )}
+
       {/* Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('notifications.form.infoTitle')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSave} className="space-y-4">
-            {/* User ID (optional) */}
-            <div className="space-y-2">
-              <Label htmlFor="user_id">
-                {t('notifications.form.userId')} <span className="text-muted-foreground">{t('notifications.form.optional')}</span>
-              </Label>
-              <Input
-                id="user_id"
-                value={formData.user_id}
-                onChange={(e) => setFormData((p) => ({ ...p, user_id: e.target.value }))}
-                placeholder={t('notifications.form.userIdPlaceholder')}
-                disabled={!isNew || busy}
-              />
-              <p className="text-xs text-muted-foreground">
-                {t('notifications.form.userIdHelp')}
-              </p>
-            </div>
-
-            {/* Title */}
-            <div className="space-y-2">
-              <Label htmlFor="title">
-                {t('notifications.form.title')} <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))}
-                placeholder={t('notifications.form.titlePlaceholder')}
-                required
-                disabled={!isNew || busy}
-              />
-            </div>
-
-            {/* Message */}
-            <div className="space-y-2">
-              <Label htmlFor="message">
-                {t('notifications.form.message')} <span className="text-destructive">*</span>
-              </Label>
-              <Textarea
-                id="message"
-                value={formData.message}
-                onChange={(e) => setFormData((p) => ({ ...p, message: e.target.value }))}
-                placeholder={t('notifications.form.messagePlaceholder')}
-                rows={4}
-                required
-                disabled={!isNew || busy}
-              />
-            </div>
-
-            {/* Type */}
-            <div className="space-y-2">
-              <Label htmlFor="type">
-                {t('notifications.form.type')} <span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={formData.type}
-                onValueChange={(v) => setFormData((p) => ({ ...p, type: v }))}
-                disabled={!isNew || busy}
-              >
-                <SelectTrigger id="type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {NOTIFICATION_TYPES.map((tVal) => (
-                    <SelectItem key={tVal} value={tVal}>
-                      {t(`notifications.types.${tVal}`, {}, tVal)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Submit */}
-            {isNew && (
-              <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" onClick={handleBack} variant="outline" disabled={busy}>
-                  {t('notifications.actions.cancel')}
-                </Button>
-                <Button type="submit" disabled={busy}>
-                  <Save className="mr-2 size-4" />
-                  {busy ? t('notifications.actions.saving') : t('notifications.actions.save')}
-                </Button>
-              </div>
-            )}
-
-            {!isNew && (
-              <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-950/20">
-                <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  {t('notifications.form.editWarning')}
+      {(isNew || !isLoadingItem) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('notifications.form.infoTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSave} className="space-y-4">
+              {/* User ID (optional) */}
+              <div className="space-y-2">
+                <Label htmlFor="user_id">
+                  {t('notifications.form.userId')}{' '}
+                  <span className="text-muted-foreground">{t('notifications.form.optional')}</span>
+                </Label>
+                <Input
+                  id="user_id"
+                  value={formData.user_id}
+                  onChange={(e) => setFormData((p) => ({ ...p, user_id: e.target.value }))}
+                  placeholder={t('notifications.form.userIdPlaceholder')}
+                  disabled={!isNew || busy}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t('notifications.form.userIdHelp')}
                 </p>
               </div>
-            )}
-          </form>
-        </CardContent>
-      </Card>
+
+              {/* Title */}
+              <div className="space-y-2">
+                <Label htmlFor="title">
+                  {t('notifications.form.title')}{' '}
+                  <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))}
+                  placeholder={t('notifications.form.titlePlaceholder')}
+                  required
+                  disabled={!isNew || busy}
+                />
+              </div>
+
+              {/* Message */}
+              <div className="space-y-2">
+                <Label htmlFor="message">
+                  {t('notifications.form.message')}{' '}
+                  <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="message"
+                  value={formData.message}
+                  onChange={(e) => setFormData((p) => ({ ...p, message: e.target.value }))}
+                  placeholder={t('notifications.form.messagePlaceholder')}
+                  rows={4}
+                  required
+                  disabled={!isNew || busy}
+                />
+              </div>
+
+              {/* Type */}
+              <div className="space-y-2">
+                <Label htmlFor="type">
+                  {t('notifications.form.type')}{' '}
+                  <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={formData.type || 'system'}
+                  onValueChange={(v) => setFormData((p) => ({ ...p, type: v }))}
+                  disabled={!isNew || busy}
+                >
+                  <SelectTrigger id="type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {NOTIFICATION_TYPES.map((tVal) => (
+                      <SelectItem key={tVal} value={tVal}>
+                        {t(`notifications.types.${tVal}`, {}, tVal)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Submit */}
+              {isNew && (
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button type="button" onClick={handleBack} variant="outline" disabled={busy}>
+                    {t('notifications.actions.cancel')}
+                  </Button>
+                  <Button type="submit" disabled={busy}>
+                    <Save className="mr-2 size-4" />
+                    {busy ? t('notifications.actions.saving') : t('notifications.actions.save')}
+                  </Button>
+                </div>
+              )}
+
+              {!isNew && (
+                <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-950/20">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                    {t('notifications.form.editWarning')}
+                  </p>
+                </div>
+              )}
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Detail info (for existing items) */}
       {!isNew && item && (
@@ -320,7 +362,7 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">{t('notifications.details.createdAt')}</p>
                 <p className="text-sm">
-                  {new Date(item.created_at).toLocaleString((localeMapping[adminLocale] || 'tr-TR'))}
+                  {new Date(item.created_at).toLocaleString(localeMapping[adminLocale] || 'tr-TR')}
                 </p>
               </div>
             </div>

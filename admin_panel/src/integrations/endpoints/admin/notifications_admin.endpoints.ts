@@ -55,6 +55,14 @@ export const notificationsApi = baseApi.injectEndpoints({
       keepUnusedDataFor: 10,
     }),
 
+    /** GET /notifications/:id */
+    getNotificationById: b.query<NotificationView, string>({
+      query: (id) => ({ url: `${BASE}/${encodeURIComponent(id)}`, method: 'GET' }),
+      transformResponse: (res: unknown): NotificationView => normalizeNotification(res),
+      providesTags: (_r, _e, id) => [{ type: 'Notification' as const, id }],
+      keepUnusedDataFor: 30,
+    }),
+
     /** POST /notifications */
     createNotification: b.mutation<NotificationView, CreateNotificationBody>({
       query: (body) => ({
@@ -125,6 +133,7 @@ export const notificationsApi = baseApi.injectEndpoints({
 
 export const {
   useListNotificationsQuery,
+  useGetNotificationByIdQuery,
   useGetUnreadCountQuery,
   useCreateNotificationMutation,
   useUpdateNotificationMutation,
