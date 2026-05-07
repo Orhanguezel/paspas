@@ -46,8 +46,15 @@ const omitNullish = <T extends Record<string, unknown>>(o: T) =>
     Object.entries(o).filter(([, v]) => v !== null && v !== undefined),
   ) as Partial<T>;
 
-/** Dosya adı sanitize */
-const sanitizeName = (name: string) => name.replace(/[^\w.\-]+/g, "_");
+/** Dosya adı sanitize — Türkçe harfler ASCII karşılığına çevrilir, gerisi _ yapılır */
+const TR_MAP: Record<string, string> = {
+  ğ: 'g', Ğ: 'G', ü: 'u', Ü: 'U', ş: 's', Ş: 'S',
+  ı: 'i', İ: 'I', ö: 'o', Ö: 'O', ç: 'c', Ç: 'C',
+};
+const sanitizeName = (name: string) =>
+  name
+    .replace(/[ğĞüÜşŞıİöÖçÇ]/g, (c) => TR_MAP[c] ?? c)
+    .replace(/[^\w.\-]+/g, '_');
 
 /** Per-request upload log base (user + ip + ua) */
 function makeUploadLogBase(req: any) {
