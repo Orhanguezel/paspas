@@ -1311,7 +1311,9 @@ function DraftReceteSection({ birim, allowedCategoryCodes, rows, onRowsChange }:
 
   const malzemeOptions = useMemo(() => {
     if (!malzemeData?.items) return [];
-    return malzemeData.items.filter((u) => allowedCategoryCodes.includes(u.kategori));
+    // Reçete malzemeleri: hammadde, yarimamul, operasyonel_ym
+    const allowed = new Set([...allowedCategoryCodes, "hammadde", "yarimamul", "operasyonel_ym"]);
+    return malzemeData.items.filter((u) => allowed.has(u.kategori));
   }, [allowedCategoryCodes, malzemeData]);
 
   useEffect(() => {
@@ -1454,7 +1456,9 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
 
   const baseMalzemeOptions = useMemo(() => {
     if (!malzemeData?.items) return [];
-    return malzemeData.items.filter((u) => allowedCategoryCodes.includes(u.kategori) && u.id !== urunId);
+    // Reçete malzemeleri: hammadde, yarimamul, operasyonel_ym
+    const allowed = new Set([...allowedCategoryCodes, "hammadde", "yarimamul", "operasyonel_ym"]);
+    return malzemeData.items.filter((u) => allowed.has(u.kategori) && u.id !== urunId);
   }, [allowedCategoryCodes, malzemeData, urunId]);
 
   const malzemeOptions = useMemo(
