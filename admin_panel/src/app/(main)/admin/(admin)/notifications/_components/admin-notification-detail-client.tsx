@@ -231,8 +231,42 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
         </Card>
       )}
 
-      {/* Form */}
-      {(isNew || !isLoadingItem) && (
+      {/* Read-only view for existing notifications */}
+      {!isNew && !isLoadingItem && item && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('notifications.form.infoTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">{t('notifications.form.userId')}</p>
+                <p className="text-sm">{item.user_id || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">{t('notifications.form.title')}</p>
+                <p className="text-sm font-semibold">{item.title}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">{t('notifications.form.message')}</p>
+                <p className="text-sm whitespace-pre-wrap">{item.message}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">{t('notifications.form.type')}</p>
+                <p className="text-sm">{t(`notifications.types.${item.type}`, {}, item.type)}</p>
+              </div>
+            </div>
+            <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-950/20">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                {t('notifications.form.editWarning')}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Create form for new notifications */}
+      {isNew && (
         <Card>
           <CardHeader>
             <CardTitle>{t('notifications.form.infoTitle')}</CardTitle>
@@ -250,7 +284,7 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
                   value={formData.user_id}
                   onChange={(e) => setFormData((p) => ({ ...p, user_id: e.target.value }))}
                   placeholder={t('notifications.form.userIdPlaceholder')}
-                  disabled={!isNew || busy}
+                  disabled={busy}
                 />
                 <p className="text-xs text-muted-foreground">
                   {t('notifications.form.userIdHelp')}
@@ -269,7 +303,7 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
                   onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))}
                   placeholder={t('notifications.form.titlePlaceholder')}
                   required
-                  disabled={!isNew || busy}
+                  disabled={busy}
                 />
               </div>
 
@@ -286,7 +320,7 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
                   placeholder={t('notifications.form.messagePlaceholder')}
                   rows={4}
                   required
-                  disabled={!isNew || busy}
+                  disabled={busy}
                 />
               </div>
 
@@ -299,7 +333,7 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
                 <Select
                   value={formData.type || 'system'}
                   onValueChange={(v) => setFormData((p) => ({ ...p, type: v }))}
-                  disabled={!isNew || busy}
+                  disabled={busy}
                 >
                   <SelectTrigger id="type">
                     <SelectValue />
@@ -314,26 +348,15 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
                 </Select>
               </div>
 
-              {/* Submit */}
-              {isNew && (
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button type="button" onClick={handleBack} variant="outline" disabled={busy}>
-                    {t('notifications.actions.cancel')}
-                  </Button>
-                  <Button type="submit" disabled={busy}>
-                    <Save className="mr-2 size-4" />
-                    {busy ? t('notifications.actions.saving') : t('notifications.actions.save')}
-                  </Button>
-                </div>
-              )}
-
-              {!isNew && (
-                <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-950/20">
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    {t('notifications.form.editWarning')}
-                  </p>
-                </div>
-              )}
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" onClick={handleBack} variant="outline" disabled={busy}>
+                  {t('notifications.actions.cancel')}
+                </Button>
+                <Button type="submit" disabled={busy}>
+                  <Save className="mr-2 size-4" />
+                  {busy ? t('notifications.actions.saving') : t('notifications.actions.save')}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>

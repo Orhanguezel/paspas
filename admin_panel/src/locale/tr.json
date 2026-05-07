@@ -2636,7 +2636,8 @@
         "order_paid": "İlan Yayınlandı",
         "order_failed": "İlan İşlemi Başarısız",
         "system": "Sistem",
-        "custom": "Özel"
+        "custom": "Özel",
+        "page_feedback": "Sayfa Geri Bildirimi"
       }
     },
     "audit": {
