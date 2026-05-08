@@ -33,6 +33,14 @@ function asRecord(value: unknown) {
   return value && typeof value === 'object' ? value as Record<string, unknown> : {};
 }
 
+function parseJsonField(row: Record<string, unknown>, key: string): Record<string, unknown> {
+  const value = row[key];
+  if (typeof value === 'string') {
+    try { return { ...row, [key]: JSON.parse(value) }; } catch { /* keep as-is */ }
+  }
+  return row;
+}
+
 function runInBackground(task: Promise<unknown>) {
   task.catch(() => undefined);
 }
