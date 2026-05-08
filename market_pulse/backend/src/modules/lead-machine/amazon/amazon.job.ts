@@ -28,18 +28,23 @@ async function saveRiskScore(jobId: string, report: AmazonRiskReport) {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id, jobId, report.keyword,
-      report.scores.category_risk.score,     report.scores.category_risk.confidence,    report.scores.category_risk.reason,
-      report.scores.sku_chaos.score,         report.scores.sku_chaos.confidence,         report.scores.sku_chaos.reason,
-      report.scores.price_war_risk.score,    report.scores.price_war_risk.confidence,    report.scores.price_war_risk.reason,
-      report.scores.brand_reliability.score, report.scores.brand_reliability.confidence, report.scores.brand_reliability.reason,
-      report.scores.operational_risk.score,  report.scores.operational_risk.confidence,  report.scores.operational_risk.reason,
-      report.composite_score, report.decision, report.summary, report.data_points,
+      safeNum(report.scores.category_risk.score, 0),     report.scores.category_risk.confidence,    report.scores.category_risk.reason ?? '',
+      safeNum(report.scores.sku_chaos.score, 0),         report.scores.sku_chaos.confidence,         report.scores.sku_chaos.reason ?? '',
+      safeNum(report.scores.price_war_risk.score, 0),    report.scores.price_war_risk.confidence,    report.scores.price_war_risk.reason ?? '',
+      safeNum(report.scores.brand_reliability.score, 0), report.scores.brand_reliability.confidence, report.scores.brand_reliability.reason ?? '',
+      safeNum(report.scores.operational_risk.score, 0),  report.scores.operational_risk.confidence,  report.scores.operational_risk.reason ?? '',
+      safeNum(report.composite_score), report.decision, report.summary ?? '', report.data_points,
     ],
   );
 }
 
 function extractAsin(productUrl?: string | null) {
   return productUrl?.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/)?.[1] ?? null;
+}
+
+function safeNum(v: number | null | undefined, fallback: number | null = null): number | null {
+  if (v === null || v === undefined) return fallback;
+  return Number.isFinite(v) ? v : fallback;
 }
 
 async function saveAmazonProducts(jobId: string, products: AmazonProduct[]) {
@@ -51,10 +56,10 @@ async function saveAmazonProducts(jobId: string, products: AmazonProduct[]) {
       [
         randomUUID(),
         jobId,
-        product.product_title,
-        product.price ?? null,
-        product.rating ?? null,
-        product.review_count ?? 0,
+        product.product_title || '',
+        safeNum(product.price),
+        safeNum(product.rating),
+        safeNum(product.review_count, 0) ?? 0,
         product.seller_name ?? null,
         product.seller_url ?? null,
         product.product_url ?? null,
