@@ -208,6 +208,11 @@ const sampleRiskReport: any = {
   composite_score: 8.5,
   decision: 'GIRME',
   summary: 'Yüksek riskli kategori',
+  keepa_trend: [
+    { label: '30d min', price: 22.5 },
+    { label: '90d avg', price: 24.8 },
+    { label: '30d max', price: 28.8 },
+  ],
   scores: {
     category_risk: { score: 9, confidence: 'HIGH', reason: 'Too many sellers' },
     sku_chaos: { score: 8, confidence: 'HIGH', reason: 'High chaos' },
@@ -273,7 +278,7 @@ describe('market admin component smoke tests', () => {
     expect(render(<FairLeadSearchPanel />)).toContain('Fuar Job Listesi');
     const riskHtml = render(<RiskScoreCard report={sampleRiskReport} />);
     expect(riskHtml).toContain('Yüksek riskli kategori');
-    expect(riskHtml).toContain('Keepa Fiyat Trendi');
+    expect(riskHtml).toContain('Risk Profili (5 Boyut)');
   });
 
   test('icp, outreach and reports panels render primary surfaces', () => {

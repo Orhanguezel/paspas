@@ -330,6 +330,11 @@ describe('lead machine admin RTK endpoints', () => {
     expect(call.method).toBe('GET');
     expect(call.url.pathname).toBe('/api/v1/admin/lead-machine/amazon/scan/job-1');
 
+    call = await dispatchEndpoint('listAmazonScanProducts', { jobId: 'job-1', limit: 25 });
+    expect(call.method).toBe('GET');
+    expect(call.url.pathname).toBe('/api/v1/admin/lead-machine/amazon/scan/job-1/products');
+    expect(call.url.searchParams.get('limit')).toBe('25');
+
     call = await dispatchEndpoint('getAmazonRiskScore', { keyword: 'silikon paspas', marketplace: 'de' });
     expect(call.method).toBe('GET');
     expect(call.url.pathname).toBe('/api/v1/admin/lead-machine/amazon/risk-scores/silikon%20paspas');

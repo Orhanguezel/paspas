@@ -95,7 +95,7 @@ describe('amazon lead machine scraper', () => {
         source: 'amazon_search',
         query: 'car mats',
         domain: 'de',
-        pages: 3,
+        pages: 5,
         parse: true,
       }),
     }));

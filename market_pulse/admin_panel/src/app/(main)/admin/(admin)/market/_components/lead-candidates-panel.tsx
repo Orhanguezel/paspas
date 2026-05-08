@@ -25,6 +25,7 @@ import {
   useListCandidateEnrichmentQuery,
   useListLeadCandidatesQuery,
   useReviewCandidateMutation,
+  type AmazonRiskDecision,
   type LeadCandidate,
   type LeadCandidateChannel,
   type LeadCandidateStatus,
@@ -45,8 +46,46 @@ const STATUS_CONFIG: Record<LeadCandidateStatus, { label: string; cls: string }>
   favorite: { label: 'Favori', cls: 'border-gm-gold/30 bg-gm-gold/10 text-gm-gold' },
 };
 
-function scoreValue(candidate: LeadCandidate) {
-  return Number(candidate.lead_score ?? 0);
+function rawRecord(candidate: LeadCandidate): Record<string, unknown> {
+  const data = candidate.raw_data;
+  return data && typeof data === 'object' ? data : {};
+}
+
+function decisionOf(candidate: LeadCandidate): AmazonRiskDecision {
+  const raw = rawRecord(candidate);
+  const value = candidate.decision ?? raw.decision;
+  if (typeof value === 'string' && ['GUVENLI', 'DIKKATLI_OL', 'GIRME', 'MIXED_SIGNAL', 'INSUFFICIENT_DATA'].includes(value)) {
+    return value as AmazonRiskDecision;
+  }
+  return 'INSUFFICIENT_DATA';
+}
+
+function compositeOf(candidate: LeadCandidate): number | null {
+  const raw = rawRecord(candidate);
+  const decision = decisionOf(candidate);
+  if (decision === 'INSUFFICIENT_DATA') return null;
+
+  const value = raw.composite_score ?? candidate.lead_score;
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  if (number === 0 && decision !== 'GUVENLI') return null; // 0 usually means insufficient data unless it's a very low risk score which is unlikely to be exactly 0
+  return Number.isFinite(number) ? number : null;
+}
+
+function decisionBadgeClass(decision: string): string {
+  if (decision === 'GUVENLI') return 'border-gm-success/40 bg-gm-success/10 text-gm-success';
+  if (decision === 'DIKKATLI_OL') return 'border-gm-warning/40 bg-gm-warning/10 text-gm-warning';
+  if (decision === 'GIRME') return 'border-gm-error/40 bg-gm-error/10 text-gm-error';
+  if (decision === 'MIXED_SIGNAL') return 'border-orange-500/30 bg-orange-500/10 text-orange-500';
+  return 'border-gm-border-soft bg-gm-surface/20 text-gm-muted/60';
+}
+
+function decisionLabel(decision: string): string {
+  if (decision === 'GUVENLI') return 'GÜVENLİ';
+  if (decision === 'DIKKATLI_OL') return 'DİKKATLİ OL';
+  if (decision === 'GIRME') return 'GİRME';
+  if (decision === 'MIXED_SIGNAL') return 'KARIŞIK SİNYAL';
+  return 'VERİ YETERSİZ';
 }
 
 function rawValue(candidate: LeadCandidate, key: string) {
@@ -110,9 +149,16 @@ function CandidateCard({
               <Badge variant="outline" className={cn('rounded-full text-[9px] font-bold uppercase tracking-widest', status.cls)}>
                 {status.label}
               </Badge>
-              <span className="rounded-full border border-gm-border-soft bg-gm-surface/20 px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-gm-text/70">
-                Skor {scoreValue(candidate).toFixed(1)}
-              </span>
+              {candidate.channel === 'amazon' && (
+                <>
+                  <Badge variant="outline" className={cn('rounded-full text-[9px] font-bold uppercase tracking-widest', decisionBadgeClass(decisionOf(candidate)))}>
+                    {decisionLabel(decisionOf(candidate))}
+                  </Badge>
+                  <span className="rounded-full border border-gm-border-soft bg-gm-surface/20 px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-gm-text/70">
+                    SKOR: {compositeOf(candidate) !== null ? `${compositeOf(candidate)?.toFixed(1)} / 10` : '—'}
+                  </span>
+                </>
+              )}
             </div>
             <div>
               <h2 className="font-serif text-2xl text-gm-text">{candidate.name}</h2>

@@ -153,6 +153,7 @@ describe('lead machine db candidates', () => {
       '{"seller_url":"https://amazon.example/seller"}',
       'Good fit',
       8,
+      null,
     ]);
   });
 

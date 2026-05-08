@@ -33,6 +33,12 @@ import { runAmazonJob } from './src';
 await runAmazonJob('lead_search_jobs.id');
 ```
 
+CLI ile tek komut çalıştırma:
+
+```bash
+bun run start -- <jobId>
+```
+
 `runAmazonJob` mevcut sistemle uyumluluk için `lead_search_jobs` kaydını okur ve sonuçları şu tablolara yazar:
 
 - `amazon_scan_jobs`

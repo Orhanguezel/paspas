@@ -186,7 +186,27 @@ export const startAmazonScan: RouteHandler<{ Body: unknown }> = async (req, repl
     marketplace: typeof body.marketplace === 'string' ? body.marketplace : 'com',
   }));
 };
-export const listAmazonJobs: RouteHandler = async () => listSearchJobs('amazon');
+export const listAmazonJobs: RouteHandler = async () => {
+  const [rows] = await pool.execute(
+    `SELECT lsj.*, ars.decision, ars.composite_score, ars.data_points
+     FROM lead_search_jobs lsj
+     LEFT JOIN amazon_risk_scores ars ON ars.job_id = lsj.id
+     WHERE lsj.channel = 'amazon'
+     ORDER BY lsj.created_at DESC
+     LIMIT 100`
+  );
+  return (rows as any[]).map(row => {
+    const job = parseJsonField(row, 'params');
+    if (row.decision) {
+      job.risk_report = {
+        decision: row.decision,
+        composite_score: row.composite_score,
+        data_points: row.data_points,
+      };
+    }
+    return job;
+  });
+};
 export const getAmazonJob: RouteHandler<{ Params: { id: string } }> = async (req, reply) => {
   const job = await getSearchJob(req.params.id);
   if (!job || job.channel !== 'amazon') return reply.code(404).send({ error: { message: 'not_found' } });

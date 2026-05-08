@@ -37,7 +37,7 @@ export async function getLatestAmazonRiskReport(keyword: string, marketplace = '
     [jobId],
   );
   const topSellers = (sellerRows as Array<Record<string, unknown>>).map(s => ({
-    name: String(s.seller_name),
+    seller_name: String(s.seller_name),
     product_count: Number(s.product_count),
     avg_price: s.avg_price !== null ? Number(s.avg_price) : null,
   }));

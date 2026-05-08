@@ -111,7 +111,8 @@ export interface LeadCandidate {
   contact_name: string | null;
   raw_data: Record<string, unknown> | null;
   ai_summary: string | null;
-  lead_score: number | string;
+  lead_score: number | string | null;
+  decision: AmazonRiskDecision | null;
   reject_reason: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
@@ -242,6 +243,26 @@ export interface AmazonRiskReport {
   decision: AmazonRiskDecision;
   summary: string;
   keepa_trend?: Array<{ label: string; price: number }>;
+  buy_box_change_count?: number;
+  problem_flags?: string[];
+  top_sellers?: AmazonTopSeller[];
+  products?: AmazonProductEvidence[];
+}
+
+export interface AmazonTopSeller {
+  seller_name: string;
+  product_count: number;
+  avg_price: number | null;
+}
+
+export interface AmazonProductEvidence {
+  title: string;
+  price: number | null;
+  rating: number | null;
+  review_count: number;
+  seller_name: string | null;
+  product_url: string | null;
+  asin: string | null;
 }
 
 export interface AmazonScanJob {
@@ -579,8 +600,18 @@ export const marketAdminApi = baseApi.injectEndpoints({
       query: (jobId) => ({ url: `/admin/lead-machine/amazon/scan/${jobId}` }),
       providesTags: ['LeadMachineJobs'],
     }),
+    listAmazonScanProducts: b.query<AmazonProductEvidence[], { jobId: string; limit?: number }>({
+      query: ({ jobId, limit }) => ({
+        url: `/admin/lead-machine/amazon/scan/${jobId}/products`,
+        params: { limit },
+      }),
+      providesTags: ['AmazonRiskScores'],
+    }),
+    getAmazonScanProducts: b.query<{ products: AmazonProductEvidence[] }, string>({
+      query: (jobId) => ({ url: `/admin/lead-machine/amazon/scan/${jobId}/products` }),
+    }),
     getAmazonRiskScore: b.query<AmazonRiskReport, { keyword: string; marketplace?: string }>({
-      query: ({ keyword, marketplace }) => ({
+      query: ({ keyword, marketplace = 'com' }) => ({
         url: `/admin/lead-machine/amazon/risk-scores/${encodeURIComponent(keyword)}`,
         params: { marketplace },
       }),
@@ -662,6 +693,7 @@ export const {
   useStartAmazonJobMutation,
   useStartAmazonScanMutation,
   useGetAmazonScanQuery,
+  useListAmazonScanProductsQuery,
   useGetAmazonRiskScoreQuery,
   useListB2bJobsQuery,
   useStartB2bJobMutation,

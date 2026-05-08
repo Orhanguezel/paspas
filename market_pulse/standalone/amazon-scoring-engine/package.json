@@ -6,7 +6,7 @@
   "scripts": {
     "build": "bun x tsc -p tsconfig.json && bun x tsc-alias -p tsconfig.json",
     "test": "bun test src/modules/lead-machine/amazon/__tests__",
-    "start": "bun src/index.ts"
+    "start": "bun src/run-job.ts"
   },
   "dependencies": {
     "dotenv": "^16.6.1",

@@ -22,6 +22,7 @@ import {
   useGetAmazonRiskScoreQuery,
   useListAmazonJobsQuery,
   useStartAmazonScanMutation,
+  type AmazonRiskReport,
   type LeadSearchJob,
 } from '@/integrations/hooks';
 import { cn } from '@/lib/utils';
@@ -59,6 +60,58 @@ function statusBadge(job: LeadSearchJob) {
   );
 }
 
+function decisionBadgeClass(decision: string): string {
+  if (decision === 'GUVENLI') return 'border-gm-success/40 bg-gm-success/10 text-gm-success';
+  if (decision === 'DIKKATLI_OL') return 'border-gm-warning/40 bg-gm-warning/10 text-gm-warning';
+  if (decision === 'GIRME') return 'border-gm-error/40 bg-gm-error/10 text-gm-error';
+  if (decision === 'MIXED_SIGNAL') return 'border-orange-500/30 bg-orange-500/10 text-orange-500';
+  return 'border-gm-border-soft bg-gm-surface/20 text-gm-muted/60';
+}
+
+function decisionLabel(decision: string): string {
+  if (decision === 'GUVENLI') return 'GÜVENLİ';
+  if (decision === 'DIKKATLI_OL') return 'DİKKATLİ OL';
+  if (decision === 'GIRME') return 'GİRME';
+  if (decision === 'MIXED_SIGNAL') return 'KARIŞIK SİNYAL';
+  return 'VERİ YETERSİZ';
+}
+
+function reportForJob(job: LeadSearchJob, fallback: AmazonRiskReport | undefined): AmazonRiskReport | null {
+  if (job.risk_report) return job.risk_report;
+  if (!fallback) return null;
+  const params = paramsOf(job);
+  const keyword = String(params.keyword ?? '').trim().toLowerCase();
+  if (keyword && keyword === fallback.keyword.trim().toLowerCase()) return fallback;
+  return null;
+}
+
+function compareRowsFromJobs(jobs: LeadSearchJob[] | undefined, fallback: AmazonRiskReport | undefined) {
+  if (!jobs?.length) return [];
+  return jobs
+    .map((job) => {
+      const report = reportForJob(job, fallback);
+      if (!report) return null;
+      const params = paramsOf(job);
+      return {
+        jobId: job.id,
+        keyword: String(params.keyword ?? report.keyword ?? '—'),
+        decision: report.decision,
+        composite: report.composite_score,
+        dataPoints: report.data_points,
+        createdAt: job.created_at,
+      };
+    })
+    .filter((row): row is {
+      jobId: string;
+      keyword: string;
+      decision: string;
+      composite: number | null;
+      dataPoints: number;
+      createdAt: string;
+    } => row !== null)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
 export default function AmazonLeadSearchPanel() {
   const [keyword, setKeyword] = React.useState('car floor mats');
   const [marketplace, setMarketplace] = React.useState('com');
@@ -81,16 +134,21 @@ export default function AmazonLeadSearchPanel() {
   const [startAmazonScan, startState] = useStartAmazonScanMutation();
 
   const activeKeyword = keyword.trim() || 'car floor mats';
+  const compareRows = React.useMemo(
+    () => compareRowsFromJobs(jobs, riskReport),
+    [jobs, riskReport],
+  );
 
   React.useEffect(() => {
     if (!jobs) return;
     const hasActive = jobs.some((j) => j.status === 'pending' || j.status === 'running');
     setPolling(hasActive);
-    const keywordDone = jobs.some(
-      (j) => String((j.params as any)?.keyword ?? '') === activeKeyword && j.status === 'done',
-    );
-    if (keywordDone && !riskReport) refetchRisk();
-  }, [jobs]);
+    const keywordDone = jobs.some((j) => {
+      const params = paramsOf(j);
+      return String(params.keyword ?? '') === activeKeyword && j.status === 'done';
+    });
+    if (keywordDone) refetchRisk();
+  }, [jobs, activeKeyword, refetchRisk]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -266,6 +324,7 @@ export default function AmazonLeadSearchPanel() {
             ) : jobs?.length ? (
               jobs.map((job) => {
                 const params = paramsOf(job);
+                const report = reportForJob(job, riskReport);
                 return (
                   <div key={job.id} className="grid gap-4 rounded-2xl border border-gm-border-soft bg-gm-surface/10 p-4 lg:grid-cols-[1fr_auto] lg:items-center">
                     <div className="min-w-0 space-y-2">
@@ -277,12 +336,19 @@ export default function AmazonLeadSearchPanel() {
                         <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">
                           {new Date(job.created_at).toLocaleString('tr-TR')}
                         </span>
+                        {report && (
+                          <Badge variant="outline" className={cn('rounded-full text-[9px] font-bold uppercase tracking-widest', decisionBadgeClass(report.decision))}>
+                            {decisionLabel(report.decision)}
+                          </Badge>
+                        )}
                       </div>
                       <div className="font-serif text-xl text-gm-text">{String(params.keyword ?? 'Amazon araması')}</div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono text-gm-muted">
                         <span>Review {String(params.review_min ?? 50)}-{String(params.review_max ?? 500)}</span>
                         <span>Rating {String(params.rating_min ?? 4)}-{String(params.rating_max ?? 4.5)}</span>
                         <span>Aday {job.result_count}</span>
+                        {report && <span>Composite {report.composite_score?.toFixed(1) ?? '—'}</span>}
+                        {report && <span>Data {report.data_points}</span>}
                         {job.error_msg && <span className="text-gm-error">{job.error_msg}</span>}
                       </div>
                     </div>
@@ -313,6 +379,42 @@ export default function AmazonLeadSearchPanel() {
           </div>
         </CardContent>
       </Card>
+
+      {compareRows.length > 0 ? (
+        <Card className="rounded-[28px] border-gm-border-soft bg-gm-bg-deep/50 shadow-2xl">
+          <CardContent className="space-y-4 p-6">
+            <h2 className="font-serif text-2xl text-gm-text">Keyword Karşılaştırma</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px] text-left text-sm">
+                <thead className="text-[10px] uppercase tracking-[0.16em] text-gm-muted">
+                  <tr className="border-b border-gm-border-soft">
+                    <th className="py-3 pr-4 font-semibold">Keyword</th>
+                    <th className="py-3 pr-4 font-semibold">Skor</th>
+                    <th className="py-3 pr-4 font-semibold">Karar</th>
+                    <th className="py-3 pr-4 font-semibold">Veri Noktası</th>
+                    <th className="py-3 pr-4 font-semibold">Tarih</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gm-border-soft/70">
+                  {compareRows.map((row) => (
+                    <tr key={row.jobId} className="text-gm-muted">
+                      <td className="py-3 pr-4 text-gm-text">{row.keyword}</td>
+                      <td className="py-3 pr-4 font-mono">{row.composite?.toFixed(1) ?? '—'}</td>
+                      <td className="py-3 pr-4">
+                        <Badge variant="outline" className={cn('rounded-full text-[9px] font-bold uppercase tracking-widest', decisionBadgeClass(row.decision))}>
+                          {row.decision}
+                        </Badge>
+                      </td>
+                      <td className="py-3 pr-4 font-mono">{row.dataPoints}</td>
+                      <td className="py-3 pr-4">{new Date(row.createdAt).toLocaleString('tr-TR')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

@@ -55,4 +55,5 @@ export type AmazonRiskReport = {
   composite_score: number | null;
   decision: Decision | 'INSUFFICIENT_DATA';
   summary: string;
+  problem_flags?: string[];
 };
