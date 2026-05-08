@@ -23,6 +23,7 @@ const fetchMock = mock(() => Promise.resolve(Response.json({
 globalThis.fetch = fetchMock as unknown as typeof fetch;
 
 const {
+  isKeepaConfigured,
   shouldFetchKeepa,
   enqueueKeepaAsins,
   processKeepaQueue,
@@ -31,6 +32,7 @@ const {
 beforeEach(() => {
   dbMock.reset();
   fetchMock.mockClear();
+  env.KEEPA_API_KEY = 'keepa-key';
 });
 
 describe('amazon keepa client', () => {
@@ -62,5 +64,18 @@ describe('amazon keepa client', () => {
     expect(
       dbMock.poolExecutions.some((entry) => entry.sql.includes("UPDATE amazon_keepa_queue SET status = 'done'")),
     ).toBe(true);
+  });
+
+  test('does not enqueue or process queue when Keepa key is missing', async () => {
+    env.KEEPA_API_KEY = '';
+
+    expect(isKeepaConfigured()).toBe(false);
+    const inserted = await enqueueKeepaAsins('job-1', ['B0TESTASIN1']);
+    const result = await processKeepaQueue(10);
+
+    expect(inserted).toBe(0);
+    expect(result).toEqual({ processed: 0, skippedByBudget: 0 });
+    expect(fetchMock).toHaveBeenCalledTimes(0);
+    expect(dbMock.poolExecutions).toHaveLength(0);
   });
 });

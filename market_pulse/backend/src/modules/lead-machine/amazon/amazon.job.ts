@@ -6,7 +6,7 @@ import { scrapeAmazonProducts, type AmazonFilters } from './amazon.scraper';
 import { filterEligibleProducts } from './signal.validator';
 import { scoreAmazonCategory } from './amazon.scoring-engine';
 import { calculateCategoryStats, upsertAmazonCategoryStats } from './category.normalizer';
-import { shouldFetchKeepa, enqueueKeepaAsins, processKeepaQueue } from './keepa.client';
+import { shouldFetchKeepa, enqueueKeepaAsins, processKeepaQueue, isKeepaConfigured } from './keepa.client';
 import type { AmazonRiskReport } from './amazon.types';
 
 interface AmazonJobParams extends AmazonFilters {
@@ -109,7 +109,10 @@ export async function runAmazonJob(jobId: string) {
     await saveRiskScore(jobId, report);
 
     // Keepa: yetersiz güven veya yüksek risk varsa ASIN'leri zenginleştir
-    if (shouldFetchKeepa({ confidence: report.scores.price_war_risk.confidence, score: report.composite_score })) {
+    if (
+      isKeepaConfigured()
+      && shouldFetchKeepa({ confidence: report.scores.price_war_risk.confidence, score: report.composite_score })
+    ) {
       const asins = eligible.map(p => p.product_url?.match(/\/dp\/([A-Z0-9]{10})/)?.[1]).filter(Boolean) as string[];
       await enqueueKeepaAsins(jobId, asins.slice(0, 20));
       await processKeepaQueue(20);

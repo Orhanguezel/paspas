@@ -3,6 +3,7 @@ import { createDbMock } from './helpers/mock-db';
 import { callHandler } from './helpers/reply';
 
 const dbMock = createDbMock();
+const commandRunnerMock = mock(async (_command: string) => ({ stdout: '3 pass\n0 fail\n', stderr: '' }));
 
 mock.module('@/db/client', () => ({
   db: dbMock.db,
@@ -113,6 +114,7 @@ function developerNote(overrides: Record<string, unknown> = {}) {
     priority: 'high',
     status: 'open',
     page_path: '/admin/market',
+    attachment_url: null,
     created_by: 'user-1',
     created_at: now,
     updated_at: now,
@@ -122,6 +124,8 @@ function developerNote(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   dbMock.reset();
+  commandRunnerMock.mockClear();
+  controller.setMarketTestCommandRunnerForTests(commandRunnerMock);
 });
 
 describe('market controller targets', () => {
@@ -367,6 +371,50 @@ describe('market controller operations', () => {
     expect(state.statusCode).toBe(400);
   });
 
+  test('executes allowed market test command and stores parsed output', async () => {
+    dbMock.queueSelect([testRun({
+      suite: 'backend',
+      title: 'Backend tests',
+      command: 'cd backend && bun test',
+      pass_count: 3,
+      output_excerpt: '3 pass\n0 fail',
+    })]);
+
+    const { state } = await callHandler(controller.executeMarketTestRun, {
+      user: { id: 'user-1' },
+      body: {
+        suite: 'backend',
+        title: 'Backend tests',
+        command: 'cd backend && bun test',
+      },
+    });
+
+    expect(state.statusCode).toBe(201);
+    expect(commandRunnerMock).toHaveBeenCalledWith('cd backend && bun test');
+    expect(dbMock.inserts[0]?.values).toEqual(expect.objectContaining({
+      suite: 'backend',
+      title: 'Backend tests',
+      command: 'cd backend && bun test',
+      status: 'passed',
+      pass_count: 3,
+      fail_count: 0,
+      created_by: 'user-1',
+    }));
+  });
+
+  test('rejects unsafe market test command execution', async () => {
+    const { state } = await callHandler(controller.executeMarketTestRun, {
+      body: {
+        suite: 'backend',
+        title: 'Unsafe',
+        command: 'rm -rf /tmp/market-pulse',
+      },
+    });
+
+    expect(state.statusCode).toBe(400);
+    expect(state.payload).toEqual({ error: { message: 'unsafe_command' } });
+  });
+
   test('lists developer notes with total count', async () => {
     dbMock.queueSelect([developerNote()]);
     dbMock.queueSelect([{ count: 1 }]);
@@ -383,17 +431,27 @@ describe('market controller operations', () => {
   });
 
   test('creates, updates and deletes developer notes', async () => {
-    dbMock.queueSelect([developerNote({ subject: 'New note' })]);
+    dbMock.queueSelect([developerNote({ subject: 'New note', attachment_url: 'https://cdn.example.com/screenshot.png' })]);
 
     const created = await callHandler(controller.createMarketDeveloperNote, {
       user: { id: 'user-1' },
-      body: { subject: 'New note', body: 'Details', priority: 'critical', page_path: '/admin/market' },
+      body: {
+        subject: 'New note',
+        body: 'Details',
+        priority: 'critical',
+        page_path: '/admin/market',
+        attachment_url: 'https://cdn.example.com/screenshot.png',
+      },
     });
 
     expect(created.state.statusCode).toBe(201);
+    expect(created.result).toEqual(expect.objectContaining({
+      attachmentUrl: 'https://cdn.example.com/screenshot.png',
+    }));
     expect(dbMock.inserts[0]?.values).toEqual(expect.objectContaining({
       subject: 'New note',
       priority: 'critical',
+      attachment_url: 'https://cdn.example.com/screenshot.png',
       created_by: 'user-1',
     }));
 

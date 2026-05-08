@@ -13,6 +13,10 @@ export type KeepaSnapshot = {
   stock_history_json: unknown;
 };
 
+export function isKeepaConfigured(): boolean {
+  return Boolean(env.KEEPA_API_KEY);
+}
+
 export function shouldFetchKeepa(input: { confidence: string; score?: number | null }) {
   return input.confidence === 'INSUFFICIENT_DATA' || (input.score ?? 0) > 7;
 }
@@ -50,6 +54,7 @@ async function consumeDailyTokens(amount: number): Promise<void> {
 }
 
 export async function enqueueKeepaAsins(jobId: string, asins: string[]): Promise<number> {
+  if (!isKeepaConfigured()) return 0;
   const uniqueAsins = [...new Set(asins.map((asin) => asin.trim()).filter(Boolean))];
   for (const asin of uniqueAsins) {
     await pool.execute(
@@ -62,6 +67,7 @@ export async function enqueueKeepaAsins(jobId: string, asins: string[]): Promise
 }
 
 export async function processKeepaQueue(limit = 10): Promise<{ processed: number; skippedByBudget: number }> {
+  if (!isKeepaConfigured()) return { processed: 0, skippedByBudget: 0 };
   const [rows] = await pool.execute(
     `SELECT id, asin FROM amazon_keepa_queue
      WHERE status = 'pending'
@@ -105,7 +111,7 @@ export async function processKeepaQueue(limit = 10): Promise<{ processed: number
 }
 
 export async function fetchKeepaSnapshot(asin: string): Promise<KeepaSnapshot> {
-  if (!env.KEEPA_API_KEY) throw new Error('KEEPA_NOT_CONFIGURED');
+  if (!isKeepaConfigured()) throw new Error('KEEPA_NOT_CONFIGURED');
   const url = new URL('https://api.keepa.com/product');
   url.searchParams.set('key', env.KEEPA_API_KEY);
   url.searchParams.set('domain', '1');
