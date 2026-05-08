@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { ArrowRight, ExternalLink, Play, RefreshCw, Search } from 'lucide-react';
+import { ArrowRight, ExternalLink, Play, RadarIcon, RefreshCw, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
@@ -62,11 +62,11 @@ function statusBadge(job: LeadSearchJob) {
 }
 
 function decisionBadgeClass(decision: string): string {
-  if (decision === 'GUVENLI') return 'border-gm-success/40 bg-gm-success/10 text-gm-success';
-  if (decision === 'DIKKATLI_OL') return 'border-gm-warning/40 bg-gm-warning/10 text-gm-warning';
-  if (decision === 'GIRME') return 'border-gm-error/40 bg-gm-error/10 text-gm-error';
-  if (decision === 'MIXED_SIGNAL') return 'border-orange-500/30 bg-orange-500/10 text-orange-500';
-  return 'border-gm-border-soft bg-gm-surface/20 text-gm-muted/60';
+  if (decision === 'GUVENLI') return 'border-emerald-500/50 bg-emerald-500/20 text-emerald-400 font-bold';
+  if (decision === 'DIKKATLI_OL') return 'border-yellow-500/50 bg-yellow-500/20 text-yellow-400 font-bold';
+  if (decision === 'GIRME') return 'border-red-500/50 bg-red-500/20 text-red-400 font-bold';
+  if (decision === 'MIXED_SIGNAL') return 'border-orange-500/50 bg-orange-500/20 text-orange-400 font-bold';
+  return 'border-zinc-600/50 bg-zinc-800/50 text-zinc-500';
 }
 
 function decisionLabel(decision: string): string {
@@ -114,8 +114,9 @@ function compareRowsFromJobs(jobs: LeadSearchJob[] | undefined, fallback: Amazon
 }
 
 export default function AmazonLeadSearchPanel() {
-  const [keyword, setKeyword] = React.useState('car floor mats');
+  const [keyword, setKeyword] = React.useState('');
   const [marketplace, setMarketplace] = React.useState('com');
+  const didAutoSet = React.useRef(false);
   const [reviewMin, setReviewMin] = React.useState(50);
   const [reviewMax, setReviewMax] = React.useState(500);
   const [ratingMin, setRatingMin] = React.useState(4);
@@ -128,28 +129,52 @@ export default function AmazonLeadSearchPanel() {
   const { data: jobs, isLoading, isFetching, refetch } = useListAmazonJobsQuery(undefined, {
     pollingInterval: polling ? 6000 : 0,
   });
-  const { data: riskReport, isFetching: isRiskFetching, refetch: refetchRisk } = useGetAmazonRiskScoreQuery({
-    keyword: keyword.trim() || 'car floor mats',
-    marketplace,
-  });
+  const { data: riskReport, isFetching: isRiskFetching, refetch: refetchRisk } = useGetAmazonRiskScoreQuery(
+    { keyword: keyword.trim(), marketplace },
+    { skip: !keyword.trim() },
+  );
   const [startAmazonScan, startState] = useStartAmazonScanMutation();
 
-  const activeKeyword = keyword.trim() || 'car floor mats';
+  const activeKeyword = keyword.trim();
   const compareRows = React.useMemo(
     () => compareRowsFromJobs(jobs, riskReport),
     [jobs, riskReport],
   );
 
   React.useEffect(() => {
-    if (!jobs) return;
+    if (!jobs?.length) return;
+    if (!didAutoSet.current) {
+      const latestDone = jobs.find((j) => j.status === 'done');
+      if (latestDone) {
+        const p = paramsOf(latestDone);
+        const kw = String(p.keyword ?? '').trim();
+        if (kw) {
+          setKeyword(kw);
+          setMarketplace(String(p.marketplace ?? 'com'));
+        }
+      }
+      didAutoSet.current = true;
+    }
     const hasActive = jobs.some((j) => j.status === 'pending' || j.status === 'running');
     setPolling(hasActive);
-    const keywordDone = jobs.some((j) => {
-      const params = paramsOf(j);
-      return String(params.keyword ?? '') === activeKeyword && j.status === 'done';
-    });
-    if (keywordDone) refetchRisk();
+    if (activeKeyword) {
+      const keywordDone = jobs.some((j) => {
+        const params = paramsOf(j);
+        return String(params.keyword ?? '') === activeKeyword && j.status === 'done';
+      });
+      if (keywordDone) refetchRisk();
+    }
   }, [jobs, activeKeyword, refetchRisk]);
+
+  function loadJobReport(job: LeadSearchJob) {
+    const p = paramsOf(job);
+    const kw = String(p.keyword ?? '').trim();
+    if (kw) {
+      setKeyword(kw);
+      setMarketplace(String(p.marketplace ?? 'com'));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -212,7 +237,7 @@ export default function AmazonLeadSearchPanel() {
                   <Input
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
-                    placeholder="car floor mats"
+                    placeholder="örn. cable organizer, surge protector..."
                     className="h-12 rounded-2xl border-gm-border-soft bg-gm-surface/40 pl-12 text-gm-text placeholder:text-gm-muted/70"
                   />
                 </div>
@@ -354,6 +379,17 @@ export default function AmazonLeadSearchPanel() {
                       </div>
                     </div>
                     <div className="flex flex-wrap justify-end gap-2">
+                      {job.status === 'done' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => loadJobReport(job)}
+                          className="rounded-full border-yellow-500/40 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 hover:text-yellow-300"
+                        >
+                          <RadarIcon className="mr-2 size-4" />
+                          Risk Raporu
+                        </Button>
+                      )}
                       <Button asChild variant="outline" size="sm" className="rounded-full border-gm-border-soft bg-gm-surface/20 text-gm-text hover:bg-gm-surface">
                         <Link href={`/admin/market/lead-machine/candidates?channel=amazon&job_id=${job.id}`}>
                           İncele
