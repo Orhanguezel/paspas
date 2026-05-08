@@ -204,6 +204,9 @@ describe('amazon lead machine job runner', () => {
 
     await runAmazonJob('job-1');
 
+    expect(
+      dbMock.poolExecutions.some((entry) => entry.sql.includes('INSERT INTO amazon_job_error_logs')),
+    ).toBe(true);
     expect(dbMock.poolExecutions.at(-1)?.values).toEqual(['failed', 'OXYLABS_AMAZON_SEARCH_FAILED_500', 'job-1']);
   });
 });

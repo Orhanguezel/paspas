@@ -247,6 +247,17 @@ export const getAmazonRiskScores: RouteHandler<{ Params: { keyword: string }; Qu
   );
   const row = (rows as Record<string, unknown>[])[0];
   if (!row) return reply.code(404).send({ error: { message: 'no_score_found' } });
+  const [keepaRows] = await pool.execute(
+    `SELECT aks.price_30d_min, aks.price_30d_max, aks.price_90d_avg
+     FROM amazon_keepa_snapshots aks
+     WHERE aks.asin IN (
+       SELECT ap.asin FROM amazon_products ap WHERE ap.job_id = ? AND ap.asin IS NOT NULL
+     )
+     ORDER BY aks.fetched_at DESC
+     LIMIT 20`,
+    [String(row.job_id)],
+  );
+  const keepaTrend = buildKeepaTrend(keepaRows as Array<Record<string, unknown>>);
   return {
     keyword: row.keyword,
     scanned_at: row.scanned_at,
@@ -281,5 +292,22 @@ export const getAmazonRiskScores: RouteHandler<{ Params: { keyword: string }; Qu
     composite_score: row.composite_score === null || row.composite_score === undefined ? null : Number(row.composite_score),
     decision: row.decision,
     summary: row.summary ?? '',
+    ...(keepaTrend.length ? { keepa_trend: keepaTrend } : {}),
   };
 };
+
+function buildKeepaTrend(rows: Array<Record<string, unknown>>) {
+  const avg = (key: string) => {
+    const values = rows
+      .map((row) => Number(row[key]))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    if (!values.length) return null;
+    return Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(2));
+  };
+  const points = [
+    { label: '30d min', price: avg('price_30d_min') },
+    { label: '90d avg', price: avg('price_90d_avg') },
+    { label: '30d max', price: avg('price_30d_max') },
+  ];
+  return points.filter((point): point is { label: string; price: number } => point.price !== null);
+}

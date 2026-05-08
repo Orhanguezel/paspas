@@ -10,7 +10,7 @@ import {
   bulkImportTargets, downloadImportTemplate,
   scanCompetitor, scanAllCompetitors,
   previewWeeklyReport, sendWeeklyReport,
-  listMarketTestRuns, createMarketTestRun,
+  listMarketTestRuns, createMarketTestRun, executeMarketTestRun,
   listMarketDeveloperNotes, createMarketDeveloperNote, updateMarketDeveloperNote, deleteMarketDeveloperNote,
 } from './controller';
 
@@ -43,6 +43,7 @@ export async function registerMarketAdmin(app: FastifyInstance) {
   app.post('/market/reports/weekly/send', sendWeeklyReport);
   app.get('/market/test-runs', listMarketTestRuns);
   app.post('/market/test-runs', createMarketTestRun);
+  app.post('/market/test-runs/execute', executeMarketTestRun);
   app.get('/market/developer-notes', listMarketDeveloperNotes);
   app.post('/market/developer-notes', createMarketDeveloperNote);
   app.patch('/market/developer-notes/:id', updateMarketDeveloperNote);

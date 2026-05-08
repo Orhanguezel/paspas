@@ -241,6 +241,7 @@ export interface AmazonRiskReport {
   composite_score: number | null;
   decision: AmazonRiskDecision;
   summary: string;
+  keepa_trend?: Array<{ label: string; price: number }>;
 }
 
 export interface AmazonScanJob {
@@ -281,6 +282,7 @@ export interface MarketDeveloperNote {
   priority: MarketDeveloperNotePriority;
   status: MarketDeveloperNoteStatus;
   pagePath: string | null;
+  attachmentUrl: string | null;
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
@@ -427,6 +429,14 @@ export const marketAdminApi = baseApi.injectEndpoints({
       query: (body) => ({ url: '/admin/market/test-runs', method: 'POST', body }),
       invalidatesTags: ['MarketTestRuns'],
     }),
+    executeMarketTestRun: b.mutation<MarketTestRun, {
+      suite: string;
+      title: string;
+      command: string;
+    }>({
+      query: (body) => ({ url: '/admin/market/test-runs/execute', method: 'POST', body }),
+      invalidatesTags: ['MarketTestRuns'],
+    }),
 
     listMarketDeveloperNotes: b.query<MarketDeveloperNote[], {
       status?: MarketDeveloperNoteStatus;
@@ -444,6 +454,7 @@ export const marketAdminApi = baseApi.injectEndpoints({
       priority?: MarketDeveloperNotePriority;
       status?: MarketDeveloperNoteStatus;
       page_path?: string;
+      attachment_url?: string;
     }>({
       query: (body) => ({ url: '/admin/market/developer-notes', method: 'POST', body }),
       invalidatesTags: ['MarketDeveloperNotes'],
@@ -456,6 +467,7 @@ export const marketAdminApi = baseApi.injectEndpoints({
         priority: MarketDeveloperNotePriority;
         status: MarketDeveloperNoteStatus;
         page_path: string;
+        attachment_url: string;
       }>;
     }>({
       query: ({ id, body }) => ({ url: `/admin/market/developer-notes/${id}`, method: 'PATCH', body }),
@@ -633,6 +645,7 @@ export const {
   useSendWeeklyReportMutation,
   useListMarketTestRunsQuery,
   useCreateMarketTestRunMutation,
+  useExecuteMarketTestRunMutation,
   useListMarketDeveloperNotesQuery,
   useCreateMarketDeveloperNoteMutation,
   useUpdateMarketDeveloperNoteMutation,

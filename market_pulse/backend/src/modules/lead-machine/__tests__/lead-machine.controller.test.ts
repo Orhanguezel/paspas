@@ -261,19 +261,29 @@ describe('lead machine controller scraper callback and jobs', () => {
       decision: 'DIKKATLI_OL',
       scanned_at: now,
     }]);
+    dbMock.queuePoolExecute([
+      { price_30d_min: '20.00', price_30d_max: '40.00', price_90d_avg: '30.00' },
+      { price_30d_min: '22.00', price_30d_max: '42.00', price_90d_avg: '32.00' },
+    ]);
 
     const { result } = await callHandler(controller.getAmazonRiskScores, {
       params: { keyword: encodeURIComponent('paspas') },
       query: { marketplace: 'de' },
     });
 
-    expect(dbMock.poolExecutions.at(-1)?.sql).toContain('FROM amazon_risk_scores');
+    expect(dbMock.poolExecutions.some((entry) => entry.sql.includes('FROM amazon_risk_scores'))).toBe(true);
     expect(result).toEqual(expect.objectContaining({
       keyword: 'paspas',
       data_points: 47,
       composite_score: 6.6,
       decision: 'DIKKATLI_OL',
     }));
+    expect((result as { keepa_trend?: Array<{ label: string; price: number }> }).keepa_trend)
+      .toEqual([
+        { label: '30d min', price: 21 },
+        { label: '90d avg', price: 31 },
+        { label: '30d max', price: 41 },
+      ]);
     expect((result as { scores: { category_risk: { score: number; confidence: string } } }).scores.category_risk)
       .toEqual(expect.objectContaining({ score: 7.2, confidence: 'HIGH' }));
   });

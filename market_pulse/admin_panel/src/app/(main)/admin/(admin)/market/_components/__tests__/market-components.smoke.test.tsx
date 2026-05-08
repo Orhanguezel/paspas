@@ -177,6 +177,7 @@ mock.module('@/integrations/hooks', () => ({
   useLazyDownloadImportTemplateQuery: () => [lazy, { isFetching: false }] as const,
   useListMarketTestRunsQuery: () => query([{ id: 'run-1', title: 'Admin tests', command: 'cd admin_panel && bun test', status: 'passed', passCount: 18, failCount: 0, skipCount: 0, outputExcerpt: '18 pass' }]),
   useCreateMarketTestRunMutation: () => mutationTuple(),
+  useExecuteMarketTestRunMutation: () => mutationTuple(),
   useListMarketDeveloperNotesQuery: () => query([{ id: 'note-1', subject: 'Build issue', body: 'Font fetch failed', priority: 'high', status: 'open', createdAt: '2026-05-08', updatedAt: '2026-05-08' }]),
   useCreateMarketDeveloperNoteMutation: () => mutationTuple(),
   useUpdateMarketDeveloperNoteMutation: () => mutationTuple(),
@@ -213,7 +214,12 @@ const sampleRiskReport: any = {
     price_war_risk: { score: 7, confidence: 'MEDIUM', reason: 'Some war' },
     brand_reliability: { score: 5, confidence: 'HIGH', reason: 'Average' },
     operational_risk: { score: 4, confidence: 'MEDIUM', reason: 'Low' }
-  }
+  },
+  keepa_trend: [
+    { label: '30d min', price: 21.5 },
+    { label: '90d avg', price: 28.2 },
+    { label: '30d max', price: 36.9 },
+  ],
 };
 
 function render(component: React.ReactElement) {
@@ -265,7 +271,9 @@ describe('market admin component smoke tests', () => {
     expect(render(<AmazonLeadSearchPanel />)).toContain('car mats');
     expect(render(<B2bLeadSearchPanel />)).toContain('B2B Job Listesi');
     expect(render(<FairLeadSearchPanel />)).toContain('Fuar Job Listesi');
-    expect(render(<RiskScoreCard report={sampleRiskReport} />)).toContain('Yüksek riskli kategori');
+    const riskHtml = render(<RiskScoreCard report={sampleRiskReport} />);
+    expect(riskHtml).toContain('Yüksek riskli kategori');
+    expect(riskHtml).toContain('Keepa Fiyat Trendi');
   });
 
   test('icp, outreach and reports panels render primary surfaces', () => {

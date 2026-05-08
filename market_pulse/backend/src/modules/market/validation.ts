@@ -149,6 +149,7 @@ export const marketDeveloperNoteCreateSchema = z.object({
   priority: z.enum(['low', 'normal', 'high', 'critical']).default('normal'),
   status: z.enum(['open', 'in_review', 'resolved', 'closed']).default('open'),
   page_path: z.string().trim().max(500).optional(),
+  attachment_url: z.string().url().max(1000).optional(),
 });
 
 export const marketDeveloperNotePatchSchema = marketDeveloperNoteCreateSchema.partial();

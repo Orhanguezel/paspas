@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useCreateMarketTestRunMutation, useListMarketTestRunsQuery } from '@/integrations/hooks';
+import { useCreateMarketTestRunMutation, useExecuteMarketTestRunMutation, useListMarketTestRunsQuery } from '@/integrations/hooks';
 import {
   type MarketTestRunStatus,
 } from '@/integrations/endpoints/admin/market_admin.endpoints';
@@ -81,6 +81,7 @@ const runHistoryTemplate = [
 export default function MarketTestCenterPage() {
   const { data: runs = [], isFetching } = useListMarketTestRunsQuery({ limit: 20 });
   const [createRun, createRunState] = useCreateMarketTestRunMutation();
+  const [executeRun, executeRunState] = useExecuteMarketTestRunMutation();
   const [selectedSuite, setSelectedSuite] = useState(testSuites[0]!.title);
   const [status, setStatus] = useState<MarketTestRunStatus>('passed');
   const [passCount, setPassCount] = useState('0');
@@ -112,6 +113,21 @@ export default function MarketTestCenterPage() {
       toast.success('Test sonucu kaydedildi.');
     } catch {
       toast.error('Test sonucu kaydedilemedi.');
+    }
+  };
+
+  const autoRunTest = async () => {
+    try {
+      toast.info(`${selectedTestSuite.title} testleri çalıştırılıyor...`, { id: 'test-run' });
+      const result = await executeRun({
+        suite: selectedTestSuite.title.toLowerCase().replaceAll(' ', '_'),
+        title: selectedTestSuite.title,
+        command: selectedTestSuite.command,
+      }).unwrap();
+      
+      toast.success(`${selectedTestSuite.title} testi tamamlandı! Durum: ${result.status}`, { id: 'test-run' });
+    } catch (e: any) {
+      toast.error('Test çalıştırılırken bir hata oluştu.', { id: 'test-run' });
     }
   };
 
@@ -246,10 +262,16 @@ export default function MarketTestCenterPage() {
                 placeholder="Risk veya aksiyon notu"
                 className="min-h-20"
               />
-              <Button type="button" onClick={saveRun} disabled={createRunState.isLoading} className="w-full gap-2">
-                <CheckCircle2 className="size-4" />
-                Sonucu kaydet
-              </Button>
+              <div className="flex gap-3">
+                <Button type="button" onClick={saveRun} disabled={createRunState.isLoading || executeRunState.isLoading} className="w-1/2 gap-2" variant="outline">
+                  <CheckCircle2 className="size-4" />
+                  Manuel kaydet
+                </Button>
+                <Button type="button" onClick={autoRunTest} disabled={createRunState.isLoading || executeRunState.isLoading} className="w-1/2 gap-2 bg-gm-gold text-black hover:bg-yellow-500">
+                  <Play className="size-4" />
+                  Otomatik Çalıştır
+                </Button>
+              </div>
             </CardContent>
           </Card>
 

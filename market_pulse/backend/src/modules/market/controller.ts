@@ -1,5 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import type { RouteHandler } from 'fastify';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const execAsync = promisify(exec);
 import { db } from '@/db/client';
 import { eq, like, and, asc, desc, sql, or } from 'drizzle-orm';
 import {
@@ -240,6 +244,59 @@ export const createMarketTestRun: RouteHandler<{ Body: unknown }> = async (req, 
     ...parsed.data,
     created_by: getRequestUserId(req),
   });
+  const rows = await db.select().from(marketTestRuns).where(eq(marketTestRuns.id, id)).limit(1);
+  return reply.code(201).send(marketTestRunToDto(rows[0]!));
+};
+
+const SAFE_TEST_COMMAND = /^(cd\s+\/[a-zA-Z0-9/._-]+\s*&&\s*)?bun\s+(test|run\s+test)(\s+[a-zA-Z0-9/._:\s-]*)?$/;
+
+export const executeMarketTestRun: RouteHandler<{ Body: unknown }> = async (req, reply) => {
+  const body = req.body as { suite?: string; title?: string; command?: string };
+  if (!body.suite || !body.command) {
+    return reply.code(400).send({ error: { message: 'missing_suite_or_command' } });
+  }
+  if (!SAFE_TEST_COMMAND.test(body.command.trim())) {
+    return reply.code(400).send({ error: { message: 'unsafe_command' } });
+  }
+
+  let outputExcerpt = '';
+  let status: 'passed' | 'failed' = 'failed';
+  let passCount = 0;
+  let failCount = 0;
+
+  try {
+    const { stdout, stderr } = await execAsync(body.command);
+    outputExcerpt = (stdout + '\n' + stderr).trim().slice(-1000);
+    status = 'passed';
+    const passMatch = stdout.match(/(\d+)\s+pass/i);
+    const failMatch = stdout.match(/(\d+)\s+fail/i);
+    if (passMatch) passCount = parseInt(passMatch[1], 10);
+    if (failMatch) failCount = parseInt(failMatch[1], 10);
+  } catch (error: unknown) {
+    status = 'failed';
+    const e = error as { stdout?: string; stderr?: string; message?: string };
+    const out = (e.stdout || '') + '\n' + (e.stderr || '') + '\n' + (e.message || '');
+    outputExcerpt = out.trim().slice(-1000);
+    const passMatch = out.match(/(\d+)\s+pass/i);
+    const failMatch = out.match(/(\d+)\s+fail/i);
+    if (passMatch) passCount = parseInt(passMatch[1], 10);
+    if (failMatch) failCount = parseInt(failMatch[1], 10);
+  }
+
+  const id = randomUUID();
+  await db.insert(marketTestRuns).values({
+    id,
+    suite: body.suite,
+    title: body.title || body.suite,
+    command: body.command,
+    status,
+    pass_count: passCount,
+    fail_count: failCount,
+    skip_count: 0,
+    output_excerpt: outputExcerpt,
+    created_by: getRequestUserId(req),
+  });
+
   const rows = await db.select().from(marketTestRuns).where(eq(marketTestRuns.id, id)).limit(1);
   return reply.code(201).send(marketTestRunToDto(rows[0]!));
 };

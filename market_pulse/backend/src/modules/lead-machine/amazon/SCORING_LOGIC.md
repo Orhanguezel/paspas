@@ -45,3 +45,17 @@ Sadece `HIGH` ve `MEDIUM` güvene sahip boyutlar composite skora girer.
 ## Keepa
 
 Keepa pahalı veri kaynağı olduğu için sadece `INSUFFICIENT_DATA` veya yüksek risk (`score > 7`) durumlarında çağrılmalıdır.
+
+### Keepa bütçe ve kuyruk politikası
+
+- Aday ASIN'ler doğrudan API'ye gitmez, önce `amazon_keepa_queue` tablosuna alınır.
+- Queue işleyici pending kayıtları FIFO sırada tüketir.
+- Günlük token limiti `amazon_keepa_daily_budget` tablosunda izlenir (`token_budget`, `tokens_used`).
+- Token kalmadığında kayıtlar queue'da pending kalır, sonraki gün işlenir.
+- Başarılı çekimler `amazon_keepa_snapshots` tablosuna yazılır.
+
+## Hata ve Retry İzleme
+
+- Amazon scoring pipeline hataları `amazon_job_error_logs` tablosuna yazılır.
+- Her hata kaydında `job_id`, `error_type`, `error_msg`, `retry_count` tutulur.
+- `retry_count`, aynı job için biriken hata sayısına göre artar.

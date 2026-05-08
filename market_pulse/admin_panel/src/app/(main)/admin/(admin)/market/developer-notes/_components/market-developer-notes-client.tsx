@@ -59,6 +59,7 @@ export function MarketDeveloperNotesClient() {
   const [deleteNoteMutation] = useDeleteMarketDeveloperNoteMutation();
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
+  const [attachmentUrl, setAttachmentUrl] = useState('');
   const [priority, setPriority] = useState<MarketDeveloperNotePriority>('normal');
 
   const openRiskCount = useMemo(
@@ -76,11 +77,13 @@ export function MarketDeveloperNotesClient() {
       subject: subject.trim(),
       body: body.trim(),
       priority,
+      attachment_url: attachmentUrl.trim() || undefined,
       page_path: '/admin/market/developer-notes',
     }).unwrap()
       .then(() => {
         setSubject('');
         setBody('');
+        setAttachmentUrl('');
         setPriority('normal');
         toast.success('Yazılımcı notu kaydedildi.');
       })
@@ -139,6 +142,7 @@ export function MarketDeveloperNotesClient() {
                 <h2 className="font-serif text-2xl text-gm-text">Yeni Not</h2>
               </div>
               <Input value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="Konu" />
+              <Input value={attachmentUrl} onChange={(event) => setAttachmentUrl(event.target.value)} placeholder="Ek Görsel / Dosya URL (İsteğe Bağlı)" />
               <Textarea
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
@@ -211,6 +215,11 @@ export function MarketDeveloperNotesClient() {
                     </div>
                   </div>
                   <p className="whitespace-pre-wrap text-sm leading-6 text-gm-muted">{note.body}</p>
+                  {note.attachmentUrl && (
+                    <div className="mt-4 rounded-lg border border-gm-border-soft overflow-hidden">
+                      <img src={note.attachmentUrl} alt="Note attachment" className="max-w-full object-cover" />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))

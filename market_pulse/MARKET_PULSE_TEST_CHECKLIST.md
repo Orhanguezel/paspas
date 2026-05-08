@@ -561,8 +561,8 @@ Dosya onerileri:
 - [x] 14. Sidebar/admin UI copy mimarisi genisletme.
 - [x] 15. Test merkezi icin backend kalici test run history API'leri.
 - [x] 16. Yazilimci notlari icin backend kalici developer notes API'leri.
-- [ ] 17. Test merkezi icin otomatik test calistirma aksiyonu.
-- [ ] 18. Yazilimci notlari icin dosya/gorsel ek destegi.
+- [x] 17. Test merkezi icin otomatik test calistirma aksiyonu.
+- [x] 18. Yazilimci notlari icin dosya/gorsel ek destegi.
 
 ## Kabul Kriterleri
 
@@ -577,5 +577,5 @@ Dosya onerileri:
 - [x] Admin typecheck temiz gecer.
 - [x] Test merkezi sonuclari backend'de kalici olarak saklanir.
 - [x] Yazilimci notlari backend'de kalici olarak saklanir.
-- [ ] Test merkezi admin uzerinden otomatik test kosumu baslatabilir.
-- [ ] Yazilimci notlari dosya/gorsel ekleriyle saklanabilir.
+- [x] Test merkezi admin uzerinden otomatik test kosumu baslatabilir.
+- [x] Yazilimci notlari dosya/gorsel ekleriyle saklanabilir.

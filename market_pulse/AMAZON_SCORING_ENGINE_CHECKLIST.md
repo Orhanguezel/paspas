@@ -264,8 +264,8 @@ B10 (Tipler)
 - [x] Keepa entegrasyon modülü yazıldı (test edildi)
 
 **Kalan teknik borç:**
-- [ ] Keepa günlük token bütçesi ve kuyruk sistemi kalıcı tablo/worker olarak ayrıştırılacak.
-- [ ] Amazon scoring retry sayacı ayrı alan veya log tablosu ile izlenecek.
+- [x] Keepa günlük token bütçesi ve kuyruk sistemi kalıcı tablo/worker olarak ayrıştırılacak.
+- [x] Amazon scoring retry sayacı ayrı alan veya log tablosu ile izlenecek.
 
 **MVP'de YOK:**
 - Admin panel / dashboard (Sprint 2)

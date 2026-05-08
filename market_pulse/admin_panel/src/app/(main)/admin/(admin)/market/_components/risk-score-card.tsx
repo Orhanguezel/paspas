@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertTriangle, BarChart3, CheckCircle2, CircleAlert } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -88,7 +88,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
     name: DIMENSION_LABELS[key],
     score: Number(item.score.toFixed(1)),
   }));
-  const keepaTrend = (report as AmazonRiskReport & { keepa_trend?: Array<{ label: string; price: number }> }).keepa_trend;
+  const keepaTrend = report.keepa_trend;
 
   if (compact) {
     return (
@@ -158,12 +158,16 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
         {Array.isArray(keepaTrend) && keepaTrend.length > 0 ? (
           <div className="rounded-2xl border border-gm-border-soft bg-gm-surface/10 p-4">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">Keepa Fiyat Trendi</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {keepaTrend.map((point) => (
-                <Badge key={point.label} variant="outline" className="rounded-full border-gm-border-soft bg-gm-bg-deep/50 text-gm-text">
-                  {point.label}: {point.price}
-                </Badge>
-              ))}
+            <div className="mt-3 h-36">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={keepaTrend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#9ca3af' }} />
+                  <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="price" stroke="#D4AF37" strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
         ) : null}
