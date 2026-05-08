@@ -58,7 +58,7 @@ export async function scrapeAmazonProducts(keyword: string, marketplace = 'com',
   const res = await fetch('https://realtime.oxylabs.io/v1/queries', {
     method: 'POST',
     headers: { authorization: `Basic ${token}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ source: 'amazon_search', query: keyword, domain: marketplace, pages: 3, parse: true }),
+    body: JSON.stringify({ source: 'amazon_search', query: keyword, domain: marketplace, pages: 5, parse: true }),
   });
   if (!res.ok) throw new Error(`OXYLABS_AMAZON_SEARCH_FAILED_${res.status}`);
   const data = await res.json() as { results?: Array<{ content?: { results?: { organic?: Record<string, unknown>[] } } }> };
