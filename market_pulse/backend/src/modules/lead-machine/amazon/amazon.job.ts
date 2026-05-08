@@ -127,7 +127,8 @@ export async function runAmazonJob(jobId: string) {
       ? await analyzeProductReviews(firstWithUrl.product_url, marketplace).catch(() => ({ problem_flags: [], problem_score: 0, ai_summary: '' }))
       : { problem_flags: [], problem_score: 0, ai_summary: '' };
 
-    const report = scoreAmazonCategory({
+    const report = {
+      ...scoreAmazonCategory({
       keyword,
       marketplace,
       products: eligible,
@@ -135,7 +136,9 @@ export async function runAmazonJob(jobId: string) {
       pageThreeAveragePrice: pageThreeAvg,
       reviewProblemScore: reviewAnalysis.problem_score,
       reviewProblemFlags: reviewAnalysis.problem_flags,
-    });
+      }),
+      problem_flags: reviewAnalysis.problem_flags,
+    };
 
     await saveRiskScore(jobId, report);
 
@@ -157,7 +160,8 @@ export async function runAmazonJob(jobId: string) {
       website: `https://www.amazon.${marketplace}/s?k=${encodeURIComponent(keyword)}`,
       rawData: report,
       aiSummary: report.summary,
-      leadScore: report.composite_score ?? 0,
+      leadScore: report.composite_score ?? null,
+      decision: report.decision,
     });
 
     await updateAmazonScanJob(jobId, { status: 'done', dataPoints: report.data_points });

@@ -34,7 +34,8 @@ export interface LeadCandidate {
   contact_name: string | null;
   raw_data: unknown;
   ai_summary: string | null;
-  lead_score: string | number;
+  lead_score: string | number | null;
+  decision: string | null;
   reject_reason: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
@@ -54,7 +55,8 @@ export interface CandidateInput {
   contactName?: string | null;
   rawData?: unknown;
   aiSummary?: string | null;
-  leadScore?: number;
+  leadScore?: number | null;
+  decision?: string | null;
 }
 
 function parseJsonField<T>(row: T, key: keyof T): T {
@@ -117,8 +119,8 @@ export async function insertCandidate(input: CandidateInput) {
   const id = randomUUID();
   await pool.execute(
     `INSERT INTO lead_candidates
-      (id, job_id, channel, icp_id, name, website, country, city, phone, email, contact_name, raw_data, ai_summary, lead_score)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (id, job_id, channel, icp_id, name, website, country, city, phone, email, contact_name, raw_data, ai_summary, lead_score, decision)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.jobId,
@@ -133,7 +135,8 @@ export async function insertCandidate(input: CandidateInput) {
       input.contactName ?? null,
       JSON.stringify(input.rawData ?? null),
       input.aiSummary ?? null,
-      input.leadScore ?? 0,
+      input.leadScore ?? null,
+      input.decision ?? null,
     ],
   );
   return id;

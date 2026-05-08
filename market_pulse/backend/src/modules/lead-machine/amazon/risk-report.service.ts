@@ -13,6 +13,8 @@ export async function getLatestAmazonRiskReport(keyword: string, marketplace = '
   const row = (rows as Record<string, unknown>[])[0];
   if (!row) return null;
 
+  const jobId = String(row.job_id);
+
   const [keepaRows] = await pool.execute(
     `SELECT aks.price_30d_min, aks.price_30d_max, aks.price_90d_avg
      FROM amazon_keepa_snapshots aks
@@ -21,9 +23,42 @@ export async function getLatestAmazonRiskReport(keyword: string, marketplace = '
      )
      ORDER BY aks.fetched_at DESC
      LIMIT 20`,
-    [String(row.job_id)],
+    [jobId],
   );
   const keepaTrend = buildKeepaTrend(keepaRows as Array<Record<string, unknown>>);
+
+  const [sellerRows] = await pool.execute(
+    `SELECT seller_name, COUNT(*) AS product_count, ROUND(AVG(price), 2) AS avg_price
+     FROM amazon_products
+     WHERE job_id = ? AND seller_name IS NOT NULL AND seller_name != ''
+     GROUP BY seller_name
+     ORDER BY product_count DESC
+     LIMIT 5`,
+    [jobId],
+  );
+  const topSellers = (sellerRows as Array<Record<string, unknown>>).map(s => ({
+    name: String(s.seller_name),
+    product_count: Number(s.product_count),
+    avg_price: s.avg_price !== null ? Number(s.avg_price) : null,
+  }));
+
+  const [productRows] = await pool.execute(
+    `SELECT title, price, rating, review_count, seller_name, product_url, asin
+     FROM amazon_products
+     WHERE job_id = ?
+     ORDER BY review_count DESC
+     LIMIT 20`,
+    [jobId],
+  );
+  const products = (productRows as Array<Record<string, unknown>>).map(p => ({
+    title: String(p.title ?? ''),
+    price: p.price !== null ? Number(p.price) : null,
+    rating: p.rating !== null ? Number(p.rating) : null,
+    review_count: p.review_count !== null ? Number(p.review_count) : null,
+    seller_name: p.seller_name ? String(p.seller_name) : null,
+    product_url: p.product_url ? String(p.product_url) : null,
+    asin: p.asin ? String(p.asin) : null,
+  }));
 
   return {
     keyword: row.keyword,
@@ -59,8 +94,29 @@ export async function getLatestAmazonRiskReport(keyword: string, marketplace = '
     composite_score: row.composite_score === null || row.composite_score === undefined ? null : Number(row.composite_score),
     decision: row.decision,
     summary: row.summary ?? '',
+    top_sellers: topSellers,
+    products,
     ...(keepaTrend.length ? { keepa_trend: keepaTrend } : {}),
   };
+}
+
+export async function getAmazonScanProducts(jobId: string) {
+  const [rows] = await pool.execute(
+    `SELECT title, price, rating, review_count, seller_name, product_url, asin
+     FROM amazon_products
+     WHERE job_id = ?
+     ORDER BY review_count DESC`,
+    [jobId],
+  );
+  return (rows as Array<Record<string, unknown>>).map(p => ({
+    title: String(p.title ?? ''),
+    price: p.price !== null ? Number(p.price) : null,
+    rating: p.rating !== null ? Number(p.rating) : null,
+    review_count: p.review_count !== null ? Number(p.review_count) : null,
+    seller_name: p.seller_name ? String(p.seller_name) : null,
+    product_url: p.product_url ? String(p.product_url) : null,
+    asin: p.asin ? String(p.asin) : null,
+  }));
 }
 
 function buildKeepaTrend(rows: Array<Record<string, unknown>>) {

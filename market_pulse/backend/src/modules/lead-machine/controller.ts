@@ -14,7 +14,7 @@ import {
   type LeadChannel,
 } from './_shared/db';
 import { runAmazonJob } from './amazon/amazon.job';
-import { getLatestAmazonRiskReport } from './amazon/risk-report.service';
+import { getLatestAmazonRiskReport, getAmazonScanProducts } from './amazon/risk-report.service';
 import { runB2bJob } from './b2b/b2b.job';
 import { runFairJob } from './fair/fair.job';
 import {
@@ -240,4 +240,10 @@ export const getAmazonRiskScores: RouteHandler<{ Params: { keyword: string }; Qu
   const report = await getLatestAmazonRiskReport(keyword, marketplace);
   if (!report) return reply.code(404).send({ error: { message: 'no_score_found' } });
   return report;
+};
+
+export const getAmazonScanProductsList: RouteHandler<{ Params: { jobId: string } }> = async (req, reply) => {
+  const products = await getAmazonScanProducts(req.params.jobId);
+  if (!products.length) return reply.code(404).send({ error: { message: 'no_products_found' } });
+  return { products };
 };

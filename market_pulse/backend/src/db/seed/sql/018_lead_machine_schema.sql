@@ -66,7 +66,8 @@ CREATE TABLE IF NOT EXISTS `lead_candidates` (
   -- Fair:   { fair_name, fair_date, booth_number, exhibitor_profile }
   `raw_data`       json          DEFAULT NULL,
   `ai_summary`     text          DEFAULT NULL,
-  `lead_score`     decimal(4,1)  NOT NULL DEFAULT 0.0,
+  `lead_score`     decimal(4,1)  DEFAULT NULL,
+  `decision`       varchar(30)   DEFAULT NULL,
   -- Öğrenme mekanizması
   `reject_reason`  varchar(500)  DEFAULT NULL,
   `reviewed_by`    char(36)      DEFAULT NULL,
@@ -78,6 +79,12 @@ CREATE TABLE IF NOT EXISTS `lead_candidates` (
   KEY `idx_candidates_channel` (`channel`),
   KEY `idx_candidates_icp`     (`icp_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `lead_candidates`
+  ADD COLUMN IF NOT EXISTS `decision` varchar(30) DEFAULT NULL AFTER `lead_score`;
+
+ALTER TABLE `lead_candidates`
+  MODIFY COLUMN `lead_score` decimal(4,1) DEFAULT NULL;
 
 -- Enrichment verileri
 -- candidate_id VEYA market_lead_id olur (onay öncesi/sonrası)
