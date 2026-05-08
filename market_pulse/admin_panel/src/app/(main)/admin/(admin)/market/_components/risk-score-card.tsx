@@ -1,31 +1,37 @@
 'use client';
 
-import { 
-  AlertTriangle, 
-  BarChart3, 
-  CheckCircle2, 
-  CircleAlert, 
-  Clock, 
-  ExternalLink, 
-  Info, 
-  Radar as RadarIcon, 
-  Star, 
-  TrendingUp, 
+import * as React from 'react';
+import {
+  AlertTriangle,
+  BarChart3,
+  CheckCircle2,
+  ChevronDown,
+  CircleAlert,
+  Clock,
+  DollarSign,
+  ExternalLink,
+  Info,
+  Radar as RadarIcon,
+  Star,
+  TrendingUp,
   Users,
   ShieldAlert
 } from 'lucide-react';
-import { 
-  CartesianGrid, 
-  Line, 
-  LineChart, 
-  PolarAngleAxis, 
-  PolarGrid, 
-  Radar, 
-  RadarChart, 
-  ResponsiveContainer, 
-  Tooltip, 
-  XAxis, 
-  YAxis 
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  PolarAngleAxis,
+  PolarGrid,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
 } from 'recharts';
 
 import { Badge } from '@/components/ui/badge';
@@ -36,9 +42,9 @@ import type { AmazonDimensionScore, AmazonRiskReport } from '@/integrations/endp
 import { cn } from '@/lib/utils';
 
 const DECISION_LABELS: Record<string, string> = {
-  GUVENLI: 'Güvenli',
+  GUVENLI: 'Güvenli — Girilebilir',
   DIKKATLI_OL: 'Dikkatli Ol',
-  GIRME: 'Girme',
+  GIRME: 'Girme — Yüksek Risk',
   MIXED_SIGNAL: 'Karışık Sinyal',
   INSUFFICIENT_DATA: 'Yetersiz Veri',
 };
@@ -51,17 +57,44 @@ const DIMENSION_LABELS: Record<keyof AmazonRiskReport['scores'], string> = {
   operational_risk: 'Operasyonel Risk',
 };
 
+const DIMENSION_DESC: Record<keyof AmazonRiskReport['scores'], string> = {
+  category_risk: 'Kaç rakip var, kategori ne kadar dolu',
+  sku_chaos: 'Fiyat aralığı, varyant baskısı, sigma',
+  price_war_risk: 'Fiyat kırılımı, düşük fiyat kümesi',
+  brand_reliability: 'Marka tutarlılığı, listing kalitesi',
+  operational_risk: 'Yorum şikayetleri, iade oranı',
+};
+
 function decisionClass(decision: string) {
-  if (decision === 'GUVENLI') return 'border-gm-success/40 bg-gm-success/10 text-gm-success';
-  if (decision === 'DIKKATLI_OL' || decision === 'MIXED_SIGNAL') return 'border-gm-warning/40 bg-gm-warning/10 text-gm-warning';
-  if (decision === 'GIRME') return 'border-gm-error/40 bg-gm-error/10 text-gm-error';
-  return 'border-gm-border-soft bg-gm-surface/20 text-gm-muted';
+  if (decision === 'GUVENLI') return 'border-emerald-500/50 bg-emerald-500/15 text-emerald-400';
+  if (decision === 'DIKKATLI_OL' || decision === 'MIXED_SIGNAL') return 'border-yellow-500/50 bg-yellow-500/15 text-yellow-400';
+  if (decision === 'GIRME') return 'border-red-500/50 bg-red-500/15 text-red-400';
+  return 'border-zinc-600/50 bg-zinc-800/50 text-zinc-500';
 }
 
-function scoreColor(score: number) {
-  if (score <= 3) return 'bg-gm-success';
-  if (score <= 6) return 'bg-gm-warning';
-  return 'bg-gm-error';
+function decisionBg(decision: string) {
+  if (decision === 'GUVENLI') return 'bg-emerald-500/10 border-emerald-500/20';
+  if (decision === 'DIKKATLI_OL' || decision === 'MIXED_SIGNAL') return 'bg-yellow-500/10 border-yellow-500/20';
+  if (decision === 'GIRME') return 'bg-red-500/10 border-red-500/20';
+  return 'bg-zinc-800/30 border-zinc-700/30';
+}
+
+function scoreBarColor(score: number) {
+  if (score <= 3) return '#10b981';
+  if (score <= 6) return '#eab308';
+  return '#ef4444';
+}
+
+function scoreStatus(score: number): 'GUVENLI' | 'DIKKATLI_OL' | 'GIRME' {
+  if (score <= 3) return 'GUVENLI';
+  if (score <= 6) return 'DIKKATLI_OL';
+  return 'GIRME';
+}
+
+function scoreStatusClass(status: 'GUVENLI' | 'DIKKATLI_OL' | 'GIRME') {
+  if (status === 'GUVENLI') return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400';
+  if (status === 'DIKKATLI_OL') return 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400';
+  return 'border-red-500/40 bg-red-500/10 text-red-400';
 }
 
 function flagLabel(flag: string) {
@@ -80,59 +113,115 @@ function flagLabel(flag: string) {
   return labels[flag] ?? flag;
 }
 
-function scoreStatus(score: number): 'GUVENLI' | 'DIKKATLI_OL' | 'GIRME' {
-  if (score <= 3) return 'GUVENLI';
-  if (score <= 6) return 'DIKKATLI_OL';
-  return 'GIRME';
+function extractBrand(title: string): string {
+  const words = title.trim().split(/\s+/);
+  const brand: string[] = [];
+  for (const w of words.slice(0, 3)) {
+    if (/^[A-Z]/.test(w) && w.length > 1 && !/^\d/.test(w)) {
+      brand.push(w);
+      if (brand.length >= 2) break;
+    } else break;
+  }
+  return brand.join(' ') || words[0] || '?';
 }
 
-function scoreStatusClass(status: 'GUVENLI' | 'DIKKATLI_OL' | 'GIRME') {
-  if (status === 'GUVENLI') return 'border-gm-success/40 bg-gm-success/10 text-gm-success';
-  if (status === 'DIKKATLI_OL') return 'border-gm-warning/40 bg-gm-warning/10 text-gm-warning';
-  return 'border-gm-error/40 bg-gm-error/10 text-gm-error';
+function buildBrandData(products: AmazonRiskReport['products']) {
+  if (!products?.length) return [];
+  const map = new Map<string, { count: number; prices: number[]; ratings: number[] }>();
+  for (const p of products) {
+    const brand = extractBrand(p.title);
+    if (!map.has(brand)) map.set(brand, { count: 0, prices: [], ratings: [] });
+    const e = map.get(brand)!;
+    e.count++;
+    if (p.price != null) e.prices.push(p.price);
+    if (p.rating != null) e.ratings.push(p.rating);
+  }
+  return Array.from(map.entries())
+    .map(([name, d]) => ({
+      name,
+      productCount: d.count,
+      avgPrice: d.prices.length ? +(d.prices.reduce((a, b) => a + b, 0) / d.prices.length).toFixed(2) : null,
+      avgRating: d.ratings.length ? +(d.ratings.reduce((a, b) => a + b, 0) / d.ratings.length).toFixed(1) : null,
+    }))
+    .sort((a, b) => b.productCount - a.productCount)
+    .slice(0, 8);
 }
 
-function DimensionRow({ label, item, flags }: { label: string; item: AmazonDimensionScore; flags?: string[] }) {
+const PRICE_BUCKETS = [
+  { label: '$0–15', min: 0, max: 15 },
+  { label: '$15–30', min: 15, max: 30 },
+  { label: '$30–60', min: 30, max: 60 },
+  { label: '$60–100', min: 60, max: 100 },
+  { label: '$100+', min: 100, max: Infinity },
+];
+
+function buildPriceHistogram(products: AmazonRiskReport['products']) {
+  if (!products?.length) return [];
+  return PRICE_BUCKETS.map(b => ({
+    label: b.label,
+    count: products.filter(p => p.price != null && p.price >= b.min && p.price < b.max).length,
+  }));
+}
+
+function priceStats(products: AmazonRiskReport['products']) {
+  const prices = (products ?? []).filter(p => p.price != null).map(p => p.price as number);
+  if (!prices.length) return null;
+  const sorted = [...prices].sort((a, b) => a - b);
+  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+  const median = sorted[Math.floor(sorted.length / 2)];
+  return { min: sorted[0], max: sorted[sorted.length - 1], avg: +avg.toFixed(2), median: +median.toFixed(2) };
+}
+
+function DimensionRow({ dimKey, label, item, flags }: { dimKey: string; label: string; item: AmazonDimensionScore; flags?: string[] }) {
+  const [open, setOpen] = React.useState(false);
   const width = `${Math.min(100, Math.max(0, item.score * 10))}%`;
   const state = scoreStatus(item.score);
+  const barColor = scoreBarColor(item.score);
+  const desc = DIMENSION_DESC[dimKey as keyof AmazonRiskReport['scores']] ?? '';
   return (
-    <details className="rounded-2xl border border-gm-border-soft bg-gm-surface/10 p-4 transition-all duration-300 open:bg-gm-surface/20">
-      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-serif text-lg text-gm-text">{label}</p>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
+    <div className={cn('rounded-2xl border transition-all duration-300', open ? 'border-gm-border-soft bg-gm-surface/20' : 'border-gm-border-soft/50 bg-gm-surface/5 hover:bg-gm-surface/10')}>
+      <button
+        type="button"
+        className="flex w-full cursor-pointer items-center justify-between gap-3 p-4 text-left"
+        onClick={() => setOpen(v => !v)}
+      >
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-serif text-base text-gm-text">{label}</p>
             <Badge variant="outline" className={cn('rounded-full text-[9px] font-bold uppercase tracking-widest', scoreStatusClass(state))}>
-              {DECISION_LABELS[state]}
+              {state === 'GUVENLI' ? 'Güvenli' : state === 'DIKKATLI_OL' ? 'Dikkat' : 'Girme'}
             </Badge>
-            <Badge variant="outline" className="rounded-full border-gm-border-soft bg-gm-bg-deep/50 text-[9px] font-bold uppercase tracking-widest text-gm-muted">
+            <Badge variant="outline" className="rounded-full border-gm-border-soft bg-gm-bg-deep/50 text-[9px] text-gm-muted">
               {item.confidence}
             </Badge>
           </div>
+          {!open && <p className="mt-0.5 text-[11px] text-gm-muted/70">{desc}</p>}
         </div>
-        <div className="flex items-center gap-3">
-          <Badge className="rounded-full border-gm-border-soft bg-gm-bg-deep/50 font-mono text-gm-text">
-            {item.score.toFixed(1)}
-          </Badge>
+        <div className="flex shrink-0 items-center gap-3">
+          <span className="font-mono text-lg font-bold" style={{ color: barColor }}>{item.score.toFixed(1)}</span>
+          <ChevronDown className={cn('size-4 text-gm-muted transition-transform duration-300', open && 'rotate-180')} />
         </div>
-      </summary>
-      <div className="mt-4 space-y-4">
-        <div className="h-2 overflow-hidden rounded-full bg-gm-bg-deep">
-          <div className={cn('h-full rounded-full transition-all duration-700', scoreColor(item.score))} style={{ width }} />
-        </div>
-        <p className="text-sm leading-6 text-gm-muted">{item.reason}</p>
-        
-        {flags && flags.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-2">
-            {flags.map((flag) => (
-              <Badge key={flag} variant="outline" className="rounded-full border-gm-error/20 bg-gm-error/5 text-[10px] text-gm-error">
-                <AlertTriangle className="mr-1 size-3" />
-                {flagLabel(flag)}
-              </Badge>
-            ))}
+      </button>
+
+      {open && (
+        <div className="space-y-3 px-4 pb-4">
+          <div className="h-1.5 overflow-hidden rounded-full bg-gm-bg-deep">
+            <div className="h-full rounded-full transition-all duration-700" style={{ width, backgroundColor: barColor }} />
           </div>
-        )}
-      </div>
-    </details>
+          <p className="text-sm leading-6 text-gm-muted">{item.reason}</p>
+          {flags && flags.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {flags.map((flag) => (
+                <Badge key={flag} variant="outline" className="rounded-full border-red-500/20 bg-red-500/5 text-[10px] text-red-400">
+                  <AlertTriangle className="mr-1 size-3" />
+                  {flagLabel(flag)}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -144,6 +233,10 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
     fullMark: 10,
   }));
   const keepaTrend = report.keepa_trend;
+  const brandData = buildBrandData(report.products);
+  const hasSellers = (report.top_sellers?.length ?? 0) > 0;
+  const priceHistogram = buildPriceHistogram(report.products);
+  const pStats = priceStats(report.products);
 
   if (compact) {
     return (
@@ -162,9 +255,10 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
   }
 
   return (
-    <Card className="rounded-[28px] border-gm-border-soft bg-gm-bg-deep/50 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <Card className={cn('rounded-[28px] border shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-700', decisionBg(report.decision))}>
       <CardContent className="space-y-8 p-8">
-        {/* Header Section */}
+
+        {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-8">
           <div className="max-w-xl space-y-3">
             <div className="flex items-center gap-3">
@@ -174,7 +268,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
               <h2 className="font-serif text-3xl text-gm-text">Amazon Ticari Karar Motoru</h2>
             </div>
             <p className="text-base italic leading-7 text-gm-muted">{report.summary}</p>
-            <div className="flex flex-wrap gap-3 pt-2">
+            <div className="flex flex-wrap gap-3 pt-1">
               <Badge variant="outline" className="rounded-full border-gm-border-soft bg-gm-surface/10 py-1 text-xs text-gm-muted">
                 <Users className="mr-1.5 size-3.5" />
                 {report.data_points} veri noktası
@@ -183,81 +277,77 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
                 <Clock className="mr-1.5 size-3.5" />
                 {new Date(report.scanned_at).toLocaleString('tr-TR')}
               </Badge>
+              {pStats && (
+                <Badge variant="outline" className="rounded-full border-gm-border-soft bg-gm-surface/10 py-1 text-xs text-gm-muted">
+                  <DollarSign className="mr-1 size-3.5" />
+                  ${pStats.min.toFixed(0)} – ${pStats.max.toFixed(0)} · ort. ${pStats.avg}
+                </Badge>
+              )}
             </div>
           </div>
-          
-          <div className="flex min-w-48 flex-col items-center justify-center rounded-[2rem] border border-gm-border-soft bg-gm-bg-deep/50 p-8 shadow-inner">
+
+          <div className={cn('flex min-w-52 flex-col items-center justify-center rounded-[2rem] border p-8 shadow-inner', decisionBg(report.decision))}>
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gm-muted">Composite Score</p>
-            <p className="mt-2 font-serif text-6xl text-gm-text tracking-tighter">
+            <p className="mt-2 font-serif text-6xl tracking-tighter text-gm-text">
               {report.composite_score?.toFixed(1) ?? '—'}
             </p>
-            <Badge variant="outline" className={cn('mt-6 scale-110 rounded-full py-1.5 px-4 text-[10px] font-bold tracking-widest', decisionClass(report.decision))}>
+            <Badge variant="outline" className={cn('mt-6 scale-110 rounded-full px-4 py-1.5 text-[10px] font-bold tracking-widest', decisionClass(report.decision))}>
               <Icon className="mr-2 size-4" />
               {DECISION_LABELS[report.decision] ?? report.decision}
             </Badge>
           </div>
         </div>
 
-        {report.decision === 'MIXED_SIGNAL' ? (
-          <div className="flex gap-4 rounded-3xl border border-gm-warning/30 bg-gm-warning/10 p-5 text-sm leading-7 text-gm-warning shadow-lg">
+        {/* Mixed signal warning */}
+        {report.decision === 'MIXED_SIGNAL' && (
+          <div className="flex gap-4 rounded-3xl border border-yellow-500/30 bg-yellow-500/10 p-5 text-sm leading-7 text-yellow-400 shadow-lg">
             <AlertTriangle className="mt-1 size-5 shrink-0" />
             <div>
               <p className="font-bold">Karışık Sinyal Tespit Edildi</p>
-              <p className="opacity-90">Risk boyutları arasında belirgin tutarsızlık var. Bu durum genellikle "niche" kategorilerde veya veri kaynağı kısıtlı olduğunda görülür. Manuel inceleme önerilir.</p>
+              <p className="opacity-90">Risk boyutları arasında belirgin tutarsızlık var. Manuel inceleme önerilir.</p>
             </div>
           </div>
-        ) : null}
+        )}
 
-        {/* Charts Section */}
+        {/* Charts */}
         <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="relative h-80 rounded-[2.5rem] border border-gm-border-soft bg-gm-surface/5 p-6 shadow-xl overflow-hidden group">
-            <div className="absolute top-6 left-6 z-10">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-gm-muted">Risk Profili (5 Boyut)</h3>
-            </div>
+          <div className="relative h-80 overflow-hidden rounded-[2.5rem] border border-gm-border-soft bg-gm-surface/5 p-6 shadow-xl">
+            <p className="absolute left-6 top-6 z-10 text-xs font-bold uppercase tracking-widest text-gm-muted">Risk Profili (5 Boyut)</p>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                 <PolarGrid stroke="rgba(255,255,255,0.08)" />
                 <PolarAngleAxis dataKey="subject" tick={{ fill: '#9ca3af', fontSize: 10 }} />
-                <Radar
-                  name="Risk"
-                  dataKey="A"
-                  stroke="#D4AF37"
-                  fill="#D4AF37"
-                  fillOpacity={0.4}
-                />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#0f1115', borderColor: '#27272a', borderRadius: '12px', fontSize: '12px' }}
-                  itemStyle={{ color: '#D4AF37' }}
-                />
+                <Radar name="Risk" dataKey="A" stroke="#D4AF37" fill="#D4AF37" fillOpacity={0.4} />
+                <Tooltip contentStyle={{ backgroundColor: '#0f1115', borderColor: '#27272a', borderRadius: '12px', fontSize: '12px' }} itemStyle={{ color: '#D4AF37' }} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="space-y-4">
-             <h3 className="text-xs font-bold uppercase tracking-widest text-gm-muted px-2">Risk Boyutları Detay</h3>
-             <div className="grid gap-3">
-              {(Object.entries(report.scores) as Array<[keyof AmazonRiskReport['scores'], AmazonDimensionScore]>).map(([key, item]) => (
-                <DimensionRow 
-                  key={key} 
-                  label={DIMENSION_LABELS[key]} 
-                  item={item} 
-                  flags={key === 'operational_risk' ? report.problem_flags : undefined}
-                />
-              ))}
-            </div>
+          <div className="space-y-3">
+            <p className="px-2 text-xs font-bold uppercase tracking-widest text-gm-muted">Risk Boyutları Detay <span className="normal-case font-normal opacity-60">— detay için tıkla</span></p>
+            {(Object.entries(report.scores) as Array<[keyof AmazonRiskReport['scores'], AmazonDimensionScore]>).map(([key, item]) => (
+              <DimensionRow
+                key={key}
+                dimKey={key}
+                label={DIMENSION_LABELS[key]}
+                item={item}
+                flags={key === 'operational_risk' ? report.problem_flags : undefined}
+              />
+            ))}
           </div>
         </div>
 
-        {/* Enrichment Tabs Section */}
+        {/* Tabs */}
         <Tabs defaultValue="products" className="w-full">
           <TabsList className="grid w-full max-w-md grid-cols-3 rounded-full bg-gm-bg-deep p-1">
             <TabsTrigger value="products" className="rounded-full data-[state=active]:bg-gm-gold data-[state=active]:text-black">Ürün Kanıtları</TabsTrigger>
-            <TabsTrigger value="sellers" className="rounded-full data-[state=active]:bg-gm-gold data-[state=active]:text-black">Satıcılar</TabsTrigger>
-            <TabsTrigger value="trends" className="rounded-full data-[state=active]:bg-gm-gold data-[state=active]:text-black">Trendler</TabsTrigger>
+            <TabsTrigger value="sellers" className="rounded-full data-[state=active]:bg-gm-gold data-[state=active]:text-black">Markalar</TabsTrigger>
+            <TabsTrigger value="trends" className="rounded-full data-[state=active]:bg-gm-gold data-[state=active]:text-black">Fiyat Analizi</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="products" className="mt-6 space-y-4">
-            <div className="rounded-[2rem] border border-gm-border-soft bg-gm-surface/5 overflow-hidden shadow-xl">
+          {/* Ürün Kanıtları */}
+          <TabsContent value="products" className="mt-6">
+            <div className="overflow-hidden rounded-[2rem] border border-gm-border-soft bg-gm-surface/5 shadow-xl">
               <Table>
                 <TableHeader className="bg-gm-bg-deep/50">
                   <TableRow className="border-gm-border-soft hover:bg-transparent">
@@ -265,43 +355,31 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
                     <TableHead className="text-xs uppercase text-gm-muted">Fiyat</TableHead>
                     <TableHead className="text-xs uppercase text-gm-muted">Rating</TableHead>
                     <TableHead className="text-xs uppercase text-gm-muted">Yorum</TableHead>
-                    <TableHead className="text-xs uppercase text-gm-muted">Satıcı</TableHead>
-                    <TableHead className="w-10"></TableHead>
+                    <TableHead className="w-10" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {report.products?.map((p, idx) => (
-                    <TableRow 
-                      key={idx} 
-                      className="border-gm-border-soft hover:bg-gm-surface/10 transition-colors cursor-pointer"
+                    <TableRow
+                      key={idx}
+                      className="cursor-pointer border-gm-border-soft transition-colors hover:bg-gm-surface/10"
                       onClick={() => p.product_url && window.open(p.product_url, '_blank')}
                     >
                       <TableCell className="max-w-xs">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 min-w-0">
-                            <p className="truncate text-sm font-medium text-gm-text">{p.title}</p>
-                            <p className="text-[10px] text-gm-muted font-mono uppercase">{p.asin}</p>
-                          </div>
-                        </div>
+                        <p className="truncate text-sm font-medium text-gm-text">{p.title}</p>
+                        <p className="font-mono text-[10px] uppercase text-gm-muted">{p.asin}</p>
                       </TableCell>
-                      <TableCell className="font-mono text-sm text-gm-text">
-                        {p.price ? `$${p.price.toFixed(2)}` : '—'}
-                      </TableCell>
+                      <TableCell className="font-mono text-sm text-gm-text">{p.price ? `$${p.price.toFixed(2)}` : '—'}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Star className="size-3 text-gm-gold fill-gm-gold" />
+                          <Star className="size-3 fill-gm-gold text-gm-gold" />
                           <span className="text-sm">{p.rating?.toFixed(1) ?? '—'}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm text-gm-muted">
-                        {p.review_count?.toLocaleString('tr-TR')}
-                      </TableCell>
-                      <TableCell className="text-sm text-gm-muted truncate max-w-40">
-                        {p.seller_name || 'Amazon'}
-                      </TableCell>
+                      <TableCell className="text-sm text-gm-muted">{p.review_count?.toLocaleString('tr-TR')}</TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         {p.product_url && (
-                          <a href={p.product_url} target="_blank" rel="noopener noreferrer" className="text-gm-muted hover:text-gm-gold transition-colors">
+                          <a href={p.product_url} target="_blank" rel="noopener noreferrer" className="text-gm-muted transition-colors hover:text-gm-gold">
                             <ExternalLink className="size-4" />
                           </a>
                         )}
@@ -313,79 +391,161 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
             </div>
           </TabsContent>
 
-          <TabsContent value="sellers" className="mt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {report.top_sellers?.map((s, idx) => (
-                <Card key={idx} className="border-gm-border-soft bg-gm-surface/5 rounded-3xl overflow-hidden hover:border-gm-gold/30 transition-all">
-                  <CardContent className="p-6 space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div className="rounded-full bg-gm-gold/10 p-2 text-gm-gold">
-                        <Users className="size-5" />
+          {/* Markalar */}
+          <TabsContent value="sellers" className="mt-6 space-y-4">
+            <p className="text-xs text-gm-muted">
+              {hasSellers
+                ? 'Kategorideki ana satıcılar ve fiyat pozisyonları.'
+                : 'Ürün başlıklarından çıkarılan marka analizi — bu pazardaki ana oyuncular.'}
+            </p>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {(hasSellers ? report.top_sellers! : brandData).map((s, idx) => {
+                const name = 'seller_name' in s ? s.seller_name : s.name;
+                const count = 'product_count' in s ? s.product_count : s.productCount;
+                const price = 'avg_price' in s ? s.avg_price : s.avgPrice;
+                const rating = 'avgRating' in s ? s.avgRating : null;
+                return (
+                  <Card key={idx} className="overflow-hidden rounded-3xl border-gm-border-soft bg-gm-surface/5 transition-all hover:border-gm-gold/30">
+                    <CardContent className="space-y-3 p-5">
+                      <div className="flex items-start justify-between">
+                        <div className="rounded-full bg-gm-gold/10 p-2 text-gm-gold">
+                          <Users className="size-4" />
+                        </div>
+                        <Badge variant="outline" className="rounded-full border-gm-gold/20 text-[9px] text-gm-gold">#{idx + 1}</Badge>
                       </div>
-                      <Badge variant="outline" className="rounded-full border-gm-gold/20 text-[10px] text-gm-gold">Top {idx + 1}</Badge>
-                    </div>
-                    <div>
-                      <h4 className="font-serif text-lg text-gm-text truncate">{s.seller_name}</h4>
-                      <p className="text-xs text-gm-muted mt-1 uppercase tracking-wider">{s.product_count} Ürün Yayında</p>
-                    </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-gm-border-soft">
-                      <span className="text-xs text-gm-muted">Ort. Fiyat</span>
-                      <span className="font-mono text-gm-text">{s.avg_price === null ? '—' : `$${s.avg_price.toFixed(2)}`}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      <h4 className="truncate font-serif text-base text-gm-text">{name}</h4>
+                      <p className="text-[10px] uppercase tracking-wider text-gm-muted">{count} ürün</p>
+                      <div className="flex items-center justify-between border-t border-gm-border-soft pt-2">
+                        <span className="text-xs text-gm-muted">Ort. Fiyat</span>
+                        <span className="font-mono text-sm text-gm-text">{price != null ? `$${Number(price).toFixed(2)}` : '—'}</span>
+                      </div>
+                      {rating != null && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gm-muted">Ort. Rating</span>
+                          <span className="flex items-center gap-1 font-mono text-sm text-gm-text">
+                            <Star className="size-3 fill-gm-gold text-gm-gold" />{rating}
+                          </span>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
+            {!hasSellers && brandData.length > 0 && (
+              <p className="mt-2 text-[10px] italic text-gm-muted/60">
+                * Scraper satıcı bilgisi sağlamadığından markalar ürün başlıklarından çıkarıldı.
+              </p>
+            )}
           </TabsContent>
 
+          {/* Fiyat Analizi */}
           <TabsContent value="trends" className="mt-6 space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
-              {Array.isArray(keepaTrend) && keepaTrend.length > 0 ? (
-                <div className="rounded-[2.5rem] border border-gm-border-soft bg-gm-surface/5 p-8 shadow-xl">
-                  <div className="flex items-center justify-between mb-8">
-                    <div className="flex flex-col">
+
+              {/* Fiyat Dağılımı Histogram */}
+              {priceHistogram.some(b => b.count > 0) && (
+                <div className="rounded-[2.5rem] border border-gm-border-soft bg-gm-surface/5 p-6 shadow-xl">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gm-muted">Fiyat Dağılımı</h3>
+                      {pStats && (
+                        <p className="mt-1 text-[10px] text-gm-muted/70">
+                          Medyan: ${pStats.median} · Ortalama: ${pStats.avg}
+                        </p>
+                      )}
+                    </div>
+                    <DollarSign className="size-4 text-gm-gold" />
+                  </div>
+                  <div className="h-44">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={priceHistogram} barSize={32}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: '#0f1115', borderColor: '#27272a', borderRadius: '12px', fontSize: '12px' }}
+                          formatter={(v) => [`${v} ürün`, 'Adet']}
+                        />
+                        <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                          {priceHistogram.map((entry, i) => (
+                            <Cell key={i} fill={entry.count === Math.max(...priceHistogram.map(b => b.count)) ? '#D4AF37' : '#4b5563'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <p className="mt-3 text-[10px] italic text-gm-muted/60">
+                    En yoğun fiyat bandı: girmek istediğiniz bölge burası
+                  </p>
+                </div>
+              )}
+
+              {/* Keepa Trendi */}
+              {Array.isArray(keepaTrend) && keepaTrend.length > 1 ? (
+                <div className="rounded-[2.5rem] border border-gm-border-soft bg-gm-surface/5 p-6 shadow-xl">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
                       <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gm-muted">Fiyat Geçmişi (Keepa)</h3>
                       {report.buy_box_change_count !== undefined && (
-                        <p className="text-[10px] text-gm-gold mt-1">Buy Box Değişimi: {report.buy_box_change_count}</p>
+                        <p className="mt-1 text-[10px] text-gm-gold">Buy Box Değişimi: {report.buy_box_change_count}</p>
                       )}
                     </div>
                     <TrendingUp className="size-4 text-gm-gold" />
                   </div>
-                  <div className="h-48">
+                  <div className="h-44">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={keepaTrend}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
                         <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} dy={10} />
                         <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#0f1115', borderColor: '#27272a', borderRadius: '12px' }}
-                        />
-                        <Line type="monotone" dataKey="price" stroke="#D4AF37" strokeWidth={3} dot={{ r: 4, fill: '#D4AF37', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0f1115', borderColor: '#27272a', borderRadius: '12px' }} />
+                        <Line type="monotone" dataKey="price" stroke="#D4AF37" strokeWidth={3} dot={{ r: 5, fill: '#D4AF37', strokeWidth: 0 }} activeDot={{ r: 7 }} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
-              ) : (
-                <Card className="border-gm-border-soft bg-gm-surface/5 rounded-[2.5rem] p-8 flex flex-col items-center justify-center text-center space-y-4">
-                  <div className="rounded-full bg-gm-bg-deep p-4 text-gm-muted">
-                    <TrendingUp className="size-8" />
-                  </div>
-                  <p className="text-sm text-gm-muted max-w-xs">Bu keyword için henüz Keepa fiyat trend verisi toplanmadı.</p>
-                </Card>
-              )}
+              ) : null}
 
-              <Card className="border-gm-border-soft bg-gm-surface/5 rounded-[2.5rem] p-8 space-y-6 shadow-xl">
-                <div className="flex items-center gap-3">
-                   <Info className="size-5 text-gm-gold" />
-                   <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gm-text">Bilgi Notu</h3>
+              {/* Pazar Özeti */}
+              <Card className="rounded-[2.5rem] border-gm-border-soft bg-gm-surface/5 p-6 shadow-xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <Info className="size-5 text-gm-gold" />
+                  <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gm-text">Pazar Özeti</h3>
                 </div>
-                <div className="space-y-4 text-sm leading-7 text-gm-muted italic">
-                  <p>"Ürün Kanıtları" bölümü, risk puanı hesaplanırken kullanılan en yüksek etkili (en çok yorum alan) ürünleri gösterir.</p>
-                  <p>"Satıcılar" bölümü, kategorideki pazar payı ve fiyat rekabeti oluşturan ana aktörleri listeler.</p>
+                <div className="space-y-3 text-sm text-gm-muted">
+                  {pStats && (
+                    <>
+                      <div className="flex justify-between">
+                        <span>En düşük fiyat</span>
+                        <span className="font-mono text-emerald-400">${pStats.min.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>En yüksek fiyat</span>
+                        <span className="font-mono text-red-400">${pStats.max.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Ortalama fiyat</span>
+                        <span className="font-mono text-gm-text">${pStats.avg}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Medyan fiyat</span>
+                        <span className="font-mono text-gm-text">${pStats.median}</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="flex justify-between border-t border-gm-border-soft pt-2">
+                    <span>Analiz edilen ürün</span>
+                    <span className="font-mono text-gm-text">{report.products?.length ?? 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Tespit edilen marka</span>
+                    <span className="font-mono text-gm-text">{brandData.length}</span>
+                  </div>
                   {report.problem_flags && report.problem_flags.length > 0 && (
-                    <div className="mt-4 flex items-start gap-2 rounded-xl bg-gm-error/10 p-3 text-gm-error not-italic">
-                      <ShieldAlert className="size-4 shrink-0 mt-0.5" />
-                      <p className="text-xs font-bold uppercase">Operasyonel risk altında kritik şikayetler tespit edildi.</p>
+                    <div className="mt-3 flex items-start gap-2 rounded-xl bg-red-500/10 p-3 text-red-400">
+                      <ShieldAlert className="mt-0.5 size-4 shrink-0" />
+                      <p className="text-xs font-bold uppercase">Kritik müşteri şikayetleri tespit edildi.</p>
                     </div>
                   )}
                 </div>
