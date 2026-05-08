@@ -25,6 +25,7 @@ import {
   type AmazonRiskReport,
   type LeadSearchJob,
 } from '@/integrations/hooks';
+import type { AmazonRiskDecision } from '@/integrations/endpoints/admin/market_admin.endpoints';
 import { cn } from '@/lib/utils';
 import { RiskScoreCard } from './risk-score-card';
 
@@ -104,7 +105,7 @@ function compareRowsFromJobs(jobs: LeadSearchJob[] | undefined, fallback: Amazon
     .filter((row): row is {
       jobId: string;
       keyword: string;
-      decision: string;
+      decision: AmazonRiskDecision;
       composite: number | null;
       dataPoints: number;
       createdAt: string;
