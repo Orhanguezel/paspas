@@ -8,6 +8,7 @@ import { scoreAmazonCategory } from './amazon.scoring-engine';
 import { calculateCategoryStats, upsertAmazonCategoryStats } from './category.normalizer';
 import { shouldFetchKeepa, enqueueKeepaAsins, processKeepaQueue, isKeepaConfigured } from './keepa.client';
 import type { AmazonRiskReport } from './amazon.types';
+import type { AmazonProduct } from './amazon.scraper';
 
 interface AmazonJobParams extends AmazonFilters {
   keyword?: string;
@@ -36,6 +37,32 @@ async function saveRiskScore(jobId: string, report: AmazonRiskReport) {
       report.composite_score, report.decision, report.summary, report.data_points,
     ],
   );
+}
+
+function extractAsin(productUrl?: string | null) {
+  return productUrl?.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/)?.[1] ?? null;
+}
+
+async function saveAmazonProducts(jobId: string, products: AmazonProduct[]) {
+  for (const product of products) {
+    await pool.execute(
+      `INSERT INTO amazon_products (
+        id, job_id, title, price, rating, review_count, seller_name, seller_url, product_url, asin
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        randomUUID(),
+        jobId,
+        product.product_title,
+        product.price ?? null,
+        product.rating ?? null,
+        product.review_count ?? 0,
+        product.seller_name ?? null,
+        product.seller_url ?? null,
+        product.product_url ?? null,
+        extractAsin(product.product_url),
+      ],
+    );
+  }
 }
 
 async function saveAmazonScanJob(jobId: string, keyword: string, marketplace: string) {
@@ -80,6 +107,7 @@ export async function runAmazonJob(jobId: string) {
   try {
     const allProducts = await scrapeAmazonProducts(keyword, marketplace, params);
     const eligible = filterEligibleProducts(allProducts);
+    await saveAmazonProducts(jobId, eligible);
     const categoryStats = calculateCategoryStats(keyword, marketplace, eligible);
     await upsertAmazonCategoryStats(categoryStats);
 
@@ -112,7 +140,7 @@ export async function runAmazonJob(jobId: string) {
       isKeepaConfigured()
       && shouldFetchKeepa({ confidence: report.scores.price_war_risk.confidence, score: report.composite_score })
     ) {
-      const asins = eligible.map(p => p.product_url?.match(/\/dp\/([A-Z0-9]{10})/)?.[1]).filter(Boolean) as string[];
+      const asins = eligible.map(p => extractAsin(p.product_url)).filter(Boolean) as string[];
       await enqueueKeepaAsins(jobId, asins.slice(0, 20));
       await processKeepaQueue(20);
     }

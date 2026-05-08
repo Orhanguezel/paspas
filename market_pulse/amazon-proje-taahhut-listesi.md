@@ -14,7 +14,7 @@
 |------|-----|----------|
 | **Claude Code** | Mimar / Stratejist | DB şema, API kontrat, mimari karar, review, handover notu yazar |
 | **Codex** | Implementasyon | Test dosyaları, README, refactor, standalone repo paketleme |
-| **Cursor** | UI / Frontend | Admin panel bileşenleri, form, risk skor kartı, sidebar |
+| **Antigravity** | UI / Frontend | Admin panel bileşenleri, form, risk skor kartı, sidebar |
 
 Tüm ajanlara ortak kural: bu dosya tek gerçek kaynaktır. Tamamlanan madde hemen `[ ]` → `[x]` yapılır.
 
@@ -24,8 +24,8 @@ Tüm ajanlara ortak kural: bu dosya tek gerçek kaynaktır. Tamamlanan madde hem
 
 ### [Claude Code] Mimari & Handover
 
-- [ ] **Standalone repo sınır haritası** — `amazon/` klasöründen hangi dosyalar bağımsız çalışır, hangi `_shared/` bağımlılıkları kopar; Codex'e handover notu yaz (`docs/standalone-scope.md`)
-- [ ] **E2E test senaryoları tasarla** — `runAmazonJob()` → DB full-flow için hangi mock'lar, hangi assert'lar gerekli; Codex'e teknik brief yaz
+- [x] **Standalone repo sınır haritası** — `docs/standalone-scope.md` oluşturuldu; bağımlılık analizi, kopma noktaları, yeni repo yapısı, Codex uygulama talimatları
+- [x] **E2E test senaryoları tasarla** — `docs/e2e-test-brief.md` oluşturuldu; 3 senaryo, mock stratejisi, assert listesi, dosya şablonu
 - [ ] **5 keyword test sonuçlarını değerlendir** — Keepa key gelince çalıştır, çıktıları `docs/test-results/` altına kaydet, müşteriye yorumla
 - [ ] **Milestone 3 final kod review** — Codex teslim ettiğinde standalone repo + README + E2E testleri mimari açıdan onayla
 
@@ -51,18 +51,18 @@ Tüm ajanlara ortak kural: bu dosya tek gerçek kaynaktır. Tamamlanan madde hem
 
 ---
 
-### [Cursor] Admin Panel UI
+### [Antigravity] Admin Panel UI
 
-- [ ] **`risk-score-card.tsx`** — `admin_panel/src/app/(main)/admin/(admin)/market/_components/risk-score-card.tsx`
+- [x] **`risk-score-card.tsx`** — `admin_panel/src/app/(main)/admin/(admin)/market/_components/risk-score-card.tsx`
   - 5 boyut (category_risk, sku_chaos, price_war_risk, brand_reliability, operational_risk)
   - Her boyut: skor progress bar + confidence badge + reason tooltip
   - Karar etiketi: GÜVENLİ (yeşil) / DİKKATLİ_OL (sarı) / GİRME (kırmızı)
   - `data_points` badge (sağ üst köşe)
   - MIXED_SIGNAL flag gösterimi
-- [ ] **`amazon-lead-search-panel.tsx` güncelleme** — mevcut bileşeni `risk-score-card` ile entegre et
+- [x] **`amazon-lead-search-panel.tsx` güncelleme** — mevcut bileşeni `risk-score-card` ile entegre et
   - Tarama sonucu geldiğinde `risk-score-card` bileşenini render et
   - Keepa trend varsa mini grafik ekle
-- [ ] **Admin sidebar** — Amazon Scoring sayfasına nav linki ekle (`sidebar-items.ts`)
+- [x] **Admin sidebar** — Amazon Scoring sayfasına nav linki ekle (`sidebar-items.ts`)
 
 ---
 
@@ -77,7 +77,7 @@ Tüm ajanlara ortak kural: bu dosya tek gerçek kaynaktır. Tamamlanan madde hem
 - [x] Karar etiketi üretimi — GÜVENLİ / DİKKATLİ_OL / GİRME (`composite.scorer.ts`)
 - [x] MIXED_SIGNAL mekanizması — tek sinyal yüksek, diğerleri düşük (`signal.validator.ts`)
 - [x] Veri filtreleme — minimum threshold, yetersiz veri eleme (`signal.validator.ts`)
-- [x] Merkezi config — ağırlıklar ve eşikler `scoring.config.ts`'te toplandı
+- [x] Merkezi config — ağırlıklar ve eşikler `scoring.config.ts'te toplandı
 
 ### Veri Altyapısı
 - [x] Keepa API entegrasyonu — fiyat geçmişi, Buy Box trendi, kuyruk + bütçe (`keepa.client.ts`)
@@ -131,8 +131,8 @@ Tüm ajanlara ortak kural: bu dosya tek gerçek kaynaktır. Tamamlanan madde hem
 - [ ] [Codex] E2E integration test
 - [ ] [Codex] README.md
 - [ ] [Codex] Standalone repo paketleme
-- [ ] [Cursor] risk-score-card.tsx
-- [ ] [Cursor] amazon-lead-search-panel güncelleme
+- [x] [Antigravity] risk-score-card.tsx
+- [x] [Antigravity] amazon-lead-search-panel güncelleme
 - [ ] [Claude Code] Standalone sınır haritası → Codex'e handover
 - [ ] [Claude Code] Final mimari review
 - [ ] 5 keyword gerçek çalışma sonuçları *(Keepa key bekleniyor)*

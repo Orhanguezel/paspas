@@ -17,8 +17,9 @@ docs/vps_*.tsv
 .env.development
 
 # Dokümantasyon (build çıktıları, office dosyaları, kişisel notlar)
+# Not: market_pulse/docs/ içindeki .md dosyaları (mimari notlar) commit edilir;
+# VPS dump'lar zaten yukarıdaki spesifik pattern'lerle zaten ignore ediliyor.
 /docs/
-market_pulse/docs/
 
 # Syncthing
 *.sync-conflict-*
