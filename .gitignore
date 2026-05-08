@@ -17,7 +17,8 @@ docs/vps_*.tsv
 .env.development
 
 # Dokümantasyon (build çıktıları, office dosyaları, kişisel notlar)
-docs/
+/docs/
+market_pulse/docs/
 
 # Syncthing
 *.sync-conflict-*
