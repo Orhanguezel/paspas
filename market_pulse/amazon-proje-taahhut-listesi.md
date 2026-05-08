@@ -26,7 +26,7 @@ Tüm ajanlara ortak kural: bu dosya tek gerçek kaynaktır. Tamamlanan madde hem
 
 - [x] **Standalone repo sınır haritası** — `docs/standalone-scope.md` oluşturuldu; bağımlılık analizi, kopma noktaları, yeni repo yapısı, Codex uygulama talimatları
 - [x] **E2E test senaryoları tasarla** — `docs/e2e-test-brief.md` oluşturuldu; 3 senaryo, mock stratejisi, assert listesi, dosya şablonu
-- [ ] **5 keyword test sonuçlarını değerlendir** — Keepa key gelince çalıştır, çıktıları `docs/test-results/` altına kaydet, müşteriye yorumla
+- [x] **5 keyword test sonuçlarını değerlendir** — `docs/test-results/2026-05-08-5keyword-results.md` oluşturuldu; 3 keyword tam skor (thermal labels 5.3, dash cam 5.4, webcam lighting 5.2 — hepsi DİKKATLİ OL), 2 keyword yetersiz veri (cable organizer, surge protector)
 - [x] **Milestone 3 final kod review** — Standalone repo review tamamlandı: ERP bağımlılıkları koparıldı (job-store.ts Seçenek A), legacy dosyalar silindi, ai.client lib/ altına taşındı, E2E test standalone'a uyarlandı; 24 test pass
 
 ---
@@ -135,7 +135,7 @@ Tüm ajanlara ortak kural: bu dosya tek gerçek kaynaktır. Tamamlanan madde hem
 - [x] [Antigravity] amazon-lead-search-panel güncelleme
 - [x] [Claude Code] Standalone sınır haritası → Codex'e handover (`docs/standalone-scope.md`)
 - [x] [Claude Code] Final mimari review — ERP bağımlılıkları koparıldı, standalone 24 test pass
-- [ ] 5 keyword gerçek çalışma sonuçları *(test başlatıldı 2026-05-08, VPS 021 seed + deploy sonrası tamamlanacak)*
+- [x] 5 keyword gerçek çalışma sonuçları — tamamlandı 2026-05-08, bkz. `docs/test-results/2026-05-08-5keyword-results.md`
 - [x] Tüm haklar alıcıya devredilir — standalone pakete `RIGHTS_TRANSFER.md` eklendi
 
 ---
