@@ -296,3 +296,36 @@ html {
 .disable-transitions * {
   transition: none !important;
 }
+
+@media print {
+  /* Sadece içerik alanı yazdırılsın */
+  [data-sidebar],
+  [data-slot="sidebar"],
+  nav,
+  header,
+  footer,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  body,
+  html {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Sidebar genişliğini sıfırla, içerik tam sayfa olsun */
+  [data-slot="sidebar-inset"] {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Kartların kenarlıklarını ve arka planını düz tut */
+  .rounded-\[28px\],
+  .rounded-\[2rem\],
+  .rounded-\[2\.5rem\] {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}

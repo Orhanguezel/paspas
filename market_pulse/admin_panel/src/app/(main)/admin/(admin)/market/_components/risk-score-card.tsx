@@ -358,7 +358,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
 
         {/* Charts */}
         <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="relative h-80 overflow-hidden rounded-[2.5rem] border border-gm-border-soft bg-black/5 p-6 shadow-xl">
+          <div className="relative h-80 overflow-hidden rounded-[2.5rem] border border-gm-border-soft bg-muted/30 p-6 shadow-xl">
             <p className="absolute left-6 top-6 z-10 text-xs font-bold uppercase tracking-widest text-gm-muted">Risk Profili (5 Boyut)</p>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
@@ -493,7 +493,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
 
               {/* Fiyat Dağılımı Histogram */}
               {priceHistogram.some(b => b.count > 0) && (
-                <div className="rounded-[2.5rem] border border-gm-border-soft bg-black/5 p-6 shadow-xl">
+                <div className="rounded-[2.5rem] border border-gm-border-soft bg-muted/30 p-6 shadow-xl">
                   <div className="mb-4 flex items-center justify-between">
                     <div>
                       <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gm-muted">Fiyat Dağılımı</h3>
@@ -531,7 +531,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
 
               {/* Keepa Trendi */}
               {Array.isArray(keepaTrend) && keepaTrend.length > 1 ? (
-                <div className="rounded-[2.5rem] border border-gm-border-soft bg-black/5 p-6 shadow-xl">
+                <div className="rounded-[2.5rem] border border-gm-border-soft bg-muted/30 p-6 shadow-xl">
                   <div className="mb-4 flex items-center justify-between">
                     <div>
                       <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gm-muted">Fiyat Geçmişi (Keepa)</h3>
@@ -621,7 +621,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
           <TabsContent value="reviews" className="mt-6 space-y-5">
             {/* Rating dağılımı */}
             {ratingDist.length > 0 && (
-              <div className="rounded-[2rem] border border-gm-border-soft bg-black/5 p-6">
+              <div className="rounded-[2rem] border border-gm-border-soft bg-muted/30 p-6">
                 <div className="mb-4 flex items-center gap-2">
                   <Star className="size-4 text-gm-gold fill-gm-gold" />
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gm-muted">Rating Dağılımı</h3>

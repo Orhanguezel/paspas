@@ -32,7 +32,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
           <AppSidebar
             variant="inset"
             collapsible="icon"
-            className="border-r border-gm-border-soft"
+            className="border-r border-gm-border-soft print:hidden"
             me={{
               id: 'me',
               name: 'Admin',
@@ -53,7 +53,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
             <header
               className={cn(
                 'flex h-16 shrink-0 items-center gap-2 border-b border-gm-border-soft transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-16',
-                'bg-gm-bg/80 backdrop-blur-xl sticky top-0 z-50',
+                'bg-gm-bg/80 backdrop-blur-xl sticky top-0 z-50 print:hidden',
               )}
             >
               <div className="flex w-full items-center justify-between px-4 lg:px-8">
