@@ -69,12 +69,28 @@ export default function AmazonLeadSearchPanel() {
   const [priceMin, setPriceMin] = React.useState(15);
   const [priceMax, setPriceMax] = React.useState(100);
 
-  const { data: jobs, isLoading, isFetching, refetch } = useListAmazonJobsQuery();
+  const [polling, setPolling] = React.useState(false);
+
+  const { data: jobs, isLoading, isFetching, refetch } = useListAmazonJobsQuery(undefined, {
+    pollingInterval: polling ? 6000 : 0,
+  });
   const { data: riskReport, isFetching: isRiskFetching, refetch: refetchRisk } = useGetAmazonRiskScoreQuery({
     keyword: keyword.trim() || 'car floor mats',
     marketplace,
   });
   const [startAmazonScan, startState] = useStartAmazonScanMutation();
+
+  const activeKeyword = keyword.trim() || 'car floor mats';
+
+  React.useEffect(() => {
+    if (!jobs) return;
+    const hasActive = jobs.some((j) => j.status === 'pending' || j.status === 'running');
+    setPolling(hasActive);
+    const keywordDone = jobs.some(
+      (j) => String((j.params as any)?.keyword ?? '') === activeKeyword && j.status === 'done',
+    );
+    if (keywordDone && !riskReport) refetchRisk();
+  }, [jobs]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -93,7 +109,8 @@ export default function AmazonLeadSearchPanel() {
         price_min: priceMin,
         price_max: priceMax,
       }).unwrap();
-      toast.success('Amazon risk taraması başladı');
+      setPolling(true);
+      toast.success('Amazon risk taraması başladı — sonuç hazır olunca otomatik yüklenecek');
     } catch {
       toast.error('Amazon risk taraması başlatılamadı');
     }
@@ -227,7 +244,15 @@ export default function AmazonLeadSearchPanel() {
       <Card className="rounded-[28px] border-gm-border-soft bg-gm-bg-deep/50 shadow-2xl">
         <CardContent className="space-y-4 p-6">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="font-serif text-2xl text-gm-text">Arama Geçmişi</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="font-serif text-2xl text-gm-text">Arama Geçmişi</h2>
+              {polling && (
+                <Badge variant="outline" className="rounded-full border-gm-warning/30 bg-gm-warning/10 text-gm-warning text-[9px] font-bold uppercase tracking-widest animate-pulse">
+                  <RefreshCw className="mr-1 size-3 animate-spin" />
+                  İşleniyor
+                </Badge>
+              )}
+            </div>
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gm-muted">{jobs?.length ?? 0} Job</span>
           </div>
 
