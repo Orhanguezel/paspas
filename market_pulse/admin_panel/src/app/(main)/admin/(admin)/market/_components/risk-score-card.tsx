@@ -11,6 +11,8 @@ import {
   DollarSign,
   ExternalLink,
   Info,
+  MessageSquare,
+  Printer,
   Radar as RadarIcon,
   Star,
   TrendingUp,
@@ -35,6 +37,7 @@ import {
 } from 'recharts';
 
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -189,6 +192,20 @@ function priceStats(products: AmazonRiskReport['products']) {
   };
 }
 
+function buildRatingDistribution(products: AmazonRiskReport['products']) {
+  const buckets = [
+    { label: '4.5–5.0', min: 4.5, max: 5.01 },
+    { label: '4.0–4.5', min: 4.0, max: 4.5 },
+    { label: '3.5–4.0', min: 3.5, max: 4.0 },
+    { label: '< 3.5',  min: 0,   max: 3.5 },
+  ];
+  if (!products?.length) return [];
+  return buckets.map(b => ({
+    label: b.label,
+    count: products.filter(p => p.rating != null && p.rating >= b.min && p.rating < b.max).length,
+  })).filter(b => b.count > 0);
+}
+
 function DimensionRow({ dimKey, label, item, flags }: { dimKey: string; label: string; item: AmazonDimensionScore; flags?: string[] }) {
   const [open, setOpen] = React.useState(false);
   const width = `${Math.min(100, Math.max(0, item.score * 10))}%`;
@@ -254,6 +271,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
   const hasSellers = (report.top_sellers?.length ?? 0) > 0;
   const priceHistogram = buildPriceHistogram(report.products);
   const pStats = priceStats(report.products);
+  const ratingDist = buildRatingDistribution(report.products);
 
   if (compact) {
     return (
@@ -304,15 +322,26 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
             </div>
           </div>
 
-          <div className={cn('flex min-w-52 flex-col items-center justify-center rounded-[2rem] border p-8 shadow-inner', decisionBg(report.decision))}>
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gm-muted">Composite Score</p>
-            <p className="mt-2 font-serif text-6xl tracking-tighter text-gm-text">
-              {report.composite_score?.toFixed(1) ?? '—'}
-            </p>
-            <Badge variant="outline" className={cn('mt-6 scale-110 rounded-full px-4 py-1.5 text-[10px] font-bold tracking-widest', decisionClass(report.decision))}>
-              <Icon className="mr-2 size-4" />
-              {DECISION_LABELS[report.decision] ?? report.decision}
-            </Badge>
+          <div className="flex flex-col items-end gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.print()}
+              className="rounded-full border-gm-border-soft bg-gm-surface/20 text-gm-muted hover:bg-gm-surface print:hidden"
+            >
+              <Printer className="mr-2 size-4" />
+              PDF / Yazdır
+            </Button>
+            <div className={cn('flex min-w-52 flex-col items-center justify-center rounded-[2rem] border p-8 shadow-inner', decisionBg(report.decision))}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gm-muted">Composite Score</p>
+              <p className="mt-2 font-serif text-6xl tracking-tighter text-gm-text">
+                {report.composite_score?.toFixed(1) ?? '—'}
+              </p>
+              <Badge variant="outline" className={cn('mt-6 scale-110 rounded-full px-4 py-1.5 text-[10px] font-bold tracking-widest', decisionClass(report.decision))}>
+                <Icon className="mr-2 size-4" />
+                {DECISION_LABELS[report.decision] ?? report.decision}
+              </Badge>
+            </div>
           </div>
         </div>
 
@@ -329,14 +358,14 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
 
         {/* Charts */}
         <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="relative h-80 overflow-hidden rounded-[2.5rem] border border-gm-border-soft p-6 shadow-xl" style={{ background: '#1e293b' }}>
-            <p className="absolute left-6 top-6 z-10 text-xs font-bold uppercase tracking-widest" style={{ color: '#6b7280' }}>Risk Profili (5 Boyut)</p>
+          <div className="relative h-80 overflow-hidden rounded-[2.5rem] border border-gm-border-soft bg-black/5 p-6 shadow-xl">
+            <p className="absolute left-6 top-6 z-10 text-xs font-bold uppercase tracking-widest text-gm-muted">Risk Profili (5 Boyut)</p>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                <PolarGrid stroke="rgba(255,255,255,0.15)" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: '#9ca3af', fontSize: 10 }} />
-                <Radar name="Risk" dataKey="A" stroke="#D4AF37" fill="#D4AF37" fillOpacity={0.45} />
-                <Tooltip contentStyle={{ backgroundColor: '#0f1115', borderColor: '#27272a', borderRadius: '12px', fontSize: '12px' }} itemStyle={{ color: '#D4AF37' }} />
+                <PolarGrid stroke="rgba(107,114,128,0.4)" />
+                <PolarAngleAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 10 }} />
+                <Radar name="Risk" dataKey="A" stroke="#D4AF37" fill="#D4AF37" fillOpacity={0.5} />
+                <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }} itemStyle={{ color: '#D4AF37' }} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
@@ -357,10 +386,11 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
 
         {/* Tabs */}
         <Tabs defaultValue="products" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-3 rounded-full bg-gm-bg-deep p-1">
+          <TabsList className="grid w-full max-w-xl grid-cols-4 rounded-full bg-gm-bg-deep p-1">
             <TabsTrigger value="products" className="rounded-full data-[state=active]:bg-gm-gold data-[state=active]:text-black">Ürün Kanıtları</TabsTrigger>
             <TabsTrigger value="sellers" className="rounded-full data-[state=active]:bg-gm-gold data-[state=active]:text-black">Markalar</TabsTrigger>
             <TabsTrigger value="trends" className="rounded-full data-[state=active]:bg-gm-gold data-[state=active]:text-black">Fiyat Analizi</TabsTrigger>
+            <TabsTrigger value="reviews" className="rounded-full data-[state=active]:bg-gm-gold data-[state=active]:text-black">Yorumlar</TabsTrigger>
           </TabsList>
 
           {/* Ürün Kanıtları */}
@@ -463,7 +493,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
 
               {/* Fiyat Dağılımı Histogram */}
               {priceHistogram.some(b => b.count > 0) && (
-                <div className="rounded-[2.5rem] border border-gm-border-soft p-6 shadow-xl" style={{ background: '#1e293b' }}>
+                <div className="rounded-[2.5rem] border border-gm-border-soft bg-black/5 p-6 shadow-xl">
                   <div className="mb-4 flex items-center justify-between">
                     <div>
                       <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gm-muted">Fiyat Dağılımı</h3>
@@ -478,9 +508,9 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
                   <div className="h-44">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={priceHistogram} barSize={32}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(107,114,128,0.3)" vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 10, fill: '#6b7280' }} axisLine={false} tickLine={false} allowDecimals={false} />
                         <Tooltip
                           contentStyle={{ backgroundColor: '#0f1115', borderColor: '#27272a', borderRadius: '12px', fontSize: '12px' }}
                           formatter={(v) => [`${v} ürün`, 'Adet']}
@@ -501,7 +531,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
 
               {/* Keepa Trendi */}
               {Array.isArray(keepaTrend) && keepaTrend.length > 1 ? (
-                <div className="rounded-[2.5rem] border border-gm-border-soft p-6 shadow-xl" style={{ background: '#1e293b' }}>
+                <div className="rounded-[2.5rem] border border-gm-border-soft bg-black/5 p-6 shadow-xl">
                   <div className="mb-4 flex items-center justify-between">
                     <div>
                       <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gm-muted">Fiyat Geçmişi (Keepa)</h3>
@@ -585,6 +615,116 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
                   )}
                 </div>
               </Card>
+            </div>
+          </TabsContent>
+          {/* Yorumlar */}
+          <TabsContent value="reviews" className="mt-6 space-y-5">
+            {/* Rating dağılımı */}
+            {ratingDist.length > 0 && (
+              <div className="rounded-[2rem] border border-gm-border-soft bg-black/5 p-6">
+                <div className="mb-4 flex items-center gap-2">
+                  <Star className="size-4 text-gm-gold fill-gm-gold" />
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gm-muted">Rating Dağılımı</h3>
+                </div>
+                <div className="space-y-2">
+                  {ratingDist.map(b => {
+                    const total = ratingDist.reduce((a, c) => a + c.count, 0);
+                    const pct = total ? Math.round((b.count / total) * 100) : 0;
+                    const color = b.label.startsWith('4.5') ? '#10b981' : b.label.startsWith('4.0') ? '#84cc16' : b.label.startsWith('3.5') ? '#eab308' : '#ef4444';
+                    return (
+                      <div key={b.label} className="flex items-center gap-3">
+                        <span className="w-16 text-right text-xs text-gm-muted">{b.label}</span>
+                        <div className="flex-1 h-5 overflow-hidden rounded-full bg-gm-bg-deep/30">
+                          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: color }} />
+                        </div>
+                        <span className="w-16 text-xs text-gm-muted">{b.count} ürün <span className="text-[10px] opacity-60">({pct}%)</span></span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-3 text-[11px] text-gm-muted/70 italic">
+                  Yüksek ratingli ürün oranı fazlaysa tüketici beklentisi yüksek — kalite tutarsızlığı risk oluşturur.
+                </p>
+              </div>
+            )}
+
+            {/* Problem flags */}
+            {report.problem_flags && report.problem_flags.length > 0 && (
+              <div className="rounded-[2rem] border border-red-500/20 bg-red-500/5 p-6">
+                <div className="mb-3 flex items-center gap-2">
+                  <ShieldAlert className="size-4 text-red-400" />
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-red-400">AI Tespit Ettiği Şikayetler</h3>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {report.problem_flags.map(flag => (
+                    <Badge key={flag} variant="outline" className="rounded-full border-red-500/30 bg-red-500/10 text-sm text-red-400">
+                      <AlertTriangle className="mr-1.5 size-3" />
+                      {flagLabel(flag)}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-gm-muted leading-5">
+                  Bu şikayetler ürün başlıkları ve meta verilerinden AI tarafından tespit edildi. Gerçek yorum metinleri analizi için Amazon'daki ürünlere tıklayıp yorumları inceleyebilirsiniz.
+                </p>
+              </div>
+            )}
+
+            {/* Neden yorum metni yok */}
+            <div className="rounded-[2rem] border border-gm-border-soft bg-gm-surface/5 p-6">
+              <div className="mb-3 flex items-center gap-2">
+                <MessageSquare className="size-4 text-gm-gold" />
+                <h3 className="text-xs font-bold uppercase tracking-widest text-gm-muted">Gerçek Yorum Metinleri</h3>
+              </div>
+              <p className="text-sm text-gm-muted leading-6">
+                Şu an elimizde yalnızca <strong className="text-gm-text">yorum sayısı</strong> ve <strong className="text-gm-text">rating puanı</strong> bulunuyor.
+                Gerçek yorum metinlerini görmek için {report.products?.slice(0, 3).map((p, i) => p.product_url ? (
+                  <a key={i} href={p.product_url} target="_blank" rel="noopener noreferrer" className="text-gm-gold underline underline-offset-2 hover:text-gm-gold-light mx-1">
+                    {extractBrand(p.title)} ürününe
+                  </a>
+                ) : null)} tıklayıp Amazon yorumlarını inceleyebilirsiniz.
+              </p>
+              <p className="mt-3 text-xs text-gm-muted/70 italic">
+                İleride planlanan: review scraping modülü ile gerçek yorum sentezi (en çok tekrar eden şikayetler, olumlu temalar, rakip zayıflıkları).
+              </p>
+            </div>
+
+            {/* Ürün bazlı review sayıları */}
+            <div className="overflow-hidden rounded-[2rem] border border-gm-border-soft bg-gm-surface/5 shadow-xl">
+              <Table>
+                <TableHeader className="bg-gm-bg-deep/50">
+                  <TableRow className="border-gm-border-soft hover:bg-transparent">
+                    <TableHead className="text-xs uppercase text-gm-muted">Ürün</TableHead>
+                    <TableHead className="text-xs uppercase text-gm-muted">Rating</TableHead>
+                    <TableHead className="text-xs uppercase text-gm-muted">Yorum Sayısı</TableHead>
+                    <TableHead className="w-10" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...(report.products ?? [])].sort((a, b) => (b.review_count ?? 0) - (a.review_count ?? 0)).slice(0, 10).map((p, idx) => (
+                    <TableRow key={idx} className="border-gm-border-soft cursor-pointer hover:bg-gm-surface/10" onClick={() => p.product_url && window.open(p.product_url, '_blank')}>
+                      <TableCell className="max-w-xs">
+                        <p className="truncate text-sm text-gm-text">{p.title}</p>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Star className="size-3 fill-gm-gold text-gm-gold" />
+                          <span className="text-sm">{p.rating?.toFixed(1) ?? '—'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono font-bold text-gm-text">{p.review_count?.toLocaleString('tr-TR')}</span>
+                      </TableCell>
+                      <TableCell>
+                        {p.product_url && (
+                          <a href={p.product_url} target="_blank" rel="noopener noreferrer" className="text-gm-muted hover:text-gm-gold">
+                            <ExternalLink className="size-4" />
+                          </a>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           </TabsContent>
         </Tabs>
