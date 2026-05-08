@@ -445,6 +445,24 @@ export async function getKeepaSettings(): Promise<KeepaSettings> {
 }
 
 // ---------------------------------------------------------------------------
+// AI (GROQ / OPENAI)
+// ---------------------------------------------------------------------------
+
+export type AISettings = {
+  groqApiKey: string;
+  openAIApiKey: string;
+};
+
+export async function getAISettings(): Promise<AISettings> {
+  const dbGroq = await getGlobalSettingValue('groq_api_key');
+  const dbOpenAI = await getGlobalSettingValue('openai_api_key');
+  return {
+    groqApiKey: normalizeSettingString(dbGroq) || env.GROQ_API_KEY || '',
+    openAIApiKey: normalizeSettingString(dbOpenAI) || env.OPENAI_API_KEY || '',
+  };
+}
+
+// ---------------------------------------------------------------------------
 // OXYLABS
 // ---------------------------------------------------------------------------
 

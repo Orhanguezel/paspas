@@ -24,7 +24,6 @@ import {
   Search,
   Settings,
   SlidersHorizontal,
-  Trash2,
   UserCheck,
   Users,
   type LucideIcon,
@@ -68,7 +67,6 @@ export type AdminNavItemKey =
   | 'db'
   | 'external_db'
   | 'audit'
-  | 'cache'
   | 'profile'
   | 'market_pulse'
   | 'market_targets'
@@ -117,7 +115,6 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
     items: [
       { key: 'notifications', url: '/admin/notifications', icon: Bell, badgeKey: 'notifications_unread' },
       { key: 'site_settings', url: '/admin/site-settings', icon: Settings },
-      { key: 'cache', url: '/admin/cache', icon: Trash2 },
       { key: 'storage', url: '/admin/storage', icon: HardDrive },
       { key: 'db', url: '/admin/db', icon: Database },
       { key: 'external_db', url: '/admin/external-db', icon: Database },
@@ -162,7 +159,6 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   db: 'Veritabanı',
   external_db: 'Harici Veritabanları',
   audit: 'Denetim Kayıtları',
-  cache: 'Cache Yönetimi',
   profile: 'Profil',
   market_pulse:    'MarketPulse',
   market_targets:  'Hedef Firmalar',

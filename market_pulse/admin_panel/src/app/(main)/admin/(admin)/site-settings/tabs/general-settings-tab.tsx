@@ -27,35 +27,16 @@ import { Badge } from '@/components/ui/badge';
 
 const GENERAL_KEYS = [
   'contact_info',
-  'socials',
-  'businessHours',
   'company_profile',
-  'ui_header',
+  'socials',
 ] as const;
 
 type GeneralKey = (typeof GENERAL_KEYS)[number];
 
 const DEFAULTS_BY_KEY: Record<GeneralKey, SettingValue> = {
   contact_info: { phone: '', email: '', address: '', whatsapp: '' },
-  socials: { instagram: '', facebook: '', linkedin: '', youtube: '', x: '' },
-  businessHours: [
-    { day: 'mon', open: '09:00', close: '18:00', closed: false },
-    { day: 'tue', open: '09:00', close: '18:00', closed: false },
-    { day: 'wed', open: '09:00', close: '18:00', closed: false },
-    { day: 'thu', open: '09:00', close: '18:00', closed: false },
-    { day: 'fri', open: '09:00', close: '18:00', closed: false },
-    { day: 'sat', open: '10:00', close: '14:00', closed: false },
-    { day: 'sun', open: '00:00', close: '00:00', closed: true },
-  ],
   company_profile: { company_name: '', slogan: '', about: '' },
-  ui_header: {
-    nav_home: 'Ana Sayfa',
-    nav_consultants: 'Danışmanlar',
-    nav_birth_chart: 'Doğum Haritası',
-    nav_pricing: 'Üyelik',
-    nav_contact: 'İletişim',
-    cta_label: 'Randevu Al',
-  },
+  socials: { instagram: '', facebook: '', linkedin: '', youtube: '', x: '' },
 };
 
 function isGeneralKey(k: string): k is GeneralKey {
