@@ -2,17 +2,18 @@ import { beforeEach, describe, expect, mock, test } from 'bun:test';
 import { createDbMock } from '../../../market/__tests__/helpers/mock-db';
 
 const dbMock = createDbMock();
-const env = {
-  KEEPA_API_KEY: 'keepa-key',
-  KEEPA_DAILY_TOKEN_BUDGET: 5,
-};
+
+let keepaApiKey = 'keepa-key';
+const keepaTokenBudget = 5;
 
 mock.module('@/db/client', () => ({
   db: dbMock.db,
   pool: dbMock.pool,
 }));
 
-mock.module('@/core/env', () => ({ env }));
+mock.module('@/modules/siteSettings/service', () => ({
+  getKeepaSettings: async () => ({ apiKey: keepaApiKey, tokenBudget: keepaTokenBudget }),
+}));
 
 const fetchMock = mock(() => Promise.resolve(Response.json({
   products: [{
@@ -32,7 +33,7 @@ const {
 beforeEach(() => {
   dbMock.reset();
   fetchMock.mockClear();
-  env.KEEPA_API_KEY = 'keepa-key';
+  keepaApiKey = 'keepa-key';
 });
 
 describe('amazon keepa client', () => {
@@ -67,9 +68,9 @@ describe('amazon keepa client', () => {
   });
 
   test('does not enqueue or process queue when Keepa key is missing', async () => {
-    env.KEEPA_API_KEY = '';
+    keepaApiKey = '';
 
-    expect(isKeepaConfigured()).toBe(false);
+    expect(await isKeepaConfigured()).toBe(false);
     const inserted = await enqueueKeepaAsins('job-1', ['B0TESTASIN1']);
     const result = await processKeepaQueue(10);
 

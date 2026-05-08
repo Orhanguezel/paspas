@@ -136,7 +136,7 @@ export async function runAmazonJob(jobId: string) {
 
     // Keepa: yetersiz güven veya yüksek risk varsa ASIN'leri zenginleştir
     if (
-      isKeepaConfigured()
+      await isKeepaConfigured()
       && shouldFetchKeepa({ confidence: report.scores.price_war_risk.confidence, score: report.composite_score })
     ) {
       const asins = eligible.map(p => extractAsin(p.product_url)).filter(Boolean) as string[];

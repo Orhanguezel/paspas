@@ -27,6 +27,11 @@ mock.module('@/db/client', () => ({
 
 mock.module('@/core/env', () => ({ env }));
 
+mock.module('@/modules/siteSettings/service', () => ({
+  getOxylabsSettings: async () => ({ username: env.OXYLABS_USERNAME, password: env.OXYLABS_PASSWORD }),
+  getKeepaSettings: async () => ({ apiKey: env.KEEPA_API_KEY ?? '', tokenBudget: env.KEEPA_DAILY_TOKEN_BUDGET ?? 1000 }),
+}));
+
 mock.module('../amazon.scraper', () => ({
   scrapeAmazonProducts: scrapeAmazonProductsMock,
 }));

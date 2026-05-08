@@ -16,6 +16,11 @@ mock.module('@/db/client', () => ({
 
 mock.module('@/core/env', () => ({ env }));
 
+mock.module('@/modules/siteSettings/service', () => ({
+  getOxylabsSettings: async () => ({ username: env.OXYLABS_USERNAME, password: env.OXYLABS_PASSWORD }),
+  getKeepaSettings: async () => ({ apiKey: '', tokenBudget: 5 }),
+}));
+
 mock.module('@/modules/lead-machine/_shared/ai.client', () => ({
   askBestAvailable: async (_prompt: string, _model?: string) => {
     if (!env.GROQ_API_KEY && !env.OPENAI_API_KEY) throw new Error('NO_AI_KEY_CONFIGURED');

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
-import { env } from '@/core/env';
 import { pool } from '@/db/client';
+import { getKeepaSettings } from '@/modules/siteSettings/service';
 
 export type KeepaSnapshot = {
   asin: string;
@@ -13,27 +13,27 @@ export type KeepaSnapshot = {
   stock_history_json: unknown;
 };
 
-export function isKeepaConfigured(): boolean {
-  return Boolean(env.KEEPA_API_KEY);
+export async function isKeepaConfigured(): Promise<boolean> {
+  const { apiKey } = await getKeepaSettings();
+  return Boolean(apiKey);
 }
 
 export function shouldFetchKeepa(input: { confidence: string; score?: number | null }) {
   return input.confidence === 'INSUFFICIENT_DATA' || (input.score ?? 0) > 7;
 }
 
-const DEFAULT_DAILY_BUDGET = env.KEEPA_DAILY_TOKEN_BUDGET;
-
 function todayUtcDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
 async function getRemainingDailyBudget(): Promise<number> {
+  const { tokenBudget } = await getKeepaSettings();
   const date = todayUtcDate();
   await pool.execute(
     `INSERT INTO amazon_keepa_daily_budget (budget_date, token_budget, tokens_used)
      VALUES (?, ?, 0)
      ON DUPLICATE KEY UPDATE token_budget = token_budget`,
-    [date, DEFAULT_DAILY_BUDGET],
+    [date, tokenBudget],
   );
   const [rows] = await pool.execute(
     `SELECT token_budget, tokens_used FROM amazon_keepa_daily_budget WHERE budget_date = ? LIMIT 1`,
@@ -54,7 +54,7 @@ async function consumeDailyTokens(amount: number): Promise<void> {
 }
 
 export async function enqueueKeepaAsins(jobId: string, asins: string[]): Promise<number> {
-  if (!isKeepaConfigured()) return 0;
+  if (!await isKeepaConfigured()) return 0;
   const uniqueAsins = [...new Set(asins.map((asin) => asin.trim()).filter(Boolean))];
   for (const asin of uniqueAsins) {
     await pool.execute(
@@ -67,7 +67,7 @@ export async function enqueueKeepaAsins(jobId: string, asins: string[]): Promise
 }
 
 export async function processKeepaQueue(limit = 10): Promise<{ processed: number; skippedByBudget: number }> {
-  if (!isKeepaConfigured()) return { processed: 0, skippedByBudget: 0 };
+  if (!await isKeepaConfigured()) return { processed: 0, skippedByBudget: 0 };
   const [rows] = await pool.execute(
     `SELECT id, asin FROM amazon_keepa_queue
      WHERE status = 'pending'
@@ -111,9 +111,10 @@ export async function processKeepaQueue(limit = 10): Promise<{ processed: number
 }
 
 export async function fetchKeepaSnapshot(asin: string): Promise<KeepaSnapshot> {
-  if (!isKeepaConfigured()) throw new Error('KEEPA_NOT_CONFIGURED');
+  const { apiKey } = await getKeepaSettings();
+  if (!apiKey) throw new Error('KEEPA_NOT_CONFIGURED');
   const url = new URL('https://api.keepa.com/product');
-  url.searchParams.set('key', env.KEEPA_API_KEY);
+  url.searchParams.set('key', apiKey);
   url.searchParams.set('domain', '1');
   url.searchParams.set('asin', asin);
   url.searchParams.set('stats', '90');

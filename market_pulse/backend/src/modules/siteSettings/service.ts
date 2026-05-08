@@ -426,6 +426,42 @@ export async function getTelegramSettings(locale?: string | null): Promise<Teleg
     autoReplyTemplate,
   };
 }
+// ---------------------------------------------------------------------------
+// KEEPA
+// ---------------------------------------------------------------------------
+
+export type KeepaSettings = {
+  apiKey: string;
+  tokenBudget: number;
+};
+
+export async function getKeepaSettings(): Promise<KeepaSettings> {
+  const dbKey = await getGlobalSettingValue('keepa_api_key');
+  const dbBudget = await getGlobalSettingValue('keepa_daily_token_budget');
+  return {
+    apiKey: normalizeSettingString(dbKey) || env.KEEPA_API_KEY || '',
+    tokenBudget: dbBudget ? Number(dbBudget) : (env.KEEPA_DAILY_TOKEN_BUDGET ?? 1000),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// OXYLABS
+// ---------------------------------------------------------------------------
+
+export type OxylabsSettings = {
+  username: string;
+  password: string;
+};
+
+export async function getOxylabsSettings(): Promise<OxylabsSettings> {
+  const dbUser = await getGlobalSettingValue('oxylabs_username');
+  const dbPass = await getGlobalSettingValue('oxylabs_password');
+  return {
+    username: normalizeSettingString(dbUser) || env.OXYLABS_USERNAME || '',
+    password: normalizeSettingString(dbPass) || env.OXYLABS_PASSWORD || '',
+  };
+}
+
   type SiteSettingsEnvCloudinary = {
     unsignedUploadPreset?: string | null;
     uploadPreset?: string | null;

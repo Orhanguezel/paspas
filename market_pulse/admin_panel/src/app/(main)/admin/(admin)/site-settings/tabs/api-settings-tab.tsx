@@ -46,6 +46,10 @@ const API_KEYS = [
   'iyzipay_api_key',
   'iyzipay_secret_key',
   'iyzipay_base_url',
+  'keepa_api_key',
+  'keepa_daily_token_budget',
+  'oxylabs_username',
+  'oxylabs_password',
 ] as const;
 
 type ApiKey = (typeof API_KEYS)[number];
@@ -66,6 +70,10 @@ const EMPTY_FORM: ApiForm = {
   iyzipay_api_key: '',
   iyzipay_secret_key: '',
   iyzipay_base_url: '',
+  keepa_api_key: '',
+  keepa_daily_token_budget: '',
+  oxylabs_username: '',
+  oxylabs_password: '',
 };
 
 function valueToString(v: unknown): string {
@@ -400,6 +408,92 @@ export const ApiSettingsTab: React.FC<ApiSettingsTabProps> = ({ locale }) => {
                 value={form.iyzipay_base_url}
                 onChange={(e) => handleChange('iyzipay_base_url', e.target.value)}
                 placeholder="https://sandbox-api.iyzipay.com"
+                disabled={busy}
+                className="h-12 bg-gm-bg-deep border-gm-border-soft rounded-2xl focus:ring-gm-gold/50 focus:border-gm-gold/50 text-sm font-mono text-gm-text transition-all"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Keepa Section */}
+        <div className="space-y-6">
+          <div className="border-b border-gm-border-soft pb-3 space-y-1">
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-gm-gold flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-gm-gold/50" />
+              Keepa (Amazon Fiyat Geçmişi)
+            </h3>
+            <p className="text-[10px] font-serif italic text-gm-muted ml-4 opacity-80">
+              DB'de yoksa .env KEEPA_API_KEY kullanılır. Günlük token bütçesi aşıldığında kuyruktaki ASINler atlanır.
+            </p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="md:col-span-2 space-y-2">
+              <Label htmlFor="keepa_api_key" className="text-[10px] font-bold text-gm-muted tracking-[0.15em] uppercase ml-1 block">
+                Keepa API Key
+              </Label>
+              <Input
+                id="keepa_api_key"
+                type="password"
+                value={form.keepa_api_key}
+                onChange={(e) => handleChange('keepa_api_key', e.target.value)}
+                placeholder="Keepa API anahtarı"
+                disabled={busy}
+                className="h-12 bg-gm-bg-deep border-gm-border-soft rounded-2xl focus:ring-gm-gold/50 focus:border-gm-gold/50 text-sm font-mono text-gm-text transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="keepa_daily_token_budget" className="text-[10px] font-bold text-gm-muted tracking-[0.15em] uppercase ml-1 block">
+                Günlük Token Bütçesi
+              </Label>
+              <Input
+                id="keepa_daily_token_budget"
+                type="number"
+                min={0}
+                value={form.keepa_daily_token_budget}
+                onChange={(e) => handleChange('keepa_daily_token_budget', e.target.value)}
+                placeholder="1000"
+                disabled={busy}
+                className="h-12 bg-gm-bg-deep border-gm-border-soft rounded-2xl focus:ring-gm-gold/50 focus:border-gm-gold/50 text-sm font-mono text-gm-text transition-all"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Oxylabs Section */}
+        <div className="space-y-6">
+          <div className="border-b border-gm-border-soft pb-3 space-y-1">
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-gm-gold flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-gm-gold/50" />
+              Oxylabs (Web Scraping)
+            </h3>
+            <p className="text-[10px] font-serif italic text-gm-muted ml-4 opacity-80">
+              DB'de yoksa .env OXYLABS_USERNAME / OXYLABS_PASSWORD kullanılır.
+            </p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="oxylabs_username" className="text-[10px] font-bold text-gm-muted tracking-[0.15em] uppercase ml-1 block">
+                Oxylabs Kullanıcı Adı
+              </Label>
+              <Input
+                id="oxylabs_username"
+                value={form.oxylabs_username}
+                onChange={(e) => handleChange('oxylabs_username', e.target.value)}
+                placeholder="Oxylabs sub-user adı"
+                disabled={busy}
+                className="h-12 bg-gm-bg-deep border-gm-border-soft rounded-2xl focus:ring-gm-gold/50 focus:border-gm-gold/50 text-sm font-mono text-gm-text transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="oxylabs_password" className="text-[10px] font-bold text-gm-muted tracking-[0.15em] uppercase ml-1 block">
+                Oxylabs Şifre
+              </Label>
+              <Input
+                id="oxylabs_password"
+                type="password"
+                value={form.oxylabs_password}
+                onChange={(e) => handleChange('oxylabs_password', e.target.value)}
+                placeholder="Oxylabs şifresi"
                 disabled={busy}
                 className="h-12 bg-gm-bg-deep border-gm-border-soft rounded-2xl focus:ring-gm-gold/50 focus:border-gm-gold/50 text-sm font-mono text-gm-text transition-all"
               />

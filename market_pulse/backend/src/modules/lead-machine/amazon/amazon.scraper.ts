@@ -1,4 +1,4 @@
-import { env } from '@/core/env';
+import { getOxylabsSettings } from '@/modules/siteSettings/service';
 
 export interface AmazonProduct {
   product_title: string;
@@ -52,8 +52,9 @@ function matchesFilters(product: AmazonProduct, filters: AmazonFilters) {
 }
 
 export async function scrapeAmazonProducts(keyword: string, marketplace = 'com', filters: AmazonFilters = {}) {
-  if (!env.OXYLABS_USERNAME || !env.OXYLABS_PASSWORD) throw new Error('OXYLABS_NOT_CONFIGURED');
-  const token = Buffer.from(`${env.OXYLABS_USERNAME}:${env.OXYLABS_PASSWORD}`).toString('base64');
+  const { username, password } = await getOxylabsSettings();
+  if (!username || !password) throw new Error('OXYLABS_NOT_CONFIGURED');
+  const token = Buffer.from(`${username}:${password}`).toString('base64');
   const res = await fetch('https://realtime.oxylabs.io/v1/queries', {
     method: 'POST',
     headers: { authorization: `Basic ${token}`, 'content-type': 'application/json' },
@@ -66,8 +67,9 @@ export async function scrapeAmazonProducts(keyword: string, marketplace = 'com',
 }
 
 export async function scrapeAmazonReviews(productUrl: string, marketplace = 'com') {
-  if (!env.OXYLABS_USERNAME || !env.OXYLABS_PASSWORD) throw new Error('OXYLABS_NOT_CONFIGURED');
-  const token = Buffer.from(`${env.OXYLABS_USERNAME}:${env.OXYLABS_PASSWORD}`).toString('base64');
+  const { username, password } = await getOxylabsSettings();
+  if (!username || !password) throw new Error('OXYLABS_NOT_CONFIGURED');
+  const token = Buffer.from(`${username}:${password}`).toString('base64');
   const res = await fetch('https://realtime.oxylabs.io/v1/queries', {
     method: 'POST',
     headers: { authorization: `Basic ${token}`, 'content-type': 'application/json' },
