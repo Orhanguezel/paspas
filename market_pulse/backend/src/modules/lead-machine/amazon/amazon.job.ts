@@ -2,13 +2,12 @@ import { randomUUID } from 'node:crypto';
 import { pool } from '@/db/client';
 import { insertCandidate, updateSearchJob, getSearchJob } from '../_shared/db';
 import { analyzeProductReviews } from './review.analyzer';
-import { scrapeAmazonProducts, type AmazonFilters } from './amazon.scraper';
+import { scrapeAmazonProducts, type AmazonFilters, type AmazonProduct } from './amazon.scraper';
 import { filterEligibleProducts } from './signal.validator';
 import { scoreAmazonCategory } from './amazon.scoring-engine';
 import { calculateCategoryStats, upsertAmazonCategoryStats } from './category.normalizer';
 import { shouldFetchKeepa, enqueueKeepaAsins, processKeepaQueue, isKeepaConfigured } from './keepa.client';
 import type { AmazonRiskReport } from './amazon.types';
-import type { AmazonProduct } from './amazon.scraper';
 
 interface AmazonJobParams extends AmazonFilters {
   keyword?: string;
