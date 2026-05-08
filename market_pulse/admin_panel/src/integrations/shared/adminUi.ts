@@ -96,6 +96,9 @@ const emptyNav: AdminNavCopy = {
     market_lead_outreach: '',
     market_signals: '',
     market_reports: '',
+    market_test_center: '',
+    market_developer_notes: '',
+    market_docs: '',
   },
 };
 
@@ -134,6 +137,9 @@ export function normalizeAdminUiCopy(raw: unknown): AdminUiCopy {
     market_lead_outreach: uiText(itemsRaw.market_lead_outreach),
     market_signals: uiText(itemsRaw.market_signals),
     market_reports: uiText(itemsRaw.market_reports),
+    market_test_center: uiText(itemsRaw.market_test_center),
+    market_developer_notes: uiText(itemsRaw.market_developer_notes),
+    market_docs: uiText(itemsRaw.market_docs),
   };
 
   const commonRaw = parseJsonObject(o.common);

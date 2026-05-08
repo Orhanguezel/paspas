@@ -4,7 +4,9 @@ import { db } from '@/db/client';
 import { eq, like, and, asc, desc, sql, or } from 'drizzle-orm';
 import {
   marketTargets, marketLeads, marketSignals,
+  marketDeveloperNotes, marketTestRuns,
   targetToDto, leadToDto, signalToDto,
+  marketDeveloperNoteToDto, marketTestRunToDto,
 } from './schema';
 import {
   targetListQuerySchema, targetCreateSchema, targetPatchSchema,
@@ -12,6 +14,11 @@ import {
   signalListQuerySchema, signalCreateSchema,
   paspasExternalListQuerySchema,
   bulkImportSchema, paspasSyncSchema,
+  marketDeveloperNoteCreateSchema,
+  marketDeveloperNoteListQuerySchema,
+  marketDeveloperNotePatchSchema,
+  marketTestRunCreateSchema,
+  marketTestRunListQuerySchema,
 } from './validation';
 import {
   getCustomerOrders,
@@ -22,6 +29,13 @@ import { recalculateChurnScore } from './churn.service';
 import { scanAndCreateSignals } from './competitor.signal';
 import { generateWeeklyReport, sendWeeklyReportEmail } from './report.service';
 import { syncPaspasCustomersToTargets, type PaspasSyncMode } from './external/paspas.sync';
+
+function getRequestUserId(req: { user?: unknown }) {
+  const user = req.user;
+  if (typeof user !== 'object' || user === null) return null;
+  const id = 'id' in user ? user.id : undefined;
+  return id ? String(id) : null;
+}
 
 // ─── Targets ────────────────────────────────────────────────────────────────
 
@@ -191,6 +205,95 @@ export const reviewSignal: RouteHandler<{ Params: { id: string } }> = async (req
 
 export const deleteSignal: RouteHandler<{ Params: { id: string } }> = async (req, reply) => {
   await db.delete(marketSignals).where(eq(marketSignals.id, req.params.id));
+  return reply.code(204).send();
+};
+
+// ─── Test Center ────────────────────────────────────────────────────────────
+
+export const listMarketTestRuns: RouteHandler<{ Querystring: unknown }> = async (req, reply) => {
+  const parsed = marketTestRunListQuerySchema.safeParse(req.query);
+  if (!parsed.success)
+    return reply.code(400).send({ error: { message: 'invalid_query', issues: parsed.error.flatten() } });
+
+  const q = parsed.data;
+  const conditions = [];
+  if (q.suite) conditions.push(eq(marketTestRuns.suite, q.suite));
+  if (q.status) conditions.push(eq(marketTestRuns.status, q.status));
+  const where = conditions.length ? and(...conditions) : undefined;
+
+  const [rows, countResult] = await Promise.all([
+    db.select().from(marketTestRuns).where(where).orderBy(desc(marketTestRuns.created_at)).limit(q.limit).offset(q.offset),
+    db.select({ count: sql<number>`count(*)` }).from(marketTestRuns).where(where),
+  ]);
+  reply.header('x-total-count', String(Number(countResult[0]?.count ?? 0)));
+  return rows.map(marketTestRunToDto);
+};
+
+export const createMarketTestRun: RouteHandler<{ Body: unknown }> = async (req, reply) => {
+  const parsed = marketTestRunCreateSchema.safeParse(req.body);
+  if (!parsed.success)
+    return reply.code(400).send({ error: { message: 'invalid_body', issues: parsed.error.flatten() } });
+
+  const id = randomUUID();
+  await db.insert(marketTestRuns).values({
+    id,
+    ...parsed.data,
+    created_by: getRequestUserId(req),
+  });
+  const rows = await db.select().from(marketTestRuns).where(eq(marketTestRuns.id, id)).limit(1);
+  return reply.code(201).send(marketTestRunToDto(rows[0]!));
+};
+
+// ─── Developer Notes ────────────────────────────────────────────────────────
+
+export const listMarketDeveloperNotes: RouteHandler<{ Querystring: unknown }> = async (req, reply) => {
+  const parsed = marketDeveloperNoteListQuerySchema.safeParse(req.query);
+  if (!parsed.success)
+    return reply.code(400).send({ error: { message: 'invalid_query', issues: parsed.error.flatten() } });
+
+  const q = parsed.data;
+  const conditions = [];
+  if (q.status) conditions.push(eq(marketDeveloperNotes.status, q.status));
+  if (q.priority) conditions.push(eq(marketDeveloperNotes.priority, q.priority));
+  if (q.page_path) conditions.push(eq(marketDeveloperNotes.page_path, q.page_path));
+  const where = conditions.length ? and(...conditions) : undefined;
+
+  const [rows, countResult] = await Promise.all([
+    db.select().from(marketDeveloperNotes).where(where).orderBy(desc(marketDeveloperNotes.created_at)).limit(q.limit).offset(q.offset),
+    db.select({ count: sql<number>`count(*)` }).from(marketDeveloperNotes).where(where),
+  ]);
+  reply.header('x-total-count', String(Number(countResult[0]?.count ?? 0)));
+  return rows.map(marketDeveloperNoteToDto);
+};
+
+export const createMarketDeveloperNote: RouteHandler<{ Body: unknown }> = async (req, reply) => {
+  const parsed = marketDeveloperNoteCreateSchema.safeParse(req.body);
+  if (!parsed.success)
+    return reply.code(400).send({ error: { message: 'invalid_body', issues: parsed.error.flatten() } });
+
+  const id = randomUUID();
+  await db.insert(marketDeveloperNotes).values({
+    id,
+    ...parsed.data,
+    created_by: getRequestUserId(req),
+  });
+  const rows = await db.select().from(marketDeveloperNotes).where(eq(marketDeveloperNotes.id, id)).limit(1);
+  return reply.code(201).send(marketDeveloperNoteToDto(rows[0]!));
+};
+
+export const updateMarketDeveloperNote: RouteHandler<{ Params: { id: string }; Body: unknown }> = async (req, reply) => {
+  const parsed = marketDeveloperNotePatchSchema.safeParse(req.body);
+  if (!parsed.success)
+    return reply.code(400).send({ error: { message: 'invalid_body', issues: parsed.error.flatten() } });
+
+  await db.update(marketDeveloperNotes).set(parsed.data).where(eq(marketDeveloperNotes.id, req.params.id));
+  const rows = await db.select().from(marketDeveloperNotes).where(eq(marketDeveloperNotes.id, req.params.id)).limit(1);
+  if (!rows[0]) return reply.code(404).send({ error: { message: 'not_found' } });
+  return marketDeveloperNoteToDto(rows[0]);
+};
+
+export const deleteMarketDeveloperNote: RouteHandler<{ Params: { id: string } }> = async (req, reply) => {
+  await db.delete(marketDeveloperNotes).where(eq(marketDeveloperNotes.id, req.params.id));
   return reply.code(204).send();
 };
 

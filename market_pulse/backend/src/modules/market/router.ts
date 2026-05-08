@@ -10,6 +10,8 @@ import {
   bulkImportTargets, downloadImportTemplate,
   scanCompetitor, scanAllCompetitors,
   previewWeeklyReport, sendWeeklyReport,
+  listMarketTestRuns, createMarketTestRun,
+  listMarketDeveloperNotes, createMarketDeveloperNote, updateMarketDeveloperNote, deleteMarketDeveloperNote,
 } from './controller';
 
 export async function registerMarketAdmin(app: FastifyInstance) {
@@ -39,4 +41,10 @@ export async function registerMarketAdmin(app: FastifyInstance) {
   app.get('/market/external/paspas/customers/:id/orders', listPaspasCustomerOrders);
   app.get('/market/reports/weekly/preview', previewWeeklyReport);
   app.post('/market/reports/weekly/send', sendWeeklyReport);
+  app.get('/market/test-runs', listMarketTestRuns);
+  app.post('/market/test-runs', createMarketTestRun);
+  app.get('/market/developer-notes', listMarketDeveloperNotes);
+  app.post('/market/developer-notes', createMarketDeveloperNote);
+  app.patch('/market/developer-notes/:id', updateMarketDeveloperNote);
+  app.delete('/market/developer-notes/:id', deleteMarketDeveloperNote);
 }

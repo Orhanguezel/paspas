@@ -115,3 +115,40 @@ export const bulkImportSchema = z.object({
 export const paspasSyncSchema = z.object({
   mode: z.enum(['all', 'customers', 'dealers']).default('all'),
 });
+
+export const marketTestRunListQuerySchema = z.object({
+  suite: z.string().trim().max(100).optional(),
+  status: z.string().trim().max(30).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
+export const marketTestRunCreateSchema = z.object({
+  suite: z.string().trim().min(1).max(100),
+  title: z.string().trim().min(1).max(255),
+  command: z.string().trim().max(500).optional(),
+  status: z.enum(['passed', 'failed', 'expected_failing', 'skipped', 'not_run']).default('not_run'),
+  pass_count: z.coerce.number().int().min(0).default(0),
+  fail_count: z.coerce.number().int().min(0).default(0),
+  skip_count: z.coerce.number().int().min(0).default(0),
+  output_excerpt: z.string().max(8000).optional(),
+  risk_note: z.string().max(4000).optional(),
+});
+
+export const marketDeveloperNoteListQuerySchema = z.object({
+  status: z.string().trim().max(30).optional(),
+  priority: z.string().trim().max(30).optional(),
+  page_path: z.string().trim().max(500).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
+export const marketDeveloperNoteCreateSchema = z.object({
+  subject: z.string().trim().min(1).max(255),
+  body: z.string().trim().min(1).max(10000),
+  priority: z.enum(['low', 'normal', 'high', 'critical']).default('normal'),
+  status: z.enum(['open', 'in_review', 'resolved', 'closed']).default('open'),
+  page_path: z.string().trim().max(500).optional(),
+});
+
+export const marketDeveloperNotePatchSchema = marketDeveloperNoteCreateSchema.partial();

@@ -217,6 +217,38 @@ export interface OutreachDraft {
   created_at: string;
 }
 
+export type MarketTestRunStatus = 'passed' | 'failed' | 'expected_failing' | 'skipped' | 'not_run';
+
+export interface MarketTestRun {
+  id: string;
+  suite: string;
+  title: string;
+  command: string | null;
+  status: MarketTestRunStatus;
+  passCount: number;
+  failCount: number;
+  skipCount: number;
+  outputExcerpt: string | null;
+  riskNote: string | null;
+  createdBy: string | null;
+  createdAt: string;
+}
+
+export type MarketDeveloperNotePriority = 'low' | 'normal' | 'high' | 'critical';
+export type MarketDeveloperNoteStatus = 'open' | 'in_review' | 'resolved' | 'closed';
+
+export interface MarketDeveloperNote {
+  id: string;
+  subject: string;
+  body: string;
+  priority: MarketDeveloperNotePriority;
+  status: MarketDeveloperNoteStatus;
+  pagePath: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ─── Endpoints ───────────────────────────────────────────────────────────────
 
 export const marketAdminApi = baseApi.injectEndpoints({
@@ -338,6 +370,63 @@ export const marketAdminApi = baseApi.injectEndpoints({
     }),
     sendWeeklyReport: b.mutation<{ ok: boolean }, { to: string }>({
       query: (body) => ({ url: '/admin/market/reports/weekly/send', method: 'POST', body }),
+    }),
+
+    listMarketTestRuns: b.query<MarketTestRun[], { suite?: string; status?: MarketTestRunStatus; limit?: number; offset?: number } | void>({
+      query: (params) => ({ url: '/admin/market/test-runs', params: params ?? undefined }),
+      providesTags: ['MarketTestRuns'],
+    }),
+    createMarketTestRun: b.mutation<MarketTestRun, {
+      suite: string;
+      title: string;
+      command?: string;
+      status?: MarketTestRunStatus;
+      pass_count?: number;
+      fail_count?: number;
+      skip_count?: number;
+      output_excerpt?: string;
+      risk_note?: string;
+    }>({
+      query: (body) => ({ url: '/admin/market/test-runs', method: 'POST', body }),
+      invalidatesTags: ['MarketTestRuns'],
+    }),
+
+    listMarketDeveloperNotes: b.query<MarketDeveloperNote[], {
+      status?: MarketDeveloperNoteStatus;
+      priority?: MarketDeveloperNotePriority;
+      page_path?: string;
+      limit?: number;
+      offset?: number;
+    } | void>({
+      query: (params) => ({ url: '/admin/market/developer-notes', params: params ?? undefined }),
+      providesTags: ['MarketDeveloperNotes'],
+    }),
+    createMarketDeveloperNote: b.mutation<MarketDeveloperNote, {
+      subject: string;
+      body: string;
+      priority?: MarketDeveloperNotePriority;
+      status?: MarketDeveloperNoteStatus;
+      page_path?: string;
+    }>({
+      query: (body) => ({ url: '/admin/market/developer-notes', method: 'POST', body }),
+      invalidatesTags: ['MarketDeveloperNotes'],
+    }),
+    updateMarketDeveloperNote: b.mutation<MarketDeveloperNote, {
+      id: string;
+      body: Partial<{
+        subject: string;
+        body: string;
+        priority: MarketDeveloperNotePriority;
+        status: MarketDeveloperNoteStatus;
+        page_path: string;
+      }>;
+    }>({
+      query: ({ id, body }) => ({ url: `/admin/market/developer-notes/${id}`, method: 'PATCH', body }),
+      invalidatesTags: ['MarketDeveloperNotes'],
+    }),
+    deleteMarketDeveloperNote: b.mutation<void, string>({
+      query: (id) => ({ url: `/admin/market/developer-notes/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['MarketDeveloperNotes'],
     }),
 
     scanCompetitor: b.mutation<{
@@ -490,6 +579,12 @@ export const {
   usePreviewWeeklyReportQuery,
   useLazyPreviewWeeklyReportQuery,
   useSendWeeklyReportMutation,
+  useListMarketTestRunsQuery,
+  useCreateMarketTestRunMutation,
+  useListMarketDeveloperNotesQuery,
+  useCreateMarketDeveloperNoteMutation,
+  useUpdateMarketDeveloperNoteMutation,
+  useDeleteMarketDeveloperNoteMutation,
   useListLeadCandidatesQuery,
   useReviewCandidateMutation,
   useApproveToLeadMutation,

@@ -9,11 +9,14 @@ import {
   Activity,
   Bell,
   Building2,
+  ClipboardCheck,
+  Code2,
   Clock,
   Database,
   FileSearch,
   Flame,
   HardDrive,
+  BookOpenText,
   LayoutDashboard,
   Mail,
   MapPin,
@@ -77,7 +80,10 @@ export type AdminNavItemKey =
   | 'market_lead_icp'
   | 'market_lead_outreach'
   | 'market_signals'
-  | 'market_reports';
+  | 'market_reports'
+  | 'market_test_center'
+  | 'market_developer_notes'
+  | 'market_docs';
 
 export type AdminNavGroupKey = 'general' | 'system' | 'market';
 
@@ -133,6 +139,9 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
       { key: 'market_lead_outreach', url: '/admin/market/lead-machine/outreach', icon: Mail },
       { key: 'market_signals', url: '/admin/market/signals', icon: Activity },
       { key: 'market_reports', url: '/admin/market/reports', icon: FileSearch },
+      { key: 'market_test_center', url: '/admin/market/test-center', icon: ClipboardCheck },
+      { key: 'market_developer_notes', url: '/admin/market/developer-notes', icon: Code2 },
+      { key: 'market_docs', url: '/admin/market/docs', icon: BookOpenText },
     ],
   },
 ];
@@ -166,6 +175,9 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   market_lead_outreach: 'Outreach Taslakları',
   market_signals:  'Sinyaller',
   market_reports:  'Raporlar',
+  market_test_center: 'Test Merkezi',
+  market_developer_notes: 'Yazılımcı Notları',
+  market_docs:     'Dokümantasyon',
 };
 
 export function buildAdminSidebarItems(

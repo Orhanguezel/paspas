@@ -6,6 +6,7 @@ import {
   tinyint,
   datetime,
   decimal,
+  int,
 } from 'drizzle-orm/mysql-core';
 import { sql } from 'drizzle-orm';
 
@@ -64,9 +65,38 @@ export const marketSignals = mysqlTable('market_signals', {
   created_at:  datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const marketTestRuns = mysqlTable('market_test_runs', {
+  id:             char('id', { length: 36 }).primaryKey().notNull(),
+  suite:          varchar('suite', { length: 100 }).notNull(),
+  title:          varchar('title', { length: 255 }).notNull(),
+  command:        varchar('command', { length: 500 }),
+  status:         varchar('status', { length: 30 }).notNull().default('not_run'),
+  pass_count:     int('pass_count').notNull().default(0),
+  fail_count:     int('fail_count').notNull().default(0),
+  skip_count:     int('skip_count').notNull().default(0),
+  output_excerpt: text('output_excerpt'),
+  risk_note:      text('risk_note'),
+  created_by:     varchar('created_by', { length: 255 }),
+  created_at:     datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const marketDeveloperNotes = mysqlTable('market_developer_notes', {
+  id:         char('id', { length: 36 }).primaryKey().notNull(),
+  subject:    varchar('subject', { length: 255 }).notNull(),
+  body:       text('body').notNull(),
+  priority:   varchar('priority', { length: 30 }).notNull().default('normal'),
+  status:     varchar('status', { length: 30 }).notNull().default('open'),
+  page_path:  varchar('page_path', { length: 500 }),
+  created_by: varchar('created_by', { length: 255 }),
+  created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updated_at: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
+});
+
 export type TargetRow = typeof marketTargets.$inferSelect;
 export type LeadRow   = typeof marketLeads.$inferSelect;
 export type SignalRow  = typeof marketSignals.$inferSelect;
+export type MarketTestRunRow = typeof marketTestRuns.$inferSelect;
+export type MarketDeveloperNoteRow = typeof marketDeveloperNotes.$inferSelect;
 
 export function targetToDto(r: TargetRow) {
   return {
@@ -126,5 +156,36 @@ export function signalToDto(r: SignalRow) {
     isReviewed:  r.is_reviewed === 1,
     reviewedAt:  r.reviewed_at ?? null,
     createdAt:   r.created_at,
+  };
+}
+
+export function marketTestRunToDto(r: MarketTestRunRow) {
+  return {
+    id:            r.id,
+    suite:         r.suite,
+    title:         r.title,
+    command:       r.command ?? null,
+    status:        r.status,
+    passCount:     Number(r.pass_count ?? 0),
+    failCount:     Number(r.fail_count ?? 0),
+    skipCount:     Number(r.skip_count ?? 0),
+    outputExcerpt: r.output_excerpt ?? null,
+    riskNote:      r.risk_note ?? null,
+    createdBy:     r.created_by ?? null,
+    createdAt:     r.created_at,
+  };
+}
+
+export function marketDeveloperNoteToDto(r: MarketDeveloperNoteRow) {
+  return {
+    id:        r.id,
+    subject:   r.subject,
+    body:      r.body,
+    priority:  r.priority,
+    status:    r.status,
+    pagePath:  r.page_path ?? null,
+    createdBy: r.created_by ?? null,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
   };
 }

@@ -31,6 +31,8 @@ export const tags = [
   'IcpProfiles',
   'LeadEnrichment',
   'OutreachDrafts',
+  'MarketTestRuns',
+  'MarketDeveloperNotes',
 ] as const;
 
 export type tag = typeof tags[number];
