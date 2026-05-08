@@ -50,13 +50,19 @@ export async function getLatestAmazonRiskReport(keyword: string, marketplace = '
      LIMIT 20`,
     [jobId],
   );
+  const amazonDomain = `https://www.amazon.${String(row.marketplace ?? 'com')}`;
+  function resolveUrl(url: unknown): string | null {
+    if (!url) return null;
+    const s = String(url);
+    return s.startsWith('http') ? s : `${amazonDomain}${s}`;
+  }
   const products = (productRows as Array<Record<string, unknown>>).map(p => ({
     title: String(p.title ?? ''),
     price: p.price !== null ? Number(p.price) : null,
     rating: p.rating !== null ? Number(p.rating) : null,
     review_count: p.review_count !== null ? Number(p.review_count) : null,
     seller_name: p.seller_name ? String(p.seller_name) : null,
-    product_url: p.product_url ? String(p.product_url) : null,
+    product_url: resolveUrl(p.product_url),
     asin: p.asin ? String(p.asin) : null,
   }));
 
@@ -102,21 +108,28 @@ export async function getLatestAmazonRiskReport(keyword: string, marketplace = '
 
 export async function getAmazonScanProducts(jobId: string) {
   const [rows] = await pool.execute(
-    `SELECT title, price, rating, review_count, seller_name, product_url, asin
-     FROM amazon_products
-     WHERE job_id = ?
-     ORDER BY review_count DESC`,
+    `SELECT ap.title, ap.price, ap.rating, ap.review_count, ap.seller_name, ap.product_url, ap.asin,
+            asj.marketplace
+     FROM amazon_products ap
+     JOIN amazon_scan_jobs asj ON asj.id = ap.job_id
+     WHERE ap.job_id = ?
+     ORDER BY ap.review_count DESC`,
     [jobId],
   );
-  return (rows as Array<Record<string, unknown>>).map(p => ({
-    title: String(p.title ?? ''),
-    price: p.price !== null ? Number(p.price) : null,
-    rating: p.rating !== null ? Number(p.rating) : null,
-    review_count: p.review_count !== null ? Number(p.review_count) : null,
-    seller_name: p.seller_name ? String(p.seller_name) : null,
-    product_url: p.product_url ? String(p.product_url) : null,
-    asin: p.asin ? String(p.asin) : null,
-  }));
+  return (rows as Array<Record<string, unknown>>).map(p => {
+    const domain = `https://www.amazon.${String(p.marketplace ?? 'com')}`;
+    const rawUrl = p.product_url ? String(p.product_url) : null;
+    const product_url = rawUrl ? (rawUrl.startsWith('http') ? rawUrl : `${domain}${rawUrl}`) : null;
+    return {
+      title: String(p.title ?? ''),
+      price: p.price !== null ? Number(p.price) : null,
+      rating: p.rating !== null ? Number(p.rating) : null,
+      review_count: p.review_count !== null ? Number(p.review_count) : null,
+      seller_name: p.seller_name ? String(p.seller_name) : null,
+      product_url,
+      asin: p.asin ? String(p.asin) : null,
+    };
+  });
 }
 
 function buildKeepaTrend(rows: Array<Record<string, unknown>>) {
