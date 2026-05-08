@@ -125,10 +125,13 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <style>{`
           :root {
             --logo-coral: ${brandConfig.primaryHex};
-            --logo-coral-dark: ${brandConfig.primaryHexDark};
             --brand-gold: ${brandConfig.accentHex};
-            --brand-gold-light: ${brandConfig.accentHexDark};
             --sidebar: ${brandConfig.sidebarBgCss};
+          }
+          .dark {
+            --logo-coral: ${brandConfig.primaryHexDark};
+            --brand-gold: ${brandConfig.accentHexDark};
+            /* Sidebar will fallback to the dark value in globals.css unless we explicitly override it here */
           }
         `}</style>
       </head>

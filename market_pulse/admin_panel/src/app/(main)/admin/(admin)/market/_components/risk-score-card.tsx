@@ -69,17 +69,17 @@ const DIMENSION_DESC: Record<keyof AmazonRiskReport['scores'], string> = {
 };
 
 function decisionClass(decision: string) {
-  if (decision === 'GUVENLI') return 'border-emerald-500/50 bg-emerald-500/15 text-emerald-400';
-  if (decision === 'DIKKATLI_OL' || decision === 'MIXED_SIGNAL') return 'border-yellow-500/50 bg-yellow-500/15 text-yellow-400';
-  if (decision === 'GIRME') return 'border-red-500/50 bg-red-500/15 text-red-400';
-  return 'border-zinc-600/50 bg-zinc-800/50 text-zinc-500';
+  if (decision === 'GUVENLI') return 'border-gm-success/40 bg-gm-success/10 text-gm-success';
+  if (decision === 'DIKKATLI_OL' || decision === 'MIXED_SIGNAL') return 'border-gm-warning/40 bg-gm-warning/10 text-gm-warning';
+  if (decision === 'GIRME') return 'border-gm-error/40 bg-gm-error/10 text-gm-error';
+  return 'border-gm-border-soft bg-gm-surface/20 text-gm-muted';
 }
 
 function decisionBg(decision: string) {
-  if (decision === 'GUVENLI') return 'bg-emerald-500/10 border-emerald-500/20';
-  if (decision === 'DIKKATLI_OL' || decision === 'MIXED_SIGNAL') return 'bg-yellow-500/10 border-yellow-500/20';
-  if (decision === 'GIRME') return 'bg-red-500/10 border-red-500/20';
-  return 'bg-zinc-800/30 border-zinc-700/30';
+  if (decision === 'GUVENLI') return 'bg-gm-success/5 border-gm-success/10';
+  if (decision === 'DIKKATLI_OL' || decision === 'MIXED_SIGNAL') return 'bg-gm-warning/5 border-gm-warning/10';
+  if (decision === 'GIRME') return 'bg-gm-error/5 border-gm-error/10';
+  return 'bg-gm-surface/10 border-gm-border-soft/20';
 }
 
 function scoreBarColor(score: number) {
@@ -95,9 +95,9 @@ function scoreStatus(score: number): 'GUVENLI' | 'DIKKATLI_OL' | 'GIRME' {
 }
 
 function scoreStatusClass(status: 'GUVENLI' | 'DIKKATLI_OL' | 'GIRME') {
-  if (status === 'GUVENLI') return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400';
-  if (status === 'DIKKATLI_OL') return 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400';
-  return 'border-red-500/40 bg-red-500/10 text-red-400';
+  if (status === 'GUVENLI') return 'border-gm-success/40 bg-gm-success/10 text-gm-success';
+  if (status === 'DIKKATLI_OL') return 'border-gm-warning/40 bg-gm-warning/10 text-gm-warning';
+  return 'border-gm-error/40 bg-gm-error/10 text-gm-error';
 }
 
 function flagLabel(flag: string) {
@@ -246,7 +246,7 @@ function DimensionRow({ dimKey, label, item, flags }: { dimKey: string; label: s
           {flags && flags.length > 0 && (
             <div className="flex flex-wrap gap-2 pt-1">
               {flags.map((flag) => (
-                <Badge key={flag} variant="outline" className="rounded-full border-red-500/20 bg-red-500/5 text-[10px] text-red-400">
+                <Badge key={flag} variant="outline" className="rounded-full border-gm-error/20 bg-gm-error/5 text-[10px] text-gm-error">
                   <AlertTriangle className="mr-1 size-3" />
                   {flagLabel(flag)}
                 </Badge>
@@ -316,7 +316,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
                 <Badge variant="outline" className="rounded-full border-gm-border-soft bg-gm-surface/10 py-1 text-xs text-gm-muted">
                   <DollarSign className="mr-1 size-3.5" />
                   ${pStats.min.toFixed(0)} – ${pStats.max.toFixed(0)}
-                  {pStats.trimmedAvg !== null && <> · temiz ort. <span className="text-yellow-400 font-semibold">${pStats.trimmedAvg}</span></>}
+                  {pStats.trimmedAvg !== null && <> · temiz ort. <span className="text-gm-gold font-semibold">${pStats.trimmedAvg}</span></>}
                 </Badge>
               )}
             </div>
@@ -347,7 +347,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
 
         {/* Mixed signal warning */}
         {report.decision === 'MIXED_SIGNAL' && (
-          <div className="flex gap-4 rounded-3xl border border-yellow-500/30 bg-yellow-500/10 p-5 text-sm leading-7 text-yellow-400 shadow-lg">
+          <div className="flex gap-4 rounded-3xl border border-gm-warning/30 bg-gm-warning/10 p-5 text-sm leading-7 text-gm-warning shadow-lg">
             <AlertTriangle className="mt-1 size-5 shrink-0" />
             <div>
               <p className="font-bold">Karışık Sinyal Tespit Edildi</p>
@@ -566,11 +566,11 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
                     <>
                       <div className="flex justify-between">
                         <span>En düşük fiyat</span>
-                        <span className="font-mono text-emerald-400">${pStats.min.toFixed(2)}</span>
+                        <span className="font-mono text-gm-success">${pStats.min.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>En yüksek fiyat</span>
-                        <span className="font-mono text-red-400">${pStats.max.toFixed(2)}</span>
+                        <span className="font-mono text-gm-error">${pStats.max.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Genel ortalama</span>
@@ -581,10 +581,10 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
                         <span className="font-mono text-gm-text">${pStats.median}</span>
                       </div>
                       {pStats.trimmedAvg !== null && (
-                        <div className="flex flex-col gap-1 rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-3">
+                        <div className="flex flex-col gap-1 rounded-xl border border-gm-warning/20 bg-gm-warning/5 p-3">
                           <div className="flex justify-between">
-                            <span className="font-semibold text-yellow-400">Temiz ortalama</span>
-                            <span className="font-mono font-bold text-yellow-400">${pStats.trimmedAvg}</span>
+                            <span className="font-semibold text-gm-warning">Temiz ortalama</span>
+                            <span className="font-mono font-bold text-gm-warning">${pStats.trimmedAvg}</span>
                           </div>
                           {pStats.outlierCount > 0 && (
                             <p className="text-[10px] text-gm-muted/70">
@@ -608,7 +608,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
                     <span className="font-mono text-gm-text">{brandData.length}</span>
                   </div>
                   {report.problem_flags && report.problem_flags.length > 0 && (
-                    <div className="mt-3 flex items-start gap-2 rounded-xl bg-red-500/10 p-3 text-red-400">
+                    <div className="mt-3 flex items-start gap-2 rounded-xl bg-gm-error/10 p-3 text-gm-error">
                       <ShieldAlert className="mt-0.5 size-4 shrink-0" />
                       <p className="text-xs font-bold uppercase">Kritik müşteri şikayetleri tespit edildi.</p>
                     </div>
@@ -630,7 +630,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
                   {ratingDist.map(b => {
                     const total = ratingDist.reduce((a, c) => a + c.count, 0);
                     const pct = total ? Math.round((b.count / total) * 100) : 0;
-                    const color = b.label.startsWith('4.5') ? '#10b981' : b.label.startsWith('4.0') ? '#84cc16' : b.label.startsWith('3.5') ? '#eab308' : '#ef4444';
+                    const color = b.label.startsWith('4.5') ? 'var(--color-gm-success)' : b.label.startsWith('4.0') ? 'var(--color-gm-primary)' : b.label.startsWith('3.5') ? 'var(--color-gm-warning)' : 'var(--color-gm-error)';
                     return (
                       <div key={b.label} className="flex items-center gap-3">
                         <span className="w-16 text-right text-xs text-gm-muted">{b.label}</span>
@@ -650,14 +650,14 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
 
             {/* Problem flags */}
             {report.problem_flags && report.problem_flags.length > 0 && (
-              <div className="rounded-[2rem] border border-red-500/20 bg-red-500/5 p-6">
+              <div className="rounded-[2rem] border border-gm-error/20 bg-gm-error/5 p-6">
                 <div className="mb-3 flex items-center gap-2">
-                  <ShieldAlert className="size-4 text-red-400" />
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-red-400">AI Tespit Ettiği Şikayetler</h3>
+                  <ShieldAlert className="size-4 text-gm-error" />
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gm-error">AI Tespit Ettiği Şikayetler</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {report.problem_flags.map(flag => (
-                    <Badge key={flag} variant="outline" className="rounded-full border-red-500/30 bg-red-500/10 text-sm text-red-400">
+                    <Badge key={flag} variant="outline" className="rounded-full border-gm-error/30 bg-gm-error/10 text-sm text-gm-error">
                       <AlertTriangle className="mr-1.5 size-3" />
                       {flagLabel(flag)}
                     </Badge>

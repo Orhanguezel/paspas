@@ -95,6 +95,12 @@
   --color-risk-warn: oklch(0.78 0.165 90);
   --color-risk-high: oklch(0.60 0.24 30);
 
+  /* Semantic status tokens (success / warning / error) */
+  --color-gm-success: oklch(0.63 0.195 155);
+  --color-gm-warning: oklch(0.78 0.165 90);
+  --color-gm-error: oklch(0.60 0.24 30);
+  --color-gm-gold: var(--brand-gold);
+
   /* Aliases for cleaner code */
   --color-gm-primary: var(--brand-gold);
   --color-gm-primary-dark: var(--brand-gold-strong);

@@ -267,7 +267,7 @@ export default function MarketTestCenterPage() {
                   <CheckCircle2 className="size-4" />
                   Manuel kaydet
                 </Button>
-                <Button type="button" onClick={autoRunTest} disabled={createRunState.isLoading || executeRunState.isLoading} className="w-1/2 gap-2 bg-gm-gold text-black hover:bg-yellow-500">
+                <Button type="button" onClick={autoRunTest} disabled={createRunState.isLoading || executeRunState.isLoading} className="w-1/2 gap-2 bg-gm-gold text-black hover:bg-gm-gold-light">
                   <Play className="size-4" />
                   Otomatik Çalıştır
                 </Button>
@@ -307,7 +307,7 @@ export default function MarketTestCenterPage() {
                   <div key={run.id} className="rounded-2xl border border-gm-border-soft bg-gm-surface/10 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <h3 className="font-serif text-lg text-gm-text">{run.title}</h3>
-                      <Badge className={run.status === 'failed' ? 'bg-red-500 text-white' : 'bg-gm-success text-black'}>
+                      <Badge className={run.status === 'failed' ? 'bg-gm-error text-white' : 'bg-gm-success text-black'}>
                         {run.status}
                       </Badge>
                     </div>

@@ -76,7 +76,7 @@ function decisionBadgeClass(decision: string): string {
   if (decision === 'GUVENLI') return 'border-gm-success/40 bg-gm-success/10 text-gm-success';
   if (decision === 'DIKKATLI_OL') return 'border-gm-warning/40 bg-gm-warning/10 text-gm-warning';
   if (decision === 'GIRME') return 'border-gm-error/40 bg-gm-error/10 text-gm-error';
-  if (decision === 'MIXED_SIGNAL') return 'border-orange-500/30 bg-orange-500/10 text-orange-500';
+  if (decision === 'MIXED_SIGNAL') return 'border-gm-warning/30 bg-gm-warning/10 text-gm-warning';
   return 'border-gm-border-soft bg-gm-surface/20 text-gm-muted/60';
 }
 

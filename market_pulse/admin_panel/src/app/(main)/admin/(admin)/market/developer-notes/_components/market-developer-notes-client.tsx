@@ -47,8 +47,8 @@ const architectureNotes = [
 ];
 
 function priorityClass(priority: MarketDeveloperNotePriority) {
-  if (priority === 'critical') return 'bg-red-500 text-white hover:bg-red-500';
-  if (priority === 'high') return 'bg-amber-500 text-black hover:bg-amber-500';
+  if (priority === 'critical') return 'bg-gm-error text-white hover:bg-gm-error';
+  if (priority === 'high') return 'bg-gm-warning text-black hover:bg-gm-warning';
   return 'border-gm-border-soft bg-gm-surface/20 text-gm-muted';
 }
 

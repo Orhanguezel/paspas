@@ -343,7 +343,7 @@ export default function TargetsPanel() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="rounded-full hover:bg-blue-500/10 hover:text-blue-500 transition-colors text-gm-text/50"
+                            className="rounded-full hover:bg-gm-primary/10 hover:text-gm-primary transition-colors text-gm-text/50"
                             onClick={() => handleScanCompetitor(target)}
                             disabled={isScanning}
                             title="Rakip Tara"

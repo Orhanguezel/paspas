@@ -62,11 +62,11 @@ function statusBadge(job: LeadSearchJob) {
 }
 
 function decisionBadgeClass(decision: string): string {
-  if (decision === 'GUVENLI') return 'border-emerald-500/50 bg-emerald-500/20 text-emerald-400 font-bold';
-  if (decision === 'DIKKATLI_OL') return 'border-yellow-500/50 bg-yellow-500/20 text-yellow-400 font-bold';
-  if (decision === 'GIRME') return 'border-red-500/50 bg-red-500/20 text-red-400 font-bold';
-  if (decision === 'MIXED_SIGNAL') return 'border-orange-500/50 bg-orange-500/20 text-orange-400 font-bold';
-  return 'border-zinc-600/50 bg-zinc-800/50 text-zinc-500';
+  if (decision === 'GUVENLI') return 'border-gm-success/40 bg-gm-success/10 text-gm-success font-bold';
+  if (decision === 'DIKKATLI_OL') return 'border-gm-warning/40 bg-gm-warning/10 text-gm-warning font-bold';
+  if (decision === 'GIRME') return 'border-gm-error/40 bg-gm-error/10 text-gm-error font-bold';
+  if (decision === 'MIXED_SIGNAL') return 'border-gm-warning/30 bg-gm-warning/10 text-gm-warning font-bold';
+  return 'border-gm-border-soft bg-gm-surface/20 text-gm-muted';
 }
 
 function decisionLabel(decision: string): string {
@@ -384,7 +384,7 @@ export default function AmazonLeadSearchPanel() {
                           variant="outline"
                           size="sm"
                           onClick={() => loadJobReport(job)}
-                          className="rounded-full border-yellow-500/40 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 hover:text-yellow-300"
+                          className="rounded-full border-gm-warning/40 bg-gm-warning/10 text-gm-warning hover:bg-gm-warning/20 hover:text-gm-warning/80"
                         >
                           <RadarIcon className="mr-2 size-4" />
                           Risk Raporu

@@ -73,6 +73,13 @@ export default function MarketDashboard() {
       icon: Activity,
       tag: 'LIVE'
     },
+    { 
+      label: 'Lead Machine',      
+      desc: 'Amazon ve B2B dizinlerinden yeni lead adayları keşfedin.', 
+      href: '/admin/market/lead-machine/candidates', 
+      icon: Zap,
+      tag: 'GROWTH'
+    },
   ];
 
   return (

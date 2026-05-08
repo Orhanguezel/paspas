@@ -80,9 +80,9 @@ function PaspasSyncTab({ onSuccess }: { onSuccess: () => void }) {
 // ─── Sekme 2: CSV / JSON Yükle ───────────────────────────────────────────────
 
 const ACTION_ICON: Record<BulkImportPreviewRow['_action'], React.ReactNode> = {
-  insert: <CheckCircle2 className="size-4 text-green-600" />,
-  update: <AlertCircle className="size-4 text-yellow-500" />,
-  skip:   <Minus className="size-4 text-muted-foreground" />,
+  insert: <CheckCircle2 className="size-4 text-gm-success" />,
+  update: <AlertCircle className="size-4 text-gm-warning" />,
+  skip:   <Minus className="size-4 text-gm-muted" />,
 };
 
 const ACTION_LABEL: Record<BulkImportPreviewRow['_action'], string> = {
@@ -232,8 +232,8 @@ function FileUploadTab({ onSuccess }: { onSuccess: () => void }) {
               <TableBody>
                 {preview.map((row, i) => (
                   <TableRow key={i} className={
-                    row._action === 'insert' ? 'bg-green-50 dark:bg-green-950/20' :
-                    row._action === 'update' ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''
+                    row._action === 'insert' ? 'bg-gm-success/10' :
+                    row._action === 'update' ? 'bg-gm-warning/10' : ''
                   }>
                     <TableCell>{ACTION_ICON[row._action]}</TableCell>
                     <TableCell className="font-medium">{row.name}</TableCell>
