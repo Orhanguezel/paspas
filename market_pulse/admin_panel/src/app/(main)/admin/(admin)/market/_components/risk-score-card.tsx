@@ -167,9 +167,26 @@ function priceStats(products: AmazonRiskReport['products']) {
   const prices = (products ?? []).filter(p => p.price != null).map(p => p.price as number);
   if (!prices.length) return null;
   const sorted = [...prices].sort((a, b) => a - b);
+  const q1 = sorted[Math.floor(sorted.length * 0.25)];
+  const q3 = sorted[Math.floor(sorted.length * 0.75)];
+  const iqr = q3 - q1;
+  const lowerBound = q1 - 1.5 * iqr;
+  const upperBound = q3 + 1.5 * iqr;
+  const filtered = sorted.filter(p => p >= lowerBound && p <= upperBound);
+  const outlierCount = sorted.length - filtered.length;
   const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+  const trimmedAvg = filtered.length ? filtered.reduce((a, b) => a + b, 0) / filtered.length : null;
   const median = sorted[Math.floor(sorted.length / 2)];
-  return { min: sorted[0], max: sorted[sorted.length - 1], avg: +avg.toFixed(2), median: +median.toFixed(2) };
+  return {
+    min: sorted[0],
+    max: sorted[sorted.length - 1],
+    avg: +avg.toFixed(2),
+    median: +median.toFixed(2),
+    trimmedAvg: trimmedAvg !== null ? +trimmedAvg.toFixed(2) : null,
+    outlierCount,
+    lowerBound: +lowerBound.toFixed(2),
+    upperBound: +upperBound.toFixed(2),
+  };
 }
 
 function DimensionRow({ dimKey, label, item, flags }: { dimKey: string; label: string; item: AmazonDimensionScore; flags?: string[] }) {
@@ -280,7 +297,8 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
               {pStats && (
                 <Badge variant="outline" className="rounded-full border-gm-border-soft bg-gm-surface/10 py-1 text-xs text-gm-muted">
                   <DollarSign className="mr-1 size-3.5" />
-                  ${pStats.min.toFixed(0)} – ${pStats.max.toFixed(0)} · ort. ${pStats.avg}
+                  ${pStats.min.toFixed(0)} – ${pStats.max.toFixed(0)}
+                  {pStats.trimmedAvg !== null && <> · temiz ort. <span className="text-yellow-400 font-semibold">${pStats.trimmedAvg}</span></>}
                 </Badge>
               )}
             </div>
@@ -311,7 +329,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
 
         {/* Charts */}
         <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="relative h-80 overflow-hidden rounded-[2.5rem] border border-gm-border-soft p-6 shadow-xl" style={{ background: '#0f1115' }}>
+          <div className="relative h-80 overflow-hidden rounded-[2.5rem] border border-gm-border-soft p-6 shadow-xl" style={{ background: '#1e293b' }}>
             <p className="absolute left-6 top-6 z-10 text-xs font-bold uppercase tracking-widest" style={{ color: '#6b7280' }}>Risk Profili (5 Boyut)</p>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
@@ -445,7 +463,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
 
               {/* Fiyat Dağılımı Histogram */}
               {priceHistogram.some(b => b.count > 0) && (
-                <div className="rounded-[2.5rem] border border-gm-border-soft p-6 shadow-xl" style={{ background: '#0f1115' }}>
+                <div className="rounded-[2.5rem] border border-gm-border-soft p-6 shadow-xl" style={{ background: '#1e293b' }}>
                   <div className="mb-4 flex items-center justify-between">
                     <div>
                       <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gm-muted">Fiyat Dağılımı</h3>
@@ -483,7 +501,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
 
               {/* Keepa Trendi */}
               {Array.isArray(keepaTrend) && keepaTrend.length > 1 ? (
-                <div className="rounded-[2.5rem] border border-gm-border-soft p-6 shadow-xl" style={{ background: '#0f1115' }}>
+                <div className="rounded-[2.5rem] border border-gm-border-soft p-6 shadow-xl" style={{ background: '#1e293b' }}>
                   <div className="mb-4 flex items-center justify-between">
                     <div>
                       <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gm-muted">Fiyat Geçmişi (Keepa)</h3>
@@ -525,13 +543,30 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
                         <span className="font-mono text-red-400">${pStats.max.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Ortalama fiyat</span>
-                        <span className="font-mono text-gm-text">${pStats.avg}</span>
+                        <span>Genel ortalama</span>
+                        <span className="font-mono text-gm-muted">${pStats.avg}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Medyan fiyat</span>
+                        <span>Medyan</span>
                         <span className="font-mono text-gm-text">${pStats.median}</span>
                       </div>
+                      {pStats.trimmedAvg !== null && (
+                        <div className="flex flex-col gap-1 rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-3">
+                          <div className="flex justify-between">
+                            <span className="font-semibold text-yellow-400">Temiz ortalama</span>
+                            <span className="font-mono font-bold text-yellow-400">${pStats.trimmedAvg}</span>
+                          </div>
+                          {pStats.outlierCount > 0 && (
+                            <p className="text-[10px] text-gm-muted/70">
+                              {pStats.outlierCount} aşırı fiyat çıkarıldı
+                              (${pStats.lowerBound.toFixed(0)}–${pStats.upperBound.toFixed(0)} aralığı dışı)
+                            </p>
+                          )}
+                          <p className="text-[10px] italic text-gm-muted/60">
+                            Giriş fiyatınızı bu değer etrafında konumlandırın
+                          </p>
+                        </div>
+                      )}
                     </>
                   )}
                   <div className="flex justify-between border-t border-gm-border-soft pt-2">
