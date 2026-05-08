@@ -189,14 +189,14 @@ These serve as the fallback; there is no separate default.css file. */
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
-  /* Sidebar — dark mode: koyu zemin + net yeşil aktif state */
-  --sidebar: oklch(0.14 0.01 145);
-  --sidebar-foreground: oklch(0.88 0.04 145);
+  /* Sidebar — dark mode: diğer temalarla aynı yaklaşım (siyah zemin + beyaz text) */
+  --sidebar: oklch(0 0 0);
+  --sidebar-foreground: oklch(1 0 0);
   --sidebar-primary: oklch(0.68 0.18 145);
-  --sidebar-primary-foreground: oklch(0.10 0.04 155);
-  --sidebar-accent: oklch(0.55 0.18 145);
-  --sidebar-accent-foreground: oklch(0.10 0.04 155);
-  --sidebar-border: oklch(0.68 0.18 145 / 0.18);
+  --sidebar-primary-foreground: oklch(0 0 0);
+  --sidebar-accent: oklch(0.60 0.20 145);
+  --sidebar-accent-foreground: oklch(0 0 0);
+  --sidebar-border: oklch(1 0 0 / 0.1);
   --sidebar-ring: oklch(0.68 0.18 145);
 
   --brand-gold: #4ade80;
