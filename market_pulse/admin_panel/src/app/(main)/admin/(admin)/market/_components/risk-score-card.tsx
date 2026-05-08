@@ -311,13 +311,13 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
 
         {/* Charts */}
         <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="relative h-80 overflow-hidden rounded-[2.5rem] border border-gm-border-soft bg-gm-surface/5 p-6 shadow-xl">
-            <p className="absolute left-6 top-6 z-10 text-xs font-bold uppercase tracking-widest text-gm-muted">Risk Profili (5 Boyut)</p>
+          <div className="relative h-80 overflow-hidden rounded-[2.5rem] border border-gm-border-soft p-6 shadow-xl" style={{ background: '#0f1115' }}>
+            <p className="absolute left-6 top-6 z-10 text-xs font-bold uppercase tracking-widest" style={{ color: '#6b7280' }}>Risk Profili (5 Boyut)</p>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                <PolarGrid stroke="rgba(255,255,255,0.08)" />
+                <PolarGrid stroke="rgba(255,255,255,0.15)" />
                 <PolarAngleAxis dataKey="subject" tick={{ fill: '#9ca3af', fontSize: 10 }} />
-                <Radar name="Risk" dataKey="A" stroke="#D4AF37" fill="#D4AF37" fillOpacity={0.4} />
+                <Radar name="Risk" dataKey="A" stroke="#D4AF37" fill="#D4AF37" fillOpacity={0.45} />
                 <Tooltip contentStyle={{ backgroundColor: '#0f1115', borderColor: '#27272a', borderRadius: '12px', fontSize: '12px' }} itemStyle={{ color: '#D4AF37' }} />
               </RadarChart>
             </ResponsiveContainer>
@@ -445,7 +445,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
 
               {/* Fiyat Dağılımı Histogram */}
               {priceHistogram.some(b => b.count > 0) && (
-                <div className="rounded-[2.5rem] border border-gm-border-soft bg-gm-surface/5 p-6 shadow-xl">
+                <div className="rounded-[2.5rem] border border-gm-border-soft p-6 shadow-xl" style={{ background: '#0f1115' }}>
                   <div className="mb-4 flex items-center justify-between">
                     <div>
                       <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gm-muted">Fiyat Dağılımı</h3>
@@ -460,7 +460,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
                   <div className="h-44">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={priceHistogram} barSize={32}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
                         <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                         <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} allowDecimals={false} />
                         <Tooltip
@@ -483,7 +483,7 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
 
               {/* Keepa Trendi */}
               {Array.isArray(keepaTrend) && keepaTrend.length > 1 ? (
-                <div className="rounded-[2.5rem] border border-gm-border-soft bg-gm-surface/5 p-6 shadow-xl">
+                <div className="rounded-[2.5rem] border border-gm-border-soft p-6 shadow-xl" style={{ background: '#0f1115' }}>
                   <div className="mb-4 flex items-center justify-between">
                     <div>
                       <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gm-muted">Fiyat Geçmişi (Keepa)</h3>
