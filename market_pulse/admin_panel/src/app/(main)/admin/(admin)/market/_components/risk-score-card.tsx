@@ -83,9 +83,9 @@ function decisionBg(decision: string) {
 }
 
 function scoreBarColor(score: number) {
-  if (score <= 3) return '#10b981';
-  if (score <= 6) return '#eab308';
-  return '#ef4444';
+  if (score <= 3) return 'var(--color-risk-safe)';
+  if (score <= 6) return 'var(--color-risk-warn)';
+  return 'var(--color-risk-high)';
 }
 
 function scoreStatus(score: number): 'GUVENLI' | 'DIKKATLI_OL' | 'GIRME' {
@@ -362,10 +362,10 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
             <p className="absolute left-6 top-6 z-10 text-xs font-bold uppercase tracking-widest text-gm-muted">Risk Profili (5 Boyut)</p>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                <PolarGrid stroke="rgba(107,114,128,0.4)" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 10 }} />
-                <Radar name="Risk" dataKey="A" stroke="#D4AF37" fill="#D4AF37" fillOpacity={0.5} />
-                <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }} itemStyle={{ color: '#D4AF37' }} />
+                <PolarGrid stroke="var(--color-border)" />
+                <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--color-muted-foreground)', fontSize: 10 }} />
+                <Radar name="Risk" dataKey="A" stroke="var(--color-brand-gold)" fill="var(--color-brand-gold)" fillOpacity={0.35} />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)', borderRadius: '12px', fontSize: '12px' }} itemStyle={{ color: 'var(--color-brand-gold)' }} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
@@ -508,16 +508,16 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
                   <div className="h-44">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={priceHistogram} barSize={32}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(107,114,128,0.3)" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 10, fill: '#6b7280' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--color-muted-foreground)' }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 10, fill: 'var(--color-muted-foreground)' }} axisLine={false} tickLine={false} allowDecimals={false} />
                         <Tooltip
-                          contentStyle={{ backgroundColor: '#0f1115', borderColor: '#27272a', borderRadius: '12px', fontSize: '12px' }}
+                          contentStyle={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)', borderRadius: '12px', fontSize: '12px' }}
                           formatter={(v) => [`${v} ürün`, 'Adet']}
                         />
                         <Bar dataKey="count" radius={[6, 6, 0, 0]}>
                           {priceHistogram.map((entry, i) => (
-                            <Cell key={i} fill={entry.count === Math.max(...priceHistogram.map(b => b.count)) ? '#D4AF37' : '#4b5563'} />
+                            <Cell key={i} fill={entry.count === Math.max(...priceHistogram.map(b => b.count)) ? 'var(--color-brand-gold)' : 'var(--color-muted)'} />
                           ))}
                         </Bar>
                       </BarChart>
@@ -544,11 +544,11 @@ export function RiskScoreCard({ report, compact }: { report: AmazonRiskReport; c
                   <div className="h-44">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={keepaTrend}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} dy={10} />
-                        <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f1115', borderColor: '#27272a', borderRadius: '12px' }} />
-                        <Line type="monotone" dataKey="price" stroke="#D4AF37" strokeWidth={3} dot={{ r: 5, fill: '#D4AF37', strokeWidth: 0 }} activeDot={{ r: 7 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--color-muted-foreground)' }} axisLine={false} tickLine={false} dy={10} />
+                        <YAxis tick={{ fontSize: 10, fill: 'var(--color-muted-foreground)' }} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
+                        <Tooltip contentStyle={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)', borderRadius: '12px' }} />
+                        <Line type="monotone" dataKey="price" stroke="var(--color-brand-gold)" strokeWidth={3} dot={{ r: 5, fill: 'var(--color-brand-gold)', strokeWidth: 0 }} activeDot={{ r: 7 }} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
