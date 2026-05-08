@@ -164,7 +164,6 @@ export async function runAmazonJob(jobId: string) {
     await updateSearchJob(jobId, { status: 'done', resultCount: 1, finished: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'UNKNOWN_ERROR';
-    console.error(`[amazon-job] FAILED jobId=${jobId} keyword=${params.keyword}`, e);
     try {
       await logAmazonJobError(jobId, msg);
     } catch {

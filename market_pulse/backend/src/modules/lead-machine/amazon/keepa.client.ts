@@ -68,12 +68,12 @@ export async function enqueueKeepaAsins(jobId: string, asins: string[]): Promise
 
 export async function processKeepaQueue(limit = 10): Promise<{ processed: number; skippedByBudget: number }> {
   if (!await isKeepaConfigured()) return { processed: 0, skippedByBudget: 0 };
+  const limitInt = Math.floor(limit);
   const [rows] = await pool.execute(
     `SELECT id, asin FROM amazon_keepa_queue
      WHERE status = 'pending'
      ORDER BY created_at ASC
-     LIMIT ?`,
-    [limit],
+     LIMIT ${limitInt}`,
   );
   const queue = rows as Array<{ id: string; asin: string }>;
   if (queue.length === 0) return { processed: 0, skippedByBudget: 0 };
