@@ -1,0 +1,47 @@
+import { randomUUID } from 'node:crypto';
+import { pool } from '@/db/client';
+
+export interface AmazonJob {
+  id: string;
+  keyword: string;
+  marketplace: string;
+  status: string;
+}
+
+export async function createJob(keyword: string, marketplace = 'com'): Promise<AmazonJob> {
+  const id = randomUUID();
+  await pool.execute(
+    `INSERT INTO amazon_scan_jobs (id, keyword, marketplace, status) VALUES (?, ?, ?, 'pending')`,
+    [id, keyword, marketplace],
+  );
+  return { id, keyword, marketplace, status: 'pending' };
+}
+
+export async function getJob(jobId: string): Promise<AmazonJob | null> {
+  const [rows] = await pool.execute(
+    `SELECT id, keyword, marketplace, status FROM amazon_scan_jobs WHERE id = ? LIMIT 1`,
+    [jobId],
+  );
+  return (rows as AmazonJob[])[0] ?? null;
+}
+
+export async function markJobRunning(jobId: string): Promise<void> {
+  await pool.execute(
+    `UPDATE amazon_scan_jobs SET status = 'running' WHERE id = ?`,
+    [jobId],
+  );
+}
+
+export async function markJobDone(jobId: string, dataPoints: number): Promise<void> {
+  await pool.execute(
+    `UPDATE amazon_scan_jobs SET status = 'done', data_points = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    [dataPoints, jobId],
+  );
+}
+
+export async function markJobFailed(jobId: string, errorMsg: string): Promise<void> {
+  await pool.execute(
+    `UPDATE amazon_scan_jobs SET status = 'failed', error_msg = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    [errorMsg, jobId],
+  );
+}

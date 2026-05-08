@@ -27,23 +27,23 @@ Tüm ajanlara ortak kural: bu dosya tek gerçek kaynaktır. Tamamlanan madde hem
 - [x] **Standalone repo sınır haritası** — `docs/standalone-scope.md` oluşturuldu; bağımlılık analizi, kopma noktaları, yeni repo yapısı, Codex uygulama talimatları
 - [x] **E2E test senaryoları tasarla** — `docs/e2e-test-brief.md` oluşturuldu; 3 senaryo, mock stratejisi, assert listesi, dosya şablonu
 - [ ] **5 keyword test sonuçlarını değerlendir** — Keepa key gelince çalıştır, çıktıları `docs/test-results/` altına kaydet, müşteriye yorumla
-- [ ] **Milestone 3 final kod review** — Codex teslim ettiğinde standalone repo + README + E2E testleri mimari açıdan onayla
+- [x] **Milestone 3 final kod review** — Standalone repo review tamamlandı: ERP bağımlılıkları koparıldı (job-store.ts Seçenek A), legacy dosyalar silindi, ai.client lib/ altına taşındı, E2E test standalone'a uyarlandı; 24 test pass
 
 ---
 
 ### [Codex] Implementasyon
 
-- [ ] **E2E integration test** — `backend/src/modules/lead-machine/amazon/__tests__/amazon.job.e2e.test.ts`
+- [x] **E2E integration test** — `backend/src/modules/lead-machine/amazon/__tests__/amazon.job.e2e.test.ts`
   - `runAmazonJob()` → scraper mock → DB kayıt doğrulama (reason kolonları dahil)
   - Başarılı + hata senaryosu ikisi de test edilmeli
   - Claude Code'dan brief bekle (yukarıdaki madde tamamlandıktan sonra)
-- [ ] **README.md** — `backend/src/modules/lead-machine/amazon/README.md`
+- [x] **README.md** — `backend/src/modules/lead-machine/amazon/README.md`
   - Kurulum (bun install, .env variables)
   - Çalıştırma (`runAmazonJob`, test komutu)
   - `scoring.config.ts` nasıl düzenlenir (threshold / ağırlık değişikliği)
   - Keepa entegrasyonu nasıl aktive edilir
-- [ ] **Kod temizliği** — kullanılmayan import yok, isimlendirme tutarlı, 60+ satır controller metodları service'e taşı
-- [ ] **Standalone repo paketleme**
+- [x] **Kod temizliği** — kullanılmayan import yok, isimlendirme tutarlı, 60+ satır controller metodları service'e taşı
+- [x] **Standalone repo paketleme**
   - `amazon/` klasörünü yeni repo'ya kopyala
   - `_shared/` bağımlılıklarını kır veya inline et (Claude Code handover notuna göre)
   - `package.json`, `tsconfig.json`, `.env.example` düzenle
@@ -94,7 +94,7 @@ Tüm ajanlara ortak kural: bu dosya tek gerçek kaynaktır. Tamamlanan madde hem
 - [x] mixed_signal flag (`signal.validator.ts`)
 
 ### Test
-- [x] 163 birim testi — 26 dosya, 0 hata (bun test)
+- [x] 165 test — 27 dosya, 0 hata (bun test)
 - [x] Her scorer için bağımsız test dosyası
 
 ### Mimari
@@ -125,18 +125,18 @@ Tüm ajanlara ortak kural: bu dosya tek gerçek kaynaktır. Tamamlanan madde hem
 |-----------|-----|-------|
 | M1 — Scoring çekirdeği + birim testler | Gün 7 | ✅ Tamamlandı |
 | M2 — Pipeline entegrasyonu + DB + confidence | Gün 14 | ✅ Tamamlandı |
-| M3 — E2E test + README + standalone repo + UI | Gün 20 | 🔄 Devam ediyor |
+| M3 — E2E test + README + standalone repo + UI | Gün 20 | ✅ Tamamlandı (Keepa key hariç) |
 
 ### M3 Alt Görevler
-- [ ] [Codex] E2E integration test
-- [ ] [Codex] README.md
-- [ ] [Codex] Standalone repo paketleme
+- [x] [Codex] E2E integration test
+- [x] [Codex] README.md
+- [x] [Codex] Standalone repo paketleme
 - [x] [Antigravity] risk-score-card.tsx
 - [x] [Antigravity] amazon-lead-search-panel güncelleme
-- [ ] [Claude Code] Standalone sınır haritası → Codex'e handover
-- [ ] [Claude Code] Final mimari review
+- [x] [Claude Code] Standalone sınır haritası → Codex'e handover (`docs/standalone-scope.md`)
+- [x] [Claude Code] Final mimari review — ERP bağımlılıkları koparıldı, standalone 24 test pass
 - [ ] 5 keyword gerçek çalışma sonuçları *(Keepa key bekleniyor)*
-- [ ] Tüm haklar alıcıya devredilir
+- [x] Tüm haklar alıcıya devredilir — standalone pakete `RIGHTS_TRANSFER.md` eklendi
 
 ---
 
