@@ -40,7 +40,7 @@ async function getRemainingDailyBudget(): Promise<number> {
     [date],
   );
   const row = (rows as Array<{ token_budget?: number | string; tokens_used?: number | string }>)[0];
-  const budget = Number(row?.token_budget ?? DEFAULT_DAILY_BUDGET);
+  const budget = Number(row?.token_budget ?? tokenBudget);
   const used = Number(row?.tokens_used ?? 0);
   return Math.max(0, budget - used);
 }
