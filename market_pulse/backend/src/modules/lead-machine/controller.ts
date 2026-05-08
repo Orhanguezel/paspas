@@ -208,8 +208,8 @@ export const listAmazonJobs: RouteHandler = async () => {
     if (row.decision) {
       job.risk_report = {
         decision: row.decision,
-        composite_score: row.composite_score,
-        data_points: row.data_points,
+        composite_score: row.composite_score != null ? Number(row.composite_score) : null,
+        data_points: row.data_points != null ? Number(row.data_points) : 0,
       };
     }
     return job;
