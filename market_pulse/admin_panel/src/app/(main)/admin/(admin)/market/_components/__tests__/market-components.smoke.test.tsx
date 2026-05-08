@@ -178,7 +178,7 @@ mock.module('@/integrations/hooks', () => ({
   useListMarketTestRunsQuery: () => query([{ id: 'run-1', title: 'Admin tests', command: 'cd admin_panel && bun test', status: 'passed', passCount: 18, failCount: 0, skipCount: 0, outputExcerpt: '18 pass' }]),
   useCreateMarketTestRunMutation: () => mutationTuple(),
   useExecuteMarketTestRunMutation: () => mutationTuple(),
-  useListMarketDeveloperNotesQuery: () => query([{ id: 'note-1', subject: 'Build issue', body: 'Font fetch failed', priority: 'high', status: 'open', createdAt: '2026-05-08', updatedAt: '2026-05-08' }]),
+  useListMarketDeveloperNotesQuery: () => query([{ id: 'note-1', subject: 'Build issue', body: 'Font fetch failed', priority: 'high', status: 'open', attachmentUrl: 'https://cdn.example.com/debug.pdf', createdAt: '2026-05-08', updatedAt: '2026-05-08' }]),
   useCreateMarketDeveloperNoteMutation: () => mutationTuple(),
   useUpdateMarketDeveloperNoteMutation: () => mutationTuple(),
   useDeleteMarketDeveloperNoteMutation: () => mutationTuple(),
@@ -302,9 +302,12 @@ describe('market admin component smoke tests', () => {
 
     expect(testCenterHtml).toContain('Test Merkezi');
     expect(testCenterHtml).toContain('Test Checklist Tablosu');
+    expect(testCenterHtml).toContain('Otomatik Çalıştır');
     expect(testCenterHtml).toContain('cd admin_panel &amp;&amp; bun run build');
     expect(developerNotesHtml).toContain('Yazılımcı Notları');
     expect(developerNotesHtml).toContain('Yeni Not');
+    expect(developerNotesHtml).toContain('Dosya / görsel eki');
+    expect(developerNotesHtml).toContain('Dosya ekini aç');
     expect(developerNotesHtml).toContain('Mimari Notlar');
   });
 });

@@ -225,6 +225,19 @@ describe('market admin RTK endpoints', () => {
       pass_count: 18,
     });
 
+    call = await dispatchEndpoint('executeMarketTestRun', {
+      suite: 'backend',
+      title: 'Backend tests',
+      command: 'cd backend && bun test',
+    });
+    expect(call.method).toBe('POST');
+    expect(call.url.pathname).toBe('/api/v1/admin/market/test-runs/execute');
+    expect(jsonBody(call)).toEqual({
+      suite: 'backend',
+      title: 'Backend tests',
+      command: 'cd backend && bun test',
+    });
+
     call = await dispatchEndpoint('listMarketDeveloperNotes', { status: 'open', priority: 'high' });
     expect(call.method).toBe('GET');
     expect(call.url.pathname).toBe('/api/v1/admin/market/developer-notes');
@@ -235,6 +248,7 @@ describe('market admin RTK endpoints', () => {
       body: 'Font fetch failed',
       priority: 'high',
       page_path: '/admin/market',
+      attachment_url: 'https://cdn.example.com/screenshot.png',
     });
     expect(call.method).toBe('POST');
     expect(call.url.pathname).toBe('/api/v1/admin/market/developer-notes');
@@ -243,6 +257,7 @@ describe('market admin RTK endpoints', () => {
       body: 'Font fetch failed',
       priority: 'high',
       page_path: '/admin/market',
+      attachment_url: 'https://cdn.example.com/screenshot.png',
     });
 
     call = await dispatchEndpoint('updateMarketDeveloperNote', { id: 'note-1', body: { status: 'resolved' } });

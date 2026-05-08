@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 
-import { AlertTriangle, CheckCircle2, Code2, MessageSquarePlus, Send, Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Code2, ExternalLink, ImageIcon, MessageSquarePlus, Paperclip, Send, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +50,10 @@ function priorityClass(priority: MarketDeveloperNotePriority) {
   if (priority === 'critical') return 'bg-red-500 text-white hover:bg-red-500';
   if (priority === 'high') return 'bg-amber-500 text-black hover:bg-amber-500';
   return 'border-gm-border-soft bg-gm-surface/20 text-gm-muted';
+}
+
+function isImageAttachment(url: string) {
+  return /\.(avif|gif|jpe?g|png|webp)(\?.*)?$/i.test(url);
 }
 
 export function MarketDeveloperNotesClient() {
@@ -142,7 +146,13 @@ export function MarketDeveloperNotesClient() {
                 <h2 className="font-serif text-2xl text-gm-text">Yeni Not</h2>
               </div>
               <Input value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="Konu" />
-              <Input value={attachmentUrl} onChange={(event) => setAttachmentUrl(event.target.value)} placeholder="Ek Görsel / Dosya URL (İsteğe Bağlı)" />
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-gm-muted">
+                  <Paperclip className="size-3.5" />
+                  Dosya / görsel eki
+                </div>
+                <Input value={attachmentUrl} onChange={(event) => setAttachmentUrl(event.target.value)} placeholder="https://... ekran-goruntusu.png veya dokuman.pdf" />
+              </div>
               <Textarea
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
@@ -215,11 +225,28 @@ export function MarketDeveloperNotesClient() {
                     </div>
                   </div>
                   <p className="whitespace-pre-wrap text-sm leading-6 text-gm-muted">{note.body}</p>
-                  {note.attachmentUrl && (
-                    <div className="mt-4 rounded-lg border border-gm-border-soft overflow-hidden">
-                      <img src={note.attachmentUrl} alt="Note attachment" className="max-w-full object-cover" />
-                    </div>
-                  )}
+                  {note.attachmentUrl ? (
+                    isImageAttachment(note.attachmentUrl) ? (
+                      <div className="mt-4 overflow-hidden rounded-lg border border-gm-border-soft">
+                        <div className="flex items-center gap-2 border-b border-gm-border-soft bg-gm-surface/10 px-3 py-2 text-xs text-gm-muted">
+                          <ImageIcon className="size-4" />
+                          Görsel eki
+                        </div>
+                        <img src={note.attachmentUrl} alt="Yazılımcı notu görsel eki" className="max-h-80 w-full object-contain" />
+                      </div>
+                    ) : (
+                      <a
+                        href={note.attachmentUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-full border border-gm-border-soft bg-gm-surface/10 px-3 py-2 text-xs font-medium text-gm-gold hover:text-gm-text"
+                      >
+                        <Paperclip className="size-4" />
+                        Dosya ekini aç
+                        <ExternalLink className="size-3.5" />
+                      </a>
+                    )
+                  ) : null}
                 </CardContent>
               </Card>
             ))

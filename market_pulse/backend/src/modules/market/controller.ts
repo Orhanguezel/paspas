@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { RouteHandler } from 'fastify';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
+import { basename, dirname } from 'node:path';
 
 const execAsync = promisify(exec);
 import { db } from '@/db/client';
@@ -248,14 +249,36 @@ export const createMarketTestRun: RouteHandler<{ Body: unknown }> = async (req, 
   return reply.code(201).send(marketTestRunToDto(rows[0]!));
 };
 
-const SAFE_TEST_COMMAND = /^(cd\s+\/[a-zA-Z0-9/._-]+\s*&&\s*)?bun\s+(test|run\s+test)(\s+[a-zA-Z0-9/._:\s-]*)?$/;
+const ALLOWED_TEST_COMMANDS = new Set([
+  'cd backend && bun test',
+  'cd admin_panel && bun test',
+  'cd admin_panel && bun run typecheck',
+  'cd admin_panel && bun run build',
+]);
+
+type CommandRunner = (command: string) => Promise<{ stdout: string; stderr: string } | string>;
+
+function getTestCommandCwd() {
+  return basename(process.cwd()) === 'backend' ? dirname(process.cwd()) : process.cwd();
+}
+
+async function defaultCommandRunner(command: string) {
+  return execAsync(command, { cwd: getTestCommandCwd() }) as Promise<{ stdout: string; stderr: string }>;
+}
+
+let marketTestCommandRunner: CommandRunner = defaultCommandRunner;
+
+export function setMarketTestCommandRunnerForTests(runner?: CommandRunner) {
+  marketTestCommandRunner = runner ?? defaultCommandRunner;
+}
 
 export const executeMarketTestRun: RouteHandler<{ Body: unknown }> = async (req, reply) => {
   const body = req.body as { suite?: string; title?: string; command?: string };
   if (!body.suite || !body.command) {
     return reply.code(400).send({ error: { message: 'missing_suite_or_command' } });
   }
-  if (!SAFE_TEST_COMMAND.test(body.command.trim())) {
+  const command = body.command.trim();
+  if (!ALLOWED_TEST_COMMANDS.has(command)) {
     return reply.code(400).send({ error: { message: 'unsafe_command' } });
   }
 
@@ -265,7 +288,13 @@ export const executeMarketTestRun: RouteHandler<{ Body: unknown }> = async (req,
   let failCount = 0;
 
   try {
-    const { stdout, stderr } = await execAsync(body.command);
+    const execResult = await marketTestCommandRunner(command) as unknown;
+    const stdout = typeof execResult === 'string'
+      ? execResult
+      : (execResult as { stdout?: string }).stdout ?? '';
+    const stderr = typeof execResult === 'string'
+      ? ''
+      : (execResult as { stderr?: string }).stderr ?? '';
     outputExcerpt = (stdout + '\n' + stderr).trim().slice(-1000);
     status = 'passed';
     const passMatch = stdout.match(/(\d+)\s+pass/i);
@@ -288,7 +317,7 @@ export const executeMarketTestRun: RouteHandler<{ Body: unknown }> = async (req,
     id,
     suite: body.suite,
     title: body.title || body.suite,
-    command: body.command,
+    command,
     status,
     pass_count: passCount,
     fail_count: failCount,
