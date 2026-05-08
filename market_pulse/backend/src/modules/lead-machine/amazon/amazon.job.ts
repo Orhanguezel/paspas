@@ -19,22 +19,21 @@ async function saveRiskScore(jobId: string, report: AmazonRiskReport) {
   await pool.execute(
     `INSERT INTO amazon_risk_scores (
       id, job_id, keyword,
-      category_risk_score, category_risk_confidence,
-      sku_chaos_score, sku_chaos_confidence,
-      price_war_score, price_war_confidence,
-      brand_reliability_score, brand_reliability_confidence,
-      operational_risk_score, operational_risk_confidence,
+      category_risk_score, category_risk_confidence, category_risk_reason,
+      sku_chaos_score, sku_chaos_confidence, sku_chaos_reason,
+      price_war_score, price_war_confidence, price_war_reason,
+      brand_reliability_score, brand_reliability_confidence, brand_reliability_reason,
+      operational_risk_score, operational_risk_confidence, operational_risk_reason,
       composite_score, decision, summary, data_points
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id, jobId, report.keyword,
-      report.scores.category_risk.score,    report.scores.category_risk.confidence,
-      report.scores.sku_chaos.score,        report.scores.sku_chaos.confidence,
-      report.scores.price_war_risk.score,   report.scores.price_war_risk.confidence,
-      report.scores.brand_reliability.score, report.scores.brand_reliability.confidence,
-      report.scores.operational_risk.score, report.scores.operational_risk.confidence,
-      report.composite_score, report.decision, report.summary,
-      report.data_points,
+      report.scores.category_risk.score,     report.scores.category_risk.confidence,    report.scores.category_risk.reason,
+      report.scores.sku_chaos.score,         report.scores.sku_chaos.confidence,         report.scores.sku_chaos.reason,
+      report.scores.price_war_risk.score,    report.scores.price_war_risk.confidence,    report.scores.price_war_risk.reason,
+      report.scores.brand_reliability.score, report.scores.brand_reliability.confidence, report.scores.brand_reliability.reason,
+      report.scores.operational_risk.score,  report.scores.operational_risk.confidence,  report.scores.operational_risk.reason,
+      report.composite_score, report.decision, report.summary, report.data_points,
     ],
   );
 }

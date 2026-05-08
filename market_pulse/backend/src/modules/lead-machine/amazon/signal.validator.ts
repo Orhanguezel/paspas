@@ -1,17 +1,18 @@
 import type { AmazonRiskReport } from './amazon.types';
+import { FILTER_CONFIG, MIXED_SIGNAL_CONFIG as MS } from './scoring.config';
 
 export function filterEligibleProducts<T extends { review_count?: number }>(products: T[]) {
-  return products.filter((product) => (product.review_count ?? 0) >= 10);
+  return products.filter((product) => (product.review_count ?? 0) >= FILTER_CONFIG.MIN_REVIEW_COUNT);
 }
 
 export function validateSignals(report: AmazonRiskReport, context: { pageCount?: number; hasPriceData?: boolean } = {}) {
   const dimensionScores = Object.values(report.scores).map((item) => item.score);
-  const highCount = dimensionScores.filter((score) => score >= 7).length;
-  const lowCount = dimensionScores.filter((score) => score <= 3).length;
+  const highCount = dimensionScores.filter((score) => score >= MS.HIGH_SCORE_MIN).length;
+  const lowCount = dimensionScores.filter((score) => score <= MS.LOW_SCORE_MAX).length;
   const notes: string[] = [];
   let decision = report.decision;
 
-  if (highCount === 1 && lowCount >= 3) {
+  if (highCount === MS.HIGH_COUNT_TRIGGER && lowCount >= MS.LOW_COUNT_TRIGGER) {
     decision = 'MIXED_SIGNAL';
     notes.push('Tek sinyal yüksek, diğer sinyaller düşük; manuel kontrol gerekir.');
   }

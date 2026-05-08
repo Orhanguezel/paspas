@@ -1,5 +1,6 @@
 import { canMakeDecision } from './confidence.calculator';
 import type { AmazonRiskReport, Decision, DimensionScore } from './amazon.types';
+import { COMPOSITE_WEIGHTS, DECISION_THRESHOLDS } from './scoring.config';
 
 export type CompositeWeights = {
   category_risk: number;
@@ -9,13 +10,7 @@ export type CompositeWeights = {
   operational_risk: number;
 };
 
-export const defaultCompositeWeights: CompositeWeights = {
-  category_risk: 0.25,
-  price_war_risk: 0.25,
-  sku_chaos: 0.20,
-  brand_reliability: 0.15,
-  operational_risk: 0.15,
-};
+export const defaultCompositeWeights: CompositeWeights = { ...COMPOSITE_WEIGHTS };
 
 export class CompositeScorer {
   constructor(private readonly weights: CompositeWeights = defaultCompositeWeights) {}
@@ -35,7 +30,7 @@ export class CompositeScorer {
 }
 
 export function decide(score: number): Decision {
-  if (score <= 3) return 'GUVENLI';
-  if (score <= 6) return 'DIKKATLI_OL';
+  if (score <= DECISION_THRESHOLDS.GUVENLI_MAX) return 'GUVENLI';
+  if (score <= DECISION_THRESHOLDS.DIKKATLI_OL_MAX) return 'DIKKATLI_OL';
   return 'GIRME';
 }

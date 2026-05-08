@@ -1,9 +1,10 @@
 import type { Confidence } from './amazon.types';
+import { CONFIDENCE_THRESHOLDS as T } from './scoring.config';
 
 export function calculateConfidence(dataPoints: number): Confidence {
-  if (dataPoints < 10) return 'INSUFFICIENT_DATA';
-  if (dataPoints <= 30) return 'LOW';
-  if (dataPoints <= 45) return 'MEDIUM';
+  if (dataPoints <= T.INSUFFICIENT_DATA_MAX) return 'INSUFFICIENT_DATA';
+  if (dataPoints <= T.LOW_MAX) return 'LOW';
+  if (dataPoints <= T.MEDIUM_MAX) return 'MEDIUM';
   return 'HIGH';
 }
 

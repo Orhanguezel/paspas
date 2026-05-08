@@ -266,27 +266,27 @@ export const getAmazonRiskScores: RouteHandler<{ Params: { keyword: string }; Qu
       category_risk: {
         score: Number(row.category_risk_score ?? 0),
         confidence: row.category_risk_confidence,
-        reason: 'Kategori yoğunluğu ve satıcı dağılımı değerlendirildi.',
+        reason: String(row.category_risk_reason ?? 'Kategori yoğunluğu ve satıcı dağılımı değerlendirildi.'),
       },
       sku_chaos: {
         score: Number(row.sku_chaos_score ?? 0),
         confidence: row.sku_chaos_confidence,
-        reason: 'Fiyat aralığı, sigma ve varyant baskısı değerlendirildi.',
+        reason: String(row.sku_chaos_reason ?? 'Fiyat aralığı, sigma ve varyant baskısı değerlendirildi.'),
       },
       price_war_risk: {
         score: Number(row.price_war_score ?? 0),
         confidence: row.price_war_confidence,
-        reason: 'Fiyat kırılımı ve düşük fiyat kümesi değerlendirildi.',
+        reason: String(row.price_war_reason ?? 'Fiyat kırılımı ve düşük fiyat kümesi değerlendirildi.'),
       },
       brand_reliability: {
         score: Number(row.brand_reliability_score ?? 0),
         confidence: row.brand_reliability_confidence,
-        reason: 'Marka tutarlılığı ve listing kalitesi değerlendirildi.',
+        reason: String(row.brand_reliability_reason ?? 'Marka tutarlılığı ve listing kalitesi değerlendirildi.'),
       },
       operational_risk: {
         score: Number(row.operational_risk_score ?? 0),
         confidence: row.operational_risk_confidence,
-        reason: 'Yorum problem skoru ve kritik şikayetler değerlendirildi.',
+        reason: String(row.operational_risk_reason ?? 'Yorum problem skoru ve kritik şikayetler değerlendirildi.'),
       },
     },
     composite_score: row.composite_score === null || row.composite_score === undefined ? null : Number(row.composite_score),
