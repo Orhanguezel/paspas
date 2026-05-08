@@ -114,7 +114,7 @@ Tüm ajanlara ortak kural: bu dosya tek gerçek kaynaktır. Tamamlanan madde hem
 
 | Madde | Beklenen | Durum |
 |-------|----------|-------|
-| 5 keyword gerçek çalışma sonuçları | Keepa API anahtarı | ✅ Keepa key alındı, test başlatıldı (2026-05-08) |
+| 5 keyword gerçek çalışma sonuçları | Keepa API anahtarı | ✅ Tüm 5 keyword tamamlandı (2026-05-08) — 5/5 karar üretildi |
 | Keepa entegrasyonu tam aktif | Keepa API anahtarı | ✅ `.env`'e eklendi, DB-first yapıya entegre edildi |
 
 ---
