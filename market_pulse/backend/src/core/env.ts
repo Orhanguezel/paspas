@@ -111,6 +111,8 @@ export const env = {
   OXYLABS_PASSWORD: process.env.OXYLABS_PASSWORD || '',
   GROQ_API_KEY: process.env.GROQ_API_KEY || '',
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+  KEEPA_API_KEY: process.env.KEEPA_API_KEY || '',
+  KEEPA_DAILY_TOKEN_BUDGET: parseEnvInt(process.env.KEEPA_DAILY_TOKEN_BUDGET, 1000),
   APOLLO_API_KEY: process.env.APOLLO_API_KEY || '',
   TENTIMES_API_KEY: process.env.TENTIMES_API_KEY || '',
   WHRAI_API_KEY: process.env.WHRAI_API_KEY || '',

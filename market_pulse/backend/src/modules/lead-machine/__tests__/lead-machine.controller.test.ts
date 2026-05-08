@@ -247,6 +247,48 @@ describe('lead machine controller scraper callback and jobs', () => {
 
     expect(state.statusCode).toBe(404);
   });
+
+  test('returns latest amazon risk score by keyword', async () => {
+    dbMock.queuePoolExecute([{
+      id: 'risk-1',
+      job_id: 'job-1',
+      keyword: 'paspas',
+      marketplace: 'de',
+      data_points: 47,
+      category_risk_score: '7.2',
+      category_risk_confidence: 'HIGH',
+      composite_score: '6.6',
+      decision: 'DIKKATLI_OL',
+      scanned_at: now,
+    }]);
+
+    const { result } = await callHandler(controller.getAmazonRiskScores, {
+      params: { keyword: encodeURIComponent('paspas') },
+      query: { marketplace: 'de' },
+    });
+
+    expect(dbMock.poolExecutions.at(-1)?.sql).toContain('FROM amazon_risk_scores');
+    expect(result).toEqual(expect.objectContaining({
+      keyword: 'paspas',
+      data_points: 47,
+      composite_score: 6.6,
+      decision: 'DIKKATLI_OL',
+    }));
+    expect((result as { scores: { category_risk: { score: number; confidence: string } } }).scores.category_risk)
+      .toEqual(expect.objectContaining({ score: 7.2, confidence: 'HIGH' }));
+  });
+
+  test('returns 404 when no amazon risk score exists', async () => {
+    dbMock.queuePoolExecute([]);
+
+    const { state } = await callHandler(controller.getAmazonRiskScores, {
+      params: { keyword: encodeURIComponent('missing') },
+      query: { marketplace: 'de' },
+    });
+
+    expect(state.statusCode).toBe(404);
+    expect(state.payload).toEqual({ error: { message: 'no_score_found' } });
+  });
 });
 
 describe('lead machine controller enrichment and competitor endpoints', () => {

@@ -9,6 +9,8 @@ import {
   fairSuggestions,
   generateOutreach,
   getAmazonJob,
+  getAmazonRiskScores,
+  getAmazonScan,
   getIcp,
   listAmazonJobs,
   listB2bJobs,
@@ -21,6 +23,7 @@ import {
   reviewCandidate,
   scraperCallback,
   startAmazonJob,
+  startAmazonScan,
   startB2bJob,
   startFairJob,
   updateDraft,
@@ -43,6 +46,9 @@ export async function registerLeadMachineAdmin(app: FastifyInstance) {
   app.post('/lead-machine/amazon/jobs', startAmazonJob);
   app.get('/lead-machine/amazon/jobs', listAmazonJobs);
   app.get('/lead-machine/amazon/jobs/:id', getAmazonJob);
+  app.post('/lead-machine/amazon/scan', startAmazonScan);
+  app.get('/lead-machine/amazon/scan/:jobId', getAmazonScan);
+  app.get('/lead-machine/amazon/risk-scores/:keyword', getAmazonRiskScores);
 
   app.post('/lead-machine/b2b/jobs', startB2bJob);
   app.get('/lead-machine/b2b/jobs', listB2bJobs);

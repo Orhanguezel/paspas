@@ -1,42 +1,144 @@
+import { randomUUID } from 'node:crypto';
+import { pool } from '@/db/client';
 import { insertCandidate, updateSearchJob, getSearchJob } from '../_shared/db';
 import { analyzeProductReviews } from './review.analyzer';
-import { scoreAmazonSeller } from './amazon.scorer';
 import { scrapeAmazonProducts, type AmazonFilters } from './amazon.scraper';
-import { extractUniqueSellers } from './seller.extractor';
+import { filterEligibleProducts } from './signal.validator';
+import { scoreAmazonCategory } from './amazon.scoring-engine';
+import { calculateCategoryStats, upsertAmazonCategoryStats } from './category.normalizer';
+import { shouldFetchKeepa, enqueueKeepaAsins, processKeepaQueue } from './keepa.client';
+import type { AmazonRiskReport } from './amazon.types';
 
 interface AmazonJobParams extends AmazonFilters {
   keyword?: string;
   marketplace?: string;
 }
 
+async function saveRiskScore(jobId: string, report: AmazonRiskReport) {
+  const id = randomUUID();
+  await pool.execute(
+    `INSERT INTO amazon_risk_scores (
+      id, job_id, keyword,
+      category_risk_score, category_risk_confidence,
+      sku_chaos_score, sku_chaos_confidence,
+      price_war_score, price_war_confidence,
+      brand_reliability_score, brand_reliability_confidence,
+      operational_risk_score, operational_risk_confidence,
+      composite_score, decision, summary, data_points
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id, jobId, report.keyword,
+      report.scores.category_risk.score,    report.scores.category_risk.confidence,
+      report.scores.sku_chaos.score,        report.scores.sku_chaos.confidence,
+      report.scores.price_war_risk.score,   report.scores.price_war_risk.confidence,
+      report.scores.brand_reliability.score, report.scores.brand_reliability.confidence,
+      report.scores.operational_risk.score, report.scores.operational_risk.confidence,
+      report.composite_score, report.decision, report.summary,
+      report.data_points,
+    ],
+  );
+}
+
+async function saveAmazonScanJob(jobId: string, keyword: string, marketplace: string) {
+  await pool.execute(
+    `INSERT IGNORE INTO amazon_scan_jobs (id, keyword, marketplace, status) VALUES (?, ?, ?, 'running')`,
+    [jobId, keyword, marketplace],
+  );
+}
+
+async function updateAmazonScanJob(jobId: string, patch: { status: string; dataPoints?: number; errorMsg?: string | null }) {
+  await pool.execute(
+    `UPDATE amazon_scan_jobs SET status = ?, data_points = COALESCE(?, data_points), error_msg = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    [patch.status, patch.dataPoints ?? null, patch.errorMsg ?? null, jobId],
+  );
+}
+
+async function logAmazonJobError(jobId: string, errorMessage: string): Promise<number> {
+  const [rows] = await pool.execute(
+    `SELECT COUNT(*) AS count FROM amazon_job_error_logs WHERE job_id = ?`,
+    [jobId],
+  );
+  const previous = Number((rows as Array<{ count?: number | string }>)[0]?.count ?? 0);
+  const retryCount = previous + 1;
+  const errorType = errorMessage.split(':')[0].slice(0, 100) || 'UNKNOWN_ERROR';
+  await pool.execute(
+    `INSERT INTO amazon_job_error_logs (id, job_id, error_type, error_msg, retry_count) VALUES (?, ?, ?, ?, ?)`,
+    [randomUUID(), jobId, errorType, errorMessage, retryCount],
+  );
+  return retryCount;
+}
+
 export async function runAmazonJob(jobId: string) {
   const job = await getSearchJob(jobId);
   if (!job) throw new Error('JOB_NOT_FOUND');
   const params = job.params as AmazonJobParams;
+  const keyword = params.keyword ?? '';
+  const marketplace = params.marketplace ?? 'com';
+
   await updateSearchJob(jobId, { status: 'running', started: true, errorMsg: null });
+  await saveAmazonScanJob(jobId, keyword, marketplace);
+
   try {
-    const products = await scrapeAmazonProducts(params.keyword ?? '', params.marketplace ?? 'com', params);
-    const sellers = extractUniqueSellers(products);
-    let count = 0;
-    for (const seller of sellers) {
-      const product = seller.products[0];
-      const analysis = product?.product_url
-        ? await analyzeProductReviews(product.product_url, params.marketplace)
-        : { problem_flags: [], problem_score: 0, ai_summary: '' };
-      const score = scoreAmazonSeller(seller, analysis);
-      await insertCandidate({
-        jobId,
-        channel: 'amazon',
-        name: seller.seller_name,
-        website: seller.seller_url ?? product?.product_url ?? null,
-        rawData: { seller_url: seller.seller_url, products: seller.products, review_flags: analysis.problem_flags, problem_score: analysis.problem_score },
-        aiSummary: analysis.ai_summary,
-        leadScore: score,
-      });
-      count += 1;
+    const allProducts = await scrapeAmazonProducts(keyword, marketplace, params);
+    const eligible = filterEligibleProducts(allProducts);
+    const categoryStats = calculateCategoryStats(keyword, marketplace, eligible);
+    await upsertAmazonCategoryStats(categoryStats);
+
+    // Sayfa 1 ve 3 ortalama fiyat (price war scorer için)
+    const page1Prices = allProducts.slice(0, 10).map(p => p.price).filter((p): p is number => typeof p === 'number');
+    const page3Prices = allProducts.slice(20, 30).map(p => p.price).filter((p): p is number => typeof p === 'number');
+    const pageOneAvg   = page1Prices.length ? page1Prices.reduce((a, b) => a + b, 0) / page1Prices.length : null;
+    const pageThreeAvg = page3Prices.length ? page3Prices.reduce((a, b) => a + b, 0) / page3Prices.length : null;
+
+    // Review analizi: ilk ürün üzerinden (operasyonel risk için)
+    const firstWithUrl = eligible.find(p => p.product_url);
+    const reviewAnalysis = firstWithUrl?.product_url
+      ? await analyzeProductReviews(firstWithUrl.product_url, marketplace).catch(() => ({ problem_flags: [], problem_score: 0, ai_summary: '' }))
+      : { problem_flags: [], problem_score: 0, ai_summary: '' };
+
+    const report = scoreAmazonCategory({
+      keyword,
+      marketplace,
+      products: eligible,
+      pageOneAveragePrice: pageOneAvg,
+      pageThreeAveragePrice: pageThreeAvg,
+      reviewProblemScore: reviewAnalysis.problem_score,
+      reviewProblemFlags: reviewAnalysis.problem_flags,
+    });
+
+    await saveRiskScore(jobId, report);
+
+    // Keepa: yetersiz güven veya yüksek risk varsa ASIN'leri zenginleştir
+    if (shouldFetchKeepa({ confidence: report.scores.price_war_risk.confidence, score: report.composite_score })) {
+      const asins = eligible.map(p => p.product_url?.match(/\/dp\/([A-Z0-9]{10})/)?.[1]).filter(Boolean) as string[];
+      await enqueueKeepaAsins(jobId, asins.slice(0, 20));
+      await processKeepaQueue(20);
     }
-    await updateSearchJob(jobId, { status: 'done', resultCount: count, finished: true });
+
+    // Geriye dönük uyumluluk: lead_candidates'a da kaydet
+    await insertCandidate({
+      jobId,
+      channel: 'amazon',
+      name: `${keyword} — Amazon Skor Raporu`,
+      website: `https://www.amazon.${marketplace}/s?k=${encodeURIComponent(keyword)}`,
+      rawData: report,
+      aiSummary: report.summary,
+      leadScore: report.composite_score ?? 0,
+    });
+
+    await updateAmazonScanJob(jobId, { status: 'done', dataPoints: report.data_points });
+    await updateSearchJob(jobId, { status: 'done', resultCount: 1, finished: true });
   } catch (e) {
-    await updateSearchJob(jobId, { status: 'failed', errorMsg: e instanceof Error ? e.message : 'UNKNOWN_ERROR', finished: true });
+    const msg = e instanceof Error ? e.message : 'UNKNOWN_ERROR';
+    try {
+      await logAmazonJobError(jobId, msg);
+    } catch {
+      // log tablosu hatası, ana job hata yönetimini engellememeli
+    }
+    await updateAmazonScanJob(jobId, { status: 'failed', errorMsg: msg });
+    await updateSearchJob(jobId, { status: 'failed', errorMsg: msg, finished: true });
   }
 }
+
+// Eski seller-centric flow — backward compat için korunuyor
+export { runAmazonJobLegacy } from './legacy.job';

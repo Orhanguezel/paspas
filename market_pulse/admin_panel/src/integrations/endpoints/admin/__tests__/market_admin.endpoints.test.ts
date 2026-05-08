@@ -306,6 +306,20 @@ describe('lead machine admin RTK endpoints', () => {
     expect(call.method).toBe('POST');
     expect(call.url.pathname).toBe('/api/v1/admin/lead-machine/amazon/jobs');
 
+    call = await dispatchEndpoint('startAmazonScan', { keyword: 'paspas', marketplace: 'de' });
+    expect(call.method).toBe('POST');
+    expect(call.url.pathname).toBe('/api/v1/admin/lead-machine/amazon/scan');
+    expect(jsonBody(call)).toEqual({ keyword: 'paspas', marketplace: 'de' });
+
+    call = await dispatchEndpoint('getAmazonScan', 'job-1');
+    expect(call.method).toBe('GET');
+    expect(call.url.pathname).toBe('/api/v1/admin/lead-machine/amazon/scan/job-1');
+
+    call = await dispatchEndpoint('getAmazonRiskScore', { keyword: 'silikon paspas', marketplace: 'de' });
+    expect(call.method).toBe('GET');
+    expect(call.url.pathname).toBe('/api/v1/admin/lead-machine/amazon/risk-scores/silikon%20paspas');
+    expect(call.url.searchParams.get('marketplace')).toBe('de');
+
     call = await dispatchEndpoint('listB2bJobs');
     expect(call.url.pathname).toBe('/api/v1/admin/lead-machine/b2b/jobs');
 
@@ -376,6 +390,9 @@ describe('lead machine admin RTK endpoints', () => {
       'useUpdateOutreachDraftMutation',
       'useListAmazonJobsQuery',
       'useStartAmazonJobMutation',
+      'useStartAmazonScanMutation',
+      'useGetAmazonScanQuery',
+      'useGetAmazonRiskScoreQuery',
       'useListB2bJobsQuery',
       'useStartB2bJobMutation',
       'useListFairJobsQuery',

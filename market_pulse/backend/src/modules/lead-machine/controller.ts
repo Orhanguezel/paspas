@@ -174,11 +174,29 @@ async function createAndRunJob(channel: LeadChannel, body: Record<string, unknow
 }
 
 export const startAmazonJob: RouteHandler<{ Body: unknown }> = async (req, reply) => reply.code(201).send(await createAndRunJob('amazon', asRecord(req.body)));
+export const startAmazonScan: RouteHandler<{ Body: unknown }> = async (req, reply) => {
+  const body = asRecord(req.body);
+  if (typeof body.keyword !== 'string' || !body.keyword.trim()) {
+    return reply.code(400).send({ error: { message: 'keyword_required' } });
+  }
+  return reply.code(201).send(await createAndRunJob('amazon', {
+    ...body,
+    keyword: body.keyword.trim(),
+    marketplace: typeof body.marketplace === 'string' ? body.marketplace : 'com',
+  }));
+};
 export const listAmazonJobs: RouteHandler = async () => listSearchJobs('amazon');
 export const getAmazonJob: RouteHandler<{ Params: { id: string } }> = async (req, reply) => {
   const job = await getSearchJob(req.params.id);
   if (!job || job.channel !== 'amazon') return reply.code(404).send({ error: { message: 'not_found' } });
   return job;
+};
+
+export const getAmazonScan: RouteHandler<{ Params: { jobId: string } }> = async (req, reply) => {
+  const [rows] = await pool.execute('SELECT * FROM amazon_scan_jobs WHERE id = ? LIMIT 1', [req.params.jobId]);
+  const row = (rows as Record<string, unknown>[])[0];
+  if (!row) return reply.code(404).send({ error: { message: 'not_found' } });
+  return row;
 };
 
 export const startB2bJob: RouteHandler<{ Body: unknown }> = async (req, reply) => reply.code(201).send(await createAndRunJob('b2b_directory', asRecord(req.body)));
@@ -212,4 +230,56 @@ export const competitorScan: RouteHandler<{ Body: unknown }> = async (req, reply
   const url = typeof body.url === 'string' ? body.url : null;
   if (!url) return reply.code(400).send({ error: { message: 'url_required' } });
   return scanCompetitorPage(url);
+};
+
+export const getAmazonRiskScores: RouteHandler<{ Params: { keyword: string }; Querystring: unknown }> = async (req, reply) => {
+  const keyword = decodeURIComponent(req.params.keyword);
+  const q = asRecord(req.query);
+  const marketplace = typeof q.marketplace === 'string' ? q.marketplace : 'com';
+  const [rows] = await pool.execute(
+    `SELECT ars.*, asj.keyword, asj.marketplace, asj.created_at AS scanned_at
+     FROM amazon_risk_scores ars
+     JOIN amazon_scan_jobs asj ON asj.id = ars.job_id
+     WHERE asj.keyword = ? AND asj.marketplace = ?
+     ORDER BY ars.created_at DESC
+     LIMIT 1`,
+    [keyword, marketplace],
+  );
+  const row = (rows as Record<string, unknown>[])[0];
+  if (!row) return reply.code(404).send({ error: { message: 'no_score_found' } });
+  return {
+    keyword: row.keyword,
+    scanned_at: row.scanned_at,
+    data_points: Number(row.data_points ?? 0),
+    scores: {
+      category_risk: {
+        score: Number(row.category_risk_score ?? 0),
+        confidence: row.category_risk_confidence,
+        reason: 'Kategori yoğunluğu ve satıcı dağılımı değerlendirildi.',
+      },
+      sku_chaos: {
+        score: Number(row.sku_chaos_score ?? 0),
+        confidence: row.sku_chaos_confidence,
+        reason: 'Fiyat aralığı, sigma ve varyant baskısı değerlendirildi.',
+      },
+      price_war_risk: {
+        score: Number(row.price_war_score ?? 0),
+        confidence: row.price_war_confidence,
+        reason: 'Fiyat kırılımı ve düşük fiyat kümesi değerlendirildi.',
+      },
+      brand_reliability: {
+        score: Number(row.brand_reliability_score ?? 0),
+        confidence: row.brand_reliability_confidence,
+        reason: 'Marka tutarlılığı ve listing kalitesi değerlendirildi.',
+      },
+      operational_risk: {
+        score: Number(row.operational_risk_score ?? 0),
+        confidence: row.operational_risk_confidence,
+        reason: 'Yorum problem skoru ve kritik şikayetler değerlendirildi.',
+      },
+    },
+    composite_score: row.composite_score === null || row.composite_score === undefined ? null : Number(row.composite_score),
+    decision: row.decision,
+    summary: row.summary ?? '',
+  };
 };

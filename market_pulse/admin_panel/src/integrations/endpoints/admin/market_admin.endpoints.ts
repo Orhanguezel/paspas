@@ -130,6 +130,7 @@ export interface LeadSearchJob {
   created_at: string;
   started_at: string | null;
   finished_at: string | null;
+  risk_report?: AmazonRiskReport;
 }
 
 export interface IcpDefinition {
@@ -215,6 +216,42 @@ export interface OutreachDraft {
   ai_model: string | null;
   status: 'draft' | 'sent' | 'archived';
   created_at: string;
+}
+
+export type AmazonScoreConfidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'INSUFFICIENT_DATA';
+export type AmazonRiskDecision = 'GUVENLI' | 'DIKKATLI_OL' | 'GIRME' | 'MIXED_SIGNAL' | 'INSUFFICIENT_DATA';
+
+export interface AmazonDimensionScore {
+  score: number;
+  confidence: AmazonScoreConfidence;
+  reason: string;
+}
+
+export interface AmazonRiskReport {
+  keyword: string;
+  scanned_at: string;
+  data_points: number;
+  scores: {
+    category_risk: AmazonDimensionScore;
+    sku_chaos: AmazonDimensionScore;
+    price_war_risk: AmazonDimensionScore;
+    brand_reliability: AmazonDimensionScore;
+    operational_risk: AmazonDimensionScore;
+  };
+  composite_score: number | null;
+  decision: AmazonRiskDecision;
+  summary: string;
+}
+
+export interface AmazonScanJob {
+  id: string;
+  keyword: string;
+  marketplace: string;
+  status: 'pending' | 'running' | 'done' | 'failed';
+  data_points: number;
+  error_msg: string | null;
+  created_at: string;
+  finished_at: string | null;
 }
 
 export type MarketTestRunStatus = 'passed' | 'failed' | 'expected_failing' | 'skipped' | 'not_run';
@@ -522,6 +559,21 @@ export const marketAdminApi = baseApi.injectEndpoints({
       query: (body) => ({ url: '/admin/lead-machine/amazon/jobs', method: 'POST', body }),
       invalidatesTags: ['LeadMachineJobs'],
     }),
+    startAmazonScan: b.mutation<LeadSearchJob, Record<string, unknown>>({
+      query: (body) => ({ url: '/admin/lead-machine/amazon/scan', method: 'POST', body }),
+      invalidatesTags: ['LeadMachineJobs', 'AmazonRiskScores'],
+    }),
+    getAmazonScan: b.query<AmazonScanJob, string>({
+      query: (jobId) => ({ url: `/admin/lead-machine/amazon/scan/${jobId}` }),
+      providesTags: ['LeadMachineJobs'],
+    }),
+    getAmazonRiskScore: b.query<AmazonRiskReport, { keyword: string; marketplace?: string }>({
+      query: ({ keyword, marketplace }) => ({
+        url: `/admin/lead-machine/amazon/risk-scores/${encodeURIComponent(keyword)}`,
+        params: { marketplace },
+      }),
+      providesTags: ['AmazonRiskScores'],
+    }),
     listB2bJobs: b.query<LeadSearchJob[], void>({
       query: () => ({ url: '/admin/lead-machine/b2b/jobs' }),
       providesTags: ['LeadMachineJobs'],
@@ -595,6 +647,9 @@ export const {
   useUpdateOutreachDraftMutation,
   useListAmazonJobsQuery,
   useStartAmazonJobMutation,
+  useStartAmazonScanMutation,
+  useGetAmazonScanQuery,
+  useGetAmazonRiskScoreQuery,
   useListB2bJobsQuery,
   useStartB2bJobMutation,
   useListFairJobsQuery,

@@ -158,6 +158,8 @@ mock.module('@/integrations/hooks', () => ({
   useGenerateOutreachDraftMutation: () => mutationTuple(),
   useListAmazonJobsQuery: () => query([sampleJob]),
   useStartAmazonJobMutation: () => mutationTuple(),
+  useStartAmazonScanMutation: () => mutationTuple(),
+  useGetAmazonRiskScoreQuery: () => query(null),
   useListB2bJobsQuery: () => query([{ ...sampleJob, channel: 'b2b_directory' }]),
   useStartB2bJobMutation: () => mutationTuple(),
   useListFairJobsQuery: () => query([{ ...sampleJob, channel: 'trade_fair' }]),
@@ -195,6 +197,24 @@ const ReportsPanel = (await import('../reports-panel')).default;
 const MarketDocumentationPage = (await import('../../docs/page')).default;
 const MarketTestCenterPage = (await import('../../test-center/page')).default;
 const MarketDeveloperNotesPage = (await import('../../developer-notes/page')).default;
+const { RiskScoreCard } = await import('../risk-score-card');
+
+const sampleRiskReport: any = {
+  keyword: 'car mats',
+  marketplace: 'com',
+  data_points: 45,
+  scanned_at: '2026-05-08',
+  composite_score: 8.5,
+  decision: 'GIRME',
+  summary: 'Yüksek riskli kategori',
+  scores: {
+    category_risk: { score: 9, confidence: 'HIGH', reason: 'Too many sellers' },
+    sku_chaos: { score: 8, confidence: 'HIGH', reason: 'High chaos' },
+    price_war_risk: { score: 7, confidence: 'MEDIUM', reason: 'Some war' },
+    brand_reliability: { score: 5, confidence: 'HIGH', reason: 'Average' },
+    operational_risk: { score: 4, confidence: 'MEDIUM', reason: 'Low' }
+  }
+};
 
 function render(component: React.ReactElement) {
   return renderToStaticMarkup(component);
@@ -245,6 +265,7 @@ describe('market admin component smoke tests', () => {
     expect(render(<AmazonLeadSearchPanel />)).toContain('car mats');
     expect(render(<B2bLeadSearchPanel />)).toContain('B2B Job Listesi');
     expect(render(<FairLeadSearchPanel />)).toContain('Fuar Job Listesi');
+    expect(render(<RiskScoreCard report={sampleRiskReport} />)).toContain('Yüksek riskli kategori');
   });
 
   test('icp, outreach and reports panels render primary surfaces', () => {

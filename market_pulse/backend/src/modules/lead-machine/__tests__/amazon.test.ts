@@ -16,12 +16,22 @@ mock.module('@/db/client', () => ({
 
 mock.module('@/core/env', () => ({ env }));
 
+mock.module('@/modules/lead-machine/_shared/ai.client', () => ({
+  askBestAvailable: async (_prompt: string, _model?: string) => {
+    if (!env.GROQ_API_KEY && !env.OPENAI_API_KEY) throw new Error('NO_AI_KEY_CONFIGURED');
+    return '';
+  },
+  askGroq: async () => { throw new Error('GROQ_API_KEY_NOT_CONFIGURED'); },
+  askOpenAI: async () => { throw new Error('OPENAI_API_KEY_NOT_CONFIGURED'); },
+}));
+
 const fetchMock = mock(() => Promise.resolve(new Response('{}')));
 globalThis.fetch = fetchMock as unknown as typeof fetch;
 
 const scraper = await import('../amazon/amazon.scraper');
 const { extractUniqueSellers } = await import('../amazon/seller.extractor');
 const { scoreAmazonSeller } = await import('../amazon/amazon.scorer');
+const { scoreAmazonSellerLegacy } = await import('../amazon/legacy.scorer');
 const { analyzeProductReviews } = await import('../amazon/review.analyzer');
 const { runAmazonJob } = await import('../amazon/amazon.job');
 
@@ -168,9 +178,11 @@ describe('amazon lead machine job runner', () => {
     await runAmazonJob('job-1');
 
     expect(dbMock.poolExecutions[1]?.values).toEqual(['running', null, 'job-1']);
+    expect(dbMock.poolExecutions.some((entry) => entry.sql.includes('INSERT INTO amazon_risk_scores'))).toBe(true);
     expect(dbMock.poolExecutions.some((entry) => entry.sql.startsWith('INSERT INTO lead_candidates'))).toBe(true);
     const insert = dbMock.poolExecutions.find((entry) => entry.sql.startsWith('INSERT INTO lead_candidates'));
-    expect(insert?.values).toEqual(expect.arrayContaining(['job-1', 'amazon', 'Seller A']));
+    expect(insert?.values).toEqual(expect.arrayContaining(['job-1', 'amazon']));
+    expect(insert?.values).toEqual(expect.arrayContaining(['car mats — Amazon Skor Raporu']));
     expect(dbMock.poolExecutions.at(-1)?.values).toEqual(['done', 1, 'job-1']);
   });
 
@@ -223,6 +235,17 @@ describe('amazon lead machine seller scoring', () => {
     );
 
     expect(score).toBe(10);
+  });
+
+  test('keeps deprecated scorer compatible with legacy scorer output', () => {
+    const seller = {
+      seller_name: 'Seller A',
+      seller_url: 'https://seller/a',
+      products: [{ product_title: 'A', review_count: 120, rating: 4.2, price: 29.9 }],
+    };
+    const reviewAnalysis = { problem_score: 6 };
+
+    expect(scoreAmazonSeller(seller, reviewAnalysis)).toBe(scoreAmazonSellerLegacy(seller, reviewAnalysis));
   });
 });
 

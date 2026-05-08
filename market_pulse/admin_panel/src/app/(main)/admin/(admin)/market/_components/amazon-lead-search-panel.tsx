@@ -19,11 +19,13 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
+  useGetAmazonRiskScoreQuery,
   useListAmazonJobsQuery,
-  useStartAmazonJobMutation,
+  useStartAmazonScanMutation,
   type LeadSearchJob,
 } from '@/integrations/hooks';
 import { cn } from '@/lib/utils';
+import { RiskScoreCard } from './risk-score-card';
 
 const MARKETPLACES = [
   { value: 'com', label: 'US', domain: 'amazon.com' },
@@ -68,7 +70,11 @@ export default function AmazonLeadSearchPanel() {
   const [priceMax, setPriceMax] = React.useState(100);
 
   const { data: jobs, isLoading, isFetching, refetch } = useListAmazonJobsQuery();
-  const [startAmazonJob, startState] = useStartAmazonJobMutation();
+  const { data: riskReport, isFetching: isRiskFetching, refetch: refetchRisk } = useGetAmazonRiskScoreQuery({
+    keyword: keyword.trim() || 'car floor mats',
+    marketplace,
+  });
+  const [startAmazonScan, startState] = useStartAmazonScanMutation();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -77,7 +83,7 @@ export default function AmazonLeadSearchPanel() {
       return;
     }
     try {
-      await startAmazonJob({
+      await startAmazonScan({
         keyword: keyword.trim(),
         marketplace,
         review_min: reviewMin,
@@ -87,9 +93,9 @@ export default function AmazonLeadSearchPanel() {
         price_min: priceMin,
         price_max: priceMax,
       }).unwrap();
-      toast.success('Amazon araması başladı');
+      toast.success('Amazon risk taraması başladı');
     } catch {
-      toast.error('Amazon araması başlatılamadı');
+      toast.error('Amazon risk taraması başlatılamadı');
     }
   };
 
@@ -103,7 +109,7 @@ export default function AmazonLeadSearchPanel() {
           </div>
           <h1 className="font-serif text-4xl text-gm-text">Amazon Arama</h1>
           <p className="max-w-xl font-serif text-sm italic text-gm-muted">
-            Amazon ürünlerinden problem yaşayan satıcıları aday lead olarak çıkarın.
+            Amazon ürün havuzunu 5 boyutlu ticari risk raporuna dönüştürün.
           </p>
         </div>
 
@@ -186,12 +192,37 @@ export default function AmazonLeadSearchPanel() {
                 className="h-12 rounded-full bg-gm-gold px-8 text-[10px] font-bold uppercase tracking-widest text-black hover:bg-gm-gold-light"
               >
                 <Play className="mr-2 size-4" />
-                Tara
+                Risk Taraması Başlat
               </Button>
             </div>
           </CardContent>
         </Card>
       </form>
+
+      {riskReport ? (
+        <RiskScoreCard report={riskReport} />
+      ) : (
+        <Card className="rounded-[28px] border-gm-border-soft bg-gm-bg-deep/50 shadow-2xl">
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 p-6">
+            <div>
+              <h2 className="font-serif text-2xl text-gm-text">5 Boyutlu Risk Raporu</h2>
+              <p className="mt-2 text-sm leading-6 text-gm-muted">
+                Bu keyword için henüz kayıtlı risk raporu yok. Tarama tamamlandıktan sonra composite skor ve boyut açıklamaları burada görünür.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchRisk()}
+              disabled={isRiskFetching}
+              className="rounded-full border-gm-border-soft bg-gm-surface/20 text-gm-text hover:bg-gm-surface"
+            >
+              <RefreshCw className={cn('mr-2 size-4', isRiskFetching && 'animate-spin')} />
+              Raporu Kontrol Et
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="rounded-[28px] border-gm-border-soft bg-gm-bg-deep/50 shadow-2xl">
         <CardContent className="space-y-4 p-6">
