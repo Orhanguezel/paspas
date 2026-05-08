@@ -110,12 +110,12 @@ Tüm ajanlara ortak kural: bu dosya tek gerçek kaynaktır. Tamamlanan madde hem
 
 ---
 
-## BLOKE MADDELER (Müşteri Bekleniyor)
+## BLOKE MADDELER
 
 | Madde | Beklenen | Durum |
 |-------|----------|-------|
-| 5 keyword gerçek çalışma sonuçları | Keepa API anahtarı | Müşteri henüz iletmedi |
-| Keepa entegrasyonu tam aktif | Keepa API anahtarı | Müşteri henüz iletmedi |
+| 5 keyword gerçek çalışma sonuçları | Keepa API anahtarı | ✅ Keepa key alındı, test başlatıldı (2026-05-08) |
+| Keepa entegrasyonu tam aktif | Keepa API anahtarı | ✅ `.env`'e eklendi, DB-first yapıya entegre edildi |
 
 ---
 
@@ -135,7 +135,7 @@ Tüm ajanlara ortak kural: bu dosya tek gerçek kaynaktır. Tamamlanan madde hem
 - [x] [Antigravity] amazon-lead-search-panel güncelleme
 - [x] [Claude Code] Standalone sınır haritası → Codex'e handover (`docs/standalone-scope.md`)
 - [x] [Claude Code] Final mimari review — ERP bağımlılıkları koparıldı, standalone 24 test pass
-- [ ] 5 keyword gerçek çalışma sonuçları *(Keepa key bekleniyor)*
+- [ ] 5 keyword gerçek çalışma sonuçları *(test başlatıldı 2026-05-08, VPS 021 seed + deploy sonrası tamamlanacak)*
 - [x] Tüm haklar alıcıya devredilir — standalone pakete `RIGHTS_TRANSFER.md` eklendi
 
 ---
