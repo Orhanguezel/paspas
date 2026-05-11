@@ -3,7 +3,7 @@ import { pool } from '@/db/client';
 import { insertCandidate, updateSearchJob, getSearchJob } from '../_shared/db';
 import { analyzeProductReviews } from './review.analyzer';
 import { scrapeAmazonProducts, type AmazonFilters, type AmazonProduct } from './amazon.scraper';
-import { filterEligibleProducts } from './signal.validator';
+import { filterEligibleProducts, deduplicateByAsin } from './signal.validator';
 import { scoreAmazonCategory } from './amazon.scoring-engine';
 import { calculateCategoryStats, upsertAmazonCategoryStats } from './category.normalizer';
 import { shouldFetchKeepa, enqueueKeepaAsins, processKeepaQueue, isKeepaConfigured } from './keepa.client';
@@ -116,7 +116,8 @@ export async function runAmazonJob(jobId: string) {
 
   try {
     const allProducts = await scrapeAmazonProducts(keyword, marketplace, params);
-    const eligible = filterEligibleProducts(allProducts);
+    const deduped = deduplicateByAsin(allProducts);
+    const eligible = filterEligibleProducts(deduped);
     await saveAmazonProducts(jobId, eligible);
     const categoryStats = calculateCategoryStats(keyword, marketplace, eligible);
     await upsertAmazonCategoryStats(categoryStats);

@@ -7,9 +7,9 @@ export function scorePriceWar(input: AmazonScoreInput): DimensionScore {
     return { score: 0, confidence: 'INSUFFICIENT_DATA', reason: 'Fiyat verisi bulunamadı; price war skoru dışarıda bırakıldı.' };
   }
 
-  const confidence = calculateConfidence(input.products.length);
+  const confidence = calculateConfidence(pricedProducts.length);
   if (confidence === 'INSUFFICIENT_DATA') {
-    return { score: 0, confidence, reason: 'Price war riski için en az 10 veri noktası gerekir.' };
+    return { score: 0, confidence, reason: 'Price war riski için yeterli fiyatlı ürün bulunamadı.' };
   }
 
   const pageOne = input.pageOneAveragePrice ?? input.stats.priceMedian;

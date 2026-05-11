@@ -52,6 +52,14 @@ export const FILTER_CONFIG = {
   MIN_REVIEW_COUNT: 10,    // Bu değerin altındaki ürünler analize dahil edilmez
 } as const;
 
+// ─── Outlier Temizleme ───────────────────────────────────────────────────────
+// Tukey IQR yöntemi — fiyat sigma/median hesabından aşırı uç değerleri çıkarır.
+
+export const OUTLIER_CONFIG = {
+  IQR_MULTIPLIER: 1.5,  // Standart Tukey çarpanı; agresif kategoriler için 2.0
+  MIN_SAMPLE: 4,         // Bu kadar değerden az varsa outlier kaldırma yapma
+} as const;
+
 // ─── Kategori Risk Eşikleri ─────────────────────────────────────────────────
 
 export const CATEGORY_RISK_CONFIG = {

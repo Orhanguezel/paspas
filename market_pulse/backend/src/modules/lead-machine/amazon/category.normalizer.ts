@@ -2,6 +2,7 @@ import type { AmazonProduct } from './amazon.scraper';
 import type { AmazonCategoryStats, NormalizedProduct } from './amazon.types';
 import { randomUUID } from 'node:crypto';
 import { pool } from '@/db/client';
+import { OUTLIER_CONFIG } from './scoring.config';
 
 function sortedValues(products: AmazonProduct[], key: 'price' | 'review_count' | 'rating'): number[] {
   return products
@@ -22,6 +23,17 @@ function calcSigma(values: number[]): number {
   return Math.sqrt(values.reduce((acc, v) => acc + (v - mean) ** 2, 0) / values.length);
 }
 
+// Tukey IQR yöntemi — sigma/median hesabından aşırı uç fiyatları temizler
+function removeOutliers(sorted: number[]): number[] {
+  if (sorted.length < OUTLIER_CONFIG.MIN_SAMPLE) return sorted;
+  const q1 = sorted[Math.floor(sorted.length * 0.25)];
+  const q3 = sorted[Math.floor(sorted.length * 0.75)];
+  const iqr = q3 - q1;
+  const lower = q1 - OUTLIER_CONFIG.IQR_MULTIPLIER * iqr;
+  const upper = q3 + OUTLIER_CONFIG.IQR_MULTIPLIER * iqr;
+  return sorted.filter(v => v >= lower && v <= upper);
+}
+
 // Değerin sıralı dizideki yüzdelik dilimini 0-10 skoruna çevirir
 function percentileScore(value: number, sorted: number[]): number {
   if (sorted.length === 0) return 5;
@@ -35,6 +47,7 @@ export function buildCategoryStats(
   marketplace: string,
 ): AmazonCategoryStats {
   const prices = sortedValues(products, 'price');
+  const cleanPrices = removeOutliers(prices);
   const sellers = new Set(products.map(p => p.seller_name).filter(Boolean));
 
   const sellerCounts = new Map<string, number>();
@@ -49,8 +62,8 @@ export function buildCategoryStats(
     productCount: products.length,
     priceMin: prices[0] ?? 0,
     priceMax: prices[prices.length - 1] ?? 0,
-    priceMedian: calcMedian(prices),
-    priceSigma: calcSigma(prices),
+    priceMedian: calcMedian(cleanPrices),
+    priceSigma: calcSigma(cleanPrices),
     sellerCount: sellers.size,
     dominantBrandRatio: products.length > 0 ? maxCount / products.length : 0,
   };
