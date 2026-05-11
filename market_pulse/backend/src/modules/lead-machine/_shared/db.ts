@@ -37,6 +37,7 @@ export interface LeadCandidate {
   lead_score: string | number | null;
   decision: string | null;
   reject_reason: string | null;
+  reject_tags: string[] | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
   created_at: string;
@@ -166,21 +167,32 @@ export async function listCandidates(filters: { channel?: string; status?: strin
   );
   const [countRows] = await pool.execute(`SELECT COUNT(*) AS count FROM lead_candidates ${whereSql}`, values as never[]);
   return {
-    rows: (rows as LeadCandidate[]).map(row => parseJsonField(row, 'raw_data')),
+    rows: (rows as LeadCandidate[]).map(row => parseJsonField(parseJsonField(row, 'raw_data'), 'reject_tags')),
     count: Number((countRows as Array<{ count: number }>)[0]?.count ?? 0),
   };
 }
 
 export async function getCandidate(id: string) {
   const [rows] = await pool.execute('SELECT * FROM lead_candidates WHERE id = ? LIMIT 1', [id]);
-  const row = (rows as LeadCandidate[])[0];
-  return row ? parseJsonField(row, 'raw_data') : null;
+  let row = (rows as LeadCandidate[])[0];
+  if (!row) return null;
+  row = parseJsonField(row, 'raw_data');
+  row = parseJsonField(row, 'reject_tags');
+  return row;
 }
 
-export async function updateCandidateReview(id: string, status: CandidateStatus, rejectReason?: string | null, reviewedBy?: string | null) {
+export async function updateCandidateReview(
+  id: string,
+  status: CandidateStatus,
+  rejectReason?: string | null,
+  reviewedBy?: string | null,
+  rejectTags?: string[] | null,
+) {
+  const tagsJson = rejectTags?.length ? JSON.stringify(rejectTags) : null;
+  const reason = rejectReason ?? (rejectTags?.length ? rejectTags.join(', ') : null);
   await pool.execute(
-    'UPDATE lead_candidates SET status = ?, reject_reason = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [status, rejectReason ?? null, reviewedBy ?? null, id],
+    'UPDATE lead_candidates SET status = ?, reject_reason = ?, reject_tags = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [status, reason, tagsJson, reviewedBy ?? null, id],
   );
   return getCandidate(id);
 }

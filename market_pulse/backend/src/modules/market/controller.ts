@@ -153,10 +153,60 @@ export const updateLead: RouteHandler<{ Params: { id: string }; Body: unknown }>
   if (!parsed.success)
     return reply.code(400).send({ error: { message: 'invalid_body', issues: parsed.error.flatten() } });
 
-  await db.update(marketLeads).set(parsed.data).where(eq(marketLeads.id, req.params.id));
+  const payload: typeof parsed.data & { converted_at?: Date | null } = { ...parsed.data };
+  if (parsed.data.status === 'converted') {
+    payload.converted_at = new Date();
+  }
+  await db.update(marketLeads).set(payload).where(eq(marketLeads.id, req.params.id));
   const rows = await db.select().from(marketLeads).where(eq(marketLeads.id, req.params.id)).limit(1);
   if (!rows[0]) return reply.code(404).send({ error: { message: 'not_found' } });
   return leadToDto(rows[0]);
+};
+
+export const getConversionStats: RouteHandler = async () => {
+  const [stageCounts, recentConversions, bySource] = await Promise.all([
+    db.select({
+      status: marketLeads.status,
+      count:  sql<number>`count(*)`,
+    }).from(marketLeads).groupBy(marketLeads.status),
+
+    db.select({
+      id:           marketLeads.id,
+      name:         marketLeads.name,
+      source:       marketLeads.source,
+      score:        marketLeads.score,
+      converted_at: marketLeads.converted_at,
+    }).from(marketLeads)
+      .where(eq(marketLeads.status, 'converted'))
+      .orderBy(desc(marketLeads.converted_at))
+      .limit(5),
+
+    db.select({
+      source: marketLeads.source,
+      count:  sql<number>`count(*)`,
+    }).from(marketLeads)
+      .where(eq(marketLeads.status, 'converted'))
+      .groupBy(marketLeads.source)
+      .orderBy(desc(sql<number>`count(*)`)),
+  ]);
+
+  return {
+    stage_counts: stageCounts.map((r) => ({
+      status: r.status,
+      count:  Number(r.count),
+    })),
+    recent_conversions: recentConversions.map((r) => ({
+      id:           r.id,
+      name:         r.name,
+      source:       r.source,
+      score:        Number(r.score ?? 0),
+      converted_at: r.converted_at,
+    })),
+    by_source: bySource.map((r) => ({
+      source: r.source,
+      count:  Number(r.count),
+    })),
+  };
 };
 
 export const deleteLead: RouteHandler<{ Params: { id: string } }> = async (req, reply) => {

@@ -121,9 +121,11 @@ export async function getLatestAmazonRiskReport(keyword: string, marketplace = '
 export async function getAmazonScanProducts(jobId: string) {
   const [rows] = await pool.execute(
     `SELECT ap.title, ap.price, ap.rating, ap.review_count, ap.seller_name, ap.product_url, ap.asin,
-            asj.marketplace
+            asj.marketplace,
+            CASE WHEN aks.asin IS NOT NULL THEN 1 ELSE 0 END AS has_keepa
      FROM amazon_products ap
      JOIN amazon_scan_jobs asj ON asj.id = ap.job_id
+     LEFT JOIN amazon_keepa_snapshots aks ON aks.asin = ap.asin
      WHERE ap.job_id = ?
      ORDER BY ap.review_count DESC`,
     [jobId],
@@ -140,6 +142,7 @@ export async function getAmazonScanProducts(jobId: string) {
       seller_name: p.seller_name ? String(p.seller_name) : null,
       product_url,
       asin: p.asin ? String(p.asin) : null,
+      has_keepa: Number(p.has_keepa) === 1,
     };
   });
 }

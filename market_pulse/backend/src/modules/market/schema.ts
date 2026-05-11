@@ -47,6 +47,7 @@ export const marketLeads = mysqlTable('market_leads', {
   district:     varchar('district', { length: 100 }),
   notes:        text('notes'),
   assigned_to:  varchar('assigned_to', { length: 255 }),
+  converted_at: datetime('converted_at'),
   created_at:   datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updated_at:   datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
 });
@@ -139,6 +140,7 @@ export function leadToDto(r: LeadRow) {
     district:    r.district ?? null,
     notes:       r.notes ?? null,
     assignedTo:  r.assigned_to ?? null,
+    convertedAt: r.converted_at ?? null,
     createdAt:   r.created_at,
     updatedAt:   r.updated_at,
   };

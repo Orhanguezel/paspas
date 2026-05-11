@@ -28,6 +28,13 @@ import {
 import { enrichCandidate, listCandidateEnrichment } from './enrichment/enrichment.service';
 import { generateOutreachEmail, listOutreachDrafts, updateOutreachDraft } from './outreach/outreach.service';
 import { scanCompetitorPage } from './competitor/competitor.scraper';
+import { listScanRules, createScanRule, deleteScanRule, getRejectionStats, getApprovedStats } from './scan-rules.service';
+import {
+  listSavedSearches,
+  createSavedSearch,
+  deleteSavedSearch,
+  updateSavedSearch,
+} from './amazon/saved-searches.service';
 import { verifyScraperWebhook } from './_shared/scraper.client';
 
 function asRecord(value: unknown) {
@@ -69,7 +76,14 @@ export const reviewCandidate: RouteHandler<{ Params: { id: string }; Body: unkno
     : action === 'favorite' ? 'favorite'
     : null;
   if (!status) return reply.code(400).send({ error: { message: 'invalid_action' } });
-  const candidate = await updateCandidateReview(req.params.id, status, typeof body.reject_reason === 'string' ? body.reject_reason : null);
+  const rejectTags = Array.isArray(body.reject_tags) ? (body.reject_tags as unknown[]).filter((t): t is string => typeof t === 'string') : null;
+  const candidate = await updateCandidateReview(
+    req.params.id,
+    status,
+    typeof body.reject_reason === 'string' ? body.reject_reason : null,
+    null,
+    rejectTags?.length ? rejectTags : null,
+  );
   if (!candidate) return reply.code(404).send({ error: { message: 'not_found' } });
   return candidate;
 };
@@ -250,9 +264,21 @@ export const listDrafts: RouteHandler<{ Querystring: unknown }> = async (req) =>
   return listOutreachDrafts(typeof q.candidate_id === 'string' ? q.candidate_id : undefined, typeof q.market_lead_id === 'string' ? q.market_lead_id : undefined);
 };
 export const updateDraft: RouteHandler<{ Params: { id: string }; Body: unknown }> = async (req, reply) => {
-  const draft = await updateOutreachDraft(req.params.id, asRecord(req.body) as { subject?: string; body?: string; status?: string });
+  const body = asRecord(req.body);
+  const draft = await updateOutreachDraft(req.params.id, {
+    subject: typeof body.subject === 'string' ? body.subject : undefined,
+    body: typeof body.body === 'string' ? body.body : undefined,
+    status: typeof body.status === 'string' ? body.status : undefined,
+    reply_status: 'reply_status' in body ? (body.reply_status === null ? null : String(body.reply_status)) : undefined,
+  });
   if (!draft) return reply.code(404).send({ error: { message: 'not_found' } });
   return draft;
+};
+
+export const getLeadCandidate: RouteHandler<{ Params: { id: string } }> = async (req, reply) => {
+  const candidate = await getCandidate(req.params.id);
+  if (!candidate) return reply.code(404).send({ error: { message: 'not_found' } });
+  return candidate;
 };
 
 export const competitorScan: RouteHandler<{ Body: unknown }> = async (req, reply) => {
@@ -269,6 +295,24 @@ export const getAmazonRiskScores: RouteHandler<{ Params: { keyword: string }; Qu
   const report = await getLatestAmazonRiskReport(keyword, marketplace);
   if (!report) return reply.code(404).send({ error: { message: 'no_score_found' } });
   return report;
+};
+
+export const getBulkAmazonRiskScores: RouteHandler<{ Body: unknown }> = async (req) => {
+  const body = asRecord(req.body);
+  const rawKeywords = Array.isArray(body.keywords) ? body.keywords : [];
+  const keywords = rawKeywords
+    .filter((k): k is string => typeof k === 'string' && k.trim().length > 0)
+    .slice(0, 15)
+    .map((k) => k.trim());
+  const marketplace = typeof body.marketplace === 'string' ? body.marketplace : 'com';
+
+  const results = await Promise.all(
+    keywords.map(async (kw) => {
+      const report = await getLatestAmazonRiskReport(kw, marketplace);
+      return { keyword: kw, marketplace, report: report ?? null };
+    }),
+  );
+  return results;
 };
 
 export const getAmazonScanProductsList: RouteHandler<{ Params: { jobId: string } }> = async (req, reply) => {
@@ -315,6 +359,35 @@ export const getKeepaUsage: RouteHandler = async () => {
   return { today, history, queue };
 };
 
+export const feedbackRejectionStats: RouteHandler = async () => getRejectionStats();
+export const feedbackApprovedStats: RouteHandler = async () => getApprovedStats();
+
+export const listRules: RouteHandler<{ Querystring: unknown }> = async (req) => {
+  const q = asRecord(req.query);
+  const icpId = typeof q.icp_id === 'string' ? q.icp_id : undefined;
+  return listScanRules(icpId);
+};
+
+export const createRule: RouteHandler<{ Body: unknown }> = async (req, reply) => {
+  const body = asRecord(req.body);
+  if (typeof body.value !== 'string' || !body.value.trim()) {
+    return reply.code(400).send({ error: { message: 'value_required' } });
+  }
+  const rule = await createScanRule({
+    icp_id: typeof body.icp_id === 'string' ? body.icp_id : null,
+    channel: typeof body.channel === 'string' ? body.channel : null,
+    rule_type: typeof body.rule_type === 'string' ? body.rule_type : 'exclude_reject_tag',
+    value: body.value.trim(),
+    label: typeof body.label === 'string' ? body.label : null,
+  });
+  return reply.code(201).send(rule);
+};
+
+export const deleteRule: RouteHandler<{ Params: { id: string } }> = async (req, reply) => {
+  await deleteScanRule(req.params.id);
+  return reply.code(204).send();
+};
+
 export const rescoreAmazonJob: RouteHandler<{ Params: { jobId: string }; Body: unknown }> = async (req, reply) => {
   const body = asRecord(req.body);
   const exclude = asRecord(body.exclude);
@@ -329,4 +402,56 @@ export const rescoreAmazonJob: RouteHandler<{ Params: { jobId: string }; Body: u
 
   if (!result) return reply.code(404).send({ error: { message: 'job_not_found' } });
   return result;
+};
+
+// ─── Saved Searches ──────────────────────────────────────────────────────────
+
+export const listSavedSearchesHandler: RouteHandler = async () => listSavedSearches();
+
+export const createSavedSearchHandler: RouteHandler<{ Body: unknown }> = async (req, reply) => {
+  const body = asRecord(req.body);
+  if (typeof body.keyword !== 'string' || !body.keyword.trim())
+    return reply.code(400).send({ error: { message: 'keyword_required' } });
+  const label = typeof body.label === 'string' && body.label.trim()
+    ? body.label.trim()
+    : body.keyword as string;
+  const result = await createSavedSearch({
+    label,
+    keyword:          (body.keyword as string).trim(),
+    marketplace:      typeof body.marketplace === 'string' ? body.marketplace : 'com',
+    watchlistEnabled: body.watchlist_enabled === true,
+  });
+  return reply.code(201).send(result);
+};
+
+export const updateSavedSearchHandler: RouteHandler<{ Params: { id: string }; Body: unknown }> = async (req, reply) => {
+  const body = asRecord(req.body);
+  await updateSavedSearch(req.params.id, {
+    watchlistEnabled: typeof body.watchlist_enabled === 'boolean' ? body.watchlist_enabled : undefined,
+  });
+  return reply.code(204).send();
+};
+
+export const deleteSavedSearchHandler: RouteHandler<{ Params: { id: string } }> = async (req, reply) => {
+  await deleteSavedSearch(req.params.id);
+  return reply.code(204).send();
+};
+
+export const runSavedSearchHandler: RouteHandler<{ Params: { id: string } }> = async (req, reply) => {
+  const [rows] = await pool.execute(
+    'SELECT * FROM amazon_saved_searches WHERE id = ?',
+    [req.params.id],
+  ) as [Array<{ keyword: string; marketplace: string }>, unknown];
+  const saved = rows[0];
+  if (!saved) return reply.code(404).send({ error: { message: 'not_found' } });
+
+  const job = await createAndRunJob('amazon', {
+    keyword:     saved.keyword,
+    marketplace: saved.marketplace,
+  });
+  await updateSavedSearch(req.params.id, {
+    lastJobId:  (job as { id: string }).id,
+    lastRunAt: new Date(),
+  });
+  return reply.code(201).send(job);
 };

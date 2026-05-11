@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 
 import { AccountSwitcher } from './_components/sidebar/account-switcher';
 import { AdminFooter } from './_components/sidebar/admin-footer';
+import { AdminSettingsDropdown } from './_components/sidebar/admin-settings-dropdown';
 import { LayoutControls } from './_components/sidebar/layout-controls';
 import { ThemeSwitcher } from './_components/sidebar/theme-switcher';
 
@@ -78,6 +79,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
                 <div className="flex items-center gap-4">
                   <LayoutControls />
                   <ThemeSwitcher />
+                  <AdminSettingsDropdown />
                   <Separator orientation="vertical" className="h-6 bg-gm-border-soft" />
                   <AccountSwitcher me={{ id: 'me', email: 'admin', role: 'admin' }} />
                 </div>

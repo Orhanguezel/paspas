@@ -38,8 +38,15 @@ export interface MarketLead {
   district:    string | null;
   notes:       string | null;
   assignedTo:  string | null;
+  convertedAt: string | null;
   createdAt:   string;
   updatedAt:   string;
+}
+
+export interface ConversionStats {
+  stage_counts: Array<{ status: string; count: number }>;
+  recent_conversions: Array<{ id: string; name: string; source: string; score: number; converted_at: string | null }>;
+  by_source: Array<{ source: string; count: number }>;
 }
 
 export interface MarketSignal {
@@ -114,6 +121,7 @@ export interface LeadCandidate {
   lead_score: number | string | null;
   decision: AmazonRiskDecision | null;
   reject_reason: string | null;
+  reject_tags: string[] | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
   created_at: string;
@@ -146,6 +154,10 @@ export interface IcpDefinition {
   max_employees?: number | null;
   exclude_countries?: string[];
   exclude_patterns?: string[];
+  /** Lead tarama kanalı: 'b2b' | 'fuar' | 'amazon' — çoklu */
+  lead_channels?: string[];
+  /** Serbest açıklama metni */
+  description?: string;
 }
 
 export interface IcpProfile {
@@ -216,6 +228,8 @@ export interface OutreachDraft {
   body: string;
   ai_model: string | null;
   status: 'draft' | 'sent' | 'archived';
+  reply_status: 'replied' | 'no_reply' | null;
+  replied_at: string | null;
   created_at: string;
 }
 
@@ -263,6 +277,24 @@ export interface AmazonProductEvidence {
   seller_name: string | null;
   product_url: string | null;
   asin: string | null;
+  has_keepa?: boolean;
+}
+
+export interface RescoreResult {
+  report: AmazonRiskReport;
+  total_before: number;
+  excluded_count: number;
+  remaining_count: number;
+}
+
+export interface ScanRule {
+  id: string;
+  icp_id: string | null;
+  channel: string | null;
+  rule_type: string;
+  value: string;
+  label: string | null;
+  created_at: string;
 }
 
 export interface AmazonScanJob {
@@ -307,6 +339,18 @@ export interface MarketDeveloperNote {
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AmazonSavedSearch {
+  id:               string;
+  label:            string;
+  keyword:          string;
+  marketplace:      string;
+  watchlistEnabled: boolean;
+  lastJobId:        string | null;
+  lastRunAt:        string | null;
+  createdAt:        string;
+  updatedAt:        string;
 }
 
 // ─── Endpoints ───────────────────────────────────────────────────────────────
@@ -369,6 +413,10 @@ export const marketAdminApi = baseApi.injectEndpoints({
     deleteMarketLead: b.mutation<void, string>({
       query: (id) => ({ url: `/admin/market/leads/${id}`, method: 'DELETE' }),
       invalidatesTags: ['MarketLeads', 'MarketStats'],
+    }),
+    getConversionStats: b.query<ConversionStats, void>({
+      query: () => ({ url: '/admin/market/leads/conversion-stats' }),
+      providesTags: ['MarketLeads'],
     }),
 
     listMarketSignals: b.query<MarketSignal[], {
@@ -552,6 +600,7 @@ export const marketAdminApi = baseApi.injectEndpoints({
       id: string;
       action: 'approve' | 'reject' | 'favorite';
       reject_reason?: string;
+      reject_tags?: string[];
     }>({
       query: ({ id, ...body }) => ({
         url: `/admin/lead-machine/candidates/${id}/review`,
@@ -572,6 +621,10 @@ export const marketAdminApi = baseApi.injectEndpoints({
       query: (id) => ({ url: `/admin/lead-machine/enrich/${id}`, method: 'POST' }),
       invalidatesTags: ['LeadEnrichment'],
     }),
+    enrichBatch: b.mutation<LeadEnrichment[], string[]>({
+      query: (ids) => ({ url: '/admin/lead-machine/enrich/batch', method: 'POST', body: { candidate_ids: ids } }),
+      invalidatesTags: ['LeadEnrichment'],
+    }),
     generateOutreachDraft: b.mutation<OutreachDraft, string>({
       query: (id) => ({ url: `/admin/lead-machine/outreach/generate/${id}`, method: 'POST' }),
       invalidatesTags: ['OutreachDrafts'],
@@ -580,7 +633,11 @@ export const marketAdminApi = baseApi.injectEndpoints({
       query: (params) => ({ url: '/admin/lead-machine/outreach/drafts', params: params ?? undefined }),
       providesTags: ['OutreachDrafts'],
     }),
-    updateOutreachDraft: b.mutation<OutreachDraft, { id: string; body: Partial<Pick<OutreachDraft, 'subject' | 'body' | 'status'>> }>({
+    getCandidateById: b.query<LeadCandidate, string>({
+      query: (id) => ({ url: `/admin/lead-machine/candidates/${id}` }),
+      providesTags: ['LeadCandidates'],
+    }),
+    updateOutreachDraft: b.mutation<OutreachDraft, { id: string; body: Partial<Pick<OutreachDraft, 'subject' | 'body' | 'status' | 'reply_status'>> }>({
       query: ({ id, body }) => ({ url: `/admin/lead-machine/outreach/drafts/${id}`, method: 'PATCH', body }),
       invalidatesTags: ['OutreachDrafts'],
     }),
@@ -610,12 +667,33 @@ export const marketAdminApi = baseApi.injectEndpoints({
     getAmazonScanProducts: b.query<{ products: AmazonProductEvidence[] }, string>({
       query: (jobId) => ({ url: `/admin/lead-machine/amazon/scan/${jobId}/products` }),
     }),
+    rescoreAmazonJob: b.mutation<RescoreResult, {
+      jobId: string;
+      exclude: { asins?: string[]; product_urls?: string[]; seller_names?: string[]; title_keywords?: string[] };
+    }>({
+      query: ({ jobId, exclude }) => ({
+        url: `/admin/lead-machine/amazon/jobs/${jobId}/rescore`,
+        method: 'POST',
+        body: { exclude },
+      }),
+      invalidatesTags: ['AmazonRiskScores'],
+    }),
     getAmazonRiskScore: b.query<AmazonRiskReport, { keyword: string; marketplace?: string }>({
       query: ({ keyword, marketplace = 'com' }) => ({
         url: `/admin/lead-machine/amazon/risk-scores/${encodeURIComponent(keyword)}`,
         params: { marketplace },
       }),
       providesTags: ['AmazonRiskScores'],
+    }),
+    getBulkAmazonRiskScores: b.mutation<
+      Array<{ keyword: string; marketplace: string; report: AmazonRiskReport | null }>,
+      { keywords: string[]; marketplace?: string }
+    >({
+      query: ({ keywords, marketplace = 'com' }) => ({
+        url: '/admin/lead-machine/amazon/risk-scores/bulk',
+        method: 'POST',
+        body: { keywords, marketplace },
+      }),
     }),
     listB2bJobs: b.query<LeadSearchJob[], void>({
       query: () => ({ url: '/admin/lead-machine/b2b/jobs' }),
@@ -649,12 +727,74 @@ export const marketAdminApi = baseApi.injectEndpoints({
       query: (id) => ({ url: `/admin/lead-machine/icp/${id}`, method: 'DELETE' }),
       invalidatesTags: ['IcpProfiles'],
     }),
+    getFeedbackRejectionStats: b.query<Array<{ tag: string; channel: string; icp_id: string | null; count: number }>, void>({
+      query: () => ({ url: '/admin/lead-machine/feedback/rejection-stats' }),
+      providesTags: ['ScanRules'],
+    }),
+    getFeedbackApprovedStats: b.query<{
+      total_approved: number;
+      total_favorite: number;
+      avg_lead_score: number | null;
+      by_channel: Array<{ channel: string; count: number }>;
+      by_country: Array<{ country: string; count: number }>;
+      top_pain_points: Array<{ pain_point: string; count: number }>;
+    }, void>({
+      query: () => ({ url: '/admin/lead-machine/feedback/approved-stats' }),
+      providesTags: ['ScanRules'],
+    }),
+    listScanRules: b.query<ScanRule[], { icp_id?: string } | void>({
+      query: (arg) => ({
+        url: '/admin/lead-machine/rules',
+        params: arg && typeof arg === 'object' && arg.icp_id ? { icp_id: arg.icp_id } : undefined,
+      }),
+      providesTags: ['ScanRules'],
+    }),
+    createScanRule: b.mutation<ScanRule, {
+      icp_id?: string | null;
+      channel?: string | null;
+      rule_type?: string;
+      value: string;
+      label?: string | null;
+    }>({
+      query: (body) => ({ url: '/admin/lead-machine/rules', method: 'POST', body }),
+      invalidatesTags: ['ScanRules'],
+    }),
+    deleteScanRule: b.mutation<void, string>({
+      query: (id) => ({ url: `/admin/lead-machine/rules/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['ScanRules'],
+    }),
     getKeepaUsage: b.query<{
       today: { budget_date: string; token_budget: number; tokens_used: number; remaining: number } | null;
       history: Array<{ budget_date: string; token_budget: number; tokens_used: number }>;
       queue: { pending: number; done_today: number; failed_total: number };
     }, void>({
       query: () => ({ url: '/admin/lead-machine/keepa/usage' }),
+    }),
+
+    listSavedSearches: b.query<AmazonSavedSearch[], void>({
+      query: () => ({ url: '/admin/lead-machine/amazon/saved-searches' }),
+      providesTags: ['SavedSearches'],
+    }),
+    createSavedSearch: b.mutation<AmazonSavedSearch, {
+      label?: string;
+      keyword: string;
+      marketplace?: string;
+      watchlist_enabled?: boolean;
+    }>({
+      query: (body) => ({ url: '/admin/lead-machine/amazon/saved-searches', method: 'POST', body }),
+      invalidatesTags: ['SavedSearches'],
+    }),
+    updateSavedSearch: b.mutation<void, { id: string; watchlist_enabled: boolean }>({
+      query: ({ id, ...body }) => ({ url: `/admin/lead-machine/amazon/saved-searches/${id}`, method: 'PATCH', body }),
+      invalidatesTags: ['SavedSearches'],
+    }),
+    deleteSavedSearch: b.mutation<void, string>({
+      query: (id) => ({ url: `/admin/lead-machine/amazon/saved-searches/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['SavedSearches'],
+    }),
+    runSavedSearch: b.mutation<{ id: string; status: string }, string>({
+      query: (id) => ({ url: `/admin/lead-machine/amazon/saved-searches/${id}/run`, method: 'POST' }),
+      invalidatesTags: ['SavedSearches', 'LeadMachineJobs'],
     }),
   }),
   overrideExisting: true,
@@ -671,6 +811,7 @@ export const {
   useCreateMarketLeadMutation,
   useUpdateMarketLeadMutation,
   useDeleteMarketLeadMutation,
+  useGetConversionStatsQuery,
   useListMarketSignalsQuery,
   useCreateMarketSignalMutation,
   useReviewMarketSignalMutation,
@@ -693,6 +834,8 @@ export const {
   useApproveToLeadMutation,
   useListCandidateEnrichmentQuery,
   useEnrichCandidateMutation,
+  useEnrichBatchMutation,
+  useGetCandidateByIdQuery,
   useGenerateOutreachDraftMutation,
   useListOutreachDraftsQuery,
   useUpdateOutreachDraftMutation,
@@ -701,6 +844,7 @@ export const {
   useStartAmazonScanMutation,
   useGetAmazonScanQuery,
   useListAmazonScanProductsQuery,
+  useRescoreAmazonJobMutation,
   useGetAmazonRiskScoreQuery,
   useListB2bJobsQuery,
   useStartB2bJobMutation,
@@ -716,6 +860,17 @@ export const {
   useScanCompetitorMutation,
   useScanAllCompetitorsMutation,
   useGetKeepaUsageQuery,
+  useListScanRulesQuery,
+  useCreateScanRuleMutation,
+  useDeleteScanRuleMutation,
+  useGetFeedbackRejectionStatsQuery,
+  useGetFeedbackApprovedStatsQuery,
+  useGetBulkAmazonRiskScoresMutation,
+  useListSavedSearchesQuery,
+  useCreateSavedSearchMutation,
+  useUpdateSavedSearchMutation,
+  useDeleteSavedSearchMutation,
+  useRunSavedSearchMutation,
 } = marketAdminApi;
 
 // Checklist uyumu için alias hook isimleri

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Check, ExternalLink, Filter, Mail, RefreshCw, Search, Star, X } from 'lucide-react';
+import { AlertTriangle, Ban, Check, ChevronDown, ChevronUp, ExternalLink, Filter, Globe, Mail, RefreshCw, Search, Sparkles, Star, Trash2, X, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
@@ -17,20 +17,35 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
+
 import {
+  useEnrichBatchMutation,
   useEnrichCandidateMutation,
   useApproveToLeadMutation,
+  useCreateScanRuleMutation,
+  useDeleteScanRuleMutation,
   useGenerateOutreachDraftMutation,
   useListCandidateEnrichmentQuery,
+  useListIcpProfilesQuery,
   useListLeadCandidatesQuery,
+  useListScanRulesQuery,
   useReviewCandidateMutation,
   type AmazonRiskDecision,
+  type IcpProfile,
   type LeadCandidate,
   type LeadCandidateChannel,
   type LeadCandidateStatus,
+  type ScanRule,
 } from '@/integrations/hooks';
 import { cn } from '@/lib/utils';
+
+const REJECT_TAGS = [
+  'Kendi üretimi var',
+  'Çok küçük',
+  'Yanlış sektör',
+  'Zaten müşterimiz',
+  'Fiyat uyumsuz',
+] as const;
 
 const CHANNEL_LABELS: Record<string, string> = {
   amazon: 'Amazon',
@@ -38,6 +53,17 @@ const CHANNEL_LABELS: Record<string, string> = {
   trade_fair: 'Fuar',
   icp_match: 'ICP',
 };
+
+const CHANNEL_BADGE_CLS: Record<string, string> = {
+  amazon: 'border-gm-gold/40 bg-gm-gold/10 text-gm-gold',
+  b2b_directory: 'border-gm-primary/40 bg-gm-primary/10 text-gm-primary-light',
+  trade_fair: 'border-purple-500/40 bg-purple-500/10 text-purple-400',
+  icp_match: 'border-gm-success/40 bg-gm-success/10 text-gm-success',
+};
+
+function channelBadgeCls(channel: string): string {
+  return CHANNEL_BADGE_CLS[channel] ?? 'border-gm-border-soft bg-gm-surface/20 text-gm-muted';
+}
 
 const STATUS_CONFIG: Record<LeadCandidateStatus, { label: string; cls: string }> = {
   pending: { label: 'Bekliyor', cls: 'border-gm-warning/30 bg-gm-warning/10 text-gm-warning' },
@@ -96,25 +122,54 @@ function rawValue(candidate: LeadCandidate, key: string) {
   return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
 }
 
+function b2bAnalysis(candidate: LeadCandidate) {
+  const data = candidate.raw_data;
+  if (!data || typeof data !== 'object') return null;
+  const analysis = (data as Record<string, unknown>).analysis;
+  if (!analysis || typeof analysis !== 'object') return null;
+  return analysis as Record<string, unknown>;
+}
+
+function b2bMatch(candidate: LeadCandidate) {
+  const data = candidate.raw_data;
+  if (!data || typeof data !== 'object') return null;
+  const match = (data as Record<string, unknown>).match;
+  if (!match || typeof match !== 'object') return null;
+  return match as { score: number; reasons: string[] };
+}
+
+function formatMatchReason(reason: string): string {
+  if (reason.startsWith('sector:')) return reason.slice(7);
+  if (reason.startsWith('firm_type:')) return reason.slice(10);
+  if (reason === 'website') return 'Web sitesi';
+  return reason;
+}
+
 function CandidateCard({
   candidate,
+  icpProfiles,
   onApprove,
   onReject,
   onFavorite,
+  onCreateRule,
   selected,
   onSelectedChange,
   isBusy,
 }: {
   candidate: LeadCandidate;
+  icpProfiles: IcpProfile[];
   onApprove: (candidate: LeadCandidate) => void;
-  onReject: (candidate: LeadCandidate, reason: string) => void;
+  onReject: (candidate: LeadCandidate, tags: string[], saveAsRule: boolean) => void;
   onFavorite: (candidate: LeadCandidate) => void;
+  onCreateRule: (candidate: LeadCandidate, tags: string[]) => void;
   selected: boolean;
   onSelectedChange: (checked: boolean) => void;
   isBusy: boolean;
 }) {
   const [rejectOpen, setRejectOpen] = React.useState(false);
-  const [reason, setReason] = React.useState('');
+  const [selectedTags, setSelectedTags] = React.useState<string[]>([]);
+  const [saveAsRule, setSaveAsRule] = React.useState(false);
+  const icpName = candidate.icp_id ? (icpProfiles.find((p) => p.id === candidate.icp_id)?.name ?? null) : null;
   const { data: enrichment } = useListCandidateEnrichmentQuery(candidate.id, { pollingInterval: 15000 });
   const [enrichCandidate, enrichState] = useEnrichCandidateMutation();
   const [generateOutreachDraft, outreachState] = useGenerateOutreachDraftMutation();
@@ -128,7 +183,13 @@ function CandidateCard({
       ? rawValue(candidate, 'problem_score') || rawValue(candidate, 'review_flags')
       : candidate.channel === 'trade_fair'
         ? rawValue(candidate, 'fair_info')
-        : rawValue(candidate, 'pain_points') || rawValue(candidate, 'match');
+        : null;
+
+  const analysis = candidate.channel === 'b2b_directory' ? b2bAnalysis(candidate) : null;
+  const match = candidate.channel === 'b2b_directory' ? b2bMatch(candidate) : null;
+  const painPoints: string[] = Array.isArray(analysis?.pain_points) ? analysis.pain_points as string[] : [];
+  const sellsChina = analysis?.sells_china === true;
+  const privateLabel = analysis?.private_label === true;
 
   return (
     <Card className="bg-gm-bg-deep/60 border-gm-border-soft rounded-[28px] overflow-hidden shadow-xl">
@@ -143,9 +204,14 @@ function CandidateCard({
             />
             <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="rounded-full border-gm-border-soft bg-gm-surface/20 text-[9px] font-bold uppercase tracking-widest text-gm-muted">
+              <Badge variant="outline" className={cn('rounded-full text-[9px] font-bold uppercase tracking-widest', channelBadgeCls(candidate.channel))}>
                 {CHANNEL_LABELS[candidate.channel] ?? candidate.channel}
               </Badge>
+              {icpName && (
+                <Badge variant="outline" className="rounded-full border-gm-border-soft bg-gm-surface/20 text-[9px] font-bold uppercase tracking-widest text-gm-muted">
+                  {icpName}
+                </Badge>
+              )}
               <Badge variant="outline" className={cn('rounded-full text-[9px] font-bold uppercase tracking-widest', status.cls)}>
                 {status.label}
               </Badge>
@@ -257,6 +323,45 @@ function CandidateCard({
           </div>
         )}
 
+        {/* B2B: ICP eşleşme skoru + sinyaller */}
+        {match && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-gm-gold/30 bg-gm-gold/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-gm-gold">
+              <Zap className="size-3" />
+              ICP {match.score}/10
+            </span>
+            {match.reasons.slice(0, 4).map((r) => (
+              <span key={r} className="rounded-full border border-gm-border-soft bg-gm-surface/20 px-2.5 py-0.5 text-[10px] font-mono text-gm-muted">
+                {formatMatchReason(r)}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* B2B: Çin/private label uyarı rozetleri */}
+        {(sellsChina || privateLabel || painPoints.length > 0) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {sellsChina && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-gm-warning/40 bg-gm-warning/10 px-2.5 py-0.5 text-[10px] font-bold text-gm-warning">
+                <Globe className="size-3" />
+                Çin'e bağımlı
+              </span>
+            )}
+            {privateLabel && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-gm-primary/40 bg-gm-primary/10 px-2.5 py-0.5 text-[10px] font-bold text-gm-primary-light">
+                <Sparkles className="size-3" />
+                Private label
+              </span>
+            )}
+            {painPoints.map((p) => (
+              <span key={p} className="inline-flex items-center gap-1 rounded-full border border-gm-error/30 bg-gm-error/5 px-2.5 py-0.5 text-[10px] font-medium text-gm-error">
+                <AlertTriangle className="size-3" />
+                {p}
+              </span>
+            ))}
+          </div>
+        )}
+
         {latestEnrichment && (
           <div className="grid gap-3 rounded-2xl border border-gm-gold/20 bg-gm-gold/5 p-4 md:grid-cols-4">
             <div>
@@ -294,19 +399,52 @@ function CandidateCard({
 
         {rejectOpen && (
           <div className="space-y-3 rounded-2xl border border-gm-error/20 bg-gm-error/5 p-4">
-            <Textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Red nedeni"
-              className="min-h-24 rounded-2xl border-gm-border-soft bg-gm-surface/30 text-gm-text placeholder:text-gm-text/30"
-            />
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gm-error/80">
+              Red nedeni seçin (en az 1)
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {REJECT_TAGS.map((tag) => {
+                const active = selectedTags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() =>
+                      setSelectedTags((prev) =>
+                        active ? prev.filter((t) => t !== tag) : [...prev, tag],
+                      )
+                    }
+                    className={cn(
+                      'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                      active
+                        ? 'border-gm-error bg-gm-error text-black'
+                        : 'border-gm-error/30 bg-transparent text-gm-error hover:bg-gm-error/10',
+                    )}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-gm-warning/20 bg-gm-warning/5 px-3 py-2 text-xs text-gm-warning hover:bg-gm-warning/10">
+              <input
+                type="checkbox"
+                checked={saveAsRule}
+                onChange={(e) => setSaveAsRule(e.target.checked)}
+                className="accent-gm-warning"
+              />
+              <Ban className="size-3" />
+              Bu profil tipini bir daha getirme
+              {icpName && <span className="text-gm-muted">({icpName})</span>}
+            </label>
             <div className="flex justify-end">
               <Button
                 size="sm"
-                disabled={isBusy || !reason.trim()}
+                disabled={isBusy || selectedTags.length === 0}
                 onClick={() => {
-                  onReject(candidate, reason.trim());
-                  setReason('');
+                  onReject(candidate, selectedTags, saveAsRule);
+                  setSelectedTags([]);
+                  setSaveAsRule(false);
                   setRejectOpen(false);
                 }}
                 className="rounded-full bg-gm-error text-black hover:bg-gm-error/80"
@@ -326,6 +464,9 @@ export default function LeadCandidatesPanel() {
   const [channel, setChannel] = React.useState<LeadCandidateChannel | 'all'>('all');
   const [status, setStatus] = React.useState<LeadCandidateStatus | 'all'>('pending');
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(() => new Set());
+  const [bulkRejectOpen, setBulkRejectOpen] = React.useState(false);
+  const [bulkTags, setBulkTags] = React.useState<string[]>([]);
+  const [rulesOpen, setRulesOpen] = React.useState(false);
 
   const { data, isLoading, isFetching, refetch } = useListLeadCandidatesQuery({
     channel,
@@ -333,8 +474,13 @@ export default function LeadCandidatesPanel() {
     limit: 100,
     page: 1,
   });
+  const { data: icpProfiles = [] } = useListIcpProfilesQuery();
+  const { data: scanRules = [], refetch: refetchRules } = useListScanRulesQuery();
   const [reviewCandidate, reviewState] = useReviewCandidateMutation();
   const [approveToLead, approveState] = useApproveToLeadMutation();
+  const [enrichBatch, enrichBatchState] = useEnrichBatchMutation();
+  const [createScanRule] = useCreateScanRuleMutation();
+  const [deleteScanRule] = useDeleteScanRuleMutation();
 
   const filtered = React.useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -352,7 +498,7 @@ export default function LeadCandidatesPanel() {
     });
   }, [data, q]);
 
-  const isBusy = reviewState.isLoading || approveState.isLoading;
+  const isBusy = reviewState.isLoading || approveState.isLoading || enrichBatchState.isLoading;
 
   React.useEffect(() => {
     setSelectedIds((current) => {
@@ -365,18 +511,55 @@ export default function LeadCandidatesPanel() {
   const handleApprove = async (candidate: LeadCandidate) => {
     try {
       await approveToLead(candidate.id).unwrap();
-      toast.success('Aday lead pipeline’a aktarıldı');
+      toast.success("Aday lead pipeline'a aktarıldı");
     } catch {
       toast.error('Aday onaylanamadı');
     }
   };
 
-  const handleReject = async (candidate: LeadCandidate, reason: string) => {
+  const handleReject = async (candidate: LeadCandidate, tags: string[], saveAsRule: boolean) => {
     try {
-      await reviewCandidate({ id: candidate.id, action: 'reject', reject_reason: reason }).unwrap();
-      toast.success('Aday reddedildi');
+      await reviewCandidate({ id: candidate.id, action: 'reject', reject_tags: tags }).unwrap();
+      if (saveAsRule && tags.length) {
+        const icpName = candidate.icp_id ? (icpProfiles.find((p) => p.id === candidate.icp_id)?.name ?? null) : null;
+        await Promise.allSettled(
+          tags.map((tag) =>
+            createScanRule({
+              icp_id: candidate.icp_id,
+              channel: candidate.channel,
+              rule_type: 'exclude_reject_tag',
+              value: tag,
+              label: icpName ? `${icpName} — ${candidate.channel}` : null,
+            }).unwrap(),
+          ),
+        );
+        toast.success('Aday reddedildi ve kural kaydedildi');
+      } else {
+        toast.success('Aday reddedildi');
+      }
     } catch {
       toast.error('Red işlemi kaydedilemedi');
+    }
+  };
+
+  const handleCreateRule = async (candidate: LeadCandidate, tags: string[]) => {
+    if (!tags.length) return;
+    const icpName = candidate.icp_id ? (icpProfiles.find((p) => p.id === candidate.icp_id)?.name ?? null) : null;
+    try {
+      await Promise.allSettled(
+        tags.map((tag) =>
+          createScanRule({
+            icp_id: candidate.icp_id,
+            channel: candidate.channel,
+            rule_type: 'exclude_reject_tag',
+            value: tag,
+            label: icpName ? `${icpName} — ${candidate.channel}` : null,
+          }).unwrap(),
+        ),
+      );
+      toast.success('Kural kaydedildi');
+    } catch {
+      toast.error('Kural kaydedilemedi');
     }
   };
 
@@ -395,9 +578,38 @@ export default function LeadCandidatesPanel() {
     try {
       await Promise.all(selected.map((candidate) => approveToLead(candidate.id).unwrap()));
       setSelectedIds(new Set());
-      toast.success(`${selected.length} aday pipeline’a aktarıldı`);
+      toast.success(`${selected.length} aday pipeline'a aktarıldı`);
     } catch {
       toast.error('Seçili adaylardan bazıları onaylanamadı');
+    }
+  };
+
+  const handleBulkEnrich = async () => {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    try {
+      await enrichBatch(ids).unwrap();
+      toast.success(`${ids.length} aday zenginleştirme kuyruğuna alındı`);
+    } catch {
+      toast.error('Toplu zenginleştirme başlatılamadı');
+    }
+  };
+
+  const handleBulkReject = async () => {
+    if (!bulkTags.length) {
+      toast.error('En az 1 red nedeni seçin');
+      return;
+    }
+    const selected = filtered.filter((c) => selectedIds.has(c.id));
+    if (!selected.length) return;
+    try {
+      await Promise.all(selected.map((c) => reviewCandidate({ id: c.id, action: 'reject', reject_tags: bulkTags }).unwrap()));
+      setSelectedIds(new Set());
+      setBulkRejectOpen(false);
+      setBulkTags([]);
+      toast.success(`${selected.length} aday reddedildi`);
+    } catch {
+      toast.error('Toplu red başarısız');
     }
   };
 
@@ -411,7 +623,7 @@ export default function LeadCandidatesPanel() {
           </div>
           <h1 className="font-serif text-4xl text-gm-text">Lead Adayları</h1>
           <p className="max-w-xl font-serif text-sm italic text-gm-muted">
-            Otomatik kanallardan gelen firmaları inceleyin, uygun olanları satış pipeline’ına aktarın.
+            Otomatik kanallardan gelen firmaları inceleyin, uygun olanları satış pipeline'ına aktarın.
           </p>
         </div>
 
@@ -491,16 +703,63 @@ export default function LeadCandidatesPanel() {
               {selectedIds.size ? `${selectedIds.size} aday seçildi` : `${filtered.length} aday listeleniyor`}
             </span>
           </div>
-          <Button
-            size="sm"
-            disabled={!selectedIds.size || isBusy}
-            onClick={handleBulkApprove}
-            className="rounded-full bg-gm-gold px-6 text-[10px] font-bold uppercase tracking-widest text-black hover:bg-gm-gold-light"
-          >
-            <Check className="mr-2 size-4" />
-            Seçilenleri Onayla
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              disabled={!selectedIds.size || isBusy}
+              onClick={handleBulkEnrich}
+              className="rounded-full bg-gm-primary/20 px-6 text-[10px] font-bold uppercase tracking-widest text-gm-primary-light hover:bg-gm-primary hover:text-black"
+            >
+              <Search className="mr-2 size-4" />
+              Toplu Zenginleştir
+            </Button>
+            <Button
+              size="sm"
+              disabled={!selectedIds.size || isBusy}
+              onClick={() => setBulkRejectOpen((v) => !v)}
+              variant="outline"
+              className="rounded-full border-gm-error/30 bg-gm-error/10 px-6 text-[10px] font-bold uppercase tracking-widest text-gm-error hover:bg-gm-error hover:text-black"
+            >
+              <X className="mr-2 size-4" />
+              Toplu Reddet
+            </Button>
+            <Button
+              size="sm"
+              disabled={!selectedIds.size || isBusy}
+              onClick={handleBulkApprove}
+              className="rounded-full bg-gm-gold px-6 text-[10px] font-bold uppercase tracking-widest text-black hover:bg-gm-gold-light"
+            >
+              <Check className="mr-2 size-4" />
+              Seçilenleri Onayla
+            </Button>
+          </div>
         </div>
+
+        {bulkRejectOpen && selectedIds.size > 0 && (
+          <div className="rounded-2xl border border-gm-error/20 bg-gm-error/5 p-4 space-y-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gm-error/80">
+              {selectedIds.size} aday için red nedeni seçin (en az 1)
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {REJECT_TAGS.map((tag) => {
+                const active = bulkTags.includes(tag);
+                return (
+                  <button key={tag} type="button"
+                    onClick={() => setBulkTags((prev) => active ? prev.filter((t) => t !== tag) : [...prev, tag])}
+                    className={cn('rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                      active ? 'border-gm-error bg-gm-error text-black' : 'border-gm-error/30 bg-transparent text-gm-error hover:bg-gm-error/10')}
+                  >{tag}</button>
+                );
+              })}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={() => { setBulkRejectOpen(false); setBulkTags([]); }}
+                className="rounded-full border-gm-border-soft text-gm-muted hover:text-gm-text">İptal</Button>
+              <Button size="sm" disabled={isBusy || bulkTags.length === 0} onClick={handleBulkReject}
+                className="rounded-full bg-gm-error text-black hover:bg-gm-error/80">Toplu Reddi Kaydet</Button>
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
@@ -516,9 +775,11 @@ export default function LeadCandidatesPanel() {
             <CandidateCard
               key={candidate.id}
               candidate={candidate}
+              icpProfiles={icpProfiles}
               onApprove={handleApprove}
               onReject={handleReject}
               onFavorite={handleFavorite}
+              onCreateRule={handleCreateRule}
               selected={selectedIds.has(candidate.id)}
               onSelectedChange={(checked) => {
                 setSelectedIds((current) => {
@@ -540,6 +801,66 @@ export default function LeadCandidatesPanel() {
           </Card>
         )}
       </div>
+
+      {/* Tarama Kuralları */}
+      <Card className="rounded-[28px] border-gm-border-soft bg-gm-bg-deep/50 shadow-2xl">
+        <CardContent className="p-6 space-y-4">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between text-left"
+            onClick={() => setRulesOpen((v) => !v)}
+          >
+            <div className="flex items-center gap-3">
+              <Ban className="size-5 text-gm-warning" />
+              <h2 className="font-serif text-xl text-gm-text">Tarama Dışlama Kuralları</h2>
+              {scanRules.length > 0 && (
+                <Badge variant="outline" className="rounded-full border-gm-warning/30 bg-gm-warning/10 text-[9px] font-bold text-gm-warning">
+                  {scanRules.length} kural
+                </Badge>
+              )}
+            </div>
+            {rulesOpen ? <ChevronUp className="size-4 text-gm-muted" /> : <ChevronDown className="size-4 text-gm-muted" />}
+          </button>
+
+          {rulesOpen && (
+            <div className="space-y-2">
+              {scanRules.length === 0 ? (
+                <p className="text-sm italic text-gm-muted">
+                  Henüz kural yok. Adayları reddederken &quot;Bu profil tipini bir daha getirme&quot; seçeneğini işaretleyerek kural ekleyebilirsiniz.
+                </p>
+              ) : (
+                scanRules.map((rule: ScanRule) => (
+                  <div key={rule.id} className="flex items-center justify-between rounded-xl border border-gm-border-soft bg-gm-surface/10 px-4 py-2">
+                    <div className="space-y-0.5">
+                      <div className="text-sm text-gm-text">{rule.value}</div>
+                      <div className="flex flex-wrap gap-2 text-[10px] text-gm-muted">
+                        {rule.channel && (
+                          <span className={cn('rounded-full px-2 py-0.5 border', channelBadgeCls(rule.channel))}>
+                            {CHANNEL_LABELS[rule.channel] ?? rule.channel}
+                          </span>
+                        )}
+                        {rule.label && <span>{rule.label}</span>}
+                        <span className="font-mono">{new Date(rule.created_at).toLocaleDateString('tr-TR')}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await deleteScanRule(rule.id).unwrap().catch(() => null);
+                        void refetchRules();
+                      }}
+                      className="ml-4 rounded-lg p-1.5 text-gm-muted hover:bg-gm-error/10 hover:text-gm-error"
+                      aria-label="Kuralı sil"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

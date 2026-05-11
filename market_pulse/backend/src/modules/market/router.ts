@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import {
   listTargets, getTarget, createTarget, updateTarget, deleteTarget,
-  listLeads, getLead, createLead, updateLead, deleteLead,
+  listLeads, getLead, createLead, updateLead, deleteLead, getConversionStats,
   listSignals, createSignal, reviewSignal, deleteSignal,
   getMarketStats,
   listPaspasCustomers, listPaspasProducts, listPaspasCustomerOrders,
@@ -23,6 +23,7 @@ export async function registerMarketAdmin(app: FastifyInstance) {
   app.delete('/market/targets/:id',     deleteTarget);
   app.post('/market/targets/:id/recalculate-churn', recalculateTargetChurn);
   app.get('/market/leads',              listLeads);
+  app.get('/market/leads/conversion-stats', getConversionStats);
   app.get('/market/leads/:id',          getLead);
   app.post('/market/leads',             createLead);
   app.patch('/market/leads/:id',        updateLead);

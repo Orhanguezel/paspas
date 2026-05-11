@@ -28,6 +28,10 @@ import {
 import type { AmazonRiskDecision } from '@/integrations/endpoints/admin/market_admin.endpoints';
 import { cn } from '@/lib/utils';
 import { RiskScoreCard } from './risk-score-card';
+import ProfitCalculator from './profit-calculator';
+import EvidenceTable from './evidence-table';
+import SavedSearchesPanel from './saved-searches-panel';
+import MultiKeywordPanel from './multi-keyword-panel';
 
 const MARKETPLACES = [
   { value: 'com', label: 'US', domain: 'amazon.com' },
@@ -140,6 +144,19 @@ export default function AmazonLeadSearchPanel() {
     () => compareRowsFromJobs(jobs, riskReport),
     [jobs, riskReport],
   );
+
+  const latestDoneJobId = React.useMemo(() => {
+    if (!jobs || !activeKeyword) return null;
+    const job = jobs.find((j) => {
+      const p = paramsOf(j);
+      return (
+        String(p.keyword ?? '').toLowerCase() === activeKeyword.toLowerCase() &&
+        String(p.marketplace ?? 'com') === marketplace &&
+        j.status === 'done'
+      );
+    });
+    return job?.id ?? null;
+  }, [jobs, activeKeyword, marketplace]);
 
   React.useEffect(() => {
     if (!jobs?.length) return;
@@ -301,7 +318,18 @@ export default function AmazonLeadSearchPanel() {
       </form>
 
       {riskReport ? (
-        <RiskScoreCard report={riskReport} />
+        <>
+          <RiskScoreCard report={riskReport} />
+          <ProfitCalculator />
+          {latestDoneJobId && (
+            <EvidenceTable
+              jobId={latestDoneJobId}
+              keyword={activeKeyword}
+              marketplace={marketplace}
+              onRescoreDone={() => { void refetchRisk(); }}
+            />
+          )}
+        </>
       ) : (
         <Card className="rounded-[28px] border-gm-border-soft bg-gm-bg-deep/50 shadow-2xl">
           <CardContent className="flex flex-wrap items-center justify-between gap-4 p-6">
@@ -324,6 +352,14 @@ export default function AmazonLeadSearchPanel() {
           </CardContent>
         </Card>
       )}
+
+      <SavedSearchesPanel
+        currentKeyword={activeKeyword}
+        currentMarketplace={marketplace}
+        onJobStarted={() => setPolling(true)}
+      />
+
+      <MultiKeywordPanel />
 
       <Card className="rounded-[28px] border-gm-border-soft bg-gm-bg-deep/50 shadow-2xl">
         <CardContent className="space-y-4 p-6">
@@ -422,7 +458,7 @@ export default function AmazonLeadSearchPanel() {
           <CardContent className="space-y-4 p-6">
             <h2 className="font-serif text-2xl text-gm-text">Keyword Karşılaştırma</h2>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[680px] text-left text-sm">
+              <table className="w-full min-w-170 text-left text-sm">
                 <thead className="text-[10px] uppercase tracking-[0.16em] text-gm-muted">
                   <tr className="border-b border-gm-border-soft">
                     <th className="py-3 pr-4 font-semibold">Keyword</th>

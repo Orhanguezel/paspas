@@ -80,8 +80,10 @@ export function AppSidebar({
     return t(key, params, fallback);
   };
 
+  const isDeveloper = hasRole(currentUser as any, 'developer') || hasRole(currentUser as any, 'super_admin');
+
   const groupsForMe: NavGroup[] = hasRole(currentUser as any, 'admin')
-    ? buildAdminSidebarItems(copy.nav, wrappedT)
+    ? buildAdminSidebarItems(copy.nav, wrappedT, isDeveloper)
     : [
         {
           id: 1,

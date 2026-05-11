@@ -118,3 +118,16 @@ CREATE TABLE IF NOT EXISTS amazon_keepa_queue (
   INDEX idx_amazon_keepa_queue_status_created_at (status, created_at),
   INDEX idx_amazon_keepa_queue_job_id (job_id)
 );
+
+CREATE TABLE IF NOT EXISTS amazon_saved_searches (
+  id CHAR(36) PRIMARY KEY,
+  label VARCHAR(255) NOT NULL,
+  keyword VARCHAR(255) NOT NULL,
+  marketplace VARCHAR(20) NOT NULL DEFAULT 'com',
+  watchlist_enabled TINYINT NOT NULL DEFAULT 0,
+  last_job_id CHAR(36) NULL,
+  last_run_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_amazon_saved_searches_keyword (keyword)
+);

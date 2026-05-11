@@ -3,6 +3,8 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 import {
+  ArrowRight,
+  Bell,
   Building2,
   Pencil,
   Plus,
@@ -63,6 +65,93 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string; dot: string }>
   converted: { label: 'Dönüştürüldü', cls: 'bg-gm-primary/10 text-gm-primary border-gm-primary/20', dot: 'bg-gm-primary' },
   archived:  { label: 'Arşivlendi', cls: 'bg-gm-muted/10 text-gm-muted border-gm-muted/20', dot: 'bg-gm-muted' },
 };
+
+const HOW_TO_STEPS = [
+  {
+    icon: Plus,
+    title: 'Firma Ekle',
+    desc: 'Rakip veya potansiyel müşteri firmasını isim, web sitesi ve kategoriyle kaydet.',
+  },
+  {
+    icon: ScanSearch,
+    title: 'Otomatik İzle',
+    desc: '"Tara" butonuyla web sitesi değişikliklerini, fiyat hamlelerini ve yeni ürün eklemelerini yakala.',
+  },
+  {
+    icon: Bell,
+    title: 'Sinyal Al',
+    desc: 'Tespit edilen her değişiklik Sinyaller modülüne düşer — önceliklendirip aksiyon alabilirsin.',
+  },
+  {
+    icon: TrendingUp,
+    title: 'Churn Risk Takibi',
+    desc: 'Paspas müşterisiyse churn risk skoru otomatik hesaplanır; kaybetmeden önce uyarı alırsın.',
+  },
+];
+
+function EmptyTargetsState({ onAdd, onImport }: { onAdd: () => void; onImport: () => void }) {
+  return (
+    <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 text-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="flex size-16 items-center justify-center rounded-full border border-gm-gold/30 bg-gm-gold/10">
+          <Building2 className="size-8 text-gm-gold/70" />
+        </div>
+        <h2 className="font-serif text-2xl text-gm-text">Henüz hedef firma eklenmedi</h2>
+        <p className="max-w-md font-serif text-sm italic text-gm-muted">
+          Bu modül rakip firmaları ve potansiyel müşterileri periyodik olarak izler;
+          web sitesi değişikliği, fiyat hamlesi veya yeni ürün tespitinde sinyal üretir.
+        </p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 text-left">
+        {HOW_TO_STEPS.map(({ icon: Icon, title, desc }) => (
+          <div key={title} className="flex gap-3 rounded-2xl border border-gm-border-soft bg-gm-bg-deep/40 p-4">
+            <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border border-gm-gold/20 bg-gm-gold/10">
+              <Icon className="size-3.5 text-gm-gold" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-gm-text">{title}</div>
+              <div className="mt-0.5 text-[10px] leading-4 text-gm-muted">{desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-2xl border border-gm-border-soft/60 bg-gm-surface/5 px-5 py-4 text-left">
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-gm-gold">Örnek Senaryo</div>
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-gm-muted">
+          <span className="rounded-full border border-gm-border-soft bg-gm-surface/20 px-2.5 py-1 font-medium text-gm-text">Plastik Ambalaj A.Ş.</span>
+          <ArrowRight className="size-3 shrink-0" />
+          <span>Rakip olarak eklendi, website kaydedildi</span>
+          <ArrowRight className="size-3 shrink-0" />
+          <span>Haftalık otomatik tarama tetiklendi</span>
+          <ArrowRight className="size-3 shrink-0" />
+          <span className="rounded-full border border-gm-warning/30 bg-gm-warning/10 px-2.5 py-1 font-medium text-gm-warning">Fiyat düşürme sinyali</span>
+          <ArrowRight className="size-3 shrink-0" />
+          <span>Sinyaller modülünde incelenip aksiyon alındı</span>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap justify-center gap-3">
+        <Button
+          onClick={onAdd}
+          className="h-11 rounded-full bg-gm-gold px-8 text-[10px] font-bold uppercase tracking-widest text-black hover:bg-gm-gold-light"
+        >
+          <Plus className="mr-2 size-4" />
+          İlk Firmayı Ekle
+        </Button>
+        <Button
+          variant="outline"
+          onClick={onImport}
+          className="h-11 rounded-full border-gm-border-soft bg-gm-surface/20 px-8 text-[10px] font-bold uppercase tracking-widest text-gm-text hover:bg-gm-surface"
+        >
+          <Upload className="mr-2 size-4" />
+          Excel&apos;den Aktar
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function churnBadge(score: number): { label: string; cls: string; dot: string } {
   if (score >= 60) return { label: 'Yüksek Risk', cls: 'bg-gm-error/10 text-gm-error border-gm-error/20', dot: 'bg-gm-error' };
@@ -142,7 +231,8 @@ export default function TargetsPanel() {
           </div>
           <h1 className="font-serif text-4xl text-gm-text">Hedef Firmalar</h1>
           <p className="text-gm-muted text-sm font-serif italic max-w-xl">
-            Sektördeki potansiyel müşterileri, rakipleri ve iş ortaklarını takip edin.
+            Rakip ve potansiyel müşterilerin periyodik izleme tahtası — web sitesi değişikliği,
+            fiyat hamlesi ve churn riskini otomatik algılar.
           </p>
         </div>
 
@@ -266,11 +356,11 @@ export default function TargetsPanel() {
                 ))
               ) : data?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-24 text-center">
-                    <div className="flex flex-col items-center gap-4 opacity-30">
-                      <Building2 className="w-16 h-16 text-gm-gold/50" />
-                      <span className="font-serif italic text-lg text-gm-muted">Henüz kayıtlı hedef firma bulunmuyor.</span>
-                    </div>
+                  <TableCell colSpan={6} className="py-10">
+                    <EmptyTargetsState
+                      onAdd={() => { setEditTarget(null); setDialogOpen(true); }}
+                      onImport={() => setImportOpen(true)}
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
