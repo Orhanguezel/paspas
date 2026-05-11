@@ -69,7 +69,9 @@ export default function FeaturesNew({
         <div className="space-y-32">
           {copy.features.map((feat, idx) => {
             const fromServer = imageUrls?.[idx]?.trim();
-            const src = fromServer || feat.imageFallback;
+            const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+            const localFallback = feat.imageFallback?.startsWith('/') ? `${basePath}${feat.imageFallback}` : feat.imageFallback;
+            const src = fromServer || localFallback;
             const isRtl = idx === 1;
 
             return (

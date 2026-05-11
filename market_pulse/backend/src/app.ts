@@ -48,7 +48,11 @@ export async function createApp() {
     cookie: { cookieName: 'access_token', signed: false },
   });
 
-  await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
+  await app.register(rateLimit, {
+    max: 600,
+    timeWindow: '1 minute',
+    keyGenerator: (req) => req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() || req.ip,
+  });
 
   await app.register(authPlugin);
   await app.register(mysqlPlugin);
