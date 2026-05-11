@@ -30,15 +30,10 @@ export function scoreAmazonCategory(input: {
     operational_risk: scoreOperationalRisk(scoreInput),
   };
   const { compositeScore, decision } = new CompositeScorer().score(scores);
-  const validated = validateSignals({
-    keyword: input.keyword,
-    scanned_at: new Date().toISOString(),
-    data_points: products.length,
-    scores,
-    composite_score: compositeScore,
-    decision,
-    summary: '',
-  }, { hasPriceData: products.some((product) => typeof product.price === 'number') });
+  const validated = validateSignals(
+    { scores, decision },
+    { hasPriceData: products.some((product) => typeof product.price === 'number') },
+  );
 
   return {
     keyword: input.keyword,
