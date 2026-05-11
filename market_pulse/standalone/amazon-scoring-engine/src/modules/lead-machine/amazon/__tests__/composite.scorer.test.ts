@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { CompositeScorer, decide } from '../composite.scorer';
+import { CompositeScorer, decide, calculateOutreachPriority } from '../composite.scorer';
 import type { AmazonRiskReport } from '../amazon.types';
 
 const scores: AmazonRiskReport['scores'] = {
@@ -22,5 +22,26 @@ describe('amazon composite scorer', () => {
     expect(decide(3)).toBe('GUVENLI');
     expect(decide(6)).toBe('DIKKATLI_OL');
     expect(decide(6.1)).toBe('GIRME');
+  });
+});
+
+describe('calculateOutreachPriority', () => {
+  test('returns 1 when composite score is null', () => {
+    expect(calculateOutreachPriority(null, 5)).toBe(1);
+  });
+
+  test('high risk + weak brand = high priority', () => {
+    // composite 8, brand 2 → 8*0.7 + (10-2)*0.3 = 5.6 + 2.4 = 8.0
+    expect(calculateOutreachPriority(8, 2)).toBe(8);
+  });
+
+  test('low risk + strong brand = low priority', () => {
+    // composite 2, brand 9 → 2*0.7 + (10-9)*0.3 = 1.4 + 0.3 = 1.7
+    expect(calculateOutreachPriority(2, 9)).toBe(1.7);
+  });
+
+  test('clamps result between 1 and 10', () => {
+    expect(calculateOutreachPriority(10, 0)).toBe(10);
+    expect(calculateOutreachPriority(0, 10)).toBe(1);
   });
 });

@@ -41,6 +41,12 @@ export type AmazonScoreInput = {
   reviewProblemFlags?: string[];
 };
 
+export type BrandContext = {
+  brand_aggregated: boolean;
+  brand_name: string | null;
+  sku_count: number | null;
+};
+
 export type AmazonRiskReport = {
   keyword: string;
   scanned_at: string;
@@ -55,4 +61,8 @@ export type AmazonRiskReport = {
   composite_score: number | null;
   decision: Decision | 'INSUFFICIENT_DATA';
   summary: string;
+  outreach_priority: number;
+  persuasion_points: string[];
+  brand_context: BrandContext;
+  enrichment: Record<string, unknown> | null;
 };

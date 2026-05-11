@@ -72,6 +72,11 @@ export const amazonRiskScores = mysqlTable('amazon_risk_scores', {
   decision: varchar('decision', { length: 30 }).notNull(),
   summary: text('summary'),
   data_points: int('data_points').notNull().default(0),
+  outreach_priority: decimal('outreach_priority', { precision: 3, scale: 1 }),
+  persuasion_points: json('persuasion_points'),
+  brand_id: varchar('brand_id', { length: 100 }),
+  brand_name: varchar('brand_name', { length: 255 }),
+  enrichment: json('enrichment'),
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

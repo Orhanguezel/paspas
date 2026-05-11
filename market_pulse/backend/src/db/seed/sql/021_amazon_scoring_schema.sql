@@ -65,6 +65,11 @@ CREATE TABLE IF NOT EXISTS amazon_risk_scores (
   decision VARCHAR(30) NOT NULL,
   summary TEXT NULL,
   data_points INT NOT NULL DEFAULT 0,
+  outreach_priority DECIMAL(3,1) NULL,
+  persuasion_points JSON NULL,
+  brand_id VARCHAR(100) NULL,
+  brand_name VARCHAR(255) NULL,
+  enrichment JSON NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_amazon_risk_scores_job_id (job_id),
   INDEX idx_amazon_risk_scores_keyword_created_at (keyword, created_at)

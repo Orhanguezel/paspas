@@ -59,6 +59,18 @@ export async function getLatestAmazonRiskReport(keyword: string, marketplace = '
     composite_score: row.composite_score === null || row.composite_score === undefined ? null : Number(row.composite_score),
     decision: row.decision,
     summary: row.summary ?? '',
+    outreach_priority: row.outreach_priority !== null && row.outreach_priority !== undefined ? Number(row.outreach_priority) : 1,
+    persuasion_points: row.persuasion_points
+      ? (typeof row.persuasion_points === 'string' ? JSON.parse(row.persuasion_points) : row.persuasion_points) as string[]
+      : [],
+    brand_context: {
+      brand_aggregated: false,
+      brand_name: (row.brand_name as string | null) ?? null,
+      sku_count: null,
+    },
+    enrichment: row.enrichment
+      ? (typeof row.enrichment === 'string' ? JSON.parse(row.enrichment) : row.enrichment) as Record<string, unknown>
+      : null,
     ...(keepaTrend.length ? { keepa_trend: keepaTrend } : {}),
   };
 }
