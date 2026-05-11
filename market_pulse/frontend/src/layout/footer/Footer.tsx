@@ -220,9 +220,6 @@ const Footer: React.FC<{ locale?: string }> = ({ locale: localeProp }) => {
             &copy; {new Date().getFullYear()} {getCopyrightHolder()}. {ui('ui_footer_rights', 'TÜM HAKLARI SAKLIDIR.')}
           </p>
           <div className="flex gap-6">
-            <Link href={localizePath(locale, '/editorial-policy')} className="hover:text-[var(--gm-gold)] transition-colors">
-              {locale === 'tr' ? 'EDİTORYAL POLİTİKA' : locale === 'de' ? 'REDAKTIONELLE RICHTLINIE' : 'EDITORIAL POLICY'}
-            </Link>
             <a href="https://guezelwebdesign.com" target="_blank" rel="noopener" className="hover:text-[var(--gm-gold)] transition-colors">
               DESIGNED BY GUEZELEWEB
             </a>

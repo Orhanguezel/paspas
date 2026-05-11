@@ -28,7 +28,8 @@ export default function PwaRegistration() {
 
     const register = async () => {
       try {
-        await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        const base = process.env.NEXT_PUBLIC_BASE_PATH || '';
+        await navigator.serviceWorker.register(`${base}/sw.js`, { scope: `${base}/` });
       } catch {
         // Silent fail: site should continue without PWA features.
       }

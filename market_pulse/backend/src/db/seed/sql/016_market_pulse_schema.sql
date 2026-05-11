@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS `market_leads` (
   `district`     varchar(100) DEFAULT NULL,
   `notes`        text         DEFAULT NULL,
   `assigned_to`  varchar(255) DEFAULT NULL,
+  `converted_at` datetime     DEFAULT NULL,
   `created_at`   datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`   datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)

@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS `lead_candidates` (
   `decision`       varchar(30)   DEFAULT NULL,
   -- Öğrenme mekanizması
   `reject_reason`  varchar(500)  DEFAULT NULL,
+  `reject_tags`    json          DEFAULT NULL,  -- ["Kendi üretimi var","Çok küçük",...]
   `reviewed_by`    char(36)      DEFAULT NULL,
   `reviewed_at`    datetime      DEFAULT NULL,
   `created_at`     datetime      NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -117,6 +118,8 @@ CREATE TABLE IF NOT EXISTS `lead_outreach_drafts` (
   `body`           text         NOT NULL,
   `ai_model`       varchar(50)  DEFAULT NULL,  -- hangi model ürettiyse
   `status`         varchar(20)  NOT NULL DEFAULT 'draft',  -- draft | sent | archived
+  `replied_at`     datetime     DEFAULT NULL,
+  `reply_status`   varchar(20)  DEFAULT NULL,              -- replied | no_reply
   `created_at`     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_outreach_candidate`   (`candidate_id`),
@@ -133,6 +136,21 @@ CREATE TABLE IF NOT EXISTS `lead_rejection_patterns` (
   `last_seen`   datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_rejection_channel_pattern` (`channel`, `pattern`(100))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Kullanıcı tanımlı tarama dışlama kuralları ("Bu profil tipini bir daha getirme")
+CREATE TABLE IF NOT EXISTS `lead_scan_rules` (
+  `id`         char(36)     NOT NULL,
+  `icp_id`     char(36)     DEFAULT NULL,  -- NULL = tüm ICP'ler
+  `channel`    varchar(30)  DEFAULT NULL,  -- NULL = tüm kanallar
+  `rule_type`  varchar(30)  NOT NULL DEFAULT 'exclude_reject_tag',
+  `value`      varchar(200) NOT NULL,      -- e.g. "Kendi üretimi var", firm type
+  `label`      varchar(300) DEFAULT NULL,  -- opsiyonel açıklama / ICP adı
+  `created_at` datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_scan_rule_icp` (`icp_id`),
+  KEY `idx_scan_rule_channel` (`channel`),
+  UNIQUE KEY `uq_scan_rule` (`icp_id`, `channel`, `value`(100))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Varsayılan ICP: Paspas için oto aksesuar distribütör profili
