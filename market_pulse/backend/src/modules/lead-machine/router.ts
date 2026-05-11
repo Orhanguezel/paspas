@@ -12,6 +12,7 @@ import {
   getAmazonRiskScores,
   getAmazonScan,
   getAmazonScanProductsList,
+  rescoreAmazonJob,
   getIcp,
   listAmazonJobs,
   listB2bJobs,
@@ -51,6 +52,7 @@ export async function registerLeadMachineAdmin(app: FastifyInstance) {
   app.get('/lead-machine/amazon/scan/:jobId', getAmazonScan);
   app.get('/lead-machine/amazon/risk-scores/:keyword', getAmazonRiskScores);
   app.get('/lead-machine/amazon/scan/:jobId/products', getAmazonScanProductsList);
+  app.post('/lead-machine/amazon/jobs/:jobId/rescore', rescoreAmazonJob);
 
   app.post('/lead-machine/b2b/jobs', startB2bJob);
   app.get('/lead-machine/b2b/jobs', listB2bJobs);

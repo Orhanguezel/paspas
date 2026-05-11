@@ -15,6 +15,7 @@ import {
 } from './_shared/db';
 import { runAmazonJob } from './amazon/amazon.job';
 import { getLatestAmazonRiskReport, getAmazonScanProducts } from './amazon/risk-report.service';
+import { rescoreForJob } from './amazon/rescore.service';
 import { runB2bJob } from './b2b/b2b.job';
 import { runFairJob } from './fair/fair.job';
 import {
@@ -274,4 +275,20 @@ export const getAmazonScanProductsList: RouteHandler<{ Params: { jobId: string }
   const products = await getAmazonScanProducts(req.params.jobId);
   if (!products.length) return reply.code(404).send({ error: { message: 'no_products_found' } });
   return { products };
+};
+
+export const rescoreAmazonJob: RouteHandler<{ Params: { jobId: string }; Body: unknown }> = async (req, reply) => {
+  const body = asRecord(req.body);
+  const exclude = asRecord(body.exclude);
+  const toStringArray = (v: unknown): string[] => Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+
+  const result = await rescoreForJob(req.params.jobId, {
+    product_urls: toStringArray(exclude.product_urls),
+    seller_names: toStringArray(exclude.seller_names),
+    title_keywords: toStringArray(exclude.title_keywords),
+    asins: toStringArray(exclude.asins),
+  });
+
+  if (!result) return reply.code(404).send({ error: { message: 'job_not_found' } });
+  return result;
 };
