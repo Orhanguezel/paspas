@@ -17,7 +17,6 @@ import {
   Flame,
   HardDrive,
   BookOpenText,
-  LayoutDashboard,
   Mail,
   MapPin,
   Radar,
@@ -103,7 +102,6 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
     id: 1,
     key: 'general',
     items: [
-      { key: 'dashboard', url: '/admin/market', icon: LayoutDashboard },
       { key: 'users', url: '/admin/users', icon: Users },
       { key: 'user_roles', url: '/admin/user-roles', icon: UserCheck },
       { key: 'profile', url: '/admin/profile', icon: Clock },
