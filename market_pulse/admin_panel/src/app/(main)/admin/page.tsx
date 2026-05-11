@@ -1,10 +1,7 @@
-// =============================================================
-// FILE: src/app/(main)/admin/page.tsx
-// FINAL — Admin Dashboard (dynamic)
-// =============================================================
+import { redirect } from 'next/navigation';
 
-import AdminDashboardClient from './_components/admin-dashboard-client';
+export const dynamic = 'force-dynamic';
 
 export default function Page() {
-  return <AdminDashboardClient />;
+  redirect('/admin/market');
 }
