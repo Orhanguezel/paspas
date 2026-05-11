@@ -24,8 +24,9 @@ async function saveRiskScore(jobId: string, report: AmazonRiskReport) {
       price_war_score, price_war_confidence, price_war_reason,
       brand_reliability_score, brand_reliability_confidence, brand_reliability_reason,
       operational_risk_score, operational_risk_confidence, operational_risk_reason,
-      composite_score, decision, summary, data_points
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      composite_score, decision, summary, data_points,
+      outreach_priority, persuasion_points, brand_id, brand_name, enrichment
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id, jobId, report.keyword,
       safeNum(report.scores.category_risk.score, 0),     report.scores.category_risk.confidence,    report.scores.category_risk.reason ?? '',
@@ -34,6 +35,11 @@ async function saveRiskScore(jobId: string, report: AmazonRiskReport) {
       safeNum(report.scores.brand_reliability.score, 0), report.scores.brand_reliability.confidence, report.scores.brand_reliability.reason ?? '',
       safeNum(report.scores.operational_risk.score, 0),  report.scores.operational_risk.confidence,  report.scores.operational_risk.reason ?? '',
       safeNum(report.composite_score), report.decision, report.summary ?? '', report.data_points,
+      safeNum(report.outreach_priority),
+      JSON.stringify(report.persuasion_points),
+      null,
+      report.brand_context.brand_name,
+      report.enrichment !== null ? JSON.stringify(report.enrichment) : null,
     ],
   );
 }

@@ -1,5 +1,6 @@
 import { calculateCategoryStats, normalizeProducts } from './category.normalizer';
-import { CompositeScorer } from './composite.scorer';
+import { CompositeScorer, calculateOutreachPriority } from './composite.scorer';
+import { generatePersuasionPoints } from './persuasion.generator';
 import { validateSignals } from './signal.validator';
 import { scoreBrandReliability } from './scorers/brand-reliability.scorer';
 import { scoreCategoryRisk } from './scorers/category-risk.scorer';
@@ -29,15 +30,10 @@ export function scoreAmazonCategory(input: {
     operational_risk: scoreOperationalRisk(scoreInput),
   };
   const { compositeScore, decision } = new CompositeScorer().score(scores);
-  const validated = validateSignals({
-    keyword: input.keyword,
-    scanned_at: new Date().toISOString(),
-    data_points: products.length,
-    scores,
-    composite_score: compositeScore,
-    decision,
-    summary: '',
-  }, { hasPriceData: products.some((product) => typeof product.price === 'number') });
+  const validated = validateSignals(
+    { scores, decision },
+    { hasPriceData: products.some((product) => typeof product.price === 'number') },
+  );
 
   return {
     keyword: input.keyword,
@@ -51,5 +47,9 @@ export function scoreAmazonCategory(input: {
       compositeScore === null ? 'Veri güveni yetersiz.' : `Composite skor ${compositeScore}.`,
       ...validated.notes,
     ].join(' '),
+    outreach_priority: calculateOutreachPriority(compositeScore, scores.brand_reliability.score),
+    persuasion_points: generatePersuasionPoints(scores),
+    brand_context: { brand_aggregated: false, brand_name: null, sku_count: null },
+    enrichment: null,
   };
 }

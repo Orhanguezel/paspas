@@ -34,3 +34,13 @@ export function decide(score: number): Decision {
   if (score <= DECISION_THRESHOLDS.DIKKATLI_OL_MAX) return 'DIKKATLI_OL';
   return 'GIRME';
 }
+
+export function calculateOutreachPriority(
+  compositeScore: number | null,
+  brandReliabilityScore: number,
+): number {
+  if (compositeScore === null) return 1;
+  const brandGap = (10 - brandReliabilityScore) * 0.3;
+  const raw = compositeScore * 0.7 + brandGap;
+  return Number(Math.min(10, Math.max(1, raw)).toFixed(1));
+}

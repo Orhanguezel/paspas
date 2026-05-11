@@ -5,7 +5,7 @@ export function filterEligibleProducts<T extends { review_count?: number }>(prod
   return products.filter((product) => (product.review_count ?? 0) >= FILTER_CONFIG.MIN_REVIEW_COUNT);
 }
 
-export function validateSignals(report: AmazonRiskReport, context: { pageCount?: number; hasPriceData?: boolean } = {}) {
+export function validateSignals(report: Pick<AmazonRiskReport, 'scores' | 'decision'>, context: { pageCount?: number; hasPriceData?: boolean } = {}) {
   const dimensionScores = Object.values(report.scores).map((item) => item.score);
   const highCount = dimensionScores.filter((score) => score >= MS.HIGH_SCORE_MIN).length;
   const lowCount = dimensionScores.filter((score) => score <= MS.LOW_SCORE_MAX).length;
