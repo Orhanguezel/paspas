@@ -277,6 +277,44 @@ export const getAmazonScanProductsList: RouteHandler<{ Params: { jobId: string }
   return { products };
 };
 
+export const getKeepaUsage: RouteHandler = async () => {
+  const [todayRows] = await pool.execute(
+    `SELECT budget_date, token_budget, tokens_used FROM amazon_keepa_daily_budget WHERE budget_date = CURDATE() LIMIT 1`,
+  );
+  const todayRow = (todayRows as Array<{ budget_date: string; token_budget: string | number; tokens_used: string | number }>)[0] ?? null;
+  const today = todayRow ? {
+    budget_date: todayRow.budget_date,
+    token_budget: Number(todayRow.token_budget),
+    tokens_used: Number(todayRow.tokens_used),
+    remaining: Math.max(0, Number(todayRow.token_budget) - Number(todayRow.tokens_used)),
+  } : null;
+
+  const [historyRows] = await pool.execute(
+    `SELECT budget_date, token_budget, tokens_used FROM amazon_keepa_daily_budget ORDER BY budget_date DESC LIMIT 7`,
+  );
+  const history = (historyRows as Array<{ budget_date: string; token_budget: string | number; tokens_used: string | number }>).map(r => ({
+    budget_date: String(r.budget_date).slice(0, 10),
+    token_budget: Number(r.token_budget),
+    tokens_used: Number(r.tokens_used),
+  }));
+
+  const [queueRows] = await pool.execute(
+    `SELECT
+       SUM(status = 'pending')                                    AS pending,
+       SUM(status = 'done' AND DATE(processed_at) = CURDATE())   AS done_today,
+       SUM(status = 'failed')                                     AS failed_total
+     FROM amazon_keepa_queue`,
+  );
+  const q = (queueRows as Array<{ pending: string | number | null; done_today: string | number | null; failed_total: string | number | null }>)[0] ?? {};
+  const queue = {
+    pending: Number(q.pending ?? 0),
+    done_today: Number(q.done_today ?? 0),
+    failed_total: Number(q.failed_total ?? 0),
+  };
+
+  return { today, history, queue };
+};
+
 export const rescoreAmazonJob: RouteHandler<{ Params: { jobId: string }; Body: unknown }> = async (req, reply) => {
   const body = asRecord(req.body);
   const exclude = asRecord(body.exclude);

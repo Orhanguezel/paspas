@@ -10,6 +10,7 @@ import {
   useListSiteSettingsAdminQuery,
   useUpdateSiteSettingAdminMutation,
 } from '@/integrations/hooks';
+import { useGetKeepaUsageQuery } from '@/integrations/endpoints/admin/market_admin.endpoints';
 
 import type { SettingValue } from '@/integrations/shared';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,86 @@ function toMap(settings?: any) {
   const map = new Map<string, any>();
   if (settings) for (const s of settings) map.set(s.key, s);
   return map;
+}
+
+function KeepaUsageWidget() {
+  const { data, isLoading, refetch } = useGetKeepaUsageQuery(undefined, { pollingInterval: 60_000 });
+
+  const today = data?.today;
+  const usedPct = today && today.token_budget > 0
+    ? Math.min(100, Math.round((today.tokens_used / today.token_budget) * 100))
+    : 0;
+  const barColor = usedPct >= 90 ? 'bg-red-500' : usedPct >= 70 ? 'bg-yellow-500' : 'bg-emerald-500';
+
+  return (
+    <div className="rounded-2xl border border-gm-border-soft bg-gm-bg-deep/60 p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-gm-muted">Günlük Token Kullanımı</span>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="text-[10px] text-gm-muted hover:text-gm-gold transition-colors"
+        >
+          ↻ Yenile
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="text-[11px] text-gm-muted animate-pulse">Yükleniyor...</div>
+      ) : !today ? (
+        <div className="text-[11px] text-gm-muted italic">Henüz Keepa sorgusu yapılmadı.</div>
+      ) : (
+        <>
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-[11px]">
+              <span className="text-gm-text font-mono">{today.tokens_used} kullanıldı</span>
+              <span className="text-gm-muted font-mono">Bütçe: {today.token_budget} &nbsp;·&nbsp; Kalan: <span className="text-gm-gold">{today.remaining}</span></span>
+            </div>
+            <div className="h-2 rounded-full bg-gm-border-soft overflow-hidden">
+              <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${usedPct}%` }} />
+            </div>
+            <div className="text-right text-[10px] text-gm-muted">{usedPct}% doldu</div>
+          </div>
+
+          <div className="flex gap-6 pt-1 border-t border-gm-border-soft/50">
+            <div className="space-y-0.5">
+              <div className="text-[10px] text-gm-muted uppercase tracking-widest">Kuyruk</div>
+              <div className="text-sm font-mono text-gm-text">{data.queue.pending} <span className="text-[10px] text-gm-muted">bekliyor</span></div>
+            </div>
+            <div className="space-y-0.5">
+              <div className="text-[10px] text-gm-muted uppercase tracking-widest">Bugün Tamamlanan</div>
+              <div className="text-sm font-mono text-emerald-400">{data.queue.done_today}</div>
+            </div>
+            <div className="space-y-0.5">
+              <div className="text-[10px] text-gm-muted uppercase tracking-widest">Başarısız</div>
+              <div className={`text-sm font-mono ${data.queue.failed_total > 0 ? 'text-red-400' : 'text-gm-muted'}`}>{data.queue.failed_total}</div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {data?.history && data.history.length > 1 && (
+        <div className="space-y-1.5 pt-2 border-t border-gm-border-soft/50">
+          <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-gm-muted">Son 7 Gün</div>
+          <div className="flex items-end gap-1 h-10">
+            {[...data.history].reverse().map((d) => {
+              const pct = d.token_budget > 0 ? Math.min(100, (d.tokens_used / d.token_budget) * 100) : 0;
+              const barH = Math.max(4, Math.round(pct * 0.4));
+              const col = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-yellow-500' : 'bg-gm-gold/60';
+              return (
+                <div key={d.budget_date} className="flex-1 flex flex-col items-center gap-0.5 group relative">
+                  <div className={`w-full rounded-sm ${col} transition-all`} style={{ height: `${barH}px` }} />
+                  <div className="absolute -top-7 left-1/2 -translate-x-1/2 hidden group-hover:block bg-gm-surface text-[9px] text-gm-text px-1.5 py-0.5 rounded whitespace-nowrap border border-gm-border-soft z-10">
+                    {d.budget_date.slice(5)}: {d.tokens_used}/{d.token_budget}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export const ApiSettingsTab: React.FC<ApiSettingsTabProps> = ({ locale }) => {
@@ -182,6 +263,7 @@ export const ApiSettingsTab: React.FC<ApiSettingsTabProps> = ({ locale }) => {
               />
             </div>
           </div>
+          <KeepaUsageWidget />
         </div>
 
         {/* Oxylabs */}

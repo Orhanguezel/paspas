@@ -649,6 +649,13 @@ export const marketAdminApi = baseApi.injectEndpoints({
       query: (id) => ({ url: `/admin/lead-machine/icp/${id}`, method: 'DELETE' }),
       invalidatesTags: ['IcpProfiles'],
     }),
+    getKeepaUsage: b.query<{
+      today: { budget_date: string; token_budget: number; tokens_used: number; remaining: number } | null;
+      history: Array<{ budget_date: string; token_budget: number; tokens_used: number }>;
+      queue: { pending: number; done_today: number; failed_total: number };
+    }, void>({
+      query: () => ({ url: '/admin/lead-machine/keepa/usage' }),
+    }),
   }),
   overrideExisting: true,
 });
@@ -708,6 +715,7 @@ export const {
   useLazyDownloadImportTemplateQuery,
   useScanCompetitorMutation,
   useScanAllCompetitorsMutation,
+  useGetKeepaUsageQuery,
 } = marketAdminApi;
 
 // Checklist uyumu için alias hook isimleri
