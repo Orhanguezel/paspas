@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import { DeveloperNotesPanel } from '../DeveloperNotesPanel';
 import { DocumentationPanel } from '../DocumentationPanel';
+import { DeveloperNotesPanel } from '../DeveloperNotesPanel';
 import { KeywordsPanel } from '../KeywordsPanel';
 import { ProductsPanel } from '../ProductsPanel';
 import { ScansPanel } from '../ScansPanel';
