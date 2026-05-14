@@ -28,8 +28,12 @@ function percent(value?: number | null) {
   return `${Math.round(value * 100)}%`;
 }
 
-function isStaleScan(scan?: { data_quality?: { scan_age_days?: number | null } | null } | null) {
+export function isStaleScan(scan?: { data_quality?: { scan_age_days?: number | null } | null } | null) {
   return Number(scan?.data_quality?.scan_age_days ?? 0) >= 7;
+}
+
+export function hasLowCoverageWarning(quality?: { keepa_coverage?: number | null; seller_coverage?: number | null } | null) {
+  return Number(quality?.keepa_coverage ?? 0) < 0.3 && Number(quality?.seller_coverage ?? 0) < 0.3;
 }
 
 type KeepaContribution = { signal: string; label: string; value: string; dimensions: string[]; description: string };
@@ -384,7 +388,7 @@ function DecisionSurfacePanel({
         {surface ? <span className={`badge ${actionClass(surface.primary_action)}`}>{skuActionLabel(surface.primary_action)}</span> : null}
       </div>
       <div className="panel-body decision-surface-body">
-        {quality && quality.keepa_coverage < 0.3 && quality.seller_coverage < 0.3 ? (
+        {hasLowCoverageWarning(quality) ? (
           <div className="preliminary-banner">ÖN DEĞERLENDİRME — coverage düşük</div>
         ) : null}
         {surface?.gate_applied ? <div className="preliminary-banner">Coverage gate uygulandı; karar TAKİP ET'e düşürüldü.</div> : null}

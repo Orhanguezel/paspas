@@ -31,6 +31,12 @@ const items = [
   { label: 'Yazılımcı Notu', icon: Code2, href: '/developer-notes' },
 ];
 
+export function shouldShowBudgetBanner(remaining?: number | null, total?: number | null) {
+  const safeRemaining = Number(remaining ?? 0);
+  const safeTotal = Number(total ?? 0);
+  return safeTotal > 0 && safeRemaining / safeTotal < 0.2;
+}
+
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [budget, setBudget] = useState<{ remaining: number; total: number } | null>(null);
@@ -38,11 +44,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setHidden(window.localStorage.getItem('hideKeepaBudgetBanner') === '1');
-    apiGet<{ keepa?: { budget_remaining?: number; budget_total?: number } }>('/api/health')
-      .then((health) => {
-        const remaining = Number(health.keepa?.budget_remaining ?? 0);
-        const total = Number(health.keepa?.budget_total ?? 0);
-        if (total > 0 && remaining / total < 0.2) setBudget({ remaining, total });
+    apiGet<{ localDailyBudget?: number; dailyBudget?: number; today?: { remaining?: number; token_budget?: number } | null }>('/api/keepa/usage')
+      .then((usage) => {
+        const total = Number(usage.today?.token_budget ?? usage.localDailyBudget ?? usage.dailyBudget ?? 0);
+        const remaining = Number(usage.today?.remaining ?? total);
+        if (shouldShowBudgetBanner(remaining, total)) setBudget({ remaining, total });
       })
       .catch(() => undefined);
   }, []);

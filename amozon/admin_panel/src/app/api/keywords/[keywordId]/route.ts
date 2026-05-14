@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 
 import { backendJson } from '@/lib/backend-api';
+export const dynamic = 'force-dynamic';
+
 
 type RouteContext = {
   params: Promise<{ keywordId: string }>;

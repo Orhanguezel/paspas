@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 
 import { createAdminUser, listAdminUsers, type AdminUserRole } from '@/lib/admin-users';
 import { getSession } from '@/lib/auth';
+export const dynamic = 'force-dynamic';
+
 
 async function requireSession() {
   if (await getSession()) return null;

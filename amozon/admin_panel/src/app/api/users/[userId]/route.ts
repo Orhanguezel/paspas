@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 
 import { deleteAdminUser, updateAdminUser, type AdminUserRole } from '@/lib/admin-users';
 import { getSession } from '@/lib/auth';
+export const dynamic = 'force-dynamic';
+
 
 type Params = {
   params: Promise<{ userId: string }>;
