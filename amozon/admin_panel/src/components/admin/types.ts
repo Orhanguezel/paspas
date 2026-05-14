@@ -33,7 +33,6 @@ export type DataQuality = {
   has_price_data: boolean;
   has_keepa_snapshot: boolean;
   confidence_blockers: string[];
-  gate_applied?: boolean;
 };
 
 export type DecisionSurface = {
@@ -41,6 +40,7 @@ export type DecisionSurface = {
   primary_action: 'AL' | 'TAKIP_ET' | 'UZAK_DUR';
   confidence: string;
   confidence_blockers: string[];
+  gate_applied?: boolean;
   top_reasons: string[];
   operator_summary: string;
   data_gate?: {
@@ -133,6 +133,17 @@ export type KeywordOption = {
 /** Matches `amazon_theses.status` (Phase 4 TM). */
 export type ThesisStatus = 'active' | 'weakened' | 'broken' | 'closed';
 
+/** Aligned with `DecoratedThesis` / `thesis.service` JSON. */
+export type ThesisSignal = {
+  key: string;
+  label: string;
+  score: number;
+  current_score?: number | null;
+  delta?: number | null;
+  confidence: string;
+  reason: string;
+};
+
 export type AmazonThesis = {
   id: string;
   job_id: string;
@@ -140,13 +151,13 @@ export type AmazonThesis = {
   marketplace: string;
   decision: string;
   original_scores: Record<string, unknown>;
-  key_signals: Record<string, unknown>;
-  original_composite_score: number | string | null;
-  current_composite_score: number | string | null;
+  key_signals: ThesisSignal[];
+  original_composite_score: number | null;
+  current_composite_score: number | null;
   status: ThesisStatus;
   weakness_note: string | null;
   operator_notes: string | null;
-  created_at: string;
+  created_at: string | null;
   last_evaluated_at: string | null;
   closed_at: string | null;
 };
@@ -268,8 +279,6 @@ export function thesisStatusLabel(status: ThesisStatus): string {
       return 'Bozuldu';
     case 'closed':
       return 'Kapalı';
-    default:
-      return status;
   }
 }
 

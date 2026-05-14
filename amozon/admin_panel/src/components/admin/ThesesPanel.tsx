@@ -1,85 +1,93 @@
 'use client';
 
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Archive, RefreshCw, XCircle } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
 import { apiGet, apiPost } from '@/integrations/admin-api';
-
-type ThesisSignal = {
-  key: string;
-  label: string;
-  score: number;
-  current_score?: number | null;
-  delta?: number | null;
-  confidence: string;
-  reason: string;
-};
-
-type Thesis = {
-  id: string;
-  job_id: string;
-  keyword: string;
-  marketplace: string;
-  decision: string;
-  status: 'active' | 'weakened' | 'broken' | 'closed';
-  key_signals: ThesisSignal[];
-  original_composite_score: number | null;
-  current_composite_score: number | null;
-  weakness_note: string | null;
-  operator_notes: string | null;
-  created_at: string;
-  last_evaluated_at: string | null;
-};
+import {
+  skuActionLabel,
+  thesisStatusLabel,
+  type AmazonThesis,
+  type ThesisStatus,
+  type ThesesListResponse,
+} from './types';
 
 const tabs = [
-  { status: 'active', label: 'Aktif' },
-  { status: 'weakened', label: 'Zayıfladı' },
-  { status: 'broken', label: 'Bozuldu' },
-  { status: 'closed', label: 'Kapalı Arşiv' },
+  { status: 'active' as const, label: 'Aktif' },
+  { status: 'weakened' as const, label: 'Zayıfladı' },
+  { status: 'broken' as const, label: 'Bozuldu' },
+  { status: 'closed' as const, label: 'Kapalı Arşiv' },
 ] as const;
 
-function statusLabel(status: Thesis['status']) {
-  switch (status) {
-    case 'active': return 'Aktif';
-    case 'weakened': return 'Zayıfladı';
-    case 'broken': return 'Bozuldu';
-    case 'closed': return 'Kapalı';
+function formatCreatedAt(iso: string | null): string {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleDateString('tr-TR');
+  } catch {
+    return iso;
   }
 }
 
 export function ThesesPanel() {
-  const [status, setStatus] = useState<Thesis['status']>('active');
-  const [theses, setTheses] = useState<Thesis[]>([]);
+  const [status, setStatus] = useState<ThesisStatus>('active');
+  const [theses, setTheses] = useState<AmazonThesis[]>([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
-  async function load(nextStatus = status) {
+  const load = useCallback(async (nextStatus: ThesisStatus) => {
     setLoading(true);
-    setMessage(null);
+    setFeedback(null);
     try {
-      const result = await apiGet<{ theses: Thesis[] }>(`/api/theses?status=${nextStatus}`);
-      setTheses(result.theses);
+      const result = await apiGet<ThesesListResponse>(`/api/theses?status=${encodeURIComponent(nextStatus)}`);
+      setTheses(Array.isArray(result.theses) ? result.theses : []);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Tezler alınamadı');
+      setFeedback({
+        kind: 'err',
+        text: error instanceof Error ? error.message : 'Tezler alınamadı',
+      });
     } finally {
       setLoading(false);
     }
-  }
-
-  async function evaluate(id: string) {
-    setMessage(null);
-    await apiPost(`/api/theses/${id}/evaluate`, {});
-    await load();
-  }
-
-  async function close(id: string) {
-    setMessage(null);
-    await apiPost(`/api/theses/${id}/close`, {});
-    await load();
-  }
+  }, []);
 
   useEffect(() => {
-    load(status).catch(() => undefined);
-  }, [status]);
+    void load(status);
+  }, [status, load]);
+
+  async function evaluate(id: string) {
+    setBusyId(id);
+    setFeedback(null);
+    try {
+      await apiPost<unknown>(`/api/theses/${id}/evaluate`, {});
+      setFeedback({ kind: 'ok', text: 'Değerlendirme tamamlandı.' });
+      await load(status);
+    } catch (error) {
+      setFeedback({
+        kind: 'err',
+        text: error instanceof Error ? error.message : 'Değerlendirme başarısız.',
+      });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function closeThesis(id: string) {
+    if (!window.confirm('Bu tezi kapatmak istediğinize emin misiniz?')) return;
+    setBusyId(id);
+    setFeedback(null);
+    try {
+      await apiPost<unknown>(`/api/theses/${id}/close`, {});
+      setFeedback({ kind: 'ok', text: 'Tez kapatıldı.' });
+      await load(status);
+    } catch (error) {
+      setFeedback({
+        kind: 'err',
+        text: error instanceof Error ? error.message : 'Kapatma başarısız.',
+      });
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   const countText = useMemo(() => `${theses.length} tez`, [theses.length]);
 
@@ -89,19 +97,29 @@ export function ThesesPanel() {
         <div className="panel-header">
           <div>
             <h2 className="panel-title">Tezler</h2>
-            <p className="muted">AL ve TAKİP ET kararlarının zaman içinde zayıflayıp zayıflamadığını izle.</p>
+            <p className="muted">AL ve Takip Et kararlarının zaman içinde zayıflayıp zayıflamadığını izle.</p>
           </div>
-          <button className="button" disabled={loading} onClick={() => load()} type="button"><RefreshCw size={16} />Yenile</button>
+          <button className="button" disabled={loading} onClick={() => void load(status)} type="button">
+            <RefreshCw size={16} />
+            Yenile
+          </button>
         </div>
         <div className="panel-body">
           <div className="segmented theses-tabs">
             {tabs.map((tab) => (
-              <button className={status === tab.status ? 'active' : ''} key={tab.status} onClick={() => setStatus(tab.status)} type="button">
+              <button
+                className={status === tab.status ? 'active' : ''}
+                key={tab.status}
+                onClick={() => setStatus(tab.status)}
+                type="button"
+              >
                 {tab.label}
               </button>
             ))}
           </div>
-          {message ? <p className="error">{message}</p> : null}
+          {feedback ? (
+            <p className={feedback.kind === 'err' ? 'error' : 'message-success'}>{feedback.text}</p>
+          ) : null}
           <p className="muted">{countText}</p>
         </div>
       </section>
@@ -112,22 +130,32 @@ export function ThesesPanel() {
             <div className="panel-header">
               <div>
                 <h2 className="panel-title">{thesis.keyword}</h2>
-                <p className="muted">amazon.{thesis.marketplace} · {new Date(thesis.created_at).toLocaleDateString('tr-TR')}</p>
+                <p className="muted">
+                  amazon.{thesis.marketplace} · {formatCreatedAt(thesis.created_at)}
+                </p>
               </div>
-              <span className={`badge thesis-status-${thesis.status}`}>{statusLabel(thesis.status)}</span>
+              <span className={`badge thesis-status-${thesis.status}`}>{thesisStatusLabel(thesis.status)}</span>
             </div>
             <div className="panel-body">
               <div className="thesis-score-row">
-                <span>Karar <b>{thesis.decision}</b></span>
-                <span>İlk skor <b>{thesis.original_composite_score ?? '-'}</b></span>
-                <span>Güncel <b>{thesis.current_composite_score ?? '-'}</b></span>
+                <span>
+                  Karar <b>{skuActionLabel(thesis.decision)}</b>
+                </span>
+                <span>
+                  İlk skor <b>{thesis.original_composite_score ?? '—'}</b>
+                </span>
+                <span>
+                  Güncel <b>{thesis.current_composite_score ?? '—'}</b>
+                </span>
               </div>
               {thesis.weakness_note ? <p className="thesis-warning">{thesis.weakness_note}</p> : null}
               <div className="signal-diff-list">
                 {thesis.key_signals.map((signal) => (
                   <div className="signal-diff" key={signal.key}>
                     <strong>{signal.label}</strong>
-                    <span>{signal.score} → {signal.current_score ?? '-'}</span>
+                    <span>
+                      {signal.score} → {signal.current_score ?? '—'}
+                    </span>
                     <p>{signal.reason}</p>
                   </div>
                 ))}
@@ -136,11 +164,29 @@ export function ThesesPanel() {
               <div className="thesis-actions">
                 {thesis.status !== 'closed' ? (
                   <>
-                    <button className="button" onClick={() => evaluate(thesis.id)} type="button"><RefreshCw size={15} />Şimdi Değerlendir</button>
-                    <button className="button button-secondary" onClick={() => close(thesis.id)} type="button"><XCircle size={15} />Kapat</button>
+                    <button
+                      className="button"
+                      disabled={busyId === thesis.id}
+                      onClick={() => void evaluate(thesis.id)}
+                      type="button"
+                    >
+                      <RefreshCw size={15} />
+                      Şimdi Değerlendir
+                    </button>
+                    <button
+                      className="button button-secondary"
+                      disabled={busyId === thesis.id}
+                      onClick={() => void closeThesis(thesis.id)}
+                      type="button"
+                    >
+                      <XCircle size={15} />
+                      Kapat
+                    </button>
                   </>
                 ) : (
-                  <span className="muted"><Archive size={15} /> Arşivde</span>
+                  <span className="muted">
+                    <Archive size={15} /> Arşivde
+                  </span>
                 )}
               </div>
             </div>
