@@ -484,7 +484,8 @@ export function ProductsPanel() {
     const { scans } = await apiGet<{ scans: Scan[] }>('/api/scans');
     const doneScans = scans.filter((scan) => scan.status === 'done');
     setScans(doneScans);
-    const nextJobId = preferredJobId || selectedJobId || doneScans[0]?.id || null;
+    const queryJob = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('job');
+    const nextJobId = preferredJobId || queryJob || selectedJobId || doneScans[0]?.id || null;
     setSelectedJobId(nextJobId);
     if (nextJobId) await loadDetail(nextJobId);
   }
