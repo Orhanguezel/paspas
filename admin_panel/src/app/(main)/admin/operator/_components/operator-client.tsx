@@ -514,11 +514,11 @@ function MakineKuyruguTab() {
                         <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Sıradaki İşler ({remainingJobs.length})</h4>
                         <Button variant="ghost" size="sm" className="text-xs font-bold" onClick={() => refetch()}>YENİLE</Button>
                       </div>
-                      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
+                      <div className="grid gap-4 pb-4 grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]">
                         {remainingJobs.map((job) => {
                           const canStart = job.durum === "bekliyor" && !activeJob && !aktifKalip && job.id === firstBekleyenId;
                           return (
-                            <Card key={job.id} className={`shrink-0 w-80 snap-start border-2 transition-all ${canStart ? 'ring-2 ring-primary ring-offset-4 border-primary/30' : 'opacity-80'}`}>
+                            <Card key={job.id} className={`w-full border-2 transition-all ${canStart ? 'ring-2 ring-primary ring-offset-4 border-primary/30' : 'opacity-80'}`}>
                               <CardHeader className="p-4 pb-2">
                                 <div className="flex justify-between items-start">
                                   <div className="text-xs font-mono font-bold text-slate-400"># {job.emirNo}</div>
