@@ -100,6 +100,17 @@ export interface GunlukUretimPayload {
   notlar?: string;
 }
 
+export interface KalipDegisimBaslatPayload {
+  makineId: string;
+  makineKuyrukId?: string;
+  notlar?: string;
+}
+
+export interface KalipDegisimBitirPayload {
+  durusKayitId: string;
+  notlar?: string;
+}
+
 export interface SevkiyatKalemPayload {
   musteriId: string;
   siparisId?: string;
@@ -190,6 +201,20 @@ export interface OperatorGunlukGirisDto {
   createdAt: string;
 }
 
+export interface DurusKayitDto {
+  id: string;
+  makineId: string;
+  makineKuyrukId: string | null;
+  operatorUserId: string | null;
+  durusNedeniId: string | null;
+  durusTipi: string;
+  neden: string;
+  anlikUretimMiktari: number | null;
+  baslangic: string;
+  bitis: string | null;
+  sureDk: number | null;
+}
+
 // -- Normalizers --
 
 function toStr(v: unknown, d = ''): string { return typeof v === 'string' ? v.trim() : d; }
@@ -270,5 +295,22 @@ export function normalizeGunlukGiris(raw: unknown): OperatorGunlukGirisDto {
     notlar: r.notlar != null ? toStr(r.notlar) : null,
     kayitTarihi: toStr(r.kayitTarihi),
     createdAt: toStr(r.createdAt),
+  };
+}
+
+export function normalizeDurusKayit(raw: unknown): DurusKayitDto {
+  const r = isRecord(raw) ? raw : {};
+  return {
+    id: toStr(r.id),
+    makineId: toStr(r.makineId),
+    makineKuyrukId: r.makineKuyrukId != null ? toStr(r.makineKuyrukId) : null,
+    operatorUserId: r.operatorUserId != null ? toStr(r.operatorUserId) : null,
+    durusNedeniId: r.durusNedeniId != null ? toStr(r.durusNedeniId) : null,
+    durusTipi: toStr(r.durusTipi),
+    neden: toStr(r.neden),
+    anlikUretimMiktari: r.anlikUretimMiktari != null ? toNum(r.anlikUretimMiktari) : null,
+    baslangic: toStr(r.baslangic),
+    bitis: r.bitis != null ? toStr(r.bitis) : null,
+    sureDk: r.sureDk != null ? toNum(r.sureDk) : null,
   };
 }

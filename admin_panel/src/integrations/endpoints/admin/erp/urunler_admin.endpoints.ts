@@ -36,7 +36,7 @@ export const urunlerAdminApi = baseApi.injectEndpoints({
       UrunListResponse,
       | {
           q?: string;
-          page?: number;
+          offset?: number;
           limit?: number;
           kategori?: UrunKategori;
           tedarikTipi?: TedarikTipi;
@@ -47,7 +47,12 @@ export const urunlerAdminApi = baseApi.injectEndpoints({
       | undefined
     >({
       query: (params) => ({ url: BASE, params: params ?? undefined }),
-      transformResponse: (res: unknown) => normalizeUrunList(res),
+      transformResponse: (res: unknown, meta) => {
+        const list = normalizeUrunList(res);
+        const totalHeader = meta?.response?.headers.get("x-total-count");
+        const total = totalHeader ? Number(totalHeader) : list.total;
+        return { ...list, total: Number.isFinite(total) ? total : list.total };
+      },
       providesTags: (result) =>
         result
           ? [
@@ -154,10 +159,11 @@ export const urunlerAdminApi = baseApi.injectEndpoints({
       ReceteDto,
       {
         urunId: string;
+        aciklama?: string;
         items: { urunId: string; miktar: number; fireOrani: number; aciklama?: string; sira: number }[];
       }
     >({
-      query: ({ urunId, items }) => ({ url: `${BASE}/${urunId}/recete`, method: "PUT", body: { items } }),
+      query: ({ urunId, aciklama, items }) => ({ url: `${BASE}/${urunId}/recete`, method: "PUT", body: { aciklama, items } }),
       transformResponse: (res: unknown) => normalizeRecete(res),
       invalidatesTags: (_r, _e, { urunId }) => [
         { type: "Recete", id: `urun-${urunId}` },

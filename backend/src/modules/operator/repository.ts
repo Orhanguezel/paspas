@@ -51,6 +51,8 @@ import type {
   VardiyaBasiBody,
   GunlukUretimBody,
   VardiyaSonuBody,
+  KalipDegisimBaslatBody,
+  KalipDegisimBitirBody,
 } from './validation';
 
 const VARDIYA_SAATLERI = {
@@ -2058,4 +2060,90 @@ export async function repoListDuruslar(
     items: rows.map(durusRowToDto),
     total: Number(countResult[0]?.count ?? 0),
   };
+}
+
+export async function repoListAktifKalipDegisimleri(): Promise<DurusKayitDto[]> {
+  const rows = await db
+    .select()
+    .from(durusKayitlari)
+    .where(and(eq(durusKayitlari.durus_tipi, 'kalip_degisimi'), sql`${durusKayitlari.bitis} IS NULL`))
+    .orderBy(desc(durusKayitlari.baslangic));
+
+  return rows.map(durusRowToDto);
+}
+
+export async function repoKalipDegisimBaslat(
+  body: KalipDegisimBaslatBody,
+  operatorUserId: string | null,
+): Promise<DurusKayitDto> {
+  const [aktifIs] = await db
+    .select({ id: makineKuyrugu.id })
+    .from(makineKuyrugu)
+    .where(and(
+      eq(makineKuyrugu.makine_id, body.makineId),
+      inArray(makineKuyrugu.durum, ['calisiyor', 'duraklatildi']),
+    ))
+    .limit(1);
+  if (aktifIs) throw new Error('makinede_aktif_is_var');
+
+  const [aktifDegisim] = await db
+    .select({ id: durusKayitlari.id })
+    .from(durusKayitlari)
+    .where(and(
+      eq(durusKayitlari.makine_id, body.makineId),
+      eq(durusKayitlari.durus_tipi, 'kalip_degisimi'),
+      sql`${durusKayitlari.bitis} IS NULL`,
+    ))
+    .limit(1);
+  if (aktifDegisim) throw new Error('aktif_kalip_degisimi_var');
+
+  const id = randomUUID();
+  await db.insert(durusKayitlari).values({
+    id,
+    makine_id: body.makineId,
+    makine_kuyruk_id: body.makineKuyrukId ?? null,
+    operator_user_id: operatorUserId,
+    durus_tipi: 'kalip_degisimi',
+    neden: body.notlar?.trim() ? `Kalıp değişimi - ${body.notlar.trim()}` : 'Kalıp değişimi',
+    baslangic: new Date(),
+  });
+
+  const [row] = await db.select().from(durusKayitlari).where(eq(durusKayitlari.id, id)).limit(1);
+  if (!row) throw new Error('insert_failed');
+  return durusRowToDto(row);
+}
+
+export async function repoKalipDegisimBitir(
+  body: KalipDegisimBitirBody,
+  operatorUserId: string | null,
+): Promise<DurusKayitDto> {
+  const now = new Date();
+  const [current] = await db
+    .select()
+    .from(durusKayitlari)
+    .where(and(
+      eq(durusKayitlari.id, body.durusKayitId),
+      eq(durusKayitlari.durus_tipi, 'kalip_degisimi'),
+      sql`${durusKayitlari.bitis} IS NULL`,
+    ))
+    .limit(1);
+  if (!current) throw new Error('aktif_kalip_degisimi_bulunamadi');
+
+  const neden = body.notlar?.trim()
+    ? `${current.neden} - ${body.notlar.trim()}`
+    : current.neden;
+
+  await db
+    .update(durusKayitlari)
+    .set({
+      operator_user_id: operatorUserId ?? current.operator_user_id,
+      bitis: now,
+      sure_dk: sql<number>`TIMESTAMPDIFF(MINUTE, ${durusKayitlari.baslangic}, ${now.toISOString().replace('T', ' ').slice(0, 19)})`,
+      neden,
+    })
+    .where(eq(durusKayitlari.id, body.durusKayitId));
+
+  const [row] = await db.select().from(durusKayitlari).where(eq(durusKayitlari.id, body.durusKayitId)).limit(1);
+  if (!row) throw new Error('update_failed');
+  return durusRowToDto(row);
 }

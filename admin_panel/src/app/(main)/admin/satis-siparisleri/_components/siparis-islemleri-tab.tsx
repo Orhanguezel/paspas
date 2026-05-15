@@ -145,8 +145,8 @@ export default function SiparisIslemleriTab() {
             {gorunum !== "urun" && <TableHead>Ürün</TableHead>}
             <TableHead className="text-right">Miktar</TableHead>
             <TableHead className="text-right">Üretilen</TableHead>
-            <TableHead>Üretim Durumu</TableHead>
             <TableHead className="text-right">Sevk Edilen</TableHead>
+            <TableHead>Üretim Durumu</TableHead>
             <TableHead>Planlanan Bitiş</TableHead>
           </TableRow>
         </TableHeader>
@@ -174,10 +174,10 @@ export default function SiparisIslemleriTab() {
                 <TableCell className="text-right">
                   {item.uretilenMiktar > 0 ? item.uretilenMiktar.toLocaleString("tr-TR") : "—"}
                 </TableCell>
-                <TableCell>{durumBadge(item.uretimDurumu)}</TableCell>
                 <TableCell className="text-right">
                   {item.sevkEdilenMiktar > 0 ? item.sevkEdilenMiktar.toLocaleString("tr-TR") : "—"}
                 </TableCell>
+                <TableCell>{durumBadge(item.uretimDurumu)}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {item.planlananBitis
                     ? new Date(item.planlananBitis).toLocaleString("tr-TR", {

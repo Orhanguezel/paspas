@@ -9,7 +9,7 @@ import { useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import { AlertTriangle, Eye, Factory, Pencil, Plus, RefreshCcw, Search, Trash2, Wrench, X } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, Eye, Factory, Pencil, Plus, RefreshCcw, Search, Trash2, Wrench, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -101,6 +101,8 @@ export default function UretimEmirleriClient() {
   const [selectedEmirForRecete, setSelectedEmirForRecete] = useState<string | null>(null);
   const [makineAtaTarget, setMakineAtaTarget] = useState<UretimEmriDto | null>(null);
   const [cikarTarget, setCikarTarget] = useState<UretimEmriDto | null>(null);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 25;
 
   const DURUM_OPTIONS: Array<{ value: UretimEmriDurum | "hepsi"; label: string }> = [
     { value: "hepsi", label: t("admin.erp.uretimEmirleri.statuses.hepsi") },
@@ -124,6 +126,8 @@ export default function UretimEmirleriClient() {
     ...(showCompleted ? { tamamlananlariGoster: true } : {}),
     sort: sortBy,
     order: (sortBy === "bitis_tarihi" ? "asc" : "desc") as "asc" | "desc",
+    page: page,
+    limit: PAGE_SIZE,
   };
 
   const { data, isLoading, isFetching, refetch } = useListUretimEmirleriAdminQuery(params);
@@ -145,12 +149,27 @@ export default function UretimEmirleriClient() {
     });
   }, [rawItems, sortBy]);
 
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
   const ozet = useMemo(() => {
     const terminRiskli = items.filter((item) => item.terminRiski && item.durum !== "tamamlandi").length;
     const aktif = items.filter((item) => item.durum === "planlandi" || item.durum === "uretimde").length;
     const tamamlanan = items.filter((item) => item.durum === "tamamlandi").length;
-    return { toplam: data?.total ?? 0, terminRiskli, aktif, tamamlanan };
-  }, [data?.total, items]);
+    return { toplam: total, terminRiskli, aktif, tamamlanan };
+  }, [total, items]);
+
+  const currentPage = Math.min(page, totalPages - 1);
+  const canPrev = currentPage > 0;
+  const canNext = (currentPage + 1) * PAGE_SIZE < total;
+
+  const pageNumbers = useMemo(() => {
+    const pages: number[] = [];
+    const start = Math.max(0, currentPage - 2);
+    const end = Math.min(totalPages - 1, currentPage + 2);
+    for (let i = start; i <= end; i += 1) pages.push(i);
+    return pages;
+  }, [currentPage, totalPages]);
 
   function openCreate() {
     setEditing(null);
@@ -226,6 +245,7 @@ export default function UretimEmirleriClient() {
     setSearch("");
     setDurum("hepsi");
     setSortBy("bitis_tarihi");
+    setPage(0);
   }
 
   function formatDateShort(value: string | null | undefined) {
@@ -556,6 +576,46 @@ export default function UretimEmirleriClient() {
             })}
           </TableBody>
         </Table>
+
+        {total > PAGE_SIZE && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 bg-muted/10">
+            <p className="text-muted-foreground text-sm">
+              {currentPage * PAGE_SIZE + 1}–{Math.min((currentPage + 1) * PAGE_SIZE, total)} / {total}
+            </p>
+            <div className="flex flex-wrap items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!canPrev || isFetching}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+              >
+                <ChevronLeft className="size-4 mr-1" />
+                Önceki
+              </Button>
+              {pageNumbers.map((pageNum) => (
+                <Button
+                  key={pageNum}
+                  variant={pageNum === currentPage ? "default" : "outline"}
+                  size="sm"
+                  className="min-w-9 h-8"
+                  disabled={isFetching}
+                  onClick={() => setPage(pageNum)}
+                >
+                  {pageNum + 1}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!canNext || isFetching}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Sonraki
+                <ChevronRight className="size-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Form Sheet */}

@@ -118,12 +118,14 @@ export default function EmirAtamaDialog({ emir, onClose, t }: EmirAtamaDialogPro
     const montajMakineId = isMultiOp && montajOpId ? selections[montajOpId] : undefined;
     try {
       for (const op of emir.operasyonlar) {
-          await ata({
-            emirOperasyonId: op.id,
-            makineId: selections[op.id],
-            ...(montajMakineId ? { montajMakineId } : {}),
-            ...(customStartTimeEnabled && customStartTime ? { planlananBaslangic: new Date(customStartTime).toISOString() } : {}),
-          }).unwrap();
+        const isMontajOp = isMultiOp && op.id === montajOpId;
+        await ata({
+          emirOperasyonId: op.id,
+          makineId: selections[op.id],
+          montaj: isMultiOp ? isMontajOp : op.montaj,
+          ...(isMontajOp && montajMakineId ? { montajMakineId } : {}),
+          ...(customStartTimeEnabled && customStartTime ? { planlananBaslangic: new Date(customStartTime).toISOString() } : {}),
+        }).unwrap();
       }
       toast.success(t('kuyrukYonetimi.atama.basarili'));
       onClose();

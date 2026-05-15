@@ -53,14 +53,20 @@ export const resolveMediaUrl = (raw: string | null | undefined): string => {
   if (/^(data:|blob:)/i.test(s)) return s;
   if (isAbsoluteUrl(s)) return s;
 
-  if (s.startsWith('/')) {
-    // Static paths (public folder) should be served by Next.js, not the API
-    if (isStaticPath(s)) return s;
-
-    const origin = getMediaOrigin();
-    return origin ? `${origin}${s}` : s;
+  let path = s;
+  if (!path.startsWith('/')) {
+    // If it's just a filename, assume it's in product-media
+    if (!path.includes('/')) {
+      path = `/uploads/product-media/${path}`;
+    } else {
+      path = `/${path}`;
+    }
   }
 
-  return s;
+  // Static paths (public folder) should be served by Next.js, not the API
+  if (isStaticPath(path)) return path;
+
+  const origin = getMediaOrigin();
+  return origin ? `${origin}${path}` : path;
 };
 

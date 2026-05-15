@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, desc, eq, gt, like, notInArray, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, like, lte, notInArray, or, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
@@ -264,6 +264,8 @@ function buildListWhere(q: SevkEmriListQuery): SQL | undefined {
   const conditions: SQL[] = [];
   if (q.durum) conditions.push(eq(sevkEmirleri.durum, q.durum));
   if (q.musteriId) conditions.push(eq(sevkEmirleri.musteri_id, q.musteriId));
+  if (q.dateFrom) conditions.push(gte(sevkEmirleri.tarih, new Date(`${q.dateFrom}T00:00:00`)));
+  if (q.dateTo) conditions.push(lte(sevkEmirleri.tarih, new Date(`${q.dateTo}T23:59:59`)));
   if (q.q) {
     const pattern = `%${q.q}%`;
     conditions.push(

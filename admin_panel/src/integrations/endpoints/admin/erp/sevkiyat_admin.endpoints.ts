@@ -39,6 +39,8 @@ export interface SevkEmriListParams {
   q?: string;
   durum?: string;
   musteriId?: string;
+  dateFrom?: string;
+  dateTo?: string;
   limit?: number;
   offset?: number;
   sort?: string;

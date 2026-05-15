@@ -470,15 +470,12 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
         toast.success(t("admin.erp.common.updated", { item: t("admin.erp.urunler.singular") }));
       } else {
         const created = await create(payload).unwrap();
-        const validRows = recipeOwnerEnabled
-          ? draftReceteRows
-              .filter((row) => row.urunId)
-              .map(({ key: _key, aciklama, ...row }, idx) => ({
-                ...row,
-                aciklama: aciklama.trim() || undefined,
-                sira: idx + 1,
-              }))
-          : [];
+        const draftValidRows = recipeOwnerEnabled ? draftReceteRows.filter((row) => row.urunId) : [];
+        const validRows = draftValidRows.map(({ key: _key, aciklama, ...row }, idx) => ({
+          ...row,
+          aciklama: aciklama.trim() || undefined,
+          sira: draftValidRows.length - idx,
+        }));
         if (validRows.length > 0) {
           await saveDraftRecete({ urunId: created.id, items: validRows }).unwrap();
         }
@@ -1191,7 +1188,6 @@ interface ReceteRow {
   key: string;
   urunId: string;
   miktar: number;
-  fireOrani: number;
   aciklama: string;
   sira: number;
 }
@@ -1271,7 +1267,6 @@ function createReceteRow(partial?: Partial<Omit<ReceteRow, "key">>): ReceteRow {
     key: crypto.randomUUID(),
     urunId: partial?.urunId ?? "",
     miktar: partial?.miktar ?? 1,
-    fireOrani: partial?.fireOrani ?? 0,
     aciklama: partial?.aciklama ?? "",
     sira: partial?.sira ?? 0,
   };
@@ -1304,17 +1299,37 @@ function mergeReceteMalzemeOptions(
   return Array.from(byId.values());
 }
 
+function useReceteMalzemeOptions(
+  allowedCategoryCodes: string[],
+  receteItems: ReceteKalemDto[] | undefined,
+  excludeUrunId?: string,
+): ReceteMalzemeOption[] {
+  const { data: genelMalzeme } = useListUrunlerAdminQuery({ limit: 500, sort: "kod", order: "asc" });
+  const { data: operasyonelYmMalzeme } = useListUrunlerAdminQuery({
+    kategori: "operasyonel_ym",
+    limit: 500,
+    sort: "kod",
+    order: "asc",
+  });
+
+  return useMemo(() => {
+    const allowed = new Set([...allowedCategoryCodes, "hammadde", "yarimamul", "operasyonel_ym"]);
+    const byId = new Map<string, ReceteMalzemeOption>();
+
+    for (const u of [...(genelMalzeme?.items ?? []), ...(operasyonelYmMalzeme?.items ?? [])]) {
+      if (allowed.has(u.kategori) && u.id !== excludeUrunId) {
+        byId.set(u.id, u);
+      }
+    }
+
+    return mergeReceteMalzemeOptions(Array.from(byId.values()), receteItems);
+  }, [allowedCategoryCodes, excludeUrunId, genelMalzeme?.items, operasyonelYmMalzeme?.items, receteItems]);
+}
+
 function DraftReceteSection({ birim, allowedCategoryCodes, rows, onRowsChange }: DraftReceteSectionProps) {
   const { t } = useLocaleContext();
   const tForm = (key: string) => t(`admin.erp.urunler.form.${key}`);
-  const { data: malzemeData } = useListUrunlerAdminQuery({ limit: 500 });
-
-  const malzemeOptions = useMemo(() => {
-    if (!malzemeData?.items) return [];
-    // Reçete malzemeleri: hammadde, yarimamul, operasyonel_ym
-    const allowed = new Set([...allowedCategoryCodes, "hammadde", "yarimamul", "operasyonel_ym"]);
-    return malzemeData.items.filter((u) => allowed.has(u.kategori));
-  }, [allowedCategoryCodes, malzemeData]);
+  const malzemeOptions = useReceteMalzemeOptions(allowedCategoryCodes, undefined);
 
   useEffect(() => {
     const validIds = new Set(malzemeOptions.map((item) => item.id));
@@ -1328,7 +1343,10 @@ function DraftReceteSection({ birim, allowedCategoryCodes, rows, onRowsChange }:
   };
 
   const addRow = () => {
-    onRowsChange([...rows, createReceteRow({ sira: rows.length + 1 })]);
+    onRowsChange([
+      createReceteRow({ sira: 1 }),
+      ...rows.map((row, idx) => ({ ...row, sira: idx + 2 })),
+    ]);
   };
 
   const removeRow = (idx: number) => {
@@ -1338,7 +1356,7 @@ function DraftReceteSection({ birim, allowedCategoryCodes, rows, onRowsChange }:
   const getRowCost = (row: ReceteRow): number => {
     const malzeme = malzemeOptions.find((u) => u.id === row.urunId);
     if (!malzeme?.birimFiyat) return 0;
-    return row.miktar * (1 + row.fireOrani / 100) * malzeme.birimFiyat;
+    return row.miktar * malzeme.birimFiyat;
   };
 
   const toplamMaliyet = rows.reduce((sum, row) => sum + getRowCost(row), 0);
@@ -1351,7 +1369,7 @@ function DraftReceteSection({ birim, allowedCategoryCodes, rows, onRowsChange }:
           <p className="mt-1 text-muted-foreground text-xs">{tForm("receteDraftHelper")}</p>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={addRow}>
-          <Plus className="mr-1 size-3" /> {tForm("receteSatirEkle")}
+          {tForm("receteSatirEkle")}
         </Button>
       </div>
 
@@ -1381,16 +1399,7 @@ function DraftReceteSection({ birim, allowedCategoryCodes, rows, onRowsChange }:
                   onChange={(e) => updateRow(idx, "miktar", Number(e.target.value))}
                 />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">{tForm("receteFire")}</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={row.fireOrani}
-                  onChange={(e) => updateRow(idx, "fireOrani", Number(e.target.value))}
-                />
-              </div>
+
               <div className="flex items-end">
                 <Button
                   type="button"
@@ -1446,25 +1455,15 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
   const tForm = (key: string) => t(`admin.erp.urunler.form.${key}`);
 
   const { data: receteData, isLoading: receteLoading } = useGetUrunReceteAdminQuery(urunId);
-  const { data: malzemeData } = useListUrunlerAdminQuery({ limit: 500 });
   const [saveRecete, saveState] = useSaveUrunReceteAdminMutation();
   const [deleteRecete, deleteState] = useDeleteUrunReceteAdminMutation();
 
   const [rows, setRows] = useState<ReceteRow[]>([]);
+  const [receteAciklama, setReceteAciklama] = useState("");
   const [initialized, setInitialized] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
-  const baseMalzemeOptions = useMemo(() => {
-    if (!malzemeData?.items) return [];
-    // Reçete malzemeleri: hammadde, yarimamul, operasyonel_ym
-    const allowed = new Set([...allowedCategoryCodes, "hammadde", "yarimamul", "operasyonel_ym"]);
-    return malzemeData.items.filter((u) => allowed.has(u.kategori) && u.id !== urunId);
-  }, [allowedCategoryCodes, malzemeData, urunId]);
-
-  const malzemeOptions = useMemo(
-    () => mergeReceteMalzemeOptions(baseMalzemeOptions, receteData?.items),
-    [baseMalzemeOptions, receteData?.items],
-  );
+  const malzemeOptions = useReceteMalzemeOptions(allowedCategoryCodes, receteData?.items, urunId);
 
   useEffect(() => {
     const validIds = new Set(malzemeOptions.map((item) => item.id));
@@ -1477,16 +1476,19 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
 
   useEffect(() => {
     if (receteLoading || initialized) return;
+    setReceteAciklama(receteData?.aciklama ?? "");
     if (receteData?.items?.length) {
       setRows(
-        receteData.items.map((item) => ({
-          key: crypto.randomUUID(),
-          urunId: item.urunId,
-          miktar: item.miktar,
-          fireOrani: item.fireOrani,
-          aciklama: item.aciklama ?? "",
-          sira: item.sira,
-        })),
+        receteData.items
+          .slice()
+          .sort((a, b) => a.sira - b.sira)
+          .map((item) => ({
+            key: crypto.randomUUID(),
+            urunId: item.urunId,
+            miktar: item.miktar,
+            aciklama: item.aciklama ?? "",
+            sira: item.sira,
+          })),
       );
     } else {
       setRows([]);
@@ -1499,7 +1501,10 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
   }, []);
 
   function addRow() {
-    setRows((prev) => [...prev, createReceteRow({ sira: prev.length + 1 })]);
+    setRows((prev) => [
+      createReceteRow({ sira: 0 }),
+      ...prev.map((row, idx) => ({ ...row, sira: idx + 1 })),
+    ]);
   }
 
   function removeRow(idx: number) {
@@ -1513,7 +1518,7 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
   function getRowCost(row: ReceteRow): number {
     const malzeme = malzemeOptions.find((u) => u.id === row.urunId);
     if (!malzeme?.birimFiyat) return 0;
-    return row.miktar * (1 + row.fireOrani / 100) * malzeme.birimFiyat;
+    return row.miktar * malzeme.birimFiyat;
   }
 
   const toplamMaliyet = rows.reduce((sum, r) => sum + getRowCost(r), 0);
@@ -1527,8 +1532,11 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
     try {
       await saveRecete({
         urunId,
-        items: validRows.map(({ key: _key, aciklama, ...row }) => ({
+        aciklama: receteAciklama.trim(),
+        items: validRows.map(({ key: _key, aciklama, ...row }, idx) => ({
           ...row,
+          sira: idx + 1,
+          fireOrani: 0,
           aciklama: aciklama.trim() || undefined,
         })),
       }).unwrap();
@@ -1543,6 +1551,7 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
     try {
       await deleteRecete(urunId).unwrap();
       setRows([]);
+      setReceteAciklama("");
       setDeleteConfirm(false);
       toast.success(t("admin.erp.common.deleted", { item: tForm("receteEntity") }));
     } catch (err: unknown) {
@@ -1555,9 +1564,9 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-semibold text-sm">{tForm("receteTitle")}</h3>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {receteData && rows.length > 0 && (
             <Button
               type="button"
@@ -1571,9 +1580,25 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
             </Button>
           )}
           <Button type="button" variant="outline" size="sm" onClick={addRow} disabled={busy}>
-            <Plus className="mr-1 size-3" /> {tForm("receteSatirEkle")}
+            {tForm("receteSatirEkle")}
           </Button>
+          {rows.length > 0 && (
+            <Button type="button" size="sm" onClick={handleSave} disabled={busy} className="ml-auto">
+              {saveState.isLoading ? t("admin.erp.common.saving") : tForm("receteKaydet")}
+            </Button>
+          )}
         </div>
+      </div>
+
+      <div className="space-y-1">
+        <Label className="text-xs">Reçete Açıklaması</Label>
+        <Textarea
+          rows={3}
+          value={receteAciklama}
+          onChange={(e) => setReceteAciklama(e.target.value)}
+          placeholder="Bu ürüne ait genel reçete açıklaması"
+          disabled={busy}
+        />
       </div>
 
       {rows.length === 0 && !receteLoading && (
@@ -1601,16 +1626,6 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
                   min="0"
                   value={row.miktar}
                   onChange={(e) => updateRow(idx, "miktar", Number(e.target.value))}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">{tForm("receteFire")}</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={row.fireOrani}
-                  onChange={(e) => updateRow(idx, "fireOrani", Number(e.target.value))}
                 />
               </div>
               <div className="flex items-end">
@@ -1650,15 +1665,10 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
       })}
 
       {rows.length > 0 && (
-        <div className="flex items-center justify-between pt-2">
-          <span className="font-medium text-sm">
-            {tForm("receteToplamMaliyet")}:{" "}
-            {toplamMaliyet.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
-          </span>
-          <Button type="button" size="sm" onClick={handleSave} disabled={busy}>
-            {saveState.isLoading ? t("admin.erp.common.saving") : tForm("receteKaydet")}
-          </Button>
-        </div>
+        <p className="pt-2 font-medium text-sm">
+          {tForm("receteToplamMaliyet")}:{" "}
+          {toplamMaliyet.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
+        </p>
       )}
 
       <AlertDialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>

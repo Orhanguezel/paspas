@@ -33,6 +33,8 @@ export const sevkEmriListQuerySchema = z.object({
   q: z.string().trim().optional(),
   durum: z.enum(['bekliyor', 'onaylandi', 'sevk_edildi', 'iptal']).optional(),
   musteriId: z.string().trim().optional(),
+  dateFrom: z.string().date().optional(),
+  dateTo: z.string().date().optional(),
   limit: z.coerce.number().int().min(1).max(500).default(100),
   offset: z.coerce.number().int().min(0).default(0),
   sort: z.enum(['tarih', 'created_at']).default('created_at'),

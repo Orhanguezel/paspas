@@ -7,8 +7,11 @@ import { baseApi } from '@/integrations/baseApi';
 import type {
   AcikVardiyaDto,
   DevamEtPayload,
+  DurusKayitDto,
   DuraklatPayload,
   GunlukUretimPayload,
+  KalipDegisimBaslatPayload,
+  KalipDegisimBitirPayload,
   MakineKuyruguDetayDto,
   MalKabulDto,
   MalKabulPayload,
@@ -24,6 +27,7 @@ import type {
 } from '@/integrations/shared/erp/operator.types';
 import {
   normalizeGunlukGiris,
+  normalizeDurusKayit,
   normalizeMakineKuyrugu,
   normalizeMakineKuyruguList,
 } from '@/integrations/shared/erp/operator.types';
@@ -159,6 +163,30 @@ export const operatorAdminApi = baseApi.injectEndpoints({
       ],
     }),
 
+    listAktifKalipDegisimleriAdmin: b.query<DurusKayitDto[], void>({
+      query: () => ({ url: `${BASE}/kalip-degisimleri/aktif` }),
+      transformResponse: (res: unknown) => (Array.isArray(res) ? res.map(normalizeDurusKayit) : []),
+      providesTags: [{ type: 'MakineKuyrugu' as const, id: 'KALIP_DEGISIM' }],
+    }),
+
+    kalipDegisimBaslatAdmin: b.mutation<DurusKayitDto, KalipDegisimBaslatPayload>({
+      query: (body) => ({ url: `${BASE}/kalip-degisimi/baslat`, method: 'POST', body }),
+      transformResponse: (res: unknown) => normalizeDurusKayit(res),
+      invalidatesTags: [
+        { type: 'MakineKuyrugu', id: 'KALIP_DEGISIM' },
+        { type: 'MakineKuyrugu', id: 'LIST' },
+      ],
+    }),
+
+    kalipDegisimBitirAdmin: b.mutation<DurusKayitDto, KalipDegisimBitirPayload>({
+      query: (body) => ({ url: `${BASE}/kalip-degisimi/bitir`, method: 'POST', body }),
+      transformResponse: (res: unknown) => normalizeDurusKayit(res),
+      invalidatesTags: [
+        { type: 'MakineKuyrugu', id: 'KALIP_DEGISIM' },
+        { type: 'MakineKuyrugu', id: 'LIST' },
+      ],
+    }),
+
     // -- Gunluk Girisler --
     listGunlukGirislerAdmin: b.query<
       { items: OperatorGunlukGirisDto[]; total: number },
@@ -185,6 +213,9 @@ export const {
   useVardiyaSonuAdminMutation,
   useGunlukUretimAdminMutation,
   useGetAcikVardiyalarAdminQuery,
+  useListAktifKalipDegisimleriAdminQuery,
+  useKalipDegisimBaslatAdminMutation,
+  useKalipDegisimBitirAdminMutation,
   useSevkiyatOlusturAdminMutation,
   useMalKabulAdminMutation,
   useListGunlukGirislerAdminQuery,

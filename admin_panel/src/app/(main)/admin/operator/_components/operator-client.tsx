@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 
-import { AlertTriangle, Clock, Pause, Play, RefreshCcw, RotateCcw, Square, X } from "lucide-react";
+import { Clock, Pause, RefreshCcw, RotateCcw, Square } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,9 @@ import {
   useDuraklatAdminMutation,
   useGunlukUretimAdminMutation,
   useGetAcikVardiyalarAdminQuery,
+  useKalipDegisimBaslatAdminMutation,
+  useKalipDegisimBitirAdminMutation,
+  useListAktifKalipDegisimleriAdminQuery,
   useListMakineKuyruguAdminQuery,
   useUretimBaslatAdminMutation,
   useUretimBitirAdminMutation,
@@ -111,11 +114,14 @@ function VardiyaStatusBadge() {
 function MakineKuyruguTab() {
   const { t } = useLocaleContext();
   const { data, isLoading, isFetching, refetch } = useListMakineKuyruguAdminQuery();
+  const { data: aktifKalipDegisimleri } = useListAktifKalipDegisimleriAdminQuery();
   const [baslat] = useUretimBaslatAdminMutation();
   const [bitir] = useUretimBitirAdminMutation();
   const [duraklat] = useDuraklatAdminMutation();
   const [devamEt] = useDevamEtAdminMutation();
   const [gunlukUretimGir] = useGunlukUretimAdminMutation();
+  const [kalipDegisimBaslat] = useKalipDegisimBaslatAdminMutation();
+  const [kalipDegisimBitir] = useKalipDegisimBitirAdminMutation();
 
   const [finishing, setFinishing] = useState<MakineKuyruguDetayDto | null>(null);
   const [uretilenMiktar, setUretilenMiktar] = useState("");
@@ -139,6 +145,7 @@ function MakineKuyruguTab() {
   const durusNedenleri = (durusNedenleriData?.items ?? []).filter((d) => d.isActive);
 
   const items = data?.items ?? [];
+  const aktifKalipByMakine = new Map((aktifKalipDegisimleri ?? []).map((item) => [item.makineId, item]));
 
   // Group by machine — exclude completed jobs (tamamlandi görünmemeli)
   const grouped = new Map<string, MakineKuyruguDetayDto[]>();
@@ -172,6 +179,34 @@ function MakineKuyruguTab() {
       } else {
         toast.error(t("admin.erp.common.operationFailed"));
       }
+    }
+  }
+
+  async function handleKalipDegisimBaslat(makineId: string, makineKuyrukId?: string) {
+    try {
+      await kalipDegisimBaslat({ makineId, makineKuyrukId }).unwrap();
+      toast.success("Kalıp değişimi başladı.");
+    } catch (error: unknown) {
+      const message =
+        typeof error === "object" && error && "data" in error
+          ? (error as { data?: { error?: { message?: string } } }).data?.error?.message
+          : undefined;
+      if (message === "makinede_aktif_is_var") {
+        toast.error("Bu makinede çalışan iş varken kalıp değişimi başlatılamaz.");
+      } else if (message === "aktif_kalip_degisimi_var") {
+        toast.error("Bu makinede zaten açık kalıp değişimi var.");
+      } else {
+        toast.error(t("admin.erp.common.operationFailed"));
+      }
+    }
+  }
+
+  async function handleKalipDegisimBitir(durusKayitId: string) {
+    try {
+      await kalipDegisimBitir({ durusKayitId }).unwrap();
+      toast.success("Kalıp değişimi bitirildi. Sıradaki üretimi başlatabilirsiniz.");
+    } catch {
+      toast.error(t("admin.erp.common.operationFailed"));
     }
   }
 
@@ -315,6 +350,8 @@ function MakineKuyruguTab() {
             const first = jobs[0];
             const activeJob = jobs.find((j) => j.durum === "calisiyor" || j.durum === "duraklatildi");
             const firstBekleyenId = jobs.filter((j) => j.durum === "bekliyor").sort((a, b) => a.sira - b.sira)[0]?.id ?? null;
+            const firstBekleyenJob = jobs.find((j) => j.id === firstBekleyenId);
+            const aktifKalip = aktifKalipByMakine.get(makineId);
             const remainingJobs = jobs.filter(j => j.id !== activeJob?.id && j.durum !== "tamamlandi");
 
             return (
@@ -424,13 +461,48 @@ function MakineKuyruguTab() {
                     </div>
                   ) : (
                     /* EMPTY ACTIVE AREA -> SUGGEST NEXT */
-                    <div className="bg-slate-100 border-2 border-dashed border-slate-300 rounded-3xl p-12 text-center flex flex-col items-center gap-6">
-                      <div className="bg-white p-6 rounded-full shadow-inner border border-slate-200">
-                        <Play className="size-16 text-slate-300" />
+                    <div className="relative overflow-hidden p-12 rounded-3xl border-2 border-dashed border-slate-300 bg-slate-100/50 flex flex-col items-center justify-center gap-8 min-h-[400px] text-center">
+                      <div className="bg-white p-8 rounded-full shadow-xl border border-slate-200">
+                        <RefreshCcw className={`size-20 ${aktifKalip ? "text-amber-500 animate-spin" : "text-slate-300"}`} />
                       </div>
-                      <div className="space-y-1">
-                        <h3 className="text-2xl font-bold text-slate-700">Şu an çalışan iş yok</h3>
-                        <p className="text-slate-500">Kuyruktaki sıradaki işi başlatabilirsiniz.</p>
+                      <div className="space-y-3 max-w-md">
+                        <h3 className="text-3xl font-black text-slate-800">Şu an çalışan iş yok</h3>
+                        <p className="text-lg font-medium text-slate-500 leading-relaxed">
+                          {aktifKalip 
+                            ? "Kalıp değişimi süreci devam ediyor. Operasyon bitince sıradaki işi başlatabilirsiniz." 
+                            : "Makine şu an boşta. Kuyruktaki sıradaki işi başlatarak üretime geçebilirsiniz."}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-center gap-4 w-full max-w-2xl">
+                        {aktifKalip ? (
+                          <Button
+                            className="h-20 px-10 rounded-2xl bg-amber-500 text-xl font-black hover:bg-amber-600 shadow-lg hover:scale-[1.02] transition-transform"
+                            onClick={() => handleKalipDegisimBitir(aktifKalip.id)}
+                          >
+                            <Square className="mr-3 size-6" />
+                            KALIP DEĞİŞİMİ BİTİR
+                          </Button>
+                        ) : (
+                          <>
+                            {firstBekleyenJob && (
+                              <Button
+                                className="h-24 px-12 rounded-3xl bg-primary text-2xl font-black hover:bg-primary/90 shadow-xl hover:scale-[1.02] transition-transform flex-col gap-1"
+                                onClick={() => handleBaslat(firstBekleyenJob)}
+                              >
+                                <span className="text-xs font-bold opacity-70 uppercase tracking-widest">SIRADAKİ İŞİ BAŞLAT</span>
+                                {firstBekleyenJob.urunAd}
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              className="h-20 px-10 rounded-2xl border-2 border-amber-200 text-lg font-black text-amber-700 hover:bg-amber-50 shadow-md transition-all"
+                              onClick={() => handleKalipDegisimBaslat(makineId, firstBekleyenJob?.id)}
+                            >
+                              <RefreshCcw className="mr-3 size-6" />
+                              KALIP DEĞİŞTİR
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   )}
@@ -444,7 +516,7 @@ function MakineKuyruguTab() {
                       </div>
                       <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
                         {remainingJobs.map((job) => {
-                          const canStart = job.durum === "bekliyor" && !activeJob && job.id === firstBekleyenId;
+                          const canStart = job.durum === "bekliyor" && !activeJob && !aktifKalip && job.id === firstBekleyenId;
                           return (
                             <Card key={job.id} className={`shrink-0 w-80 snap-start border-2 transition-all ${canStart ? 'ring-2 ring-primary ring-offset-4 border-primary/30' : 'opacity-80'}`}>
                               <CardHeader className="p-4 pb-2">

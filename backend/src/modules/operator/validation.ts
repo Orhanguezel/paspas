@@ -66,6 +66,17 @@ export const gunlukUretimBodySchema = z.object({
   notlar: z.string().trim().max(500).optional(),
 });
 
+export const kalipDegisimBaslatBodySchema = z.object({
+  makineId: z.string().min(1),
+  makineKuyrukId: z.string().min(1).optional(),
+  notlar: z.string().trim().max(500).optional(),
+});
+
+export const kalipDegisimBitirBodySchema = z.object({
+  durusKayitId: z.string().min(1),
+  notlar: z.string().trim().max(500).optional(),
+});
+
 // Eski controller testleri ve entegrasyonlar bu isimleri import ediyor.
 export const listQuerySchema = z.object({
   makineId: z.string().min(1).optional(),
@@ -126,6 +137,8 @@ export type DevamEtBody = z.infer<typeof devamEtBodySchema>;
 export type VardiyaBasiBody = z.infer<typeof vardiyaBasiBodySchema>;
 export type VardiyaSonuBody = z.infer<typeof vardiyaSonuBodySchema>;
 export type GunlukUretimBody = z.infer<typeof gunlukUretimBodySchema>;
+export type KalipDegisimBaslatBody = z.infer<typeof kalipDegisimBaslatBodySchema>;
+export type KalipDegisimBitirBody = z.infer<typeof kalipDegisimBitirBodySchema>;
 export type SevkiyatBody = z.infer<typeof sevkiyatBodySchema>;
 export type MalKabulBody = z.infer<typeof malKabulBodySchema>;
 export type ListGunlukGirislerQuery = z.infer<typeof listGunlukGirislerQuerySchema>;

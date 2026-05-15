@@ -477,7 +477,7 @@ export default function UretimEmriForm({ open, onClose, emri, initialKaynak = 's
 
           <SheetFooter className="border-t px-4 py-4 sm:flex-row sm:justify-end sm:px-6">
             <Button type="button" variant="outline" onClick={onClose}>{t('admin.common.cancel')}</Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || selectedAdayReceteMissing || manualReceteMissing}>
               {loading ? t('admin.erp.common.saving') : t('admin.common.save')}
             </Button>
           </SheetFooter>

@@ -39,26 +39,43 @@ export function MakineAtaSheet({ emirId, emirNo, open, onClose }: Props) {
   // Çift taraflı üretimde montaj hangi operasyonda yapılacak?
   const [montajOpId, setMontajOpId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (open) {
-      setSecimler({});
-      setMontajOpId(null);
-    }
-  }, [open]);
-
-  useEffect(() => {
-    if (!open || operasyonlar.length <= 1) {
-      setMontajOpId(null);
-      return;
-    }
-    setMontajOpId((prev) => {
-      if (prev && operasyonlar.some((op) => op.id === prev)) return prev;
-      const mevcutMontaj = operasyonlar.find((op) => op.montaj);
-      return mevcutMontaj?.id ?? operasyonlar[0]?.id ?? null;
-    });
-  }, [open, operasyonlar]);
-
+  const sortedOperasyonlar = operasyonlar.slice().sort((a, b) => a.sira - b.sira);
   const isLoading = opLoading || makineLoading;
+
+  useEffect(() => {
+    if (!open) return;
+    setSecimler({});
+    setMontajOpId(null);
+  }, [open, emirId]);
+
+  useEffect(() => {
+    if (!open || isLoading || sortedOperasyonlar.length === 0 || makineler.length === 0) return;
+
+    const findMakine = (code: string) => 
+      makineler.find((m) => m.kod.replace(/[-_]/g, "").toLowerCase() === code.replace(/[-_]/g, "").toLowerCase());
+
+    const enj01 = findMakine("ENJ01");
+    const enj02 = findMakine("ENJ02");
+
+    setSecimler((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const [idx, op] of sortedOperasyonlar.entries()) {
+        if (next[op.id]) continue;
+        const defaultMakine = idx === 0 ? enj01 : idx === 1 ? enj02 : undefined;
+        if (defaultMakine) {
+          next[op.id] = defaultMakine.id;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+
+    if (sortedOperasyonlar.length > 1 && !montajOpId) {
+      setMontajOpId(sortedOperasyonlar[1]?.id ?? null);
+    }
+  }, [open, isLoading, sortedOperasyonlar, makineler, montajOpId]);
+
   const atanabilir = operasyonlar.some((op) => secimler[op.id]);
 
   async function handleAta() {
@@ -67,11 +84,12 @@ export function MakineAtaSheet({ emirId, emirNo, open, onClose }: Props) {
       const makineId = secimler[op.id];
       if (!makineId) continue;
       try {
-        const montajMakineId = montajOpId ? secimler[montajOpId] : undefined;
+        const isMontajOp = operasyonlar.length > 1 && op.id === montajOpId;
+        const montajMakineId = isMontajOp && montajOpId ? secimler[montajOpId] : undefined;
         await ataOperasyon({
           emirOperasyonId: op.id,
           makineId,
-          montaj: operasyonlar.length > 1 ? op.id === montajOpId : op.montaj,
+          montaj: operasyonlar.length > 1 ? isMontajOp : op.montaj,
           ...(montajMakineId ? { montajMakineId } : {}),
         }).unwrap();
         atanan++;
@@ -106,10 +124,7 @@ export function MakineAtaSheet({ emirId, emirNo, open, onClose }: Props) {
           ) : (
             <>
               {/* Operasyon → Makine seçimleri */}
-              {operasyonlar
-                .slice()
-                .sort((a, b) => a.sira - b.sira)
-                .map((op) => (
+              {sortedOperasyonlar.map((op) => (
                   <div key={op.id} className="space-y-2 border rounded-md p-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">{op.operasyonAdi}</span>

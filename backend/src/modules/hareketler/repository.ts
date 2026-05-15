@@ -53,6 +53,15 @@ function getDateRange(query: ListQuery): { start: Date; end: Date } | null {
     return { start, end };
   }
 
+  if (query.period === 'yesterday') {
+    const start = new Date(now);
+    start.setDate(start.getDate() - 1);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }
+
   return null;
 }
 
@@ -80,7 +89,12 @@ function buildWhere(query: ListQuery): SQL | undefined {
 
   if (query.urunId) conditions.push(eq(hareketler.urun_id, query.urunId));
   if (query.hareketTipi) conditions.push(eq(hareketler.hareket_tipi, query.hareketTipi));
-  if (query.kaynakTipi) conditions.push(eq(kaynakTipiExpression(), query.kaynakTipi));
+  if (query.kaynakTipi) {
+    conditions.push(eq(kaynakTipiExpression(), query.kaynakTipi));
+    if (query.kaynakTipi === 'uretim' && !query.kategori) {
+      conditions.push(eq(urunler.kategori, 'urun'));
+    }
+  }
   if (query.kategori) conditions.push(eq(urunler.kategori, query.kategori));
   if (query.urunGrubu) conditions.push(eq(urunler.urun_grubu, query.urunGrubu));
 

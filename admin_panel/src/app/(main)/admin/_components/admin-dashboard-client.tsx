@@ -22,13 +22,23 @@ import { useListGanttAdminQuery } from '@/integrations/endpoints/admin/erp/gantt
 import { useListSevkEmirleriAdminQuery } from '@/integrations/endpoints/admin/erp/sevkiyat_admin.endpoints';
 import { useListStoklarAdminQuery } from '@/integrations/endpoints/admin/erp/stoklar_admin.endpoints';
 
-// Period filter options for OZ-1
+type DashboardPeriod = 'yesterday' | 'today' | 'week' | 'month' | '';
+type ShiftFilter = 'all' | 'gunduz' | 'gece';
+
+// Period filter options for dashboard cards
 const PERIOD_OPTIONS = [
+  { value: 'yesterday', label: 'Dün' },
   { value: 'today', label: 'Bugün' },
   { value: 'week', label: 'Hafta' },
   { value: 'month', label: 'Ay' },
   { value: '', label: 'Tümü' },
-];
+] satisfies { value: DashboardPeriod; label: string }[];
+
+const SHIFT_OPTIONS = [
+  { value: 'all', label: 'Tümü' },
+  { value: 'gunduz', label: 'Gündüz' },
+  { value: 'gece', label: 'Gece' },
+] satisfies { value: ShiftFilter; label: string }[];
 
 const SEVK_DURUM_BADGE: Record<string, string> = {
   bekliyor: 'bg-amber-50 text-amber-800 border-amber-200',
@@ -57,6 +67,59 @@ function fmtDateTime(value: string | null | undefined) {
   return d.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
+function toDateOnly(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getPeriodRange(period: DashboardPeriod): { dateFrom?: string; dateTo?: string } {
+  if (!period) return {};
+  const now = new Date();
+  const start = new Date(now);
+  const end = new Date(now);
+
+  if (period === 'yesterday') {
+    start.setDate(start.getDate() - 1);
+    start.setHours(0, 0, 0, 0);
+    end.setDate(end.getDate() - 1);
+    end.setHours(23, 59, 59, 999);
+  } else if (period === 'week') {
+    const day = start.getDay();
+    const diff = day === 0 ? 6 : day - 1;
+    start.setDate(start.getDate() - diff);
+    start.setHours(0, 0, 0, 0);
+    end.setTime(start.getTime());
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+  } else if (period === 'month') {
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+    end.setMonth(start.getMonth() + 1, 0);
+    end.setHours(23, 59, 59, 999);
+  } else {
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+  }
+
+  return { dateFrom: toDateOnly(start), dateTo: toDateOnly(end) };
+}
+
+function getShift(createdAt: string | null | undefined): ShiftFilter {
+  if (!createdAt) return 'gunduz';
+  const d = new Date(createdAt);
+  if (Number.isNaN(d.getTime())) return 'gunduz';
+  const minutes = d.getHours() * 60 + d.getMinutes();
+  return minutes >= 19 * 60 + 30 || minutes < 7 * 60 + 30 ? 'gece' : 'gunduz';
+}
+
+function shiftLabel(value: ShiftFilter) {
+  if (value === 'gece') return 'Gece';
+  if (value === 'gunduz') return 'Gündüz';
+  return 'Tümü';
+}
+
 function WidgetSkeleton({ rows = 4 }: { rows?: number }) {
   return (
     <div className="space-y-2 pt-2">
@@ -67,33 +130,57 @@ function WidgetSkeleton({ rows = 4 }: { rows?: number }) {
 
 // ─── OZ-1: Gerçekleşen Üretim ───────────────────────────────
 function UretimWidget() {
-  const [period, setPeriod] = useState('today');
+  const [period, setPeriod] = useState<DashboardPeriod>('today');
+  const [shift, setShift] = useState<ShiftFilter>('all');
 
+  // Sadece üretimi yapılan ürüne (+) stok yansıyan giriş hareketleri.
+  // hareketTipi='giris' + kategori='urun': tüketilen koli/etiket/yarımamul
+  // (cikis, operasyonel_ym/yarimamul) bu kutuda görünmez.
   const { data, isLoading } = useListHareketlerAdminQuery({
     kaynakTipi: 'uretim',
+    hareketTipi: 'giris',
+    kategori: 'urun',
     period: period || undefined,
     limit: 10,
   });
 
-  const items = data?.items ?? [];
+  const items = useMemo(
+    () => (data?.items ?? []).filter((item) => shift === 'all' || getShift(item.createdAt) === shift),
+    [data?.items, shift],
+  );
 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <CardTitle className="text-sm font-semibold">Gerçekleşen Üretim</CardTitle>
-          <div className="flex gap-1">
-            {PERIOD_OPTIONS.map((opt) => (
-              <Button
-                key={opt.value}
-                size="sm"
-                variant={period === opt.value ? 'default' : 'ghost'}
-                className="h-6 px-2 text-xs"
-                onClick={() => setPeriod(opt.value)}
-              >
-                {opt.label}
-              </Button>
-            ))}
+          <div className="flex flex-col items-start gap-1 sm:items-end">
+            <div className="flex flex-wrap justify-end gap-1">
+              {PERIOD_OPTIONS.map((opt) => (
+                <Button
+                  key={opt.value}
+                  size="sm"
+                  variant={period === opt.value ? 'default' : 'ghost'}
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setPeriod(opt.value)}
+                >
+                  {opt.label}
+                </Button>
+              ))}
+            </div>
+            <div className="flex flex-wrap justify-end gap-1">
+              {SHIFT_OPTIONS.map((opt) => (
+                <Button
+                  key={opt.value}
+                  size="sm"
+                  variant={shift === opt.value ? 'secondary' : 'ghost'}
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setShift(opt.value)}
+                >
+                  {opt.label}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -105,6 +192,7 @@ function UretimWidget() {
             <TableHeader>
               <TableRow className="text-xs">
                 <TableHead>Tarih</TableHead>
+                <TableHead>Vardiya</TableHead>
                 <TableHead>Ürün</TableHead>
                 <TableHead className="text-right">Miktar</TableHead>
               </TableRow>
@@ -113,6 +201,9 @@ function UretimWidget() {
               {items.map((h) => (
                 <TableRow key={h.id} className="text-xs">
                   <TableCell className="text-muted-foreground">{fmtDate(h.createdAt)}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-[10px]">{shiftLabel(getShift(h.createdAt))}</Badge>
+                  </TableCell>
                   <TableCell className="font-medium">{h.urunAd ?? h.urunKod ?? h.urunId}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium text-emerald-700">
                     +{h.miktar.toLocaleString('tr-TR')}
@@ -129,9 +220,12 @@ function UretimWidget() {
 
 // ─── OZ-2: Sevkiyat ─────────────────────────────────────────
 function SevkiyatWidget() {
+  const [period, setPeriod] = useState<DashboardPeriod>('today');
+  const range = getPeriodRange(period);
   const { data, isLoading } = useListSevkEmirleriAdminQuery({
     sort: 'tarih',
     order: 'desc',
+    ...range,
     limit: 10,
   });
 
@@ -140,7 +234,22 @@ function SevkiyatWidget() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold">Sevkiyat</CardTitle>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-sm font-semibold">Sevkiyat</CardTitle>
+          <div className="flex flex-wrap gap-1">
+            {PERIOD_OPTIONS.map((opt) => (
+              <Button
+                key={opt.value}
+                size="sm"
+                variant={period === opt.value ? 'default' : 'ghost'}
+                className="h-6 px-2 text-xs"
+                onClick={() => setPeriod(opt.value)}
+              >
+                {opt.label}
+              </Button>
+            ))}
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         {isLoading ? <WidgetSkeleton /> : items.length === 0 ? (
@@ -180,9 +289,12 @@ function SevkiyatWidget() {
 
 // ─── OZ-3: Mal Kabul ────────────────────────────────────────
 function MalKabulWidget() {
+  const [period, setPeriod] = useState<DashboardPeriod>('today');
+  const range = getPeriodRange(period);
   const { data, isLoading } = useListMalKabulAdminQuery({
     sort: 'kabul_tarihi',
     order: 'desc',
+    ...range,
     limit: 10,
   });
 
@@ -191,7 +303,22 @@ function MalKabulWidget() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold">Mal Kabul</CardTitle>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-sm font-semibold">Mal Kabul</CardTitle>
+          <div className="flex flex-wrap gap-1">
+            {PERIOD_OPTIONS.map((opt) => (
+              <Button
+                key={opt.value}
+                size="sm"
+                variant={period === opt.value ? 'default' : 'ghost'}
+                className="h-6 px-2 text-xs"
+                onClick={() => setPeriod(opt.value)}
+              >
+                {opt.label}
+              </Button>
+            ))}
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         {isLoading ? <WidgetSkeleton /> : items.length === 0 ? (
@@ -235,10 +362,12 @@ function MalKabulWidget() {
   );
 }
 
-// ─── OZ-4: Depo Stok (paspas kategorisi) ────────────────────
+// ─── OZ-4: Depo Stok (ürün kategorisi) ───────────────────────
 function StokWidget() {
+  // Not: önceki `q: 'paspas'` filtresi ürün adı/kodunda "paspas" arıyordu;
+  // hiçbir ürün bu metni içermediği için kutu sürekli boş kalıyordu.
+  // Bitmiş ürün (kategori='urun') deposundaki stoklu kayıtlar gösterilir.
   const { data, isLoading } = useListStoklarAdminQuery({
-    q: 'paspas',
     kategori: 'urun',
     sort: 'stok',
     order: 'desc',
@@ -251,7 +380,7 @@ function StokWidget() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold">Depo Stok (Paspas)</CardTitle>
+        <CardTitle className="text-sm font-semibold">Depo Stok</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? <WidgetSkeleton /> : items.length === 0 ? (
@@ -349,28 +478,58 @@ const CHART_PERIOD_OPTIONS = [
   { value: 'all', label: 'Tümü' },
 ];
 
-function groupByWeek(items: { createdAt: string; miktar: number }[]) {
-  const buckets = new Map<string, number>();
-  for (const h of items) {
-    const d = new Date(h.createdAt);
-    const year = d.getFullYear();
-    const startOfYear = new Date(year, 0, 1);
-    const week = Math.ceil(((d.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
-    const key = `${year}-H${String(week).padStart(2, '0')}`;
-    buckets.set(key, (buckets.get(key) ?? 0) + Math.abs(h.miktar));
-  }
-  return buckets;
+const MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+const WEEK_DAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+
+function currentWeekStart() {
+  const start = new Date();
+  const day = start.getDay();
+  const diff = day === 0 ? 6 : day - 1;
+  start.setDate(start.getDate() - diff);
+  start.setHours(0, 0, 0, 0);
+  return start;
 }
 
-function groupByMonth(items: { createdAt: string; miktar: number }[]) {
-  const buckets = new Map<string, number>();
-  const MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-  for (const h of items) {
-    const d = new Date(h.createdAt);
-    const key = `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
-    buckets.set(key, (buckets.get(key) ?? 0) + Math.abs(h.miktar));
+function sameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function chartBuckets(period: 'week' | 'month' | 'all') {
+  const now = new Date();
+  if (period === 'week') {
+    const start = currentWeekStart();
+    return WEEK_DAYS.map((label, index) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + index);
+      return {
+        label,
+        match: (value: Date) => sameDay(value, date),
+      };
+    });
   }
-  return buckets;
+
+  if (period === 'month') {
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    return [1, 2, 3, 4, 5].map((week) => ({
+      label: `${week}. Hafta`,
+      match: (value: Date) => value.getFullYear() === year && value.getMonth() === month && Math.ceil(value.getDate() / 7) === week,
+    }));
+  }
+
+  const year = now.getFullYear();
+  return MONTHS.map((label, month) => ({
+    label,
+    match: (value: Date) => value.getFullYear() === year && value.getMonth() === month,
+  }));
+}
+
+function sumForBucket(items: { createdAt: string; miktar: number }[], match: (date: Date) => boolean) {
+  return items.reduce((sum, item) => {
+    const date = new Date(item.createdAt);
+    if (Number.isNaN(date.getTime()) || !match(date)) return sum;
+    return sum + Math.abs(item.miktar);
+  }, 0);
 }
 
 function UretimSevkiyatWidget() {
@@ -393,21 +552,11 @@ function UretimSevkiyatWidget() {
     const uretimItems = uretimData?.items ?? [];
     const sevkItems = sevkData?.items ?? [];
 
-    const uretimBuckets = chartPeriod === 'week'
-      ? groupByWeek(uretimItems)
-      : groupByMonth(uretimItems);
-    const sevkBuckets = chartPeriod === 'week'
-      ? groupByWeek(sevkItems)
-      : groupByMonth(sevkItems);
-
-    const allKeys = new Set([...uretimBuckets.keys(), ...sevkBuckets.keys()]);
-    return Array.from(allKeys)
-      .sort()
-      .map((key) => ({
-        label: key,
-        uretim: Math.round(uretimBuckets.get(key) ?? 0),
-        sevkiyat: Math.round(sevkBuckets.get(key) ?? 0),
-      }));
+    return chartBuckets(chartPeriod).map((bucket) => ({
+      label: bucket.label,
+      uretim: Math.round(sumForBucket(uretimItems, bucket.match)),
+      sevkiyat: Math.round(sumForBucket(sevkItems, bucket.match)),
+    }));
   }, [uretimData, sevkData, chartPeriod]);
 
   const isLoading = uLoading || sLoading;
@@ -440,11 +589,11 @@ function UretimSevkiyatWidget() {
         ) : chartData.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">Veri yok.</p>
         ) : (
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={330}>
             <BarChart data={chartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} domain={[0, 5000]} allowDataOverflow />
+              <YAxis tick={{ fontSize: 10 }} />
               <Tooltip
                 contentStyle={{ fontSize: 12 }}
                 formatter={(value: number, name: string) => [
@@ -496,11 +645,13 @@ export default function AdminDashboardClient() {
       {/* OZ-5 */}
       <UretimSevkiyatWidget />
 
-      {/* OZ-6 — Vardiya Özeti */}
-      <VardiyaOzetWidget />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* OZ-6 — Vardiya Özeti */}
+        <VardiyaOzetWidget />
 
-      {/* OZ-7 */}
-      <MakineDurumlariWidget />
+        {/* OZ-7 — Makine Durumları */}
+        <MakineDurumlariWidget />
+      </div>
     </div>
   );
 }

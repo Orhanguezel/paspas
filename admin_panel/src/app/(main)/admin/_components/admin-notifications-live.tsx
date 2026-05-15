@@ -30,7 +30,19 @@ export function AdminNotificationsLive() {
   useEffect(() => {
     if (typeof window === 'undefined' || typeof EventSource === 'undefined') return;
 
-    const stream = new EventSource(buildStreamUrl(), { withCredentials: true });
+    // SSE bağlantısı başarısız olduğunda (401/proxy) EventSource sonsuz
+    // yeniden bağlanır. Eskiden her `error` cache invalidate edip
+    // useGetUnreadCountQuery refetch → 401 → token/refresh → re-render
+    // fırtınası yaratıyordu. Artık: error'da invalidate YOK; bağlantı
+    // kapatılıp sınırlı sayıda, artan gecikmeli yeniden deneme yapılır.
+    const MAX_RETRIES = 5;
+    const BASE_DELAY_MS = 3000;
+
+    let stream: EventSource | null = null;
+    let retryCount = 0;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let disposed = false;
+
     const invalidateNotifications = () => {
       dispatch(
         notificationsApi.util.invalidateTags([
@@ -62,18 +74,46 @@ export function AdminNotificationsLive() {
       }
     };
 
-    const handleOpen = () => invalidateNotifications();
-    const handleError = () => invalidateNotifications();
+    // Bağlantı (yeniden) kurulduğunda backoff sıfırlanır ve sayımlar
+    // bir kez tazelenir — bu meşru tek invalidate noktasıdır.
+    const handleOpen = () => {
+      retryCount = 0;
+      invalidateNotifications();
+    };
 
-    stream.addEventListener('notification', handleNotification);
-    stream.addEventListener('connected', handleOpen);
-    stream.addEventListener('error', handleError as EventListener);
-
-    return () => {
-      stream.removeEventListener('notification', handleNotification);
+    const closeStream = () => {
+      if (!stream) return;
+      stream.removeEventListener('notification', handleNotification as EventListener);
       stream.removeEventListener('connected', handleOpen);
       stream.removeEventListener('error', handleError as EventListener);
       stream.close();
+      stream = null;
+    };
+
+    function handleError() {
+      // Error'da ASLA invalidate etme (doomed refetch → reauth döngüsü).
+      if (disposed) return;
+      closeStream();
+      if (retryCount >= MAX_RETRIES) return; // Kalıcı arıza: dener gibi yapma.
+      const delay = BASE_DELAY_MS * 2 ** retryCount;
+      retryCount += 1;
+      reconnectTimer = setTimeout(connect, delay);
+    }
+
+    function connect() {
+      if (disposed) return;
+      stream = new EventSource(buildStreamUrl(), { withCredentials: true });
+      stream.addEventListener('notification', handleNotification as EventListener);
+      stream.addEventListener('connected', handleOpen);
+      stream.addEventListener('error', handleError as EventListener);
+    }
+
+    connect();
+
+    return () => {
+      disposed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      closeStream();
     };
   }, [dispatch, pathname]);
 

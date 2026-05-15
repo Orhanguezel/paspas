@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, desc, eq, inArray, isNull, like, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, like, ne, or, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
@@ -442,12 +442,20 @@ export async function repoAtaOperasyon(data: AtaBody): Promise<void> {
     const updatePayload: Partial<typeof uretimEmriOperasyonlari.$inferInsert> = {
       makine_id: makineId,
     };
-    if (montajMakineId) {
-      updatePayload.montaj_makine_id = montajMakineId;
-    }
-    // Kullanici montaj tarafini kendisi secer (Rev4 karari)
     if (montajSecim !== undefined) {
+      if (montajSecim) {
+        await tx
+          .update(uretimEmriOperasyonlari)
+          .set({ montaj: 0, montaj_makine_id: null })
+          .where(
+            and(
+              eq(uretimEmriOperasyonlari.uretim_emri_id, opRow.uretim_emri_id),
+              ne(uretimEmriOperasyonlari.id, emirOperasyonId),
+            ),
+          );
+      }
       updatePayload.montaj = montajSecim ? 1 : 0;
+      updatePayload.montaj_makine_id = montajSecim ? (montajMakineId ?? makineId) : null;
     }
     await tx
       .update(uretimEmriOperasyonlari)

@@ -50,7 +50,13 @@ export default function StoklarClient() {
     [items],
   );
 
-  function durumBadge(durumValue: StokDto["durum"]) {
+  function getEffectiveDurum(item: StokDto): StokDto["durum"] {
+    if (item.kritikStok <= 0) return "yeterli";
+    return item.durum;
+  }
+
+  function durumBadge(item: StokDto) {
+    const durumValue = getEffectiveDurum(item);
     if (durumValue === "yetersiz") {
       return <Badge variant="destructive">{t("admin.erp.stoklar.status.yetersiz")}</Badge>;
     }

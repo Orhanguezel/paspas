@@ -7,10 +7,11 @@ const DOC_FILENAME = "ADMIN_SAYFA_DOKUMANTASYONU.md";
 
 export const dynamic = "force-dynamic";
 
-async function resolveDocsPath() {
+async function resolveDocsPath(): Promise<string | null> {
   const candidates = [
     path.join(process.cwd(), "..", "docs", DOC_FILENAME),
     path.join(process.cwd(), "docs", DOC_FILENAME),
+    path.join(process.cwd(), "public", "docs", DOC_FILENAME),
   ];
 
   for (const candidate of candidates) {
@@ -22,13 +23,23 @@ async function resolveDocsPath() {
     }
   }
 
-  return candidates[0];
+  // Sunucuda docs/ dizini deploy edilmemiş olabilir; bulunamadıysa null dön.
+  return null;
 }
 
 export default async function Page() {
-  const docsPath = await resolveDocsPath();
-  const [markdown, fileStat] = await Promise.all([readFile(docsPath, "utf8"), stat(docsPath)]);
-  const sections = parseAdminDocumentation(markdown);
-
-  return <AdminDocsClient sections={sections} updatedAt={fileStat.mtime.toISOString()} />;
+  // Server Component: dosya okunamazsa TÜM RSC render'ı çökertmemeli.
+  // (Canlıda /var/www/paspas/docs/ yok → eski hali "Server Components render"
+  //  hatası veriyordu.) Bulunamazsa boş dökümantasyon ile zarifçe düş.
+  try {
+    const docsPath = await resolveDocsPath();
+    if (!docsPath) {
+      return <AdminDocsClient sections={[]} updatedAt={new Date().toISOString()} />;
+    }
+    const [markdown, fileStat] = await Promise.all([readFile(docsPath, "utf8"), stat(docsPath)]);
+    const sections = parseAdminDocumentation(markdown);
+    return <AdminDocsClient sections={sections} updatedAt={fileStat.mtime.toISOString()} />;
+  } catch {
+    return <AdminDocsClient sections={[]} updatedAt={new Date().toISOString()} />;
+  }
 }

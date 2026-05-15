@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { AlertTriangle, ArrowRight, Clock, Factory, Package, Timer, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowRight, Factory, Package, Timer, Wrench } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,6 @@ export default function VardiyaOzetWidget() {
 
   const ozet = data?.ozet;
   const makineler = data?.makineler ?? [];
-  const aktifMakine = makineler.filter((m) => m.aktifVardiya).length;
 
   return (
     <Card>
@@ -53,109 +52,84 @@ export default function VardiyaOzetWidget() {
         {isLoading || !ozet ? (
           <Skeleton className="h-32" />
         ) : (
-          <>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              <MetricItem
-                icon={<Package className="size-3.5" />}
-                label="Üretim"
-                value={ozet.toplamUretim.toLocaleString("tr-TR")}
-              />
-              <MetricItem
-                icon={<Clock className="size-3.5" />}
-                label="Çalışma"
-                value={formatDk(ozet.toplamCalismaDk)}
-              />
-              <MetricItem
-                icon={<AlertTriangle className="size-3.5 text-amber-500" />}
-                label="Duruş"
-                value={`${formatDk(ozet.toplamDurusDk)} (%${Math.round(ozet.durusOrani * 100)})`}
-              />
-              <MetricItem
-                icon={<Factory className="size-3.5 text-primary" />}
-                label="OEE"
-                value={`%${Math.round(ozet.oee * 100)}`}
-              />
+          <div className="space-y-4">
+            {/* Global Özet — Daha kompakt */}
+            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground border-b pb-3">
+              <div className="flex items-center gap-1.5">
+                <Package className="size-3.5" />
+                <span>Toplam: <span className="font-semibold text-foreground">{ozet.toplamUretim.toLocaleString("tr-TR")}</span></span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <AlertTriangle className="size-3.5" />
+                <span>Duruş: <span className="font-semibold text-foreground">%{Math.round(ozet.durusOrani * 100)}</span></span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Factory className="size-3.5" />
+                <span>OEE: <span className="font-semibold text-foreground">%{Math.round(ozet.oee * 100)}</span></span>
+              </div>
             </div>
 
-            {/* Uyarılar */}
-            {(ozet.arizaSayisi > 0 || ozet.kalipDegisimSayisi > 0 || aktifMakine > 0) && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {aktifMakine > 0 && (
-                  <Badge variant="default" className="text-[10px]">
-                    <span className="mr-1 size-1.5 animate-pulse rounded-full bg-white" />
-                    {aktifMakine} makine çalışıyor
-                  </Badge>
-                )}
+            {/* Makineler Tablosu */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-left text-muted-foreground border-b">
+                    <th className="pb-2 font-medium">Makine</th>
+                    <th className="pb-2 text-right font-medium">Üretim</th>
+                    <th className="pb-2 text-right font-medium">OEE / Hedef</th>
+                    <th className="pb-2 text-right font-medium">Duruş</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {makineler.map((m) => (
+                    <tr key={m.makineId} className="group">
+                      <td className="py-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className={`size-2 rounded-full ${m.aktifVardiya ? "bg-emerald-500 animate-pulse" : "bg-slate-300"}`} />
+                          <span className="font-medium">{m.makineAd}</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 text-right tabular-nums">
+                        {m.toplamUretim.toLocaleString("tr-TR")}
+                      </td>
+                      <td className="py-2.5 text-right tabular-nums">
+                        <div className="flex flex-col items-end">
+                          <span className="font-semibold text-primary">%{Math.round(m.oee * 100)}</span>
+                          {m.hedefGerceklesmeYuzde !== null && (
+                            <span className="text-[10px] text-muted-foreground">Hedef: %{m.hedefGerceklesmeYuzde}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-2.5 text-right tabular-nums text-muted-foreground">
+                        {formatDk(m.durusToplamDk)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Uyarılar/Badge'ler alt kısımda */}
+            {(ozet.arizaSayisi > 0 || ozet.kalipDegisimSayisi > 0) && (
+              <div className="flex flex-wrap gap-2 pt-2">
                 {ozet.arizaSayisi > 0 && (
-                  <Badge variant="destructive" className="text-[10px]">
+                  <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">
                     <AlertTriangle className="mr-1 size-3" />
-                    {ozet.arizaSayisi} arıza
+                    {ozet.arizaSayisi} Arıza
                   </Badge>
                 )}
                 {ozet.kalipDegisimSayisi > 0 && (
-                  <Badge variant="secondary" className="text-[10px]">
+                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
                     <Wrench className="mr-1 size-3" />
-                    {ozet.kalipDegisimSayisi} kalıp değişimi
+                    {ozet.kalipDegisimSayisi} Kalıp
                   </Badge>
                 )}
               </div>
             )}
-
-            {/* Makineler hızlı liste */}
-            {makineler.length > 0 && (
-              <div className="mt-3 border-t pt-3">
-                <div className="space-y-1">
-                  {makineler.slice(0, 4).map((m) => (
-                    <div key={m.makineId} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        {m.aktifVardiya && (
-                          <span className="size-1.5 animate-pulse rounded-full bg-primary" />
-                        )}
-                        <span className="truncate">{m.makineAd}</span>
-                      </div>
-                      <div className="flex items-center gap-2 tabular-nums">
-                        <span className="text-muted-foreground">
-                          {m.toplamUretim.toLocaleString("tr-TR")} adet
-                        </span>
-                        {m.hedefGerceklesmeYuzde !== null && (
-                          <span
-                            className={
-                              m.hedefGerceklesmeYuzde >= 95
-                                ? "text-emerald-600 font-semibold"
-                                : m.hedefGerceklesmeYuzde >= 75
-                                  ? "text-amber-600 font-semibold"
-                                  : "text-destructive font-semibold"
-                            }
-                          >
-                            %{m.hedefGerceklesmeYuzde}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {makineler.length > 4 && (
-                    <div className="text-muted-foreground text-[10px]">
-                      +{makineler.length - 4} diğer makine
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </>
+          </div>
         )}
       </CardContent>
     </Card>
   );
 }
 
-function MetricItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div>
-      <div className="flex items-center gap-1 text-muted-foreground text-[11px]">
-        {icon}
-        <span>{label}</span>
-      </div>
-      <div className="font-semibold text-sm tabular-nums">{value}</div>
-    </div>
-  );
-}

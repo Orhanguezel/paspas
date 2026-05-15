@@ -16,6 +16,9 @@ import {
   malKabul,
   listGunlukGirisler,
   listDuruslar,
+  listAktifKalipDegisimleri,
+  kalipDegisimBaslat,
+  kalipDegisimBitir,
 } from './controller';
 
 export async function registerOperator(app: FastifyInstance) {
@@ -44,4 +47,7 @@ export async function registerOperator(app: FastifyInstance) {
   // Loglar
   app.get(`${BASE}/gunluk-girisler`, { preHandler: guard }, listGunlukGirisler);
   app.get(`${BASE}/duruslar`, { preHandler: guard }, listDuruslar);
+  app.get(`${BASE}/kalip-degisimleri/aktif`, { preHandler: guard }, listAktifKalipDegisimleri);
+  app.post(`${BASE}/kalip-degisimi/baslat`, { preHandler: guard }, kalipDegisimBaslat);
+  app.post(`${BASE}/kalip-degisimi/bitir`, { preHandler: guard }, kalipDegisimBitir);
 }

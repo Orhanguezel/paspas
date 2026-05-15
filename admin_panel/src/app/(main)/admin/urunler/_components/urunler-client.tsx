@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import { ChevronRight, FileText, Pencil, Plus, RefreshCcw, Search, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, Pencil, Plus, RefreshCcw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -53,7 +53,11 @@ type UrunListQueryParams = {
   urunGrubu?: string;
   sort?: "ad" | "kod" | "created_at" | "stok" | "kritik_stok";
   order?: "asc" | "desc";
+  limit?: number;
+  offset?: number;
 };
+
+const PAGE_SIZE = 25;
 
 const SKELETON_ROW_KEYS = ["row-1", "row-2", "row-3", "row-4", "row-5"] as const;
 const SKELETON_CELL_KEYS = [
@@ -103,6 +107,7 @@ export default function UrunlerClient() {
   const [deleteTarget, setDeleteTarget] = useState<UrunDto | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
 
   // Fetch categories & subcategories for filter
   const { data: categoriesRaw } = useListCategoriesAdminQuery({ limit: 50, sort: "display_order", order: "asc" });
@@ -145,15 +150,33 @@ export default function UrunlerClient() {
     setUrunGrubuFilter("");
   }, [filteredSubCategories, urunGrubuFilter]);
 
-  const queryParams: UrunListQueryParams = { sort: "kod", order: "asc" };
+  useEffect(() => {
+    setPage(0);
+  }, [search, kategoriFilter, tedarikFilter, urunGrubuFilter]);
+
+  const listOffset = page * PAGE_SIZE;
+
+  const queryParams: UrunListQueryParams = {
+    sort: "kod",
+    order: "asc",
+    limit: PAGE_SIZE,
+    offset: listOffset,
+  };
   if (search) queryParams.q = search;
   if (kategoriFilter) queryParams.kategori = kategoriFilter;
   if (tedarikFilter) queryParams.tedarikTipi = tedarikFilter;
   if (urunGrubuFilter) queryParams.urunGrubu = urunGrubuFilter;
 
-  const { data, isLoading, isFetching, refetch } = useListUrunlerAdminQuery(
-    queryParams,
-  );
+  const { data, isLoading, isFetching, refetch } = useListUrunlerAdminQuery(queryParams);
+
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  useEffect(() => {
+    if (page > 0 && page >= totalPages) {
+      setPage(Math.max(0, totalPages - 1));
+    }
+  }, [page, totalPages]);
 
   // Fetch full product with operasyonlar when editing
   const { data: fullUrun } = useGetUrunAdminQuery(editingId ?? "", { skip: !editingId });
@@ -161,6 +184,17 @@ export default function UrunlerClient() {
   const [deleteUrun, deleteState] = useDeleteUrunAdminMutation();
 
   const items = data?.items ?? [];
+  const currentPage = Math.min(page, totalPages - 1);
+  const canPrev = currentPage > 0;
+  const canNext = (currentPage + 1) * PAGE_SIZE < total;
+
+  const pageNumbers = useMemo(() => {
+    const pages: number[] = [];
+    const start = Math.max(0, currentPage - 2);
+    const end = Math.min(totalPages - 1, currentPage + 2);
+    for (let i = start; i <= end; i += 1) pages.push(i);
+    return pages;
+  }, [currentPage, totalPages]);
 
   function openCreate() {
     setEditing(null);
@@ -209,6 +243,7 @@ export default function UrunlerClient() {
     setKategoriFilter("");
     setTedarikFilter("");
     setUrunGrubuFilter("");
+    setPage(0);
   };
 
   return (
@@ -404,6 +439,46 @@ export default function UrunlerClient() {
             </TableBody>
           </Table>
         </div>
+
+        {total > PAGE_SIZE && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3">
+            <p className="text-muted-foreground text-sm">
+              {currentPage * PAGE_SIZE + 1}–{Math.min((currentPage + 1) * PAGE_SIZE, total)} / {total}
+            </p>
+            <div className="flex flex-wrap items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!canPrev || isFetching}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+              >
+                <ChevronLeft className="size-4" />
+                Önceki
+              </Button>
+              {pageNumbers.map((pageNum) => (
+                <Button
+                  key={pageNum}
+                  variant={pageNum === currentPage ? "default" : "outline"}
+                  size="sm"
+                  className="min-w-9"
+                  disabled={isFetching}
+                  onClick={() => setPage(pageNum)}
+                >
+                  {pageNum + 1}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!canNext || isFetching}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Sonraki
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Form Sheet — use full product data when editing */}

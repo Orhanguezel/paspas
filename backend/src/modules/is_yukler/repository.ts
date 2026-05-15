@@ -103,7 +103,7 @@ function selectQueue(where?: SQL) {
       planlananMiktar: uretimEmriOperasyonlari.planlanan_miktar,
       uretilenMiktar: uretimEmriOperasyonlari.uretilen_miktar,
       fireMiktar: uretimEmriOperasyonlari.fire_miktar,
-      montaj: sql<number>`CASE WHEN ${makineKuyrugu.makine_id} = ${uretimEmriOperasyonlari.montaj_makine_id} THEN 1 ELSE COALESCE(${uretimEmriOperasyonlari.montaj}, 0) END`,
+      montaj: sql<number>`COALESCE(${uretimEmriOperasyonlari.montaj}, 0)`,
       terminTarihi: uretimEmirleri.termin_tarihi,
       planlananBaslangic: makineKuyrugu.planlanan_baslangic,
       planlananBitis: makineKuyrugu.planlanan_bitis,

@@ -12,6 +12,8 @@ import {
   sevkiyatBodySchema,
   malKabulBodySchema,
   listGunlukGirislerQuerySchema,
+  kalipDegisimBaslatBodySchema,
+  kalipDegisimBitirBodySchema,
 } from './validation';
 import {
   repoListMakineKuyrugu,
@@ -27,6 +29,9 @@ import {
   repoMalKabul,
   repoListGunlukGirisler,
   repoListDuruslar,
+  repoListAktifKalipDegisimleri,
+  repoKalipDegisimBaslat,
+  repoKalipDegisimBitir,
 } from './repository';
 
 function getOperatorUserId(req: unknown): string | null {
@@ -249,6 +254,43 @@ export const listDuruslar: RouteHandler = async (req, reply) => {
     const { msg, stack } = extractError(error);
     req.log.error({ error: msg, stack }, 'list_duruslar_failed');
     return sendError(reply, 500, 'sunucu_hatasi');
+  }
+};
+
+export const listAktifKalipDegisimleri: RouteHandler = async (req, reply) => {
+  try {
+    return await repoListAktifKalipDegisimleri();
+  } catch (error) {
+    const { msg, stack } = extractError(error);
+    req.log.error({ error: msg, stack }, 'list_aktif_kalip_degisimi_failed');
+    return sendError(reply, 500, 'sunucu_hatasi');
+  }
+};
+
+export const kalipDegisimBaslat: RouteHandler = async (req, reply) => {
+  try {
+    const parsed = kalipDegisimBaslatBodySchema.safeParse(req.body);
+    if (!parsed.success) return sendError(reply, 400, 'gecersiz_istek_govdesi');
+    const result = await repoKalipDegisimBaslat(parsed.data, getOperatorUserId(req));
+    return reply.code(201).send(result);
+  } catch (error) {
+    const { msg, stack } = extractError(error);
+    req.log.error({ error: msg, stack }, 'kalip_degisimi_baslat_failed');
+    if (msg === 'makinede_aktif_is_var' || msg === 'aktif_kalip_degisimi_var') return sendError(reply, 409, msg);
+    return sendError(reply, 500, msg || 'sunucu_hatasi');
+  }
+};
+
+export const kalipDegisimBitir: RouteHandler = async (req, reply) => {
+  try {
+    const parsed = kalipDegisimBitirBodySchema.safeParse(req.body);
+    if (!parsed.success) return sendError(reply, 400, 'gecersiz_istek_govdesi');
+    return await repoKalipDegisimBitir(parsed.data, getOperatorUserId(req));
+  } catch (error) {
+    const { msg, stack } = extractError(error);
+    req.log.error({ error: msg, stack }, 'kalip_degisimi_bitir_failed');
+    if (msg === 'aktif_kalip_degisimi_bulunamadi') return sendError(reply, 404, msg);
+    return sendError(reply, 500, msg || 'sunucu_hatasi');
   }
 };
 
