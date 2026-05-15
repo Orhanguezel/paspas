@@ -100,7 +100,10 @@ export default function StokDetayDialog({ stok }: { stok: StokDto }) {
           <DialogDescription>{detail.urunKod} stok kartı</DialogDescription>
         </DialogHeader>
 
-        {isLoading ? (
+        {/* Liste verisi (stok) zaten elde; içerik anında gösterilir.
+            Detay isteği yalnızca eksik alanları (açık ihtiyaç, birim
+            dönüşümleri) zenginleştirir. Skeleton sadece hiç veri yoksa. */}
+        {isLoading && !stok ? (
           <div className="grid gap-3 md:grid-cols-2">
             {Array.from({ length: 4 }).map((_, index) => (
               <Skeleton key={`stok-detay-${index + 1}`} className="h-24" />
