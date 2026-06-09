@@ -369,10 +369,13 @@ async function ensureAutomaticShiftForMachine(
     return openShift;
   }
 
-  const vardiyaPenceresi = await getCurrentShiftWindow(now);
+  let vardiyaPenceresi = await getCurrentShiftWindow(now);
   if (!vardiyaPenceresi) throw new Error('vardiya_tanimi_bulunamadi');
   if (preferredVardiyaTipi && vardiyaPenceresi.vardiyaTipi !== preferredVardiyaTipi) {
-    throw new Error('vardiya_saati_gecersiz');
+    const tanimlar = await listActiveVardiyaTanimlari();
+    const preferredTanim = tanimlar.find((tanim) => tanim.vardiyaTipi === preferredVardiyaTipi);
+    if (!preferredTanim) throw new Error('vardiya_saati_gecersiz');
+    vardiyaPenceresi = buildShiftWindow(now, preferredTanim);
   }
 
   const calismaDurumu = await isMakineWorkingDay(makineId, vardiyaPenceresi.baslangic);
@@ -1776,6 +1779,7 @@ export async function repoGunlukUretimGir(
           makineId: body.makineId,
           operatorUserId,
           now,
+          preferredVardiyaTipi: body.vardiyaTipi,
         });
       }
     }

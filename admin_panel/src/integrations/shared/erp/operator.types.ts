@@ -97,6 +97,7 @@ export interface VardiyaSonuPayload {
 export interface GunlukUretimPayload {
   makineId: string;
   vardiyaKayitId?: string;
+  vardiyaTipi?: 'gunduz' | 'gece';
   uretilenMiktar: number;
   fireMiktar?: number;
   birimTipi?: 'adet' | 'takim';

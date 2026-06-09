@@ -113,6 +113,7 @@ function getShift(createdAt: string | null | undefined): ShiftFilter {
   const d = new Date(createdAt);
   if (Number.isNaN(d.getTime())) return 'gunduz';
   const minutes = d.getHours() * 60 + d.getMinutes();
+  if (minutes >= 7 * 60 + 30 && minutes < 9 * 60 + 30) return 'gece';
   return minutes >= 19 * 60 + 30 || minutes < 7 * 60 + 30 ? 'gece' : 'gunduz';
 }
 

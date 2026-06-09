@@ -60,6 +60,7 @@ export const vardiyaSonuBodySchema = z.object({
 export const gunlukUretimBodySchema = z.object({
   makineId: z.string().min(1),
   vardiyaKayitId: z.string().min(1).optional(),
+  vardiyaTipi: z.enum(['gunduz', 'gece']).optional(),
   uretilenMiktar: z.coerce.number().min(0.0001),
   fireMiktar: z.coerce.number().min(0).default(0),
   birimTipi: z.enum(['adet', 'takim']).default('adet'),

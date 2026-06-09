@@ -44,6 +44,13 @@ const DURUM_BADGE: Record<string, "default" | "secondary" | "destructive" | "out
   iptal: "destructive",
 };
 
+function getHybridShift(): "gunduz" | "gece" {
+  const now = new Date();
+  const minutes = now.getHours() * 60 + now.getMinutes();
+  if (minutes >= 7 * 60 + 30 && minutes < 9 * 60 + 30) return "gece";
+  return minutes >= 19 * 60 + 30 || minutes < 7 * 60 + 30 ? "gece" : "gunduz";
+}
+
 const DURUM_LABEL: Record<string, string> = {
   bekliyor: "Bekliyor",
   calisiyor: "Çalışıyor",
@@ -133,6 +140,7 @@ function MakineKuyruguTab() {
   const [dailyUretilenMiktar, setDailyUretilenMiktar] = useState("");
   const [dailyFireMiktar, setDailyFireMiktar] = useState("0");
   const [dailyNotlar, setDailyNotlar] = useState("");
+  const [dailyVardiyaTipi, setDailyVardiyaTipi] = useState<"gunduz" | "gece">("gunduz");
   const [receteDetayEmirId, setReceteDetayEmirId] = useState<string | null>(null);
 
   const [resuming, setResuming] = useState<MakineKuyruguDetayDto | null>(null);
@@ -278,6 +286,7 @@ function MakineKuyruguTab() {
     setDailyUretilenMiktar("");
     setDailyFireMiktar("0");
     setDailyNotlar("");
+    setDailyVardiyaTipi(getHybridShift());
     setDailyEntry(item);
   }
 
@@ -294,6 +303,7 @@ function MakineKuyruguTab() {
         makineId: dailyEntry.makineId,
         uretilenMiktar: u,
         fireMiktar: f,
+        vardiyaTipi: dailyVardiyaTipi,
         birimTipi: dailyEntry.montaj ? "takim" : "adet",
         notlar: dailyNotlar.trim() || undefined,
       }).unwrap();
@@ -666,7 +676,18 @@ function MakineKuyruguTab() {
               <strong className="font-mono">{dailyEntry?.emirNo}</strong> — {dailyEntry?.urunAd}
             </p>
             <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
-              Bu alana toplam iş miktarını değil, yalnız bu vardiyada üretilen ek miktarı girin.
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>Bu alana toplam iş miktarını değil, yalnız bu vardiyada üretilen ek miktarı girin.</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 rounded-full px-3 text-xs"
+                  onClick={() => setDailyVardiyaTipi((current) => (current === "gunduz" ? "gece" : "gunduz"))}
+                >
+                  {dailyVardiyaTipi === "gunduz" ? "Gündüz" : "Gece"} Vardiyası
+                </Button>
+              </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">

@@ -213,7 +213,7 @@
 - **Yapılacak (frontend):**
   - Operatör veri giriş modalında küçük **Vardiya badge** (default hesaplanan); tıklayınca aç-değiştir (Gündüz / Gece).
   - Dashboard Gerçekleşen Üretim widget filtresi bu hibrit kuralla çalışır → gece üretimleri artık doğru görünür.
-- [ ] Tamamlandı
+- [x] Tamamlandı
 
 ---
 
