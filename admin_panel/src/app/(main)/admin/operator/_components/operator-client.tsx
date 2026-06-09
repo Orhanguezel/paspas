@@ -734,6 +734,14 @@ function VardiyaPanel() {
   const { data: vardiyaData, isLoading } = useGetAcikVardiyalarAdminQuery();
 
   const makineler = vardiyaData ?? [];
+  const formatVardiyaTime = (value: string | Date | null): string | null => {
+    if (!value) return null;
+    if (value instanceof Date) {
+      return `${String(value.getHours()).padStart(2, "0")}:${String(value.getMinutes()).padStart(2, "0")}`;
+    }
+    const timePart = value.includes("T") ? value.split("T")[1] : value.split(" ")[1];
+    return timePart?.slice(0, 5) ?? null;
+  };
 
   return (
     <>
@@ -759,9 +767,7 @@ function VardiyaPanel() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {makineler.map((makine) => {
                 const isAcik = makine.acikVardiyaId !== null;
-                const baslangicStr = makine.baslangic
-                  ? new Date(makine.baslangic).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
-                  : null;
+                const baslangicStr = formatVardiyaTime(makine.baslangic);
                 const vardiyaTipiLabel = makine.vardiyaTipi === "gece" ? "Gece" : "Gündüz";
 
                 return (
