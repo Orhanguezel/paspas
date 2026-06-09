@@ -190,7 +190,7 @@
     - 5–10 gün → sarı
     - 10 gün < → yeşil
   - Makine durumu enum: `Çalışıyor`, `Kalıp Değişimi`, `Duraklatıldı`, `Kapalı` (Karar 1 ile uyumlu — `Kapalı` planlı aralık aktifken).
-- [ ] Tamamlandı
+- [x] Tamamlandı
 
 ### Y3 — Android cep telefonu responsive (Karar 4)
 - **Not:** `19a5dd97` (ekran görüntülü)

@@ -19,6 +19,8 @@ import { useListHareketlerAdminQuery } from '@/integrations/endpoints/admin/erp/
 import VardiyaOzetWidget from './vardiya-ozet-widget';
 import { useListMalKabulAdminQuery } from '@/integrations/endpoints/admin/erp/mal_kabul_admin.endpoints';
 import { useListGanttAdminQuery } from '@/integrations/endpoints/admin/erp/gantt_admin.endpoints';
+import { useListMakineKapaliAraliklarAdminQuery } from '@/integrations/endpoints/admin/erp/makine_kapali_araliklar_admin.endpoints';
+import { useListAktifKalipDegisimleriAdminQuery } from '@/integrations/endpoints/admin/erp/operator_admin.endpoints';
 import { useListSevkEmirleriAdminQuery } from '@/integrations/endpoints/admin/erp/sevkiyat_admin.endpoints';
 import { useListStoklarAdminQuery } from '@/integrations/endpoints/admin/erp/stoklar_admin.endpoints';
 
@@ -118,6 +120,35 @@ function shiftLabel(value: ShiftFilter) {
   if (value === 'gece') return 'Gece';
   if (value === 'gunduz') return 'Gündüz';
   return 'Tümü';
+}
+
+function diffDaysFromToday(value: string | null | undefined) {
+  if (!value) return 0;
+  const end = new Date(value);
+  if (Number.isNaN(end.getTime())) return 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  return Math.max(0, Math.ceil((end.getTime() - today.getTime()) / 86_400_000));
+}
+
+function planColorClass(days: number) {
+  if (days <= 2) return 'border-l-red-500 bg-red-50/50';
+  if (days <= 5) return 'border-l-orange-500 bg-orange-50/50';
+  if (days <= 10) return 'border-l-yellow-500 bg-yellow-50/50';
+  return 'border-l-emerald-500 bg-emerald-50/50';
+}
+
+function planBadgeClass(days: number) {
+  if (days <= 2) return 'border-red-200 bg-red-50 text-red-700';
+  if (days <= 5) return 'border-orange-200 bg-orange-50 text-orange-700';
+  if (days <= 10) return 'border-yellow-200 bg-yellow-50 text-yellow-700';
+  return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+}
+
+function isTodayWithinRange(start: string, end: string) {
+  const today = toDateOnly(new Date());
+  return start.slice(0, 10) <= today && end.slice(0, 10) >= today;
 }
 
 function WidgetSkeleton({ rows = 4 }: { rows?: number }) {
@@ -420,8 +451,23 @@ function MakineDurumlariWidget() {
     baslangic: today.toISOString().split('T')[0],
     bitis: endDate.toISOString().split('T')[0],
   });
+  const { data: kapaliAraliklar } = useListMakineKapaliAraliklarAdminQuery();
+  const { data: aktifKalipDegisimleri } = useListAktifKalipDegisimleriAdminQuery();
 
   const groups = (data?.items ?? []);
+  const kapaliMakineIds = useMemo(
+    () =>
+      new Set(
+        (kapaliAraliklar?.items ?? [])
+          .filter((item) => isTodayWithinRange(item.baslangicTarih, item.bitisTarih))
+          .map((item) => item.makineId),
+      ),
+    [kapaliAraliklar?.items],
+  );
+  const kalipDegisimMakineIds = useMemo(
+    () => new Set((aktifKalipDegisimleri ?? []).map((item) => item.makineId)),
+    [aktifKalipDegisimleri],
+  );
 
   return (
     <Card>
@@ -436,18 +482,31 @@ function MakineDurumlariWidget() {
             <TableHeader>
               <TableRow className="text-xs">
                 <TableHead>Makine</TableHead>
+                <TableHead>Durum</TableHead>
                 <TableHead className="text-right">İş Sayısı</TableHead>
-                <TableHead>Son Bitiş</TableHead>
+                <TableHead className="text-right">Plan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {groups.map((g) => {
                 const lastItem = g.items[g.items.length - 1];
+                const planDays = diffDaysFromToday(lastItem?.bitisTarihi);
+                const status = kapaliMakineIds.has(g.makineId)
+                  ? 'Kapalı'
+                  : kalipDegisimMakineIds.has(g.makineId)
+                    ? 'Kalıp Değişimi'
+                    : g.items.some((item) => item.durum === 'duraklatildi')
+                      ? 'Duraklatıldı'
+                      : 'Çalışıyor';
+                const statusVariant = status === 'Kapalı' || status === 'Duraklatıldı' ? 'destructive' : status === 'Kalıp Değişimi' ? 'secondary' : 'outline';
                 return (
-                  <TableRow key={g.makineId} className="text-xs">
+                  <TableRow key={g.makineId} className={`border-l-4 text-xs ${planColorClass(planDays)}`}>
                     <TableCell>
                       <span className="font-mono text-muted-foreground mr-1">{g.makineKod}</span>
                       <span className="font-medium">{g.makineAd}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant} className="text-[10px]">{status}</Badge>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {g.items.length > 0 ? (
@@ -456,8 +515,11 @@ function MakineDurumlariWidget() {
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {lastItem ? fmtDateTime(lastItem.bitisTarihi) : '—'}
+                    <TableCell className="text-right">
+                      <span className={`inline-flex rounded border px-1.5 py-0.5 text-[10px] font-medium ${planBadgeClass(planDays)}`}>
+                        {lastItem ? `${planDays} gün` : '0 gün'}
+                      </span>
+                      <div className="mt-0.5 text-[10px] text-muted-foreground">{lastItem ? fmtDateTime(lastItem.bitisTarihi) : '—'}</div>
                     </TableCell>
                   </TableRow>
                 );
