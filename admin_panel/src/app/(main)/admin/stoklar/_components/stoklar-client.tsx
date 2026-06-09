@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 
 import { PackageSearch, RefreshCcw, Search } from "lucide-react";
 
@@ -14,8 +14,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocaleContext } from "@/i18n/LocaleProvider";
+import { useListHareketlerAdminQuery } from "@/integrations/endpoints/admin/erp/hareketler_admin.endpoints";
 import { useListStoklarAdminQuery } from "@/integrations/endpoints/admin/erp/stoklar_admin.endpoints";
 import { useListCategoriesAdminQuery } from "@/integrations/endpoints/admin/categories_admin.endpoints";
+import { HAREKET_TIPI_LABELS } from "@/integrations/shared/erp/hareketler.types";
 import type { StokDto } from "@/integrations/shared/erp/stoklar.types";
 
 import StokDetayDialog from "./stok-detay-dialog";
@@ -27,6 +29,7 @@ export default function StoklarClient() {
   const [kategori, setKategori] = useState<string>("all");
   const [durum, setDurum] = useState<"all" | StokDto["durum"]>("all");
   const [stokluOnly, setStokluOnly] = useState(false);
+  const [expandedUrunId, setExpandedUrunId] = useState<string | null>(null);
   const { data: categories = [] } = useListCategoriesAdminQuery({ limit: 50, sort: "display_order", order: "asc" });
 
   const query = {
@@ -180,10 +183,15 @@ export default function StoklarClient() {
 
               {!isLoading &&
                 items.map((item) => (
+                  <Fragment key={item.urunId}>
                   <TableRow
-                    key={item.urunId}
+                    onClick={() => setExpandedUrunId((current) => current === item.urunId ? null : item.urunId)}
                     className={
-                      item.durum === "yetersiz" ? "bg-red-50/60" : item.durum === "kritik" ? "bg-orange-50/70" : ""
+                      item.durum === "yetersiz"
+                        ? "cursor-pointer bg-red-50/60"
+                        : item.durum === "kritik"
+                          ? "cursor-pointer bg-orange-50/70"
+                          : "cursor-pointer"
                     }
                   >
                     <TableCell className="font-mono text-xs">{item.urunKod}</TableCell>
@@ -222,15 +230,62 @@ export default function StoklarClient() {
                       {item.serbestStok > 0 ? formatAmount(item.serbestStok) : "—"}
                     </TableCell>
                     <TableCell>{durumBadge(item)}</TableCell>
-                    <TableCell>
+                    <TableCell onClick={(event) => event.stopPropagation()}>
                       <StokDetayDialog stok={item} />
                     </TableCell>
                   </TableRow>
+                  {expandedUrunId === item.urunId && (
+                    <TableRow key={`${item.urunId}-hareketler`}>
+                      <TableCell colSpan={9} className="bg-muted/20 p-0">
+                        <RecentHareketlerInline urunId={item.urunId} />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  </Fragment>
                 ))}
             </TableBody>
           </Table>
         </div>
       </div>
+    </div>
+  );
+}
+
+function RecentHareketlerInline({ urunId }: { urunId: string }) {
+  const { data, isLoading } = useListHareketlerAdminQuery({ urunId, limit: 10 });
+  const hareketler = data?.items ?? [];
+
+  return (
+    <div className="px-4 py-3">
+      <div className="mb-2 text-xs font-medium text-muted-foreground">Son 10 hareket</div>
+      {isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={`hareket-inline-${index + 1}`} className="h-7 w-full" />
+          ))}
+        </div>
+      ) : hareketler.length === 0 ? (
+        <div className="rounded-md border border-dashed bg-background px-3 py-3 text-center text-muted-foreground text-sm">
+          Hareket kaydı yok.
+        </div>
+      ) : (
+        <div className="divide-y rounded-md border bg-background">
+          {hareketler.map((hareket) => {
+            const isCikis = hareket.hareketTipi === "cikis";
+            const amount = Math.abs(hareket.miktar).toFixed(4).replace(/\.?0+$/, "");
+            return (
+              <div key={hareket.id} className="grid gap-2 px-3 py-2 text-sm sm:grid-cols-[150px_120px_100px_1fr]">
+                <span className="text-muted-foreground">{hareket.createdAt.slice(0, 16).replace("T", " ")}</span>
+                <span>{HAREKET_TIPI_LABELS[hareket.hareketTipi] ?? hareket.hareketTipi}</span>
+                <span className={`font-medium tabular-nums ${isCikis ? "text-destructive" : "text-green-600"}`}>
+                  {isCikis ? "-" : "+"}{amount}
+                </span>
+                <span className="truncate text-muted-foreground">{hareket.aciklama ?? "—"}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
