@@ -34,6 +34,7 @@ import {
 } from "@/integrations/endpoints/admin/erp/operator_admin.endpoints";
 import { useListDurusNedenleriAdminQuery } from "@/integrations/endpoints/admin/erp/tanimlar_admin.endpoints";
 import type { MakineKuyruguDetayDto } from "@/integrations/shared/erp/operator.types";
+import { ReceteDetayModal } from "../../uretim-emirleri/_components/recete-detay-modal";
 
 const DURUM_BADGE: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   bekliyor: "outline",
@@ -132,6 +133,7 @@ function MakineKuyruguTab() {
   const [dailyUretilenMiktar, setDailyUretilenMiktar] = useState("");
   const [dailyFireMiktar, setDailyFireMiktar] = useState("0");
   const [dailyNotlar, setDailyNotlar] = useState("");
+  const [receteDetayEmirId, setReceteDetayEmirId] = useState<string | null>(null);
 
   const [resuming, setResuming] = useState<MakineKuyruguDetayDto | null>(null);
   const [resumeNotlar, setResumeNotlar] = useState("");
@@ -410,6 +412,13 @@ function MakineKuyruguTab() {
 
                         {/* MEGA BUTTONS AREA */}
                         <div className="flex flex-col gap-4 min-w-60">
+                          <Button
+                            variant="outline"
+                            className="h-14 text-base font-bold rounded-2xl border-2"
+                            onClick={() => setReceteDetayEmirId(activeJob.uretimEmriId)}
+                          >
+                            Reçete Detayı
+                          </Button>
                           {activeJob.durum === "calisiyor" && (
                             <>
                               <Button 
@@ -534,6 +543,13 @@ function MakineKuyruguTab() {
                                   onClick={() => handleBaslat(job)}
                                 >
                                   {canStart ? 'BAŞLAT' : 'SIRADA'}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  className="mt-2 h-9 w-full rounded-xl font-semibold"
+                                  onClick={() => setReceteDetayEmirId(job.uretimEmriId)}
+                                >
+                                  Reçete Detayı
                                 </Button>
                               </CardContent>
                             </Card>
@@ -726,6 +742,8 @@ function MakineKuyruguTab() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <ReceteDetayModal emirId={receteDetayEmirId} onOpenChange={(open) => !open && setReceteDetayEmirId(null)} />
     </>
   );
 }
