@@ -59,6 +59,7 @@ const VARDIYA_SAATLERI = {
   gunduz: { baslangic: '07:30', bitis: '19:30' },
   gece: { baslangic: '19:30', bitis: '07:30' },
 } as const;
+const NIGHT_SHIFT_ENTRY_GRACE_MS = 2 * 60 * 60 * 1000;
 
 type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type VardiyaTipi = keyof typeof VARDIYA_SAATLERI;
@@ -168,6 +169,14 @@ function isNowWithinShiftWindow(now: Date, pencere: VardiyaPenceresi): boolean {
   return now >= pencere.baslangic && now < pencere.bitis;
 }
 
+function isInPostNightShiftEntryGrace(now: Date, pencere: VardiyaPenceresi): boolean {
+  return (
+    pencere.vardiyaTipi === 'gece' &&
+    now >= pencere.bitis &&
+    now.getTime() - pencere.bitis.getTime() <= NIGHT_SHIFT_ENTRY_GRACE_MS
+  );
+}
+
 async function listActiveVardiyaTanimlari(): Promise<VardiyaTanimi[]> {
   const rows = await db
     .select({
@@ -200,10 +209,18 @@ async function getCurrentShiftWindow(now: Date): Promise<VardiyaPenceresi | null
   const tanimlar = await listActiveVardiyaTanimlari();
   const current = tanimlar
     .map((tanim) => buildShiftWindow(now, tanim))
-    .filter((pencere) => isNowWithinShiftWindow(now, pencere))
-    .sort((a, b) => b.baslangic.getTime() - a.baslangic.getTime());
+    .map((pencere) => ({
+      pencere,
+      grace: isInPostNightShiftEntryGrace(now, pencere),
+      active: isNowWithinShiftWindow(now, pencere),
+    }))
+    .filter((item) => item.active || item.grace)
+    .sort((a, b) => {
+      if (a.grace !== b.grace) return a.grace ? -1 : 1;
+      return b.pencere.baslangic.getTime() - a.pencere.baslangic.getTime();
+    });
 
-  return current[0] ?? null;
+  return current[0]?.pencere ?? null;
 }
 
 async function closeExpiredOpenShiftForMachine(
@@ -230,7 +247,7 @@ async function closeExpiredOpenShiftForMachine(
   if (!matchingTanim) return openShift;
 
   const pencere = buildShiftWindowFromStart(new Date(openShift.baslangic), matchingTanim);
-  if (now < pencere.bitis) return openShift;
+  if (now < pencere.bitis || isInPostNightShiftEntryGrace(now, pencere)) return openShift;
 
   await tx
     .update(vardiyaKayitlari)
@@ -267,7 +284,7 @@ export async function closeAllExpiredOpenShifts(now: Date = new Date()): Promise
     if (!matchingTanim) continue;
 
     const pencere = buildShiftWindowFromStart(new Date(openShift.baslangic), matchingTanim);
-    if (now < pencere.bitis) continue; // henüz dolmamış
+    if (now < pencere.bitis || isInPostNightShiftEntryGrace(now, pencere)) continue; // henüz dolmamış
 
     await db
       .update(vardiyaKayitlari)
@@ -354,7 +371,7 @@ async function ensureAutomaticShiftForMachine(
     throw new Error('vardiya_saati_gecersiz');
   }
 
-  const calismaDurumu = await isMakineWorkingDay(makineId, now);
+  const calismaDurumu = await isMakineWorkingDay(makineId, vardiyaPenceresi.baslangic);
   if (!calismaDurumu) {
     throw new Error('makine_bugun_calismiyor');
   }
@@ -809,12 +826,6 @@ export async function repoUretimBaslat(
       .limit(1);
     if (!target) throw new Error('kuyruk_kaydi_bulunamadi');
     if (target.durum !== 'bekliyor') throw new Error('sadece_bekliyor_baslatilabilir');
-
-    // Hafta sonu / tatil kontrolu: makine icin bugun calisma plani var mi?
-    const calismaDurumu = await isMakineWorkingDay(target.makine_id, now);
-    if (!calismaDurumu) {
-      throw new Error('makine_bugun_calismiyor');
-    }
 
     await ensureAutomaticShiftForMachine(tx, {
       makineId: target.makine_id,
