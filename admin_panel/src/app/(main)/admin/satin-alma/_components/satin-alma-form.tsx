@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Plus, Trash2 } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, Trash2 } from 'lucide-react';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
 
 import {
@@ -19,6 +19,8 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 import {
   useCreateSatinAlmaAdminMutation,
@@ -264,22 +266,11 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
                 <div key={`kalem-${idx}`} className="flex items-end gap-2 rounded-md border p-3">
                   <div className="flex-1 space-y-1">
                     <Label className="text-xs">Malzeme</Label>
-                    <Select
-                      value={kalem.urunId || 'none'}
-                      onValueChange={(v) => updateKalem(idx, 'urunId', v === 'none' ? '' : v)}
-                    >
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Malzeme seçin" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Malzeme seçin</SelectItem>
-                        {urunler.map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.kod} — {u.ad} (Stok: {u.stok} {u.birim})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <MalzemeCombobox
+                      urunler={urunler}
+                      value={kalem.urunId}
+                      onChange={(value) => updateKalem(idx, 'urunId', value)}
+                    />
                   </div>
                   <div className="w-24 space-y-1">
                     <Label className="text-xs">Miktar</Label>
@@ -360,5 +351,56 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
         </form>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function MalzemeCombobox({
+  urunler,
+  value,
+  onChange,
+}: {
+  urunler: Array<{ id: string; kod: string; ad: string; stok: number; birim: string }>;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = urunler.find((urun) => urun.id === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" className="h-9 w-full justify-between text-sm font-normal">
+          <span className="truncate">
+            {selected ? `${selected.kod} — ${selected.ad}` : 'Malzeme seçin'}
+          </span>
+          <ChevronsUpDown className="ml-2 size-3.5 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Malzeme ara..." />
+          <CommandList>
+            <CommandEmpty>Sonuç bulunamadı.</CommandEmpty>
+            <CommandGroup>
+              {urunler.map((urun) => (
+                <CommandItem
+                  key={urun.id}
+                  value={`${urun.kod} ${urun.ad}`}
+                  onSelect={() => {
+                    onChange(urun.id);
+                    setOpen(false);
+                  }}
+                >
+                  <Check className={`mr-2 size-4 ${value === urun.id ? 'opacity-100' : 'opacity-0'}`} />
+                  <span className="truncate">
+                    {urun.kod} — {urun.ad} (Stok: {urun.stok} {urun.birim})
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
