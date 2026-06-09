@@ -40,7 +40,7 @@ export function rowToDto(
   const stok = Number(row.stok ?? 0);
   const kritikStok = Number(row.kritik_stok ?? 0);
   const rezerveStok = Number(row.rezerve_stok ?? 0);
-  const serbestStok = stok - acikUretimIhtiyaci;
+  const serbestStok = stok - rezerveStok;
   return {
     urunId: row.id,
     urunKod: row.kod,

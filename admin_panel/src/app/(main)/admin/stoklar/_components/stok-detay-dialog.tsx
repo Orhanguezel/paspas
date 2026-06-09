@@ -144,8 +144,8 @@ export default function StokDetayDialog({ stok }: { stok: StokDto }) {
                 </div>
                 <div className="rounded-lg border p-3">
                   <div className="text-muted-foreground text-xs">Serbest Stok</div>
-                  <div className={`mt-1 font-semibold text-xl ${detail.serbestStok < 0 ? "text-destructive" : ""}`}>
-                    {formatAmount(detail.serbestStok)} {detail.birim}
+                  <div className="mt-1 font-semibold text-xl">
+                    {detail.serbestStok > 0 ? `${formatAmount(detail.serbestStok)} ${detail.birim}` : "—"}
                   </div>
                 </div>
               </div>
@@ -186,9 +186,9 @@ export default function StokDetayDialog({ stok }: { stok: StokDto }) {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Plan Sonrası Serbest</span>
-                      <span className={detail.serbestStok < 0 ? "font-medium text-destructive" : ""}>
-                        {formatAmount(detail.serbestStok)} {detail.birim}
+                      <span className="text-muted-foreground">Rezerve Sonrası Serbest</span>
+                      <span>
+                        {detail.serbestStok > 0 ? `${formatAmount(detail.serbestStok)} ${detail.birim}` : "—"}
                       </span>
                     </div>
                   </div>
