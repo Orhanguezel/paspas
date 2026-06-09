@@ -49,6 +49,14 @@ function extractError(error: unknown): { msg: string; stack?: string } {
   return { msg, stack };
 }
 
+function extractErrorDetail(error: unknown): string | null {
+  if (error instanceof Error && 'detail' in error) {
+    const detail = (error as Error & { detail?: unknown }).detail;
+    return typeof detail === 'string' ? detail : null;
+  }
+  return null;
+}
+
 // -- Makine Kuyrugu --
 
 export const listMakineKuyrugu: RouteHandler = async (req, reply) => {
@@ -81,6 +89,9 @@ export const uretimBaslat: RouteHandler = async (req, reply) => {
     if (msg === 'sadece_bekliyor_baslatilabilir') return sendError(reply, 409, msg);
     if (msg === 'makinede_aktif_is_var') return sendError(reply, 409, msg);
     if (msg === 'makine_bugun_calismiyor') return sendError(reply, 409, 'makine_bugun_calismiyor');
+    if (msg === 'makine_planli_kapali') {
+      return reply.code(409).send({ error: { message: msg, detail: extractErrorDetail(error) } });
+    }
     return sendError(reply, 500, msg || 'sunucu_hatasi');
   }
 };

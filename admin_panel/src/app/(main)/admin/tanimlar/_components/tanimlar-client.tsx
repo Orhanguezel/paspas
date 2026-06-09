@@ -33,6 +33,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useLocaleContext } from "@/i18n/LocaleProvider";
 import { useListMakinelerAdminQuery } from "@/integrations/endpoints/admin/erp/makine_havuzu_admin.endpoints";
 import {
+  useCreateMakineKapaliAralikAdminMutation,
+  useDeleteMakineKapaliAralikAdminMutation,
+  useListMakineKapaliAraliklarAdminQuery,
+  useUpdateMakineKapaliAralikAdminMutation,
+} from "@/integrations/endpoints/admin/erp/makine_kapali_araliklar_admin.endpoints";
+import {
   useDeleteDurusNedeniAdminMutation,
   useDeleteHaftaSonuPlanAdminMutation,
   useDeleteKalipAdminMutation,
@@ -53,6 +59,7 @@ import {
   type TatilDto,
   type VardiyaDto,
 } from "@/integrations/shared/erp/tanimlar.types";
+import type { MakineKapaliAralikDto } from "@/integrations/shared/erp/makine_kapali_araliklar.types";
 
 import BirimlerTab from "./birimler-tab";
 import DurusNedeniForm from "./durus-nedeni-form";
@@ -87,6 +94,13 @@ function getApiErrorMessage(error: unknown) {
   return null;
 }
 
+const emptyKapaliAralikForm = {
+  makineId: "",
+  baslangicTarih: "",
+  bitisTarih: "",
+  aciklama: "",
+};
+
 export default function TanimlarClient() {
   const { t } = useLocaleContext();
   const searchParams = useSearchParams();
@@ -96,6 +110,7 @@ export default function TanimlarClient() {
     if (tab === "vardiyalar") return "vardiyalar";
     if (tab === "durus-nedenleri") return "durus-nedenleri";
     if (tab === "hafta-sonu-planlari") return "hafta-sonu-planlari";
+    if (tab === "makine-kapama") return "makine-kapama";
     if (tab === "kategoriler") return "kategoriler";
     if (tab === "birimler") return "birimler";
     return "kaliplar";
@@ -105,6 +120,7 @@ export default function TanimlarClient() {
   const isVardiyalar     = activeTab === "vardiyalar";
   const isDurusNedenleri = activeTab === "durus-nedenleri";
   const isHaftaSonuPlanlari = activeTab === "hafta-sonu-planlari";
+  const isMakineKapama = activeTab === "makine-kapama";
   const isKategoriler    = activeTab === "kategoriler";
   const isBirimler       = activeTab === "birimler";
 
@@ -131,6 +147,9 @@ export default function TanimlarClient() {
   const [haftaSonuFormOpen, setHaftaSonuFormOpen] = useState(false);
   const [editingHaftaSonu, setEditingHaftaSonu] = useState<HaftaSonuPlanDto | null>(null);
   const [deleteHaftaSonu, setDeleteHaftaSonu] = useState<HaftaSonuPlanDto | null>(null);
+  const [kapaliAralikForm, setKapaliAralikForm] = useState(emptyKapaliAralikForm);
+  const [editingKapaliAralik, setEditingKapaliAralik] = useState<MakineKapaliAralikDto | null>(null);
+  const [deleteKapaliAralik, setDeleteKapaliAralik] = useState<MakineKapaliAralikDto | null>(null);
 
   const { data: kaliplar, isLoading: kalipLoading, refetch: refetchKalip } = useListKaliplarAdminQuery({});
   const { data: makineData, isLoading: makineLoading } = useListMakinelerAdminQuery({});
@@ -138,12 +157,16 @@ export default function TanimlarClient() {
   const { data: vardiyalar, isLoading: vardiyaLoading, refetch: refetchVardiya } = useListVardiyalarAdminQuery();
   const { data: durusNedenleri, isLoading: durusLoading, refetch: refetchDurus } = useListDurusNedenleriAdminQuery();
   const { data: haftaSonuPlanlari, isLoading: haftaSonuLoading, refetch: refetchHaftaSonu } = useListHaftaSonuPlanlariAdminQuery();
+  const { data: kapaliAraliklar, isLoading: kapaliAralikLoading, refetch: refetchKapaliAralik } = useListMakineKapaliAraliklarAdminQuery();
   const [doDeleteKalip, deleteKalipState] = useDeleteKalipAdminMutation();
   const [setUyumluMakineler, setUyumluMakinelerState] = useSetUyumluMakinelerAdminMutation();
   const [doDeleteTatil, deleteTatilState] = useDeleteTatilAdminMutation();
   const [doDeleteVardiya, deleteVardiyaState] = useDeleteVardiyaAdminMutation();
   const [doDeleteDurus, deleteDurusState] = useDeleteDurusNedeniAdminMutation();
   const [doDeleteHaftaSonu, deleteHaftaSonuState] = useDeleteHaftaSonuPlanAdminMutation();
+  const [createKapaliAralik, createKapaliAralikState] = useCreateMakineKapaliAralikAdminMutation();
+  const [updateKapaliAralik, updateKapaliAralikState] = useUpdateMakineKapaliAralikAdminMutation();
+  const [doDeleteKapaliAralik, deleteKapaliAralikState] = useDeleteMakineKapaliAralikAdminMutation();
   const [matrixState, setMatrixState] = useState<Record<string, string[]>>({});
   const [dirtyKalipIds, setDirtyKalipIds] = useState<string[]>([]);
 
@@ -230,6 +253,62 @@ export default function TanimlarClient() {
     }
   }
 
+  function startKapaliAralikEdit(item: MakineKapaliAralikDto) {
+    setEditingKapaliAralik(item);
+    setKapaliAralikForm({
+      makineId: item.makineId,
+      baslangicTarih: item.baslangicTarih,
+      bitisTarih: item.bitisTarih,
+      aciklama: item.aciklama ?? "",
+    });
+  }
+
+  function resetKapaliAralikForm() {
+    setEditingKapaliAralik(null);
+    setKapaliAralikForm(emptyKapaliAralikForm);
+  }
+
+  async function saveKapaliAralik() {
+    if (!kapaliAralikForm.makineId || !kapaliAralikForm.baslangicTarih || !kapaliAralikForm.bitisTarih) {
+      toast.error("Makine ve tarih aralığı zorunlu.");
+      return;
+    }
+    if (kapaliAralikForm.baslangicTarih > kapaliAralikForm.bitisTarih) {
+      toast.error("Bitiş tarihi başlangıçtan önce olamaz.");
+      return;
+    }
+    const body = {
+      makineId: kapaliAralikForm.makineId,
+      baslangicTarih: kapaliAralikForm.baslangicTarih,
+      bitisTarih: kapaliAralikForm.bitisTarih,
+      aciklama: kapaliAralikForm.aciklama.trim() || null,
+    };
+    try {
+      if (editingKapaliAralik) {
+        await updateKapaliAralik({ id: editingKapaliAralik.id, body }).unwrap();
+      } else {
+        await createKapaliAralik(body).unwrap();
+      }
+      toast.success(t("admin.erp.common.saved"));
+      resetKapaliAralikForm();
+    } catch (err: unknown) {
+      const message = getApiErrorMessage(err);
+      toast.error(message === "cakisan_aralik" ? "Bu makine için çakışan kapalı aralık var." : message ?? t("admin.erp.common.operationFailed"));
+    }
+  }
+
+  async function confirmDeleteKapaliAralik() {
+    if (!deleteKapaliAralik) return;
+    try {
+      await doDeleteKapaliAralik(deleteKapaliAralik.id).unwrap();
+      toast.success(t("admin.erp.common.deleted"));
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err) ?? t("admin.erp.common.deleteFailed"));
+    } finally {
+      setDeleteKapaliAralik(null);
+    }
+  }
+
   function toggleUyumluluk(kalipId: string, makineId: string, checked: boolean) {
     setMatrixState((prev) => {
       const current = prev[kalipId] ?? [];
@@ -269,6 +348,8 @@ export default function TanimlarClient() {
                 ? t("admin.erp.tanimlar.tabs.vardiyalar")
                 : isHaftaSonuPlanlari
                   ? t("admin.erp.tanimlar.tabs.haftaSonuPlanlari")
+                  : isMakineKapama
+                    ? "Makine Kapama"
                   : isKategoriler
                     ? t("admin.erp.tanimlar.tabs.kategoriler")
                     : isBirimler
@@ -284,6 +365,8 @@ export default function TanimlarClient() {
               ? t("admin.erp.tanimlar.vardiyalar.pageDescription")
               : isHaftaSonuPlanlari
                 ? t("admin.erp.tanimlar.haftaSonuPlanlari.pageDescription")
+                : isMakineKapama
+                  ? "Planlı bakım ve kapalı tarih aralıkları"
                 : isKategoriler
                   ? t("admin.erp.tanimlar.kategoriler.pageDescription")
                   : isBirimler
@@ -754,6 +837,136 @@ export default function TanimlarClient() {
             </Table>
           </div>
         </div>
+      ) : isMakineKapama ? (
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="border-b">
+              <CardTitle className="text-base">{editingKapaliAralik ? "Kapalı Aralığı Düzenle" : "Yeni Kapalı Aralık"}</CardTitle>
+              <CardDescription>Makine bakım, tatil veya planlı duruş aralıkları operatör başlatma ekranını kilitler.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 p-4 md:grid-cols-[minmax(220px,1.2fr)_150px_150px_minmax(180px,1fr)_auto]">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Makine</label>
+                <select
+                  className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                  value={kapaliAralikForm.makineId}
+                  onChange={(event) => setKapaliAralikForm((prev) => ({ ...prev, makineId: event.target.value }))}
+                >
+                  <option value="">Makine seç</option>
+                  {makineler.map((makine) => (
+                    <option key={makine.id} value={makine.id}>
+                      {makine.kod} - {makine.ad}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Başlangıç</label>
+                <Input
+                  type="date"
+                  value={kapaliAralikForm.baslangicTarih}
+                  onChange={(event) => setKapaliAralikForm((prev) => ({ ...prev, baslangicTarih: event.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Bitiş</label>
+                <Input
+                  type="date"
+                  value={kapaliAralikForm.bitisTarih}
+                  onChange={(event) => setKapaliAralikForm((prev) => ({ ...prev, bitisTarih: event.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Açıklama</label>
+                <Input
+                  value={kapaliAralikForm.aciklama}
+                  onChange={(event) => setKapaliAralikForm((prev) => ({ ...prev, aciklama: event.target.value }))}
+                  placeholder="Yıllık bakım"
+                />
+              </div>
+              <div className="flex items-end gap-2">
+                <Button
+                  type="button"
+                  onClick={saveKapaliAralik}
+                  disabled={createKapaliAralikState.isLoading || updateKapaliAralikState.isLoading}
+                >
+                  <Save className="mr-1 size-4" />
+                  {editingKapaliAralik ? "Güncelle" : "Kaydet"}
+                </Button>
+                {editingKapaliAralik ? (
+                  <Button type="button" variant="outline" onClick={resetKapaliAralikForm}>
+                    Vazgeç
+                  </Button>
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">{kapaliAraliklar?.total ?? 0} kapalı aralık</p>
+            <Button variant="outline" size="sm" onClick={() => refetchKapaliAralik()}>
+              <RefreshCcw className="size-4" />
+            </Button>
+          </div>
+
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Makine</TableHead>
+                  <TableHead>Başlangıç</TableHead>
+                  <TableHead>Bitiş</TableHead>
+                  <TableHead>Açıklama</TableHead>
+                  <TableHead className="w-24" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {kapaliAralikLoading &&
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <TableRow key={i}>
+                      {Array.from({ length: 5 }).map((__, j) => (
+                        <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                {!kapaliAralikLoading && !kapaliAraliklar?.items.length && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                      Kayıtlı kapalı aralık yok.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!kapaliAralikLoading &&
+                  kapaliAraliklar?.items.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <div className="font-medium">{item.makineAd ?? "—"}</div>
+                        <div className="font-mono text-xs text-muted-foreground">{item.makineKod ?? "—"}</div>
+                      </TableCell>
+                      <TableCell className="font-mono">{formatTatilDate(item.baslangicTarih)}</TableCell>
+                      <TableCell className="font-mono">{formatTatilDate(item.bitisTarih)}</TableCell>
+                      <TableCell>{item.aciklama ?? "—"}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => startKapaliAralikEdit(item)}>
+                            <Pencil className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setDeleteKapaliAralik(item)}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       ) : isKategoriler ? (
         <KategorilerTab />
       ) : isBirimler ? (
@@ -1001,6 +1214,27 @@ export default function TanimlarClient() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteHaftaSonuState.isLoading ? t("admin.erp.common.deleting") : t("admin.common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteKapaliAralik} onOpenChange={(v) => !v && setDeleteKapaliAralik(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Kapalı aralığı sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{deleteKapaliAralik?.makineAd ?? deleteKapaliAralik?.makineKod}</strong> kapalı aralığı silinecek.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("admin.common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteKapaliAralik}
+              disabled={deleteKapaliAralikState.isLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteKapaliAralikState.isLoading ? t("admin.erp.common.deleting") : t("admin.common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

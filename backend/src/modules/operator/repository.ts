@@ -20,6 +20,10 @@ import { createAdminNotification } from '@/modules/notifications/controller';
 import { isMakineWorkingDay, recalcMakineKuyrukTarihleri } from '@/modules/_shared/planlama';
 import { hammaddeRezervasyonlari } from '@/modules/urunler/schema';
 import { vardiyalar } from '@/modules/tanimlar/schema';
+import {
+  createPlannedClosureError,
+  repoGetActiveForMachine,
+} from '@/modules/makine_kapali_araliklar/repository';
 
 import {
   durusKayitlari,
@@ -628,6 +632,9 @@ export type MakineKuyruguDetayDto = {
   oncekiUretimToplam: number;
   oncekiFireToplam: number;
   eksikMalzemeler: { urunKod: string; urunAd: string; eksikMiktar: number }[];
+  makinePlanliKapali: boolean;
+  makineKapaliAciklama: string | null;
+  makineKapaliBitisTarih: string | null;
 };
 
 const toStr = (v: Date | string | null | undefined): string | null => {
@@ -666,6 +673,22 @@ export async function repoListMakineKuyrugu(
         op_fire_miktar: uretimEmriOperasyonlari.fire_miktar,
         op_montaj: uretimEmriOperasyonlari.montaj,
         op_cevrim_suresi_sn: uretimEmriOperasyonlari.cevrim_suresi_sn,
+        kapali_aciklama: sql<string | null>`(
+          select mka.aciklama
+          from makine_kapali_araliklar mka
+          where mka.makine_id = ${makineler.id}
+            and curdate() between mka.baslangic_tarih and mka.bitis_tarih
+          order by mka.bitis_tarih desc
+          limit 1
+        )`,
+        kapali_bitis_tarih: sql<string | null>`(
+          select mka.bitis_tarih
+          from makine_kapali_araliklar mka
+          where mka.makine_id = ${makineler.id}
+            and curdate() between mka.baslangic_tarih and mka.bitis_tarih
+          order by mka.bitis_tarih desc
+          limit 1
+        )`,
       })
       .from(makineKuyrugu)
       .leftJoin(makineler, eq(makineKuyrugu.makine_id, makineler.id))
@@ -679,6 +702,7 @@ export async function repoListMakineKuyrugu(
     db
       .select({ count: sql<number>`count(*)` })
       .from(makineKuyrugu)
+      .leftJoin(makineler, eq(makineKuyrugu.makine_id, makineler.id))
       .where(where),
   ]);
 
@@ -801,6 +825,9 @@ export async function repoListMakineKuyrugu(
       oncekiUretimToplam: prev?.uretim ?? 0,
       oncekiFireToplam: prev?.fire ?? 0,
       eksikMalzemeler: eksikMap.get(r.kq.uretim_emri_id) ?? [],
+      makinePlanliKapali: !!r.kapali_bitis_tarih,
+      makineKapaliAciklama: r.kapali_aciklama ?? null,
+      makineKapaliBitisTarih: r.kapali_bitis_tarih ? String(r.kapali_bitis_tarih).slice(0, 10) : null,
     };
   });
 
@@ -826,6 +853,9 @@ export async function repoUretimBaslat(
       .limit(1);
     if (!target) throw new Error('kuyruk_kaydi_bulunamadi');
     if (target.durum !== 'bekliyor') throw new Error('sadece_bekliyor_baslatilabilir');
+
+    const activeClosure = await repoGetActiveForMachine(target.makine_id, now);
+    if (activeClosure) throw createPlannedClosureError(activeClosure);
 
     await ensureAutomaticShiftForMachine(tx, {
       makineId: target.makine_id,

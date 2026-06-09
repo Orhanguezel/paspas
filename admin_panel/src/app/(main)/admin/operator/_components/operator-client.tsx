@@ -172,8 +172,14 @@ function MakineKuyruguTab() {
         typeof error === "object" && error && "data" in error
           ? (error as { data?: { error?: { message?: string } } }).data?.error?.message
           : undefined;
+      const detail =
+        typeof error === "object" && error && "data" in error
+          ? (error as { data?: { error?: { detail?: string } } }).data?.error?.detail
+          : undefined;
       if (message === "makine_bugun_calismiyor") {
         toast.error("Bu makine için bugün çalışma planı tanımlanmamış.");
+      } else if (message === "makine_planli_kapali") {
+        toast.error(detail ?? "Makine planlı kapalı aralıkta.");
       } else if (message === "makinede_aktif_is_var") {
         toast.error("Bu makinede zaten çalışan bir iş var.");
       } else if (message === "sadece_bekliyor_baslatilabilir") {
@@ -354,6 +360,10 @@ function MakineKuyruguTab() {
             const firstBekleyenId = jobs.filter((j) => j.durum === "bekliyor").sort((a, b) => a.sira - b.sira)[0]?.id ?? null;
             const firstBekleyenJob = jobs.find((j) => j.id === firstBekleyenId);
             const aktifKalip = aktifKalipByMakine.get(makineId);
+            const planliKapali = jobs.find((j) => j.makinePlanliKapali);
+            const planliKapaliText = planliKapali
+              ? `${planliKapali.makineKapaliAciklama ?? "Planlı kapalı"}${planliKapali.makineKapaliBitisTarih ? ` - ${planliKapali.makineKapaliBitisTarih} tarihine kadar` : ""}`
+              : null;
             const remainingJobs = jobs.filter(j => j.id !== activeJob?.id && j.durum !== "tamamlandi");
 
             return (
@@ -479,6 +489,8 @@ function MakineKuyruguTab() {
                         <p className="text-lg font-medium text-slate-500 leading-relaxed">
                           {aktifKalip 
                             ? "Kalıp değişimi süreci devam ediyor. Operasyon bitince sıradaki işi başlatabilirsiniz." 
+                            : planliKapaliText
+                              ? planliKapaliText
                             : "Makine şu an boşta. Kuyruktaki sıradaki işi başlatarak üretime geçebilirsiniz."}
                         </p>
                       </div>
@@ -496,6 +508,7 @@ function MakineKuyruguTab() {
                             {firstBekleyenJob && (
                               <Button
                                 className="h-24 px-12 rounded-3xl bg-primary text-2xl font-black hover:bg-primary/90 shadow-xl hover:scale-[1.02] transition-transform flex-col gap-1"
+                                disabled={!!planliKapaliText}
                                 onClick={() => handleBaslat(firstBekleyenJob)}
                               >
                                 <span className="text-xs font-bold opacity-70 uppercase tracking-widest">SIRADAKİ İŞİ BAŞLAT</span>
@@ -525,13 +538,18 @@ function MakineKuyruguTab() {
                       </div>
                       <div className="grid gap-4 pb-4 grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]">
                         {remainingJobs.map((job) => {
-                          const canStart = job.durum === "bekliyor" && !activeJob && !aktifKalip && job.id === firstBekleyenId;
+                          const canStart = job.durum === "bekliyor" && !activeJob && !aktifKalip && !job.makinePlanliKapali && job.id === firstBekleyenId;
                           return (
                             <Card key={job.id} className={`w-full border-2 transition-all ${canStart ? 'ring-2 ring-primary ring-offset-4 border-primary/30' : 'opacity-80'}`}>
                               <CardHeader className="p-4 pb-2">
                                 <div className="flex justify-between items-start">
                                   <div className="text-xs font-mono font-bold text-slate-400"># {job.emirNo}</div>
-                                  <Badge variant="outline" className="text-[10px]">{job.planlananMiktar} Adet</Badge>
+                                  <div className="flex flex-wrap justify-end gap-1">
+                                    {job.makinePlanliKapali ? (
+                                      <Badge variant="destructive" className="text-[10px]">Kapalı</Badge>
+                                    ) : null}
+                                    <Badge variant="outline" className="text-[10px]">{job.planlananMiktar} Adet</Badge>
+                                  </div>
                                 </div>
                                 <CardTitle className="text-base font-black truncate text-slate-800 mt-1">{job.urunAd}</CardTitle>
                               </CardHeader>

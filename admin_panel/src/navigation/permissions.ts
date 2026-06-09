@@ -17,6 +17,7 @@ export type AdminNavKey =
   | 'vardiyalar'
   | 'durus_nedenleri'
   | 'hafta_sonu_planlari'
+  | 'makine_kapama'
   | 'calisma_planlari'
   | 'uretim_tanimlari'
   | 'satis_siparisleri'
@@ -66,6 +67,7 @@ const NAV_ROLES: Record<AdminNavKey, PanelRole[]> = {
   vardiyalar:        ['admin'],
   durus_nedenleri:   ['admin'],
   hafta_sonu_planlari: ['admin'],
+  makine_kapama:    ['admin'],
   calisma_planlari: ['admin'],
   uretim_tanimlari: ['admin'],
   satis_siparisleri: ['admin', 'nakliyeci'],

@@ -40,6 +40,7 @@ import { registerReceteler } from '@/modules/receteler/router';
 import { registerSatisSiparisleri } from '@/modules/satis_siparisleri/router';
 import { registerUretimEmirleri } from '@/modules/uretim_emirleri/router';
 import { registerMakineHavuzu } from '@/modules/makine_havuzu/router';
+import { registerMakineKapaliAraliklar } from '@/modules/makine_kapali_araliklar/router';
 import { registerIsYukleri } from '@/modules/is_yukler/router';
 import { registerGantt } from '@/modules/gantt/router';
 import { registerStoklar } from '@/modules/stoklar/router';
@@ -221,6 +222,7 @@ export async function createApp() {
     await api.register(registerSatisSiparisleri, { prefix: '/admin' });
     await api.register(registerUretimEmirleri,   { prefix: '/admin' });
     await api.register(registerMakineHavuzu,     { prefix: '/admin' });
+    await api.register(registerMakineKapaliAraliklar, { prefix: '/admin' });
     await api.register(registerIsYukleri,        { prefix: '/admin' });
     await api.register(registerGantt,            { prefix: '/admin' });
     await api.register(registerStoklar,          { prefix: '/admin' });

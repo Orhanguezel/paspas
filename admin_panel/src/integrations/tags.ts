@@ -225,6 +225,8 @@ export const tags = [
   'OperatorIsleri',
   'MakineKuyrugu',
   'MakineCapacity',
+  'MakineKapaliAralik',
+  'MakineKapaliAraliklar',
   'Sevkiyat',
   'SevkEmri',
   'SevkEmirleri',

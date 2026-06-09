@@ -35,6 +35,9 @@ export interface MakineKuyruguDetayDto {
   oncekiUretimToplam: number;
   oncekiFireToplam: number;
   eksikMalzemeler: { urunKod: string; urunAd: string; eksikMiktar: number }[];
+  makinePlanliKapali: boolean;
+  makineKapaliAciklama: string | null;
+  makineKapaliBitisTarih: string | null;
 }
 
 export type KuyrukDurum = 'bekliyor' | 'calisiyor' | 'duraklatildi' | 'tamamlandi' | 'iptal';
@@ -266,6 +269,9 @@ export function normalizeMakineKuyrugu(raw: unknown): MakineKuyruguDetayDto {
           eksikMiktar: toNum(m.eksikMiktar),
         }))
       : [],
+    makinePlanliKapali: toBool(r.makinePlanliKapali, false),
+    makineKapaliAciklama: r.makineKapaliAciklama != null ? toStr(r.makineKapaliAciklama) : null,
+    makineKapaliBitisTarih: r.makineKapaliBitisTarih != null ? toStr(r.makineKapaliBitisTarih) : null,
   };
 }
 
