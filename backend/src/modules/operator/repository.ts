@@ -1403,6 +1403,7 @@ async function recordIncrementalProductionEntry(
       .update(uretimEmriOperasyonlari)
       .set({
         uretilen_miktar: sql`${uretimEmriOperasyonlari.uretilen_miktar} + ${netMiktar.toFixed(4)}`,
+        fire_miktar: sql`${uretimEmriOperasyonlari.fire_miktar} + ${fireMiktar.toFixed(4)}`,
       })
       .where(eq(uretimEmriOperasyonlari.id, kqRow.emir_operasyon_id));
   }
