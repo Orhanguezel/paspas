@@ -91,6 +91,12 @@ export function ReceteDetayModal({ emirId, onOpenChange }: Props) {
                 </div>
               </div>
 
+              {recete?.aciklama && (
+                <div className="rounded-xl border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+                  {recete.aciklama}
+                </div>
+              )}
+
               {recete?.items && recete.items.length > 0 && (
                 <div className="space-y-6">
                   <div className="flex items-center gap-3">
