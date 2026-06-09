@@ -330,16 +330,10 @@ export default function UretimEmriDetayClient({ id }: Props) {
               </div>
 
               {!yeterlilikLoading && yeterlilik && (
-                <div className="grid min-w-[320px] gap-2 sm:grid-cols-4">
+                <div className="grid min-w-[320px] gap-2 sm:grid-cols-3">
                   <div className="rounded-md border bg-muted/30 px-3 py-2">
                     <div className="text-[11px] text-muted-foreground">Malzeme</div>
                     <div className="font-semibold tabular-nums">{yeterlilikKalemleri.length}</div>
-                  </div>
-                  <div className="rounded-md border bg-muted/30 px-3 py-2">
-                    <div className="text-[11px] text-muted-foreground">Eksik Kalem</div>
-                    <div className={`font-semibold tabular-nums ${eksikKalemSayisi > 0 ? "text-destructive" : "text-emerald-600"}`}>
-                      {eksikKalemSayisi}
-                    </div>
                   </div>
                   <div className="rounded-md border bg-muted/30 px-3 py-2">
                     <div className="text-[11px] text-muted-foreground">Eksik Kalem</div>
