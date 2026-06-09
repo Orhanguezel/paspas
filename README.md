@@ -1,8 +1,5 @@
 # Paspas ERP
 
-Canli server `vps-paspas` SSH kisa yolundadir. Key ile sifresiz erisim:
-`ssh vps-paspas`.
-
 Paspas, uretim planlama ve operasyon yonetimi icin gelistirilen bir ERP calisma alanidir.
 Bu repo su anda iki ana uygulama parcasi icerir:
 
