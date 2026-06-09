@@ -4,7 +4,7 @@
 // Paspas ERP — Operatör Ekranı (makine-merkezli V2, 2 sekmeli)
 // =============================================================
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 import { Clock, Pause, RefreshCcw, RotateCcw, Square } from "lucide-react";
 import { toast } from "sonner";
@@ -353,7 +353,7 @@ function MakineKuyruguTab() {
 
       {/* Industrial Grid Layout */}
       {!isLoading && grouped.size > 0 && (
-        <div className="grid gap-10">
+        <div className="grid gap-10 overflow-x-hidden">
           {Array.from(grouped.entries()).map(([makineId, jobs]) => {
             const first = jobs[0];
             const activeJob = jobs.find((j) => j.durum === "calisiyor" || j.durum === "duraklatildi");
@@ -367,46 +367,46 @@ function MakineKuyruguTab() {
             const remainingJobs = jobs.filter(j => j.id !== activeJob?.id && j.durum !== "tamamlandi");
 
             return (
-              <div key={makineId} className="space-y-4">
+              <div key={makineId} className="min-w-0 space-y-4">
                 {/* Machine Header Sticker */}
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center gap-3">
                   <div className="px-5 py-2 bg-slate-900 text-white rounded-t-xl text-lg font-black tracking-tight border-b-0 border border-slate-900 shadow-md">
                     {first.makineKod}
                   </div>
-                  <div className="text-xl font-bold text-slate-700">{first.makineAd}</div>
+                  <div className="min-w-0 truncate text-lg font-bold text-slate-700 sm:text-xl">{first.makineAd}</div>
                   <div className="h-px flex-1 bg-slate-200" />
                 </div>
 
-                <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                <div className="min-w-0 overflow-x-hidden rounded-2xl border border-slate-200 bg-slate-50/50 p-3 shadow-sm space-y-4 sm:p-6 sm:space-y-6">
                   {/* ACTIVE JOB - MEGA AREA */}
                   {activeJob ? (
-                    <div className={`relative overflow-hidden p-8 rounded-3xl border-2 shadow-2xl transition-all ${activeJob.durum === 'duraklatildi' ? 'border-amber-400 bg-amber-50' : 'border-primary bg-white'}`}>
-                      <div className="relative z-10 grid lg:grid-cols-[1fr_auto] gap-8">
-                        <div className="space-y-6">
-                          <div className="flex items-center gap-3">
+                    <div className={`relative overflow-hidden rounded-3xl border-2 p-4 shadow-2xl transition-all sm:p-8 ${activeJob.durum === 'duraklatildi' ? 'border-amber-400 bg-amber-50' : 'border-primary bg-white'}`}>
+                      <div className="relative z-10 grid min-w-0 gap-5 lg:grid-cols-[1fr_auto] lg:gap-8">
+                        <div className="min-w-0 space-y-6">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
                             <Badge className={`text-sm px-3 py-1 uppercase font-bold tracking-widest ${activeJob.durum === 'duraklatildi' ? 'bg-amber-500' : 'bg-primary animate-pulse'}`}>
                               {activeJob.durum === 'duraklatildi' ? 'DURAKLATILDI' : 'ÜRETİMDE'}
                             </Badge>
                             <span className="text-sm font-mono text-muted-foreground"># {activeJob.emirNo}</span>
                           </div>
 
-                          <div className="space-y-2">
-                             <div className="text-4xl font-black leading-tight text-slate-900">{activeJob.urunAd}</div>
-                             <div className="text-xl font-medium text-muted-foreground">{activeJob.urunKod} {activeJob.operasyonAdi && `· ${activeJob.operasyonAdi}`}</div>
+                          <div className="min-w-0 space-y-2">
+                             <div className="break-words text-2xl font-black leading-tight text-slate-900 sm:text-3xl md:text-5xl">{activeJob.urunAd}</div>
+                             <div className="break-words text-base font-medium text-muted-foreground sm:text-lg md:text-xl">{activeJob.urunKod} {activeJob.operasyonAdi && `· ${activeJob.operasyonAdi}`}</div>
                           </div>
 
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-6">
                             <div className="bg-slate-100/50 p-4 rounded-2xl">
                               <span className="text-xs font-bold text-slate-500 uppercase">Planlanan</span>
-                              <div className="text-3xl font-black text-slate-800 tabular-nums">{activeJob.planlananMiktar}</div>
+                              <div className="text-2xl font-black text-slate-800 tabular-nums sm:text-3xl">{activeJob.planlananMiktar}</div>
                             </div>
                             <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
                               <span className="text-xs font-bold text-primary uppercase">Üretilen</span>
-                              <div className="text-3xl font-black text-primary tabular-nums">{activeJob.uretilenMiktar}</div>
+                              <div className="text-2xl font-black text-primary tabular-nums sm:text-3xl">{activeJob.uretilenMiktar}</div>
                             </div>
                              <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100">
                               <span className="text-xs font-bold text-rose-500 uppercase">Fire</span>
-                              <div className="text-3xl font-black text-rose-600 tabular-nums">{activeJob.fireMiktar}</div>
+                              <div className="text-2xl font-black text-rose-600 tabular-nums sm:text-3xl">{activeJob.fireMiktar}</div>
                             </div>
                           </div>
                    
@@ -421,7 +421,7 @@ function MakineKuyruguTab() {
                         </div>
 
                         {/* MEGA BUTTONS AREA */}
-                        <div className="flex flex-col gap-4 min-w-60">
+                        <div className="flex min-w-0 flex-col gap-3 sm:gap-4 lg:min-w-60">
                           <Button
                             variant="outline"
                             className="h-14 text-base font-bold rounded-2xl border-2"
@@ -480,13 +480,13 @@ function MakineKuyruguTab() {
                     </div>
                   ) : (
                     /* EMPTY ACTIVE AREA -> SUGGEST NEXT */
-                    <div className="relative overflow-hidden p-12 rounded-3xl border-2 border-dashed border-slate-300 bg-slate-100/50 flex flex-col items-center justify-center gap-8 min-h-[400px] text-center">
-                      <div className="bg-white p-8 rounded-full shadow-xl border border-slate-200">
-                        <RefreshCcw className={`size-20 ${aktifKalip ? "text-amber-500 animate-spin" : "text-slate-300"}`} />
+                    <div className="relative flex min-h-[320px] flex-col items-center justify-center gap-6 overflow-hidden rounded-3xl border-2 border-dashed border-slate-300 bg-slate-100/50 p-6 text-center sm:min-h-[400px] sm:gap-8 sm:p-12">
+                      <div className="rounded-full border border-slate-200 bg-white p-5 shadow-xl sm:p-8">
+                        <RefreshCcw className={`size-14 sm:size-20 ${aktifKalip ? "text-amber-500 animate-spin" : "text-slate-300"}`} />
                       </div>
                       <div className="space-y-3 max-w-md">
-                        <h3 className="text-3xl font-black text-slate-800">Şu an çalışan iş yok</h3>
-                        <p className="text-lg font-medium text-slate-500 leading-relaxed">
+                        <h3 className="text-2xl font-black text-slate-800 sm:text-3xl">Şu an çalışan iş yok</h3>
+                        <p className="text-base font-medium leading-relaxed text-slate-500 sm:text-lg">
                           {aktifKalip 
                             ? "Kalıp değişimi süreci devam ediyor. Operasyon bitince sıradaki işi başlatabilirsiniz." 
                             : planliKapaliText
@@ -507,7 +507,7 @@ function MakineKuyruguTab() {
                           <>
                             {firstBekleyenJob && (
                               <Button
-                                className="h-24 px-12 rounded-3xl bg-primary text-2xl font-black hover:bg-primary/90 shadow-xl hover:scale-[1.02] transition-transform flex-col gap-1"
+                                className="min-h-20 px-6 rounded-3xl bg-primary text-base font-black hover:bg-primary/90 shadow-xl hover:scale-[1.02] transition-transform flex-col gap-1 sm:h-24 sm:px-12 sm:text-2xl"
                                 disabled={!!planliKapaliText}
                                 onClick={() => handleBaslat(firstBekleyenJob)}
                               >
@@ -536,27 +536,48 @@ function MakineKuyruguTab() {
                         <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Sıradaki İşler ({remainingJobs.length})</h4>
                         <Button variant="ghost" size="sm" className="text-xs font-bold" onClick={() => refetch()}>YENİLE</Button>
                       </div>
-                      <div className="grid gap-4 pb-4 grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]">
+                      <div className="grid gap-2 pb-4 sm:gap-4 sm:grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]">
                         {remainingJobs.map((job) => {
                           const canStart = job.durum === "bekliyor" && !activeJob && !aktifKalip && !job.makinePlanliKapali && job.id === firstBekleyenId;
                           return (
-                            <Card key={job.id} className={`w-full border-2 transition-all ${canStart ? 'ring-2 ring-primary ring-offset-4 border-primary/30' : 'opacity-80'}`}>
-                              <CardHeader className="p-4 pb-2">
-                                <div className="flex justify-between items-start">
-                                  <div className="text-xs font-mono font-bold text-slate-400"># {job.emirNo}</div>
-                                  <div className="flex flex-wrap justify-end gap-1">
+                            <Fragment key={job.id}>
+                            <div className={`flex min-w-0 items-center gap-2 rounded-xl border bg-white p-2 sm:hidden ${canStart ? 'border-primary ring-1 ring-primary' : 'opacity-80'}`}>
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-sm font-black text-slate-800">{job.urunAd}</div>
+                                <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+                                  <span className="truncate">{job.urunKod}</span>
+                                  <Badge variant="outline" className="h-5 shrink-0 px-1 text-[10px]">{job.planlananMiktar}</Badge>
+                                  {job.makinePlanliKapali ? (
+                                    <Badge variant="destructive" className="h-5 shrink-0 px-1 text-[10px]">Kapalı</Badge>
+                                  ) : null}
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                className="h-8 shrink-0 rounded-lg px-3 text-xs font-bold"
+                                disabled={!canStart}
+                                onClick={() => handleBaslat(job)}
+                              >
+                                {canStart ? 'Başlat' : 'Sırada'}
+                              </Button>
+                            </div>
+                            <Card className={`hidden w-full border-2 transition-all sm:block ${canStart ? 'border-primary/30 ring-2 ring-primary ring-offset-4' : 'opacity-80'}`}>
+                              <CardHeader className="p-3 pb-2 sm:p-4 sm:pb-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0 text-xs font-mono font-bold text-slate-400"># {job.emirNo}</div>
+                                  <div className="flex shrink-0 flex-wrap justify-end gap-1">
                                     {job.makinePlanliKapali ? (
                                       <Badge variant="destructive" className="text-[10px]">Kapalı</Badge>
                                     ) : null}
                                     <Badge variant="outline" className="text-[10px]">{job.planlananMiktar} Adet</Badge>
                                   </div>
                                 </div>
-                                <CardTitle className="text-base font-black truncate text-slate-800 mt-1">{job.urunAd}</CardTitle>
+                                <CardTitle className="mt-1 truncate text-sm font-black text-slate-800 sm:text-base">{job.urunAd}</CardTitle>
                               </CardHeader>
-                              <CardContent className="p-4 pt-0">
-                                <p className="text-xs text-muted-foreground truncate mb-4">{job.urunKod} {job.operasyonAdi && `· ${job.operasyonAdi}`}</p>
+                              <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                                <p className="mb-3 truncate text-xs text-muted-foreground sm:mb-4">{job.urunKod} {job.operasyonAdi && `· ${job.operasyonAdi}`}</p>
                                 <Button 
-                                  className="w-full font-bold h-10 rounded-xl" 
+                                  className="h-9 w-full rounded-xl font-bold sm:h-10" 
                                   disabled={!canStart} 
                                   onClick={() => handleBaslat(job)}
                                 >
@@ -571,6 +592,7 @@ function MakineKuyruguTab() {
                                 </Button>
                               </CardContent>
                             </Card>
+                            </Fragment>
                           );
                         })}
                       </div>

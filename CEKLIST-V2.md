@@ -200,7 +200,7 @@
   - **Sıradaki İşler:** mobilde (`< sm`) **kompakt satır görünümü** — her satırda: ürün adı (truncate), miktar, Başlat butonu. `sm:` ve üstünde mevcut grid wrap kart görünümü kalır.
   - **Veri giriş modal:** mobilde tam ekran (`max-w-full h-full sm:max-w-2xl sm:h-auto`).
   - Yatay scroll'a izin verme: kapsayıcı `overflow-x-hidden` + her bölge `min-w-0`.
-- [ ] Tamamlandı
+- [x] Tamamlandı
 
 ### Y4 — Gerçekleşen Üretim gece vardiyası ayrımı (Karar 3 — hibrit)
 - **Not:** `74487d14` · `/admin/dashboard`
