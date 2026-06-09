@@ -233,7 +233,7 @@ export default function StoklarClient() {
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
-                    <TableCell>{durumBadge(item.durum)}</TableCell>
+                    <TableCell>{durumBadge(item)}</TableCell>
                     <TableCell>
                       <StokDetayDialog stok={item} />
                     </TableCell>

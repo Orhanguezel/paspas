@@ -474,6 +474,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
         const validRows = draftValidRows.map(({ key: _key, aciklama, ...row }, idx) => ({
           ...row,
           aciklama: aciklama.trim() || undefined,
+          fireOrani: 0,
           sira: draftValidRows.length - idx,
         }));
         if (validRows.length > 0) {
