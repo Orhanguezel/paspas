@@ -73,7 +73,13 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
   const isLocked = (siparisDetail ?? siparis)?.kilitli || (siparisDetail ?? siparis)?.durum === "tamamlandi";
 
   const { data: musterilerData } = useListMusterilerAdminQuery({ tur: "musteri" });
-  const { data: urunlerData } = useListUrunlerAdminQuery({ kategori: 'urun' });
+  const { data: urunlerData } = useListUrunlerAdminQuery({
+    kategori: "urun",
+    isActive: true,
+    limit: 500,
+    sort: "kod",
+    order: "asc",
+  });
   const { data: nextNoData } = useGetNextSiparisNoAdminQuery(undefined, { skip: isEdit });
 
   const musteriler = musterilerData?.items ?? [];

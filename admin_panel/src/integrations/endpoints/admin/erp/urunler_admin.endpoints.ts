@@ -41,6 +41,7 @@ export const urunlerAdminApi = baseApi.injectEndpoints({
           kategori?: UrunKategori;
           tedarikTipi?: TedarikTipi;
           urunGrubu?: string;
+          isActive?: boolean;
           sort?: "ad" | "kod" | "created_at" | "stok" | "kritik_stok";
           order?: "asc" | "desc";
         }
