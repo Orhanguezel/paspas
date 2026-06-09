@@ -45,6 +45,18 @@ const HAREKET_OPTIONS = [
   { value: 'duzeltme', label: 'Düzeltme' },
 ] as const;
 
+function getMiktarDisplay(hareket: { hareketTipi: string; miktar: number }) {
+  const amount = Math.abs(hareket.miktar).toFixed(4).replace(/\.?0+$/, '');
+  if (hareket.hareketTipi === 'cikis') {
+    return { className: 'font-medium text-destructive', value: `-${amount}` };
+  }
+  if (hareket.hareketTipi === 'giris') {
+    return { className: 'font-medium text-green-600', value: `+${amount}` };
+  }
+  const signedAmount = hareket.miktar > 0 ? `+${amount}` : hareket.miktar.toFixed(4).replace(/\.?0+$/, '');
+  return { className: 'font-medium text-muted-foreground', value: signedAmount };
+}
+
 export default function HareketlerClient() {
   const { t } = useLocaleContext();
   const [q, setQ] = useState('');
@@ -208,7 +220,9 @@ export default function HareketlerClient() {
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading && items.map((hareket) => (
+            {!isLoading && items.map((hareket) => {
+              const miktarDisplay = getMiktarDisplay(hareket);
+              return (
               <TableRow key={hareket.id}>
                 <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                   {hareket.createdAt.slice(0, 16).replace('T', ' ')}
@@ -225,13 +239,14 @@ export default function HareketlerClient() {
                     {HAREKET_TIPI_LABELS[hareket.hareketTipi] ?? hareket.hareketTipi}
                   </Badge>
                 </TableCell>
-                <TableCell className={hareket.miktar < 0 ? 'font-medium text-destructive' : 'font-medium text-green-600'}>
-                  {hareket.miktar > 0 ? '+' : ''}{hareket.miktar.toFixed(4).replace(/\.?0+$/, '')}
+                <TableCell className={miktarDisplay.className}>
+                  {miktarDisplay.value}
                 </TableCell>
                 <TableCell className="max-w-[260px] truncate text-sm text-muted-foreground">{hareket.aciklama ?? '—'}</TableCell>
                 <TableCell className="text-sm">{hareket.createdByName ?? t('admin.erp.hareketler.system')}</TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </div>
