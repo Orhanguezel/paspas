@@ -95,6 +95,7 @@ export interface HammaddeYeterlilikItemDto {
   urunGorsel: string | null;
   gerekliMiktar: number;
   toplamStok: number;
+  rezerveStok: number;
   rezerveKuyruk: number;
   kalanSerbest: number;
   eksikMiktar: number;

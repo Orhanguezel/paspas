@@ -722,6 +722,7 @@ export type HammaddeYeterlilikItemDto = {
   urunGorsel: string | null;
   gerekliMiktar: number;
   toplamStok: number;
+  rezerveStok: number;
   rezerveKuyruk: number;
   kalanSerbest: number;
   eksikMiktar: number;
@@ -821,6 +822,7 @@ export async function repoGetHammaddeYeterlilik(id: string): Promise<HammaddeYet
       ad: urunler.ad,
       gorsel: urunler.image_url,
       stok: urunler.stok,
+      rezerveStok: urunler.rezerve_stok,
       stokTakipAktif: urunler.stok_takip_aktif,
     })
     .from(urunler)
@@ -856,6 +858,7 @@ export async function repoGetHammaddeYeterlilik(id: string): Promise<HammaddeYet
       .reduce((sum, o) => sum + Number(o.miktar), 0);
 
     const totalStok = Number(sInfo?.stok ?? 0);
+    const toplamRezerve = Number(sInfo?.rezerveStok ?? 0);
     const kalanSerbest = stokTakipAktif ? Math.max(0, totalStok - higherPriorityRezMiktar) : myNeeded;
     const eksik = stokTakipAktif ? Math.max(0, myNeeded - kalanSerbest) : 0;
 
@@ -868,6 +871,7 @@ export async function repoGetHammaddeYeterlilik(id: string): Promise<HammaddeYet
       urunGorsel: sInfo?.gorsel ?? null,
       gerekliMiktar: myNeeded,
       toplamStok: totalStok,
+      rezerveStok: toplamRezerve,
       rezerveKuyruk: higherPriorityRezMiktar,
       kalanSerbest,
       eksikMiktar: eksik,

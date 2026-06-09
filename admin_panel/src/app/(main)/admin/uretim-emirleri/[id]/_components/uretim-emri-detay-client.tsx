@@ -58,7 +58,10 @@ export default function UretimEmriDetayClient({ id }: Props) {
   const toplamGerekli = Math.ceil(yeterlilikKalemleri.reduce((total, kalem) => total + kalem.gerekliMiktarFireli, 0));
   const toplamStokHam = Math.ceil(yeterlilikKalemleri.reduce((total, kalem) => total + kalem.toplamStok, 0));
   const toplamRezerve = Math.ceil(yeterlilikKalemleri.reduce((total, kalem) => total + kalem.rezerveStok, 0));
-  const toplamSerbest = Math.ceil(yeterlilikKalemleri.reduce((total, kalem) => total + kalem.mevcutStok, 0));
+  const toplamSerbest = Math.ceil(yeterlilikKalemleri.reduce((total, kalem) => {
+    const serbest = kalem.toplamStok - kalem.rezerveStok;
+    return total + Math.max(serbest, 0);
+  }, 0));
 
   function pct(uretilen: number, planlanan: number) {
     if (!planlanan) return 0;
@@ -361,7 +364,7 @@ export default function UretimEmriDetayClient({ id }: Props) {
               <div className="space-y-4">
                 <div className="rounded-md border bg-muted/20 px-3 py-3 text-xs text-muted-foreground">
                   <span className="font-medium text-foreground">Ozet:</span>{' '}
-                  Toplam gerekli {toplamGerekli} birim, stok {toplamStokHam} (rezerve {toplamRezerve}, serbest {toplamSerbest}).
+                  Toplam gerekli {toplamGerekli} birim, stok {toplamStokHam} (toplam rezerve {toplamRezerve}, serbest {toplamSerbest}).
                   {!yeterlilik.tumYeterli && ` ${eksikKalemSayisi} kalemde stok acigi var.`}
                 </div>
 
@@ -371,14 +374,17 @@ export default function UretimEmriDetayClient({ id }: Props) {
                       <TableHead>Malzeme</TableHead>
                       <TableHead className="text-right">Gerekli</TableHead>
                       <TableHead className="text-right">Stok</TableHead>
-                      <TableHead className="text-right">Rezerve</TableHead>
+                      <TableHead className="text-right">Toplam Rezerve</TableHead>
                       <TableHead className="text-right">Serbest</TableHead>
                       <TableHead className="text-right">Eksik</TableHead>
                       <TableHead className="text-center">Durum</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {yeterlilik.kalemler.map((k) => (
+                    {yeterlilik.kalemler.map((k) => {
+                      const serbestMiktar = k.toplamStok - k.rezerveStok;
+                      const eksikMiktar = k.rezerveStok - k.toplamStok;
+                      return (
                       <TableRow key={k.malzemeId}>
                         <TableCell>
                           <div className="flex min-w-0 items-center gap-2">
@@ -405,10 +411,12 @@ export default function UretimEmriDetayClient({ id }: Props) {
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{Math.ceil(k.toplamStok)}</TableCell>
                         <TableCell className="text-right tabular-nums text-muted-foreground">{Math.ceil(k.rezerveStok)}</TableCell>
-                        <TableCell className="text-right tabular-nums font-medium">{Math.ceil(k.mevcutStok)}</TableCell>
+                        <TableCell className="text-right tabular-nums font-medium">
+                          {serbestMiktar > 0 ? Math.ceil(serbestMiktar) : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {k.eksikMiktar > 0 ? (
-                            <span className="font-semibold text-destructive">{Math.ceil(k.eksikMiktar)}</span>
+                          {eksikMiktar > 0 ? (
+                            <span className="font-semibold text-destructive">{Math.ceil(eksikMiktar)}</span>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
@@ -419,7 +427,8 @@ export default function UretimEmriDetayClient({ id }: Props) {
                           </Badge>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
