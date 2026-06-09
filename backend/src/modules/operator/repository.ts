@@ -1407,14 +1407,17 @@ async function recordIncrementalProductionEntry(
       .where(eq(uretimEmriOperasyonlari.id, kqRow.emir_operasyon_id));
   }
 
-  await tx
-    .update(uretimEmirleri)
-    .set({
-      uretilen_miktar: sql`${uretimEmirleri.uretilen_miktar} + ${netMiktar.toFixed(4)}`,
-    })
-    .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id));
+  const hasStockImpact = await hasIncrementalStockImpact(tx, kqRow);
+  if (hasStockImpact) {
+    await tx
+      .update(uretimEmirleri)
+      .set({
+        uretilen_miktar: sql`${uretimEmirleri.uretilen_miktar} + ${netMiktar.toFixed(4)}`,
+      })
+      .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id));
+  }
 
-  if (netMiktar > 0 && await hasIncrementalStockImpact(tx, kqRow)) {
+  if (netMiktar > 0 && hasStockImpact) {
     const [emirRow] = await tx
       .select({
         urun_id: uretimEmirleri.urun_id,
