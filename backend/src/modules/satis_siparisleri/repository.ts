@@ -515,6 +515,8 @@ export interface SiparisIslemSatiri {
   urunId: string;
   urunAd: string;
   urunKod: string;
+  urunStok: number;
+  urunBirim: string;
   miktar: number;
   uretilenMiktar: number;
   birimFiyat: number;
@@ -596,6 +598,8 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
       urunId: siparisKalemleri.urun_id,
       urunAd: urunler.ad,
       urunKod: urunler.kod,
+      urunStok: urunler.stok,
+      urunBirim: urunler.birim,
       miktar: siparisKalemleri.miktar,
       uretilenMiktar: uretilenSubquery,
       birimFiyat: siparisKalemleri.birim_fiyat,
@@ -635,6 +639,8 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
       urunId: r.urunId,
       urunAd: r.urunAd ?? '',
       urunKod: r.urunKod ?? '',
+      urunStok: Number(r.urunStok ?? 0),
+      urunBirim: r.urunBirim ?? '',
       miktar: Number(r.miktar),
       uretilenMiktar: Number(r.uretilenMiktar ?? 0),
       birimFiyat: Number(r.birimFiyat),

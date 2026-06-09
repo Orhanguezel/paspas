@@ -166,8 +166,15 @@ export default function SiparisIslemleriTab() {
                 {gorunum !== "musteri" && <TableCell>{item.musteriAd}</TableCell>}
                 {gorunum !== "urun" && (
                   <TableCell>
-                    <span className="text-muted-foreground text-xs mr-1">{item.urunKod}</span>
-                    {item.urunAd}
+                    <div className="min-w-0">
+                      <div>
+                        <span className="text-muted-foreground text-xs mr-1">{item.urunKod}</span>
+                        {item.urunAd}
+                      </div>
+                      <div className="text-muted-foreground text-xs">
+                        Stok: {item.urunStok.toLocaleString("tr-TR")} {item.urunBirim}
+                      </div>
+                    </div>
                   </TableCell>
                 )}
                 <TableCell className="text-right font-medium">{item.miktar.toLocaleString("tr-TR")}</TableCell>
