@@ -550,7 +550,7 @@ function MakineKuyruguTab() {
       )}
 
       <Sheet open={!!finishing} onOpenChange={(v) => !v && setFinishing(null)}>
-        <SheetContent side="right" className="w-full p-0 sm:max-w-md">
+        <SheetContent side="right" className="h-dvh w-full max-w-full p-0 sm:h-auto sm:max-w-2xl">
           <SheetHeader className="border-b px-4 py-4">
             <SheetTitle>{t("admin.erp.operator.finishTitle")}</SheetTitle>
           </SheetHeader>
@@ -601,7 +601,7 @@ function MakineKuyruguTab() {
       </Sheet>
 
       <Sheet open={!!dailyEntry} onOpenChange={(v) => !v && setDailyEntry(null)}>
-        <SheetContent side="right" className="w-full p-0 sm:max-w-md">
+        <SheetContent side="right" className="h-dvh w-full max-w-full p-0 sm:h-auto sm:max-w-2xl">
           <SheetHeader className="border-b px-4 py-4">
             <SheetTitle>Günlük Üretim Girişi</SheetTitle>
           </SheetHeader>
@@ -653,7 +653,7 @@ function MakineKuyruguTab() {
 
       {/* Pause Sheet */}
       <Sheet open={!!pausing} onOpenChange={(v) => !v && setPausing(null)}>
-        <SheetContent side="right" className="w-full p-0 sm:max-w-md">
+        <SheetContent side="right" className="h-dvh w-full max-w-full p-0 sm:h-auto sm:max-w-2xl">
           <SheetHeader className="border-b px-4 py-4">
             <SheetTitle>{t("admin.erp.operator.pauseTitle")}</SheetTitle>
           </SheetHeader>
@@ -702,7 +702,7 @@ function MakineKuyruguTab() {
 
       {/* Resume (DevamEt) Sheet */}
       <Sheet open={!!resuming} onOpenChange={(v) => !v && setResuming(null)}>
-        <SheetContent side="right" className="w-full p-0 sm:max-w-md">
+        <SheetContent side="right" className="h-dvh w-full max-w-full p-0 sm:h-auto sm:max-w-2xl">
           <SheetHeader className="border-b px-4 py-4">
             <SheetTitle>{t("admin.erp.operator.resumeTitle")}</SheetTitle>
           </SheetHeader>
