@@ -12,6 +12,8 @@ export interface MakineDto {
   tonaj: number | null;
   saatlikKapasite: number | null;
   calisir24Saat: boolean;
+  operatorDeGoster: boolean;
+  isYuklerindeGoster: boolean;
   kalipIds: string[];
   kaliplar: Array<{ id: string; kod: string; ad: string }>;
   durum: MakineDurum;
@@ -31,6 +33,8 @@ export interface MakineCreatePayload {
   tonaj?: number;
   saatlikKapasite?: number;
   calisir24Saat?: boolean;
+  operatorDeGoster?: boolean;
+  isYuklerindeGoster?: boolean;
   durum?: MakineDurum;
   isActive?: boolean;
 }
@@ -70,6 +74,8 @@ export function normalizeMakine(raw: unknown): MakineDto {
     tonaj:           r.tonaj != null ? toNum(r.tonaj) : null,
     saatlikKapasite: r.saatlikKapasite != null ? toNum(r.saatlikKapasite) : null,
     calisir24Saat:   toBool(r.calisir24Saat, false),
+    operatorDeGoster: toBool(r.operatorDeGoster),
+    isYuklerindeGoster: toBool(r.isYuklerindeGoster),
     kalipIds:        Array.isArray(r.kalipIds) ? r.kalipIds.map((item) => toStr(item)).filter(Boolean) : [],
     kaliplar:        Array.isArray(r.kaliplar)
       ? r.kaliplar

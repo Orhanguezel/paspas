@@ -26,6 +26,8 @@ export const createSchema = z.object({
   tonaj: z.coerce.number().positive().optional(),
   saatlikKapasite: z.coerce.number().positive().optional(),
   calisir24Saat: z.boolean().optional(),
+  operatorDeGoster: z.boolean().optional(),
+  isYuklerindeGoster: z.boolean().optional(),
   kalipIds: z.array(z.string().min(1)).optional(),
   durum: durumEnum.default('aktif'),
   isActive: z.boolean().optional(),

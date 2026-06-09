@@ -8,6 +8,8 @@ export const makineler = mysqlTable('makineler', {
   tonaj: decimal('tonaj', { precision: 10, scale: 2 }),
   saatlik_kapasite: decimal('saatlik_kapasite', { precision: 10, scale: 2 }),
   calisir_24_saat: tinyint('calisir_24_saat', { unsigned: true }).notNull().default(0),
+  operator_de_goster: tinyint('operator_de_goster', { unsigned: true }).notNull().default(1),
+  is_yuklerinde_goster: tinyint('is_yuklerinde_goster', { unsigned: true }).notNull().default(1),
   durum: varchar('durum', { length: 32 }).notNull().default('aktif'),
   is_active: tinyint('is_active', { unsigned: true }).notNull().default(1),
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -42,6 +44,8 @@ export type MakineDto = {
   tonaj: number | null;
   saatlikKapasite: number | null;
   calisir24Saat: boolean;
+  operatorDeGoster: boolean;
+  isYuklerindeGoster: boolean;
   kalipIds: string[];
   kaliplar: Array<{ id: string; kod: string; ad: string }>;
   durum: string;
@@ -61,6 +65,8 @@ export function rowToDto(
     tonaj: row.tonaj ? Number(row.tonaj) : null,
     saatlikKapasite: row.saatlik_kapasite ? Number(row.saatlik_kapasite) : null,
     calisir24Saat: row.calisir_24_saat === 1,
+    operatorDeGoster: row.operator_de_goster === 1,
+    isYuklerindeGoster: row.is_yuklerinde_goster === 1,
     kalipIds: kaliplar.map((kalip) => kalip.id),
     kaliplar,
     durum: row.durum,

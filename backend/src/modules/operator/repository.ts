@@ -643,7 +643,7 @@ const toStr = (v: Date | string | null | undefined): string | null => {
 export async function repoListMakineKuyrugu(
   query: ListMakineKuyruguQuery,
 ): Promise<{ items: MakineKuyruguDetayDto[]; total: number }> {
-  const conditions = [];
+  const conditions = [eq(makineler.operator_de_goster, 1)];
   if (query.makineId) conditions.push(eq(makineKuyrugu.makine_id, query.makineId));
   if (query.durum) conditions.push(eq(makineKuyrugu.durum, query.durum));
 
@@ -1826,6 +1826,7 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
       and(
         eq(makineler.is_active, 1),
         eq(makineler.durum, 'aktif'),
+        eq(makineler.operator_de_goster, 1),
         sql`EXISTS (
           SELECT 1 FROM makine_kuyrugu mk
           WHERE mk.makine_id = ${makineler.id}
@@ -1875,6 +1876,7 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
       and(
         eq(makineler.is_active, 1),
         eq(makineler.durum, 'aktif'),
+        eq(makineler.operator_de_goster, 1),
         sql`EXISTS (
           SELECT 1 FROM makine_kuyrugu mk
           WHERE mk.makine_id = ${makineler.id}

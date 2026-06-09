@@ -308,6 +308,7 @@ export default function MakinelerClient() {
               <TableHead>{t("admin.erp.makineHavuzu.columns.tonaj")}</TableHead>
               <TableHead>{t("admin.erp.makineHavuzu.columns.saatlikKapasite")}</TableHead>
               <TableHead>{t("admin.erp.makineHavuzu.columns.calisir24Saat")}</TableHead>
+              <TableHead>Görünürlük</TableHead>
               <TableHead>Kalıplar</TableHead>
               <TableHead>{t("admin.erp.makineHavuzu.columns.durum")}</TableHead>
               <TableHead className="w-24" />
@@ -317,7 +318,7 @@ export default function MakinelerClient() {
             {isLoading &&
               ["m1", "m2", "m3", "m4"].map((key) => (
                 <TableRow key={key}>
-                  {["c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8"].map((cellKey) => (
+                  {["c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9"].map((cellKey) => (
                     <TableCell key={`${key}-${cellKey}`}>
                       <Skeleton className="h-4 w-full" />
                     </TableCell>
@@ -326,7 +327,7 @@ export default function MakinelerClient() {
               ))}
             {!isLoading && items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={10} className="py-10 text-center text-sm text-muted-foreground">
                   {t("admin.erp.makineHavuzu.notFound")}
                 </TableCell>
               </TableRow>
@@ -355,6 +356,12 @@ export default function MakinelerClient() {
                           ? t("admin.erp.makineHavuzu.flags.yirmiDortSaat")
                           : t("admin.erp.makineHavuzu.flags.normalMesai")}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        <Badge variant={makine.operatorDeGoster ? "default" : "secondary"}>Operatör</Badge>
+                        <Badge variant={makine.isYuklerindeGoster ? "default" : "secondary"}>İş Yükleri</Badge>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">{makine.kaliplar.length} kalıp</Badge>
@@ -391,7 +398,7 @@ export default function MakinelerClient() {
                   </TableRow>
                   {expandedId === makine.id && (
                     <TableRow>
-                      <TableCell colSpan={9} className="p-0">
+                      <TableCell colSpan={10} className="p-0">
                         <MakineExpandedRow makine={makine} />
                       </TableCell>
                     </TableRow>

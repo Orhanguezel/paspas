@@ -46,6 +46,8 @@ function mapCreateInput(data: CreateBody): typeof makineler.$inferInsert {
     tonaj: typeof data.tonaj === 'number' ? data.tonaj.toFixed(2) : undefined,
     saatlik_kapasite: typeof data.saatlikKapasite === 'number' ? data.saatlikKapasite.toFixed(2) : undefined,
     calisir_24_saat: typeof data.calisir24Saat === 'boolean' ? (data.calisir24Saat ? 1 : 0) : undefined,
+    operator_de_goster: typeof data.operatorDeGoster === 'boolean' ? (data.operatorDeGoster ? 1 : 0) : undefined,
+    is_yuklerinde_goster: typeof data.isYuklerindeGoster === 'boolean' ? (data.isYuklerindeGoster ? 1 : 0) : undefined,
     durum: data.durum,
     is_active: typeof data.isActive === 'boolean' ? (data.isActive ? 1 : 0) : undefined,
   };
@@ -58,6 +60,8 @@ function mapPatchInput(data: PatchBody): Partial<typeof makineler.$inferInsert> 
   if (data.tonaj !== undefined) payload.tonaj = data.tonaj.toFixed(2);
   if (data.saatlikKapasite !== undefined) payload.saatlik_kapasite = data.saatlikKapasite.toFixed(2);
   if (data.calisir24Saat !== undefined) payload.calisir_24_saat = data.calisir24Saat ? 1 : 0;
+  if (data.operatorDeGoster !== undefined) payload.operator_de_goster = data.operatorDeGoster ? 1 : 0;
+  if (data.isYuklerindeGoster !== undefined) payload.is_yuklerinde_goster = data.isYuklerindeGoster ? 1 : 0;
   if (data.durum !== undefined) payload.durum = data.durum;
   if (data.isActive !== undefined) payload.is_active = data.isActive ? 1 : 0;
   return payload;

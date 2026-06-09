@@ -172,7 +172,7 @@ async function resequenceMakine(tx: any, makineId: string, activeIds?: string[])
 }
 
 export async function repoList(query: ListQuery): Promise<IsYukuDto[]> {
-  const conditions: SQL[] = [];
+  const conditions: SQL[] = [eq(makineler.is_yuklerinde_goster, 1)];
   if (query.makineId) conditions.push(eq(makineKuyrugu.makine_id, query.makineId));
   // Varsayilan: tamamlandi + iptal gizle, toggle ile goster
   if (!query.tamamlananlariGoster) {

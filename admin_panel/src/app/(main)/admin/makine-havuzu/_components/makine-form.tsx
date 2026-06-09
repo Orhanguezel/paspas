@@ -41,6 +41,8 @@ const schema = z.object({
   tonaj:           z.coerce.number().positive().optional().or(z.literal('')),
   saatlikKapasite: z.coerce.number().positive().optional().or(z.literal('')),
   calisir24Saat:   z.boolean().default(false),
+  operatorDeGoster: z.boolean().default(true),
+  isYuklerindeGoster: z.boolean().default(true),
   kalipIds:        z.array(z.string()).default([]),
   durum:           z.enum(['aktif', 'pasif', 'bakimda']).default('aktif'),
 });
@@ -313,7 +315,7 @@ export default function MakineForm({ open, onClose, makine }: Props) {
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { durum: 'aktif', calisir24Saat: false, kalipIds: [] },
+    defaultValues: { durum: 'aktif', calisir24Saat: false, operatorDeGoster: true, isYuklerindeGoster: true, kalipIds: [] },
   });
 
   useEffect(() => {
@@ -326,11 +328,13 @@ export default function MakineForm({ open, onClose, makine }: Props) {
           tonaj:           makine.tonaj ?? '',
           saatlikKapasite: makine.saatlikKapasite ?? '',
           calisir24Saat:   makine.calisir24Saat,
+          operatorDeGoster: makine.operatorDeGoster,
+          isYuklerindeGoster: makine.isYuklerindeGoster,
           kalipIds:        makine.kalipIds,
           durum:           makine.durum,
         });
       } else {
-        reset({ durum: 'aktif', calisir24Saat: false, kalipIds: [] });
+        reset({ durum: 'aktif', calisir24Saat: false, operatorDeGoster: true, isYuklerindeGoster: true, kalipIds: [] });
       }
     }
   }, [open, makine, reset]);
@@ -357,6 +361,8 @@ export default function MakineForm({ open, onClose, makine }: Props) {
 
   const durumVal = watch('durum');
   const calisir24Saat = watch('calisir24Saat');
+  const operatorDeGoster = watch('operatorDeGoster');
+  const isYuklerindeGoster = watch('isYuklerindeGoster');
   const kalipIds = watch('kalipIds');
 
   function toggleKalip(kalipId: string, checked: boolean) {
@@ -431,6 +437,23 @@ export default function MakineForm({ open, onClose, makine }: Props) {
                     <p className="text-xs text-muted-foreground">{t('admin.erp.makineHavuzu.form.calisir24SaatHelp')}</p>
                   </div>
                   <Switch checked={calisir24Saat} onCheckedChange={(v) => setValue('calisir24Saat', v, { shouldDirty: true })} />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex items-center justify-between rounded-md border px-3 py-3">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Operatör ekranında görün</p>
+                      <p className="text-xs text-muted-foreground">Kapalıysa operatör iş kartlarında listelenmez.</p>
+                    </div>
+                    <Switch checked={operatorDeGoster} onCheckedChange={(v) => setValue('operatorDeGoster', v, { shouldDirty: true })} />
+                  </div>
+                  <div className="flex items-center justify-between rounded-md border px-3 py-3">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Makine İş Yüklerinde görün</p>
+                      <p className="text-xs text-muted-foreground">Kapalıysa iş yükleri ekranından gizlenir.</p>
+                    </div>
+                    <Switch checked={isYuklerindeGoster} onCheckedChange={(v) => setValue('isYuklerindeGoster', v, { shouldDirty: true })} />
+                  </div>
                 </div>
 
                 <div className="space-y-2 rounded-md border px-3 py-3">
