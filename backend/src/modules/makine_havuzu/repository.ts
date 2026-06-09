@@ -516,11 +516,11 @@ export async function repoKuyrukCikar(kuyruguId: string): Promise<void> {
   const affectedEmriId = row.uretim_emri_id;
 
   await db.transaction(async (tx) => {
-    // Emir operasyonunda makine_id ve plan tarihlerini temizle
+    // Emir operasyonunda makine_id, montaj makinesi ve plan tarihlerini temizle
     if (row.emir_operasyon_id) {
       await tx
         .update(uretimEmriOperasyonlari)
-        .set({ makine_id: null, planlanan_baslangic: null, planlanan_bitis: null })
+        .set({ makine_id: null, montaj_makine_id: null, planlanan_baslangic: null, planlanan_bitis: null })
         .where(eq(uretimEmriOperasyonlari.id, row.emir_operasyon_id));
     }
     // Kuyruk kaydini sil

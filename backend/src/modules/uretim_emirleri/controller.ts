@@ -255,7 +255,7 @@ export const atamaGeriAl: RouteHandler = async (req, reply) => {
     // Emir operasyonlarini sifirla: gercek_baslangic kalirsa delete guard "baslamis" sayar
     await db
       .update(uretimEmriOperasyonlari)
-      .set({ durum: 'bekliyor', gercek_baslangic: null, gercek_bitis: null, makine_id: null })
+      .set({ durum: 'bekliyor', gercek_baslangic: null, gercek_bitis: null, makine_id: null, montaj_makine_id: null })
       .where(
         and(
           eq(uretimEmriOperasyonlari.uretim_emri_id, id),
