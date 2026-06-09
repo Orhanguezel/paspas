@@ -782,6 +782,7 @@ export async function repoGetHammaddeYeterlilik(id: string): Promise<HammaddeYet
         eq(hammaddeRezervasyonlari.uretim_emri_id, id),
         eq(hammaddeRezervasyonlari.durum, 'rezerve'),
         sql`${urunler.kategori} != 'operasyonel_ym'`,
+        eq(urunler.stok_takip_aktif, 1),
       ),
     );
 

@@ -238,9 +238,13 @@ export async function repoCheckYeterlilik(query: YeterlilikQuery): Promise<Yeter
     .where(inArray(stokUrunler.id, malzemeIds));
 
   const malzemeMap = new Map(malzemeRows.map((m) => [m.id, m]));
+  const takipliKalemRows = kalemRows.filter((kalem) => {
+    const malzeme = malzemeMap.get(kalem.urun_id);
+    return malzeme?.stok_takip_aktif !== 0;
+  });
 
   // 5. Calculate sufficiency per material
-  const kalemler: YeterlilikKalemResult[] = kalemRows.map((kalem) => {
+  const kalemler: YeterlilikKalemResult[] = takipliKalemRows.map((kalem) => {
     const malzeme = malzemeMap.get(kalem.urun_id);
     const stokTakipAktif = malzeme?.stok_takip_aktif !== 0;
     const miktar = Number(kalem.miktar ?? 0) * carpan;
