@@ -394,6 +394,12 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<DetailRe
     throw err;
   }
 
+  if (patch.durum === 'kapali' && !canCloseSiparis(currentItems)) {
+    const err = new Error('siparis_kilitli');
+    (err as any).detail = 'Aktif üretimi süren sipariş kapatılamaz.';
+    throw err;
+  }
+
   await db.transaction(async (tx) => {
     const siparisPatch = mapSiparisPatch(patch);
     if (Object.keys(siparisPatch).length > 0) {
@@ -450,12 +456,9 @@ export async function refreshSiparisDurum(siparisId: string): Promise<void> {
     .where(eq(siparisKalemleri.siparis_id, siparisId))
     .groupBy(uretimEmirleri.durum);
 
-  const countByDurum = new Map(uretimCounts.map((r) => [r.durum, Number(r.count)]));
-  const totalLinked = Array.from(countByDurum.values()).reduce((a, b) => a + b, 0);
-  const tamamlandiCount = countByDurum.get('tamamlandi') ?? 0;
-  const uretimdeCount = countByDurum.get('uretimde') ?? 0;
-  const allUretimDone = totalLinked > 0 && tamamlandiCount === totalLinked;
-  const anyUretimActive = uretimdeCount > 0;
+  const activeUretimCount = uretimCounts
+    .filter((row) => !['tamamlandi', 'iptal'].includes(row.durum))
+    .reduce((sum, row) => sum + Number(row.count), 0);
 
   // Priority: sevk tamamlandi > kismen sevk > üretimde > üretim bitti (sevk bekliyor) > planlandi > onaylandi
   let yeniDurum: string | null = null;
@@ -463,10 +466,7 @@ export async function refreshSiparisDurum(siparisId: string): Promise<void> {
     yeniDurum = 'tamamlandi';
   } else if (o.sevkEdilenMiktar > 0) {
     yeniDurum = 'kismen_sevk';
-  } else if (anyUretimActive) {
-    yeniDurum = 'uretimde';
-  } else if (allUretimDone) {
-    // Tüm üretim emirleri tamamlandı, sevk bekliyor
+  } else if (activeUretimCount > 0) {
     yeniDurum = 'uretimde';
   } else if (o.uretimeAktarilanKalemSayisi > 0) {
     yeniDurum = 'planlandi';
