@@ -214,6 +214,7 @@ export default function SatinAlmaDetayClient({ id }: Props) {
                   <TableHead className="text-right">Kabul Edilen</TableHead>
                   <TableHead className="text-right">Kalan</TableHead>
                   <TableHead>Birim</TableHead>
+                  <TableHead>Termin</TableHead>
                   <TableHead className="text-right">Stok Durumu</TableHead>
                   <TableHead className="text-right">Birim Fiyat</TableHead>
                   <TableHead className="text-right">Toplam</TableHead>
@@ -257,6 +258,14 @@ export default function SatinAlmaDetayClient({ id }: Props) {
                         )}
                       </TableCell>
                       <TableCell>{k.birim ?? '—'}</TableCell>
+                      <TableCell>
+                        <div className="space-y-0.5 text-xs">
+                          <span>{formatDate(k.etkinTerminTarihi)}</span>
+                          {k.terminTarihi && k.terminTarihi !== siparis.terminTarihi && (
+                            <Badge variant="secondary" className="text-[10px]">Satır</Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right">
                         {k.kritikStok > 0 && k.stok <= k.kritikStok ? (
                           <div className="space-y-0.5">

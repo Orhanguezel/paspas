@@ -57,7 +57,7 @@ export const patchSchema = z.object({
 
 // Siparis Islemleri (kalem bazli) sorgu schemasi
 const kalemUretimDurumEnum = z.enum(['beklemede', 'uretime_aktarildi', 'makineye_atandi', 'uretiliyor', 'duraklatildi', 'uretim_tamamlandi']);
-const gorunumEnum = z.enum(['duz', 'musteri', 'urun']);
+const gorunumEnum = z.enum(['duz', 'musteri', 'urun', 'alt_grup']);
 
 export const islemlerQuerySchema = z.object({
   q: z.string().trim().min(1).optional(),

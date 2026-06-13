@@ -33,7 +33,7 @@ import {
   KALEM_URETIM_DURUMU_BADGE,
 } from "@/integrations/shared/erp/satis_siparisleri.types";
 
-type Gorunum = "duz" | "musteri" | "urun";
+type Gorunum = "duz" | "musteri" | "urun" | "alt_grup";
 
 export default function SiparisIslemleriTab() {
   const [search, setSearch] = React.useState("");
@@ -107,8 +107,14 @@ export default function SiparisIslemleriTab() {
     if (gorunum === "duz") return null;
     const map = new Map<string, { label: string; items: SiparisIslemSatiri[]; maxPlanned: string | null }>();
     for (const item of items) {
-      const key = gorunum === "musteri" ? item.musteriId : item.urunId;
-      const label = gorunum === "musteri" ? item.musteriAd : `${item.urunKod} — ${item.urunAd}`;
+      const key =
+        gorunum === "musteri" ? item.musteriId :
+        gorunum === "alt_grup" ? (item.urunAltGrup || "__alt_grup_yok") :
+        item.urunId;
+      const label =
+        gorunum === "musteri" ? item.musteriAd :
+        gorunum === "alt_grup" ? (item.urunAltGrup || "Alt grup yok") :
+        `${item.urunKod} — ${item.urunAd}`;
       if (!map.has(key)) map.set(key, { label, items: [], maxPlanned: null });
       const group = map.get(key)!;
       group.items.push(item);
@@ -235,6 +241,7 @@ export default function SiparisIslemleriTab() {
                 <SelectItem value="duz">Düz Liste</SelectItem>
                 <SelectItem value="musteri">Müşteri Bazlı</SelectItem>
                 <SelectItem value="urun">Ürün Bazlı</SelectItem>
+                <SelectItem value="alt_grup">Ürün Alt Grubu</SelectItem>
               </SelectContent>
             </Select>
 

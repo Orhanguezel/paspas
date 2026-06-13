@@ -271,10 +271,11 @@ interface SubCategoryFormProps {
   onClose: () => void;
   categoryId: string;
   categoryName: string;
+  parentId?: string | null;
   subCategory?: SubCategoryDto | null;
 }
 
-function SubCategoryForm({ open, onClose, categoryId, categoryName, subCategory }: SubCategoryFormProps) {
+function SubCategoryForm({ open, onClose, categoryId, categoryName, parentId, subCategory }: SubCategoryFormProps) {
   const { t } = useLocaleContext();
   const isEdit = !!subCategory;
   const [name, setName] = useState(subCategory?.name ?? "");
@@ -310,12 +311,13 @@ function SubCategoryForm({ open, onClose, categoryId, categoryName, subCategory 
       if (isEdit && subCategory) {
         await update({
           id: subCategory.id,
-          patch: { name: name.trim(), slug: generatedSlug, is_active: isActive },
+          patch: { name: name.trim(), slug: generatedSlug, is_active: isActive, parent_id: subCategory.parent_id ?? null },
         }).unwrap();
         toast.success(tK("subUpdated"));
       } else {
         await create({
           category_id: categoryId,
+          parent_id: parentId ?? null,
           name: name.trim(),
           slug: generatedSlug,
           is_active: isActive,
@@ -415,6 +417,7 @@ export default function KategorilerTab() {
   const [subFormOpen, setSubFormOpen] = useState(false);
   const [subFormCategoryId, setSubFormCategoryId] = useState("");
   const [subFormCategoryName, setSubFormCategoryName] = useState("");
+  const [subFormParentId, setSubFormParentId] = useState<string | null>(null);
   const [editingSub, setEditingSub] = useState<SubCategoryDto | null>(null);
   const [deletingSub, setDeletingSub] = useState<SubCategoryDto | null>(null);
   const tK = (key: string, params?: Record<string, string>) => t(`admin.erp.tanimlar.kategoriler.${key}`, params);
@@ -423,9 +426,20 @@ export default function KategorilerTab() {
   const subsByCategory = useMemo(() => {
     const map = new Map<string, SubCategoryDto[]>();
     for (const sub of subCategories) {
+      if (sub.parent_id) continue;
       const arr = map.get(sub.category_id) ?? [];
       arr.push(sub);
       map.set(sub.category_id, arr);
+    }
+    return map;
+  }, [subCategories]);
+  const subsByParent = useMemo(() => {
+    const map = new Map<string, SubCategoryDto[]>();
+    for (const sub of subCategories) {
+      if (!sub.parent_id) continue;
+      const arr = map.get(sub.parent_id) ?? [];
+      arr.push(sub);
+      map.set(sub.parent_id, arr);
     }
     return map;
   }, [subCategories]);
@@ -449,9 +463,10 @@ export default function KategorilerTab() {
     setCatFormOpen(true);
   }
 
-  function openAddSub(cat: CategoryDto) {
+  function openAddSub(cat: CategoryDto, parentId: string | null = null) {
     setSubFormCategoryId(cat.id);
     setSubFormCategoryName(tKategori(cat.kod) || cat.name);
+    setSubFormParentId(parentId);
     setEditingSub(null);
     setSubFormOpen(true);
   }
@@ -459,6 +474,7 @@ export default function KategorilerTab() {
   function openEditSub(sub: SubCategoryDto, cat: CategoryDto) {
     setSubFormCategoryId(cat.id);
     setSubFormCategoryName(tKategori(cat.kod) || cat.name);
+    setSubFormParentId(sub.parent_id);
     setEditingSub(sub);
     setSubFormOpen(true);
   }
@@ -626,37 +642,78 @@ export default function KategorilerTab() {
                           <TableBody>
                             {subs
                               .sort((a, b) => a.display_order - b.display_order)
-                              .map((sub) => (
-                                <TableRow key={sub.id}>
-                                  <TableCell className="pl-12 font-medium">{sub.name}</TableCell>
-                                  <TableCell className="text-muted-foreground text-sm">{sub.slug}</TableCell>
-                                  <TableCell>
-                                    <Badge variant={sub.is_active ? "default" : "secondary"}>
-                                      {sub.is_active ? t("admin.common.active") : tK("inactive")}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-1">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-7"
-                                        onClick={() => openEditSub(sub, cat)}
-                                      >
-                                        <Pencil className="size-3.5" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-7 text-destructive hover:text-destructive"
-                                        onClick={() => setDeletingSub(sub)}
-                                      >
-                                        <Trash2 className="size-3.5" />
-                                      </Button>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
+                              .flatMap((sub) => {
+                                const children = (subsByParent.get(sub.id) ?? []).sort((a, b) => a.display_order - b.display_order);
+                                return [
+                                  <TableRow key={sub.id}>
+                                    <TableCell className="pl-12 font-medium">{sub.name}</TableCell>
+                                    <TableCell className="text-muted-foreground text-sm">{sub.slug}</TableCell>
+                                    <TableCell>
+                                      <Badge variant={sub.is_active ? "default" : "secondary"}>
+                                        {sub.is_active ? t("admin.common.active") : tK("inactive")}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="size-7"
+                                          onClick={() => openEditSub(sub, cat)}
+                                        >
+                                          <Pencil className="size-3.5" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="size-7"
+                                          onClick={() => openAddSub(cat, sub.id)}
+                                          title="Alt grup ekle"
+                                        >
+                                          <Plus className="size-3.5" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="size-7 text-destructive hover:text-destructive"
+                                          onClick={() => setDeletingSub(sub)}
+                                        >
+                                          <Trash2 className="size-3.5" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>,
+                                  ...children.map((child) => (
+                                    <TableRow key={child.id} className="bg-muted/30">
+                                      <TableCell className="pl-20 font-medium">
+                                        <span className="mr-2 text-muted-foreground">↳</span>
+                                        {child.name}
+                                      </TableCell>
+                                      <TableCell className="text-muted-foreground text-sm">{child.slug}</TableCell>
+                                      <TableCell>
+                                        <Badge variant={child.is_active ? "default" : "secondary"}>
+                                          {child.is_active ? t("admin.common.active") : tK("inactive")}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="flex items-center gap-1">
+                                          <Button variant="ghost" size="icon" className="size-7" onClick={() => openEditSub(child, cat)}>
+                                            <Pencil className="size-3.5" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="size-7 text-destructive hover:text-destructive"
+                                            onClick={() => setDeletingSub(child)}
+                                          >
+                                            <Trash2 className="size-3.5" />
+                                          </Button>
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  )),
+                                ];
+                              })}
                           </TableBody>
                         </Table>
                       </div>
@@ -697,6 +754,7 @@ export default function KategorilerTab() {
           }}
           categoryId={subFormCategoryId}
           categoryName={subFormCategoryName}
+          parentId={subFormParentId}
           subCategory={editingSub}
         />
       )}

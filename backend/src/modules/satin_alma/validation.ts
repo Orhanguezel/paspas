@@ -14,6 +14,7 @@ const kalemSchema = z.object({
   urunId: z.string().uuid(),
   miktar: z.coerce.number().positive(),
   birimFiyat: z.coerce.number().min(0).default(0),
+  terminTarihi: z.string().date().optional(),
   sira: z.coerce.number().int().min(0).default(0),
 });
 

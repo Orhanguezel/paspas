@@ -16,12 +16,13 @@ import {
 import { createSchema, islemlerQuerySchema, listQuerySchema, patchSchema, uretimeAktarSchema } from './validation';
 import { repoCreate as ueRepoCreate, repoGetNextEmirNo } from '@/modules/uretim_emirleri/repository';
 import { createUretimEmirleriFromSiparisKalemi, SiparisUretimEmirHatasi } from '@/modules/uretim_emirleri/service';
+import { uretimEmirleri, uretimEmriSiparisKalemleri } from '@/modules/uretim_emirleri/schema';
 import { db } from '@/db/client';
 import { siparisKalemleri } from './schema';
 import { urunler } from '@/modules/urunler/schema';
 import { musteriler } from '@/modules/musteriler/schema';
 import { satisSiparisleri } from './schema';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 
 function sendInternalError(reply: FastifyReply) {
   return reply.code(500).send({ error: { message: 'sunucu_hatasi' } });
@@ -211,8 +212,25 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
       .innerJoin(musteriler, eq(satisSiparisleri.musteri_id, musteriler.id))
       .where(inArray(siparisKalemleri.id, kalemIds));
 
-    // Sadece beklemede olanlar aktarilabilir — digerleri sessizce atlanir
-    const aktarilacaklar = kalemRows.filter((k) => k.uretimDurumu === 'beklemede');
+    const activeLinks = await db
+      .select({
+        kalemId: uretimEmriSiparisKalemleri.siparis_kalem_id,
+        count: sql<number>`count(distinct ${uretimEmirleri.id})`,
+      })
+      .from(uretimEmriSiparisKalemleri)
+      .innerJoin(uretimEmirleri, eq(uretimEmriSiparisKalemleri.uretim_emri_id, uretimEmirleri.id))
+      .where(
+        and(
+          inArray(uretimEmriSiparisKalemleri.siparis_kalem_id, kalemIds),
+          eq(uretimEmirleri.is_active, 1),
+          sql`${uretimEmirleri.durum} != 'iptal'`,
+        ),
+      )
+      .groupBy(uretimEmriSiparisKalemleri.siparis_kalem_id);
+    const activeKalemIds = new Set(activeLinks.map((row) => row.kalemId));
+
+    // Sadece beklemede olan ve aktif üretim emri bulunmayanlar aktarilir; digerleri sessizce atlanir.
+    const aktarilacaklar = kalemRows.filter((k) => k.uretimDurumu === 'beklemede' && !activeKalemIds.has(k.id));
     let atlananSayisi = kalemRows.length - aktarilacaklar.length;
 
     if (aktarilacaklar.length === 0) {

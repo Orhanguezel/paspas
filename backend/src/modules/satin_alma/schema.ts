@@ -20,6 +20,7 @@ export const satinAlmaKalemleri = mysqlTable('satin_alma_kalemleri', {
   urun_id: char('urun_id', { length: 36 }).notNull(),
   miktar: decimal('miktar', { precision: 12, scale: 4 }).notNull(),
   birim_fiyat: decimal('birim_fiyat', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  termin_tarihi: date('termin_tarihi'),
   sira: int('sira', { unsigned: true }).notNull().default(0),
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updated_at: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
@@ -36,6 +37,8 @@ export type SatinAlmaKalemDto = {
   birim: string | null;
   miktar: number;
   birimFiyat: number;
+  terminTarihi: string | null;
+  etkinTerminTarihi: string | null;
   sira: number;
   kabulMiktar: number;
   kalanMiktar: number;
@@ -69,6 +72,7 @@ type SatinAlmaKalemDtoSource = SatinAlmaKalemRow & {
   kabul_miktar?: string | number | null;
   urun_stok?: string | number | null;
   urun_kritik_stok?: string | number | null;
+  siparis_termin_tarihi?: Date | string | null;
 };
 
 export function siparisRowToDto(row: SatinAlmaSiparisDtoSource): SatinAlmaSiparisDto {
@@ -96,6 +100,12 @@ export function siparisRowToDto(row: SatinAlmaSiparisDtoSource): SatinAlmaSipari
 export function kalemRowToDto(row: SatinAlmaKalemDtoSource): SatinAlmaKalemDto {
   const miktar = Number(row.miktar ?? 0);
   const kabulMiktar = Number(row.kabul_miktar ?? 0);
+  const toDateString = (value: Date | string | null | undefined): string | null => {
+    if (!value) return null;
+    if (value instanceof Date) return value.toISOString().slice(0, 10);
+    return String(value).slice(0, 10);
+  };
+  const terminTarihi = toDateString(row.termin_tarihi);
   return {
     id: row.id,
     urunId: row.urun_id,
@@ -104,6 +114,8 @@ export function kalemRowToDto(row: SatinAlmaKalemDtoSource): SatinAlmaKalemDto {
     birim: row.birim ?? null,
     miktar,
     birimFiyat: Number(row.birim_fiyat ?? 0),
+    terminTarihi,
+    etkinTerminTarihi: terminTarihi ?? toDateString(row.siparis_termin_tarihi),
     sira: row.sira,
     kabulMiktar,
     kalanMiktar: Math.max(0, miktar - kabulMiktar),

@@ -63,6 +63,9 @@ function buildWhere(query: ListQuery): SQL | undefined {
   if (query.urunGrubu) {
     conditions.push(eq(urunler.urun_grubu, query.urunGrubu));
   }
+  if (query.altGrup) {
+    conditions.push(eq(urunler.alt_grup, query.altGrup));
+  }
 
   if (conditions.length === 0) return undefined;
   if (conditions.length === 1) return conditions[0];
@@ -75,6 +78,7 @@ function mapCreateInput(data: CreateBody): typeof urunler.$inferInsert {
     kategori: data.kategori,
     tedarik_tipi: data.tedarikTipi,
     urun_grubu: data.urunGrubu ?? null,
+    alt_grup: data.altGrup ?? null,
     kod: data.kod,
     ad: data.ad,
     aciklama: data.aciklama,
@@ -98,6 +102,7 @@ function mapPatchInput(data: PatchBody): Partial<typeof urunler.$inferInsert> {
   if (data.kategori !== undefined) payload.kategori = data.kategori;
   if (data.tedarikTipi !== undefined) payload.tedarik_tipi = data.tedarikTipi;
   if (data.urunGrubu !== undefined) payload.urun_grubu = data.urunGrubu ?? null;
+  if (data.altGrup !== undefined) payload.alt_grup = data.altGrup ?? null;
   if (data.kod !== undefined) payload.kod = data.kod;
   if (data.ad !== undefined) payload.ad = data.ad;
   if (data.aciklama !== undefined) payload.aciklama = data.aciklama;

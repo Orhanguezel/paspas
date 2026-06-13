@@ -36,6 +36,7 @@ interface KalemRow {
   urunId: string;
   miktar: string;
   birimFiyat: string;
+  terminTarihi: string;
 }
 
 const schema = z.object({
@@ -103,6 +104,7 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
             urunId: k.urunId,
             miktar: String(k.miktar),
             birimFiyat: String(k.birimFiyat),
+            terminTarihi: k.terminTarihi ?? '',
           })),
         );
       } else {
@@ -120,7 +122,7 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
   }, [open, siparis, detailSiparis, reset, nextNoData]);
 
   function addKalem() {
-    setKalemler((prev) => [...prev, { urunId: '', miktar: '1', birimFiyat: '0' }]);
+    setKalemler((prev) => [...prev, { urunId: '', miktar: '1', birimFiyat: '0', terminTarihi: '' }]);
   }
 
   function removeKalem(idx: number) {
@@ -149,6 +151,7 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
         urunId: k.urunId,
         miktar: Number(k.miktar) || 0,
         birimFiyat: Number(k.birimFiyat) || 0,
+        terminTarihi: k.terminTarihi || undefined,
         sira: i + 1,
       }));
 
@@ -292,6 +295,15 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
                       className="h-9 text-sm"
                       value={kalem.birimFiyat}
                       onChange={(e) => updateKalem(idx, 'birimFiyat', e.target.value)}
+                    />
+                  </div>
+                  <div className="w-36 space-y-1">
+                    <Label className="text-xs">Satır Termin</Label>
+                    <Input
+                      type="date"
+                      className="h-9 text-sm"
+                      value={kalem.terminTarihi}
+                      onChange={(e) => updateKalem(idx, 'terminTarihi', e.target.value)}
                     />
                   </div>
                   <Button

@@ -13,6 +13,8 @@ export interface SatinAlmaKalemDto {
   birim: string | null;
   miktar: number;
   birimFiyat: number;
+  terminTarihi: string | null;
+  etkinTerminTarihi: string | null;
   sira: number;
   kabulMiktar: number;
   kalanMiktar: number;
@@ -44,6 +46,7 @@ export interface SatinAlmaKalemPayload {
   urunId: string;
   miktar: number;
   birimFiyat?: number;
+  terminTarihi?: string;
   sira?: number;
 }
 
@@ -103,6 +106,8 @@ export function normalizeSatinAlmaKalem(raw: unknown): SatinAlmaKalemDto {
     birim:       r.birim != null ? toStr(r.birim) : null,
     miktar,
     birimFiyat:  toNum(r.birimFiyat),
+    terminTarihi: r.terminTarihi != null ? toStr(r.terminTarihi) : null,
+    etkinTerminTarihi: r.etkinTerminTarihi != null ? toStr(r.etkinTerminTarihi) : r.terminTarihi != null ? toStr(r.terminTarihi) : null,
     sira:        toNum(r.sira),
     kabulMiktar,
     kalanMiktar: r.kalanMiktar != null ? toNum(r.kalanMiktar) : Math.max(0, miktar - kabulMiktar),

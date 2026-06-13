@@ -463,7 +463,7 @@ export async function refreshSiparisDurum(siparisId: string): Promise<void> {
   // Priority: sevk tamamlandi > kismen sevk > üretimde > üretim bitti (sevk bekliyor) > planlandi > onaylandi
   let yeniDurum: string | null = null;
   if (o.toplamMiktar > 0 && o.sevkEdilenMiktar >= o.toplamMiktar) {
-    yeniDurum = 'tamamlandi';
+    yeniDurum = 'kapali';
   } else if (o.sevkEdilenMiktar > 0) {
     yeniDurum = 'kismen_sevk';
   } else if (activeUretimCount > 0) {
@@ -515,6 +515,7 @@ export interface SiparisIslemSatiri {
   urunId: string;
   urunAd: string;
   urunKod: string;
+  urunAltGrup: string | null;
   urunStok: number;
   urunBirim: string;
   miktar: number;
@@ -598,6 +599,7 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
       urunId: siparisKalemleri.urun_id,
       urunAd: urunler.ad,
       urunKod: urunler.kod,
+      urunAltGrup: urunler.alt_grup,
       urunStok: urunler.stok,
       urunBirim: urunler.birim,
       miktar: siparisKalemleri.miktar,
@@ -639,6 +641,7 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
       urunId: r.urunId,
       urunAd: r.urunAd ?? '',
       urunKod: r.urunKod ?? '',
+      urunAltGrup: r.urunAltGrup ?? null,
       urunStok: Number(r.urunStok ?? 0),
       urunBirim: r.urunBirim ?? '',
       miktar: Number(r.miktar),

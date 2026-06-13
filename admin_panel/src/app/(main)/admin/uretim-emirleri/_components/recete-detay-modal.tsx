@@ -91,11 +91,18 @@ export function ReceteDetayModal({ emirId, onOpenChange }: Props) {
                 </div>
               </div>
 
-              {recete?.aciklama && (
-                <div className="rounded-xl border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-                  {recete.aciklama}
+              <div className="rounded-xl border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-foreground/70">
+                  Reçete Açıklaması
                 </div>
-              )}
+                {recete?.aciklama ? (
+                  <p className="leading-relaxed">{recete.aciklama}</p>
+                ) : (
+                  <p className="leading-relaxed">
+                    Bu reçeteye henüz açıklama girilmemiş. Ürünler → Ürün Detayı → Reçete sekmesinden ekleyebilirsiniz.
+                  </p>
+                )}
+              </div>
 
               {recete?.items && recete.items.length > 0 && (
                 <div className="space-y-6">

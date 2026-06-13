@@ -39,6 +39,7 @@ export interface UrunDto {
   kategori: UrunKategori;
   tedarikTipi: TedarikTipi;
   urunGrubu: string | null;
+  altGrup: string | null;
   kod: string;
   ad: string;
   aciklama: string | null;
@@ -94,6 +95,7 @@ export interface UrunCreatePayload {
   kategori: UrunKategori;
   tedarikTipi: TedarikTipi;
   urunGrubu?: string;
+  altGrup?: string;
   kod: string;
   ad: string;
   aciklama?: string;
@@ -175,6 +177,7 @@ export function normalizeUrun(raw: unknown): UrunDto {
     kategori: toStr(r.kategori, "urun") as UrunKategori,
     tedarikTipi: toStr(r.tedarikTipi, "uretim") as TedarikTipi,
     urunGrubu: r.urunGrubu != null ? toStr(r.urunGrubu) : null,
+    altGrup: r.altGrup != null ? toStr(r.altGrup) : null,
     kod: toStr(r.kod),
     ad: toStr(r.ad),
     aciklama: r.aciklama != null ? toStr(r.aciklama) : null,

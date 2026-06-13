@@ -592,7 +592,7 @@ async function refreshShipmentOrderStatuses(
 
     await tx
       .update(satisSiparisleri)
-      .set({ durum: allShipped ? 'tamamlandi' : 'kismen_sevk' })
+      .set({ durum: allShipped ? 'kapali' : 'kismen_sevk' })
       .where(
         and(
           eq(satisSiparisleri.id, orderId),
@@ -645,6 +645,14 @@ const toStr = (v: Date | string | null | undefined): string | null => {
   if (v instanceof Date) return v.toISOString();
   return String(v);
 };
+
+async function runNonBlockingStep(label: string, step: () => Promise<void>): Promise<void> {
+  try {
+    await step();
+  } catch (error) {
+    console.error(`[operator] ${label} failed`, error);
+  }
+}
 
 // ============================================================
 // 1) Makine Kuyrugu Listeleme
@@ -964,6 +972,19 @@ export async function repoUretimBitir(
   let stokFarki = 0;
   let tamamlananMakineId = '';
 
+  const [existingQueue] = await db
+    .select()
+    .from(makineKuyrugu)
+    .where(eq(makineKuyrugu.id, body.makineKuyrukId))
+    .limit(1);
+  if (!existingQueue) throw new Error('kuyruk_kaydi_bulunamadi');
+  if (existingQueue.durum === 'tamamlandi') {
+    const result = await repoListMakineKuyrugu({ limit: 500, offset: 0 });
+    const found = result.items.find((i) => i.id === body.makineKuyrukId);
+    if (!found) throw new Error('kuyruk_kaydi_bulunamadi');
+    return { ...found, stokFarki: 0 };
+  }
+
   await db.transaction(async (tx) => {
     // Get queue row
     const [kqRow] = await tx
@@ -1125,19 +1146,21 @@ export async function repoUretimBitir(
 
   // Recalc planned dates for all pending jobs on the machine using working hours, tatil, weekends
   if (tamamlananMakineId) {
-    await recalcMakineKuyrukTarihleri(tamamlananMakineId);
+    await runNonBlockingStep('recalc_makine_kuyruk_tarihleri', () => recalcMakineKuyrukTarihleri(tamamlananMakineId));
   }
 
   // Auto-refresh linked sipariş durum after production complete
-  const [kqRef2] = await db
-    .select({
-      uretim_emri_id: makineKuyrugu.uretim_emri_id,
-      emir_operasyon_id: makineKuyrugu.emir_operasyon_id,
-    })
-    .from(makineKuyrugu)
-    .where(eq(makineKuyrugu.id, body.makineKuyrukId))
-    .limit(1);
-  if (kqRef2?.uretim_emri_id) {
+  await runNonBlockingStep('uretim_sonrasi_siparis_montaj_senkronizasyonu', async () => {
+    const [kqRef2] = await db
+      .select({
+        uretim_emri_id: makineKuyrugu.uretim_emri_id,
+        emir_operasyon_id: makineKuyrugu.emir_operasyon_id,
+      })
+      .from(makineKuyrugu)
+      .where(eq(makineKuyrugu.id, body.makineKuyrukId))
+      .limit(1);
+    if (!kqRef2?.uretim_emri_id) return;
+
     // UE tamamlandi mi? (transaction sonrası taze oku)
     const [emirRow] = await db
       .select({ durum: uretimEmirleri.durum })
@@ -1219,9 +1242,9 @@ export async function repoUretimBitir(
         }
       }
     }
-  }
+  });
 
-  try {
+  await runNonBlockingStep('uretim_tamamlandi_bildirimi', async () => {
     const summary = await getMakineKuyrukBildirimOzeti(body.makineKuyrukId);
     if (summary) {
       const machineLabel = [summary.makineKod, summary.makineAd].filter(Boolean).join(' - ');
@@ -1234,9 +1257,7 @@ export async function repoUretimBitir(
         type: 'system',
       });
     }
-  } catch {
-    // Notification failures must not block production completion.
-  }
+  });
 
   // Return fresh data
   const result = await repoListMakineKuyrugu({ limit: 500, offset: 0 });
@@ -1762,6 +1783,26 @@ export async function repoGunlukUretimGir(
     const activeJob = await findActiveMachineJob(tx, body.makineId);
     if (!activeJob) throw new Error('aktif_uretim_bulunamadi');
 
+    const duplicateSince = new Date(now.getTime() - 30_000);
+    const duplicateConditions = [
+      eq(operatorGunlukKayitlari.makine_id, body.makineId),
+      eq(operatorGunlukKayitlari.ek_uretim_miktari, body.uretilenMiktar.toFixed(4)),
+      eq(operatorGunlukKayitlari.fire_miktari, body.fireMiktar.toFixed(4)),
+      gte(operatorGunlukKayitlari.created_at, duplicateSince),
+    ];
+    if (activeJob.emir_operasyon_id) {
+      duplicateConditions.push(eq(operatorGunlukKayitlari.emir_operasyon_id, activeJob.emir_operasyon_id));
+    } else {
+      duplicateConditions.push(eq(operatorGunlukKayitlari.uretim_emri_id, activeJob.uretim_emri_id));
+    }
+    const [recentDuplicate] = await tx
+      .select()
+      .from(operatorGunlukKayitlari)
+      .where(and(...duplicateConditions))
+      .orderBy(desc(operatorGunlukKayitlari.created_at))
+      .limit(1);
+    if (recentDuplicate) return rowToGunlukGirisDto(recentDuplicate);
+
     let kayitTarihi = now;
     if (body.vardiyaKayitId) {
       const targetShift = await findShiftByIdForMachine(tx, body.vardiyaKayitId, body.makineId);
@@ -1798,7 +1839,7 @@ export async function repoGunlukUretimGir(
 
   if (!kayit) throw new Error('gunluk_kayit_olusturulamadi');
 
-  try {
+  await runNonBlockingStep('gunluk_uretim_bildirimi', async () => {
     const [activeQueue] = await db
       .select({ id: makineKuyrugu.id })
       .from(makineKuyrugu)
@@ -1828,9 +1869,7 @@ export async function repoGunlukUretimGir(
         type: 'system',
       });
     }
-  } catch {
-    // Notification failures must not block production tracking.
-  }
+  });
 
   return kayit;
 }

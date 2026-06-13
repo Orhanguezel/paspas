@@ -15,6 +15,7 @@ export type RawBool = boolean | 0 | 1 | '0' | '1' | 'true' | 'false' | null | un
 export interface ApiSubCategory {
   id: SubCategoryId;
   category_id: CategoryId;
+  parent_id: SubCategoryId | null;
   locale: string;
   name: string;
   slug: string;
@@ -40,6 +41,7 @@ export interface ApiSubCategory {
 export interface SubCategoryDto {
   id: SubCategoryId;
   category_id: CategoryId;
+  parent_id: SubCategoryId | null;
   locale: string;
   name: string;
   slug: string;
@@ -93,6 +95,7 @@ export const normalizeSubCategory = (row: ApiSubCategory): SubCategoryDto => {
   return {
     id: asStr(row.id),
     category_id: asStr(row.category_id),
+    parent_id: asNullableStr(row.parent_id),
     locale: asStr(row.locale || FALLBACK_LOCALE).toLowerCase(),
     name: asStr(row.name),
     slug: asStr(row.slug),
@@ -147,6 +150,7 @@ export interface SubCategorySlugQuery {
 export interface SubCategoryAdminListQueryParams {
   q?: string;
   category_id?: string;
+  parent_id?: string;
   locale?: string;
   is_active?: boolean | string;
   is_featured?: boolean | string;
@@ -162,6 +166,7 @@ export interface SubCategoryAdminListQueryParams {
  */
 export interface SubCategoryCreatePayload {
   category_id: string;
+  parent_id?: string | null;
   locale?: string;
   name: string;
   slug?: string;
@@ -180,6 +185,7 @@ export interface SubCategoryCreatePayload {
  */
 export interface SubCategoryUpdatePayload {
   category_id?: string;
+  parent_id?: string | null;
   locale?: string;
   name?: string;
   slug?: string;

@@ -483,10 +483,24 @@ export async function repoPatchSevkEmri(id: string, patch: SevkEmriPatch, operat
   let touchedSiparisId: string | null = null;
 
   if (patch.durum === 'sevk_edildi' && existing.durum !== 'sevk_edildi') {
+    const sevkMiktar = patch.miktar ?? existing.miktar;
+    if (sevkMiktar > existing.stokMiktar) {
+      const err = new Error('stok_yetersiz');
+      (err as any).detail = 'Stok yetersiz. Yöneticinizle görüşün.';
+      throw err;
+    }
+
     const sevkiyatId = randomUUID();
     const sevkNo = await generateSevkNo();
 
     await db.transaction(async (tx) => {
+      if (sevkMiktar !== existing.miktar) {
+        await tx
+          .update(sevkEmirleri)
+          .set({ miktar: String(sevkMiktar) })
+          .where(eq(sevkEmirleri.id, id));
+      }
+
       await tx.insert(sevkiyatlar).values({
         id: sevkiyatId,
         sevk_no: sevkNo,
@@ -501,13 +515,13 @@ export async function repoPatchSevkEmri(id: string, patch: SevkEmriPatch, operat
         siparis_id: existing.siparisId ?? null,
         siparis_kalem_id: existing.siparisKalemId ?? null,
         urun_id: existing.urunId,
-        miktar: String(existing.miktar),
+        miktar: String(sevkMiktar),
       });
 
       await tx
         .update(urunler)
         .set({
-          stok: sql`GREATEST(0, ${urunler.stok} - ${String(existing.miktar)})`,
+          stok: sql`GREATEST(0, ${urunler.stok} - ${String(sevkMiktar)})`,
           rezerve_stok: sql`GREATEST(0, ${urunler.rezerve_stok} - ${String(existing.miktar)})`,
         })
         .where(eq(urunler.id, existing.urunId));
@@ -518,7 +532,7 @@ export async function repoPatchSevkEmri(id: string, patch: SevkEmriPatch, operat
         hareket_tipi: 'cikis',
         referans_tipi: 'sevkiyat',
         referans_id: sevkiyatId,
-        miktar: String(-Math.abs(Number(existing.miktar))),
+        miktar: String(-Math.abs(Number(sevkMiktar))),
         aciklama: `Sevkiyat: ${sevkNo}`,
         created_by_user_id: operatorUserId,
       });

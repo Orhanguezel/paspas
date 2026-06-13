@@ -31,6 +31,7 @@ export interface SiparisIslemSatiri {
   urunId: string;
   urunAd: string;
   urunKod: string;
+  urunAltGrup: string | null;
   urunStok: number;
   urunBirim: string;
   miktar: number;

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import type { FastifyReply, RouteHandler } from 'fastify';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 
 import { rowToDto, operasyonRowToDto, birimDonusumRowToDto, medyaRowToDto } from './schema';
 import { receteRowToDto, receteKalemRowToDto } from '@/modules/receteler/schema';
@@ -72,9 +72,9 @@ async function normalizeUrunGrubuForKategori(kategoriKod: string, urunGrubu?: st
   }
 
   const groupRows = await db
-    .select({ name: subCategories.name })
+    .select({ id: subCategories.id, name: subCategories.name, parentId: subCategories.parent_id })
     .from(subCategories)
-    .where(and(eq(subCategories.category_id, categoryId), eq(subCategories.is_active, true)));
+    .where(and(eq(subCategories.category_id, categoryId), eq(subCategories.is_active, true), isNull(subCategories.parent_id)));
 
   if (groupRows.length === 0) {
     return { normalized: undefined as string | undefined };
@@ -85,6 +85,21 @@ async function normalizeUrunGrubuForKategori(kategoriKod: string, urunGrubu?: st
     return { error: 'gecersiz_urun_grubu' as const };
   }
 
+  return { normalized: matched.name.trim(), groupId: matched.id };
+}
+
+async function normalizeAltGrupForUrunGrubu(groupId: string | undefined, altGrup?: string | null) {
+  const trimmedAltGroup = altGrup?.trim();
+  if (!trimmedAltGroup) return { normalized: undefined as string | undefined };
+  if (!groupId) return { error: 'gecersiz_urun_alt_grubu' as const };
+
+  const rows = await db
+    .select({ name: subCategories.name })
+    .from(subCategories)
+    .where(and(eq(subCategories.parent_id, groupId), eq(subCategories.is_active, true)));
+
+  const matched = rows.find((row) => row.name.trim() === trimmedAltGroup);
+  if (!matched) return { error: 'gecersiz_urun_alt_grubu' as const };
   return { normalized: matched.name.trim() };
 }
 
@@ -236,6 +251,10 @@ export const createUrun: RouteHandler = async (req, reply) => {
     if (groupCheck.error) {
       return reply.code(400).send({ error: { message: groupCheck.error } });
     }
+    const altGroupCheck = await normalizeAltGrupForUrunGrubu(groupCheck.groupId, parsed.data.altGrup);
+    if (altGroupCheck.error) {
+      return reply.code(400).send({ error: { message: altGroupCheck.error } });
+    }
 
     const categoryBehavior = await getCategoryBehavior(parsed.data.kategori);
     if (!categoryBehavior?.id) {
@@ -259,6 +278,7 @@ export const createUrun: RouteHandler = async (req, reply) => {
     const row = await repoCreate({
       ...parsed.data,
       urunGrubu: groupCheck.normalized,
+      altGrup: altGroupCheck.normalized,
       operasyonTipi: operationTypeCheck.normalized as "tek_tarafli" | "cift_tarafli" | null | undefined,
     });
 
@@ -296,8 +316,16 @@ export const createUrunFull: RouteHandler = async (req, reply) => {
     if (groupCheck.error) {
       return reply.code(400).send({ error: { message: groupCheck.error } });
     }
+    const altGroupCheck = await normalizeAltGrupForUrunGrubu(groupCheck.groupId, parsed.data.altGrup);
+    if (altGroupCheck.error) {
+      return reply.code(400).send({ error: { message: altGroupCheck.error } });
+    }
 
-    const result = await createUrunWithYariMamuller({ ...parsed.data, urunGrubu: groupCheck.normalized ?? undefined });
+    const result = await createUrunWithYariMamuller({
+      ...parsed.data,
+      urunGrubu: groupCheck.normalized ?? undefined,
+      altGrup: altGroupCheck.normalized ?? undefined,
+    });
 
     return reply.code(201).send({
       urun: rowToDto(result.urun),
@@ -336,10 +364,16 @@ export const updateUrun: RouteHandler = async (req, reply) => {
     const effectiveKategori = parsed.data.kategori ?? existing.kategori;
     const effectiveGroup =
       parsed.data.urunGrubu !== undefined ? parsed.data.urunGrubu : existing.urun_grubu ?? undefined;
+    const effectiveAltGroup =
+      parsed.data.altGrup !== undefined ? parsed.data.altGrup : existing.alt_grup ?? undefined;
 
     const groupCheck = await normalizeUrunGrubuForKategori(effectiveKategori, effectiveGroup);
     if (groupCheck.error) {
       return reply.code(400).send({ error: { message: groupCheck.error } });
+    }
+    const altGroupCheck = await normalizeAltGrupForUrunGrubu(groupCheck.groupId, effectiveAltGroup);
+    if (altGroupCheck.error) {
+      return reply.code(400).send({ error: { message: altGroupCheck.error } });
     }
 
     const categoryBehavior = await getCategoryBehavior(effectiveKategori);
@@ -367,6 +401,7 @@ export const updateUrun: RouteHandler = async (req, reply) => {
     const patchBody: PatchBody = {
       ...parsed.data,
       urunGrubu: groupCheck.normalized,
+      altGrup: altGroupCheck.normalized,
       operasyonTipi: operationTypeCheck.normalized as "tek_tarafli" | "cift_tarafli" | null | undefined,
     };
 

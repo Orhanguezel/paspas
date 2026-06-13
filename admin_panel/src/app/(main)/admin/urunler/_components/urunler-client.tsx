@@ -51,6 +51,7 @@ type UrunListQueryParams = {
   kategori?: string;
   tedarikTipi?: TedarikTipi;
   urunGrubu?: string;
+  altGrup?: string;
   sort?: "ad" | "kod" | "created_at" | "stok" | "kritik_stok";
   order?: "asc" | "desc";
   limit?: number;
@@ -101,6 +102,7 @@ export default function UrunlerClient() {
   const [kategoriFilter, setKategoriFilter] = useState("urun");
   const [tedarikFilter, setTedarikFilter] = useState<TedarikTipi | "">("");
   const [urunGrubuFilter, setUrunGrubuFilter] = useState("");
+  const [altGrupFilter, setAltGrupFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<UrunDto | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -133,9 +135,17 @@ export default function UrunlerClient() {
   const filteredSubCategories = useMemo(
     () =>
       selectedCategory
-        ? subCategories.filter((subCategory) => subCategory.category_id === selectedCategory.id)
+        ? subCategories.filter((subCategory) => subCategory.category_id === selectedCategory.id && !subCategory.parent_id)
         : [],
     [selectedCategory, subCategories],
+  );
+  const selectedProductGroup = filteredSubCategories.find((subCategory) => subCategory.name === urunGrubuFilter);
+  const filteredAltGroups = useMemo(
+    () =>
+      selectedProductGroup
+        ? subCategories.filter((subCategory) => subCategory.parent_id === selectedProductGroup.id)
+        : [],
+    [selectedProductGroup, subCategories],
   );
 
   useEffect(() => {
@@ -148,11 +158,18 @@ export default function UrunlerClient() {
     if (!urunGrubuFilter) return;
     if (filteredSubCategories.some((subCategory) => subCategory.name === urunGrubuFilter)) return;
     setUrunGrubuFilter("");
+    setAltGrupFilter("");
   }, [filteredSubCategories, urunGrubuFilter]);
 
   useEffect(() => {
+    if (!altGrupFilter) return;
+    if (filteredAltGroups.some((subCategory) => subCategory.name === altGrupFilter)) return;
+    setAltGrupFilter("");
+  }, [altGrupFilter, filteredAltGroups]);
+
+  useEffect(() => {
     setPage(0);
-  }, [search, kategoriFilter, tedarikFilter, urunGrubuFilter]);
+  }, [search, kategoriFilter, tedarikFilter, urunGrubuFilter, altGrupFilter]);
 
   const listOffset = page * PAGE_SIZE;
 
@@ -166,6 +183,7 @@ export default function UrunlerClient() {
   if (kategoriFilter) queryParams.kategori = kategoriFilter;
   if (tedarikFilter) queryParams.tedarikTipi = tedarikFilter;
   if (urunGrubuFilter) queryParams.urunGrubu = urunGrubuFilter;
+  if (altGrupFilter) queryParams.altGrup = altGrupFilter;
 
   const { data, isLoading, isFetching, refetch } = useListUrunlerAdminQuery(queryParams);
 
@@ -243,6 +261,7 @@ export default function UrunlerClient() {
     setKategoriFilter("");
     setTedarikFilter("");
     setUrunGrubuFilter("");
+    setAltGrupFilter("");
     setPage(0);
   };
 
@@ -288,6 +307,7 @@ export default function UrunlerClient() {
               const nextCategory = categories.find((c) => c.kod === kat.kod);
               setKategoriFilter(kat.kod);
               setUrunGrubuFilter("");
+              setAltGrupFilter("");
               setTedarikFilter(nextCategory?.varsayilan_tedarik_tipi ?? "");
             }}
           >
@@ -300,6 +320,7 @@ export default function UrunlerClient() {
           onClick={() => {
             setKategoriFilter("");
             setUrunGrubuFilter("");
+            setAltGrupFilter("");
             setTedarikFilter("");
           }}
         >
@@ -325,6 +346,7 @@ export default function UrunlerClient() {
             const nextCategory = categories.find((category) => category.kod === nextKategori);
             setKategoriFilter(nextKategori);
             setUrunGrubuFilter("");
+            setAltGrupFilter("");
             setTedarikFilter(nextCategory?.varsayilan_tedarik_tipi ?? "");
           }}
         >
@@ -358,13 +380,34 @@ export default function UrunlerClient() {
           </SelectContent>
         </Select>
         {filteredSubCategories.length > 0 && (
-          <Select value={urunGrubuFilter || "all"} onValueChange={(v) => setUrunGrubuFilter(v === "all" ? "" : v)}>
+          <Select
+            value={urunGrubuFilter || "all"}
+            onValueChange={(v) => {
+              setUrunGrubuFilter(v === "all" ? "" : v);
+              setAltGrupFilter("");
+            }}
+          >
             <SelectTrigger className="w-44">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("admin.erp.urunler.allProductGroups")}</SelectItem>
               {filteredSubCategories.map((sc) => (
+                <SelectItem key={sc.id} value={sc.name}>
+                  {sc.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {filteredAltGroups.length > 0 && (
+          <Select value={altGrupFilter || "all"} onValueChange={(v) => setAltGrupFilter(v === "all" ? "" : v)}>
+            <SelectTrigger className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tüm Alt Gruplar</SelectItem>
+              {filteredAltGroups.map((sc) => (
                 <SelectItem key={sc.id} value={sc.name}>
                   {sc.name}
                 </SelectItem>

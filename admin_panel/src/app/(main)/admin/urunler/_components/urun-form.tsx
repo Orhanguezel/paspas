@@ -82,6 +82,7 @@ const schema = z.object({
   kategori: z.string().min(1).max(32).default("urun"),
   tedarikTipi: z.enum(["uretim", "satin_alma", "fason"]).default("uretim"),
   urunGrubu: z.string().optional(),
+  altGrup: z.string().optional(),
   kod: z.string().min(1, "kodRequired"),
   ad: z.string().min(1, "adRequired"),
   aciklama: z.string().optional(),
@@ -149,6 +150,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
     createState.isLoading || updateState.isLoading || saveDraftMedyaState.isLoading || saveDraftReceteState.isLoading;
   const [activeTab, setActiveTab] = useState("bilgiler");
   const [draftReceteRows, setDraftReceteRows] = useState<ReceteRow[]>([]);
+  const [draftReceteAciklama, setDraftReceteAciklama] = useState("");
   const [draftMediaUrls, setDraftMediaUrls] = useState<string[]>([]);
   const [draftCoverUrl, setDraftCoverUrl] = useState("");
 
@@ -166,6 +168,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
       kategori: "urun",
       tedarikTipi: "uretim",
       urunGrubu: "",
+      altGrup: "",
       kod: "",
       ad: "",
       aciklama: "",
@@ -205,6 +208,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   );
   const watchTedarikTipi = form.watch("tedarikTipi");
   const watchOperasyonTipi = form.watch("operasyonTipi");
+  const watchUrunGrubu = form.watch("urunGrubu");
   const watchAd = form.watch("ad");
   const watchRenk = form.watch("renk");
   const selectedCategory = categories.find((item) => item.kod === watchKategori);
@@ -214,7 +218,12 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
       : { is_active: true, sort: "display_order", order: "asc", limit: 200 },
     { skip: !selectedCategory },
   );
-  const categorySubGroups = subCategoryData ?? [];
+  const allCategorySubGroups = subCategoryData ?? [];
+  const categorySubGroups = allCategorySubGroups.filter((item) => !item.parent_id);
+  const selectedGroup = categorySubGroups.find((item) => item.name === watchUrunGrubu);
+  const categoryAltGroups = selectedGroup
+    ? allCategorySubGroups.filter((item) => item.parent_id === selectedGroup.id)
+    : [];
   const receteKategoriKodlari = useMemo(
     () =>
       Array.from(
@@ -351,14 +360,24 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
 
     if (categorySubGroups.length === 0) {
       form.setValue("urunGrubu", "", { shouldDirty: true });
+      form.setValue("altGrup", "", { shouldDirty: true });
       return;
     }
 
     const isValid = categorySubGroups.some((item) => item.name === currentGroup);
     if (!isValid) {
       form.setValue("urunGrubu", "", { shouldDirty: true });
+      form.setValue("altGrup", "", { shouldDirty: true });
     }
   }, [categorySubGroups, form, subCategoriesFetching]);
+
+  useEffect(() => {
+    if (subCategoriesFetching) return;
+    const currentAltGroup = (form.getValues("altGrup") || "").trim();
+    if (!currentAltGroup) return;
+    const isValid = categoryAltGroups.some((item) => item.name === currentAltGroup);
+    if (!isValid) form.setValue("altGrup", "", { shouldDirty: true });
+  }, [categoryAltGroups, form, subCategoriesFetching]);
 
   useEffect(() => {
     if (!open || isEdit || categories.length === 0) return;
@@ -395,6 +414,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
         kategori: urun.kategori ?? "urun",
         tedarikTipi: urun.tedarikTipi ?? "uretim",
         urunGrubu: urun.urunGrubu ?? "",
+        altGrup: urun.altGrup ?? "",
         kod: urun.kod,
         ad: urun.ad,
         aciklama: urun.aciklama ?? "",
@@ -431,6 +451,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
         kategori: categories[0]?.kod ?? "urun",
         tedarikTipi: (categories[0]?.varsayilan_tedarik_tipi as TedarikTipi | undefined) ?? "uretim",
         urunGrubu: "",
+        altGrup: "",
         kod: "",
         ad: "",
         aciklama: "",
@@ -477,8 +498,12 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
           fireOrani: 0,
           sira: draftValidRows.length - idx,
         }));
-        if (validRows.length > 0) {
-          await saveDraftRecete({ urunId: created.id, items: validRows }).unwrap();
+        if (validRows.length > 0 || draftReceteAciklama.trim()) {
+          await saveDraftRecete({
+            urunId: created.id,
+            aciklama: draftReceteAciklama.trim() || undefined,
+            items: validRows,
+          }).unwrap();
         }
         if (draftMediaUrls.length > 0) {
           await saveDraftMedya({
@@ -501,6 +526,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
           kategori: categories[0]?.kod ?? "urun",
           tedarikTipi: (categories[0]?.varsayilan_tedarik_tipi as TedarikTipi | undefined) ?? "uretim",
           urunGrubu: "",
+          altGrup: "",
           kod: "",
           ad: "",
           aciklama: "",
@@ -517,6 +543,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
           birimDonusumleri: [],
         });
         setDraftReceteRows([]);
+        setDraftReceteAciklama("");
         setDraftMediaUrls([]);
         setDraftCoverUrl("");
         // Refetch next code so the new product gets a fresh code suggestion
@@ -690,7 +717,10 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                   <Label>{tForm("urunGrubu")}</Label>
                   <Select
                     value={form.watch("urunGrubu") || "none"}
-                    onValueChange={(v) => form.setValue("urunGrubu", v === "none" ? "" : v, { shouldDirty: true })}
+                    onValueChange={(v) => {
+                      form.setValue("urunGrubu", v === "none" ? "" : v, { shouldDirty: true });
+                      form.setValue("altGrup", "", { shouldDirty: true });
+                    }}
                     disabled={categorySubGroups.length === 0}
                   >
                     <SelectTrigger>
@@ -708,6 +738,30 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1">
+                  <Label>Ürün Alt Grubu</Label>
+                  <Select
+                    value={form.watch("altGrup") || "none"}
+                    onValueChange={(v) => form.setValue("altGrup", v === "none" ? "" : v, { shouldDirty: true })}
+                    disabled={categoryAltGroups.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={categoryAltGroups.length > 0 ? "Ürün alt grubu seçin" : "Alt grup yok"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">—</SelectItem>
+                      {categoryAltGroups.map((sc) => (
+                        <SelectItem key={sc.id} value={sc.name}>
+                          {sc.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Renk */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1">
                   <Label>{tForm("renk")}</Label>
                   <Input {...form.register("renk")} placeholder={tForm("renkPlaceholder")} />
@@ -985,6 +1039,8 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                     allowedCategoryCodes={receteKategoriKodlari}
                     rows={draftReceteRows}
                     onRowsChange={setDraftReceteRows}
+                    aciklama={draftReceteAciklama}
+                    onAciklamaChange={setDraftReceteAciklama}
                   />
                 )}
               </TabsContent>
@@ -1183,6 +1239,8 @@ interface DraftReceteSectionProps {
   allowedCategoryCodes: string[];
   rows: ReceteRow[];
   onRowsChange: (rows: ReceteRow[]) => void;
+  aciklama: string;
+  onAciklamaChange: (value: string) => void;
 }
 
 interface ReceteRow {
@@ -1327,7 +1385,14 @@ function useReceteMalzemeOptions(
   }, [allowedCategoryCodes, excludeUrunId, genelMalzeme?.items, operasyonelYmMalzeme?.items, receteItems]);
 }
 
-function DraftReceteSection({ birim, allowedCategoryCodes, rows, onRowsChange }: DraftReceteSectionProps) {
+function DraftReceteSection({
+  birim,
+  allowedCategoryCodes,
+  rows,
+  onRowsChange,
+  aciklama,
+  onAciklamaChange,
+}: DraftReceteSectionProps) {
   const { t } = useLocaleContext();
   const tForm = (key: string) => t(`admin.erp.urunler.form.${key}`);
   const malzemeOptions = useReceteMalzemeOptions(allowedCategoryCodes, undefined);
@@ -1375,6 +1440,16 @@ function DraftReceteSection({ birim, allowedCategoryCodes, rows, onRowsChange }:
       </div>
 
       {rows.length === 0 && <p className="py-2 text-muted-foreground text-sm">{tForm("receteYok")}</p>}
+
+      <div className="space-y-1">
+        <Label className="text-xs">Reçete Açıklaması</Label>
+        <Textarea
+          rows={3}
+          value={aciklama}
+          onChange={(e) => onAciklamaChange(e.target.value)}
+          placeholder="Bu ürüne ait genel reçete açıklaması"
+        />
+      </div>
 
       {rows.map((row, idx) => {
         const malzeme = malzemeOptions.find((u) => u.id === row.urunId);

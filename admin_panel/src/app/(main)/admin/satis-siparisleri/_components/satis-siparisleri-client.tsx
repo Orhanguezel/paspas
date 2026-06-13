@@ -7,7 +7,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Plus, RefreshCcw, Pencil, Trash2, Search, Eye, ShoppingCart, Factory, Truck, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Plus, RefreshCcw, Pencil, Trash2, Search, Eye, ShoppingCart, Factory, Truck, CheckCircle2, AlertTriangle, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
 
@@ -30,6 +30,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import {
   useListSatisSiparisleriAdminQuery,
   useDeleteSatisSiparisiAdminMutation,
+  useUpdateSatisSiparisiAdminMutation,
 } from '@/integrations/endpoints/admin/erp/satis_siparisleri_admin.endpoints';
 import type { SatisSiparisDto, SiparisDurum } from '@/integrations/shared/erp/satis_siparisleri.types';
 import {
@@ -78,8 +79,18 @@ export default function SatisSiparisleriClient() {
 
   const { data, isLoading, isFetching, refetch } = useListSatisSiparisleriAdminQuery(params);
   const [deleteSiparis, deleteState] = useDeleteSatisSiparisiAdminMutation();
+  const [updateSiparis, updateState] = useUpdateSatisSiparisiAdminMutation();
 
   const items = data?.items ?? [];
+
+  async function reopenSiparis(siparis: SatisSiparisDto) {
+    try {
+      await updateSiparis({ id: siparis.id, body: { durum: 'onaylandi' } }).unwrap();
+      toast.success('Sipariş yeniden açıldı');
+    } catch {
+      toast.error(t('admin.erp.common.operationFailed'));
+    }
+  }
 
   const summary = useMemo(() => {
     const toplam = items.length;
@@ -248,6 +259,17 @@ export default function SatisSiparisleriClient() {
                     <Button variant="ghost" size="icon" onClick={() => openEdit(s)}>
                       <Pencil className="size-4" />
                     </Button>
+                    {(s.durum === 'kapali' || s.durum === 'iptal') && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => reopenSiparis(s)}
+                        disabled={updateState.isLoading}
+                        title="Geri Aç"
+                      >
+                        <RotateCcw className="size-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost" size="icon"
                       className="text-destructive hover:text-destructive"

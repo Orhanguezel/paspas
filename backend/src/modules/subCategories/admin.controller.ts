@@ -84,6 +84,18 @@ async function findSlugConflict(categoryId: string, slug: string, excludeId?: st
   return rows[0] ?? null;
 }
 
+async function validateParent(parentId: string | null | undefined, categoryId: string, selfId?: string) {
+  if (!parentId) return true;
+  if (parentId === selfId) return false;
+  const rows = await db
+    .select({ id: subCategories.id, categoryId: subCategories.category_id, parentId: subCategories.parent_id })
+    .from(subCategories)
+    .where(eq(subCategories.id, parentId))
+    .limit(1);
+  const parent = rows[0];
+  return Boolean(parent && parent.categoryId === categoryId && !parent.parentId);
+}
+
 // ── LIST ────────────────────────────────────────────────────────
 
 export type AdminListSubCategoriesQS = {
@@ -187,6 +199,10 @@ export const adminCreateSubCategory: RouteHandler<{ Body: SubCategoryCreateInput
     return reply.code(400).send({ error: { message: 'invalid_category_id' } });
   }
 
+  if (!(await validateParent(data.parent_id, data.category_id))) {
+    return reply.code(400).send({ error: { message: 'invalid_parent_id' } });
+  }
+
   if (await findSlugConflict(data.category_id, normalizedSlug)) {
     return reply.code(409).send({ error: { message: 'duplicate_slug' } });
   }
@@ -194,6 +210,7 @@ export const adminCreateSubCategory: RouteHandler<{ Body: SubCategoryCreateInput
   const payload = {
     id,
     category_id: data.category_id,
+    parent_id: data.parent_id ?? null,
     name: normalizedName,
     slug: normalizedSlug,
     description: (nullIfEmpty(data.description) as string | null) ?? null,
@@ -242,6 +259,11 @@ export const adminPatchSubCategory: RouteHandler<{
     return reply.code(400).send({ error: { message: 'invalid_category_id' } });
   }
 
+  const nextParentId = patch.parent_id !== undefined ? patch.parent_id : existing.parent_id;
+  if (!(await validateParent(nextParentId, nextCategoryId, req.params.id))) {
+    return reply.code(400).send({ error: { message: 'invalid_parent_id' } });
+  }
+
   if (await findSlugConflict(nextCategoryId, nextSlug, req.params.id)) {
     return reply.code(409).send({ error: { message: 'duplicate_slug' } });
   }
@@ -249,6 +271,7 @@ export const adminPatchSubCategory: RouteHandler<{
   const set: Record<string, unknown> = { updated_at: sql`CURRENT_TIMESTAMP(3)` };
 
   if (patch.category_id !== undefined) set.category_id = nextCategoryId;
+  if (patch.parent_id !== undefined) set.parent_id = patch.parent_id ?? null;
   if (patch.name !== undefined) set.name = nextName;
   if (patch.slug !== undefined) set.slug = nextSlug;
   if (patch.description !== undefined) set.description = nullIfEmpty(patch.description) as string | null;

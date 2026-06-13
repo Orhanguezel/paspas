@@ -19,6 +19,7 @@ export const boolLike = z.union([
 export const subCategoryCreateSchema = z.object({
   id: z.string().min(1).optional(),
   category_id: z.string().min(1, 'category_id_required'),
+  parent_id: emptyToNull(z.string().min(1).optional().nullable()),
   name: z.string().min(1, 'name_required').max(255),
   slug: z.string().min(1, 'slug_required').max(255).optional(),
   description: emptyToNull(z.string().optional().nullable()),

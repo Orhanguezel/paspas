@@ -7,6 +7,7 @@ export const urunler = mysqlTable('urunler', {
   kategori: varchar('kategori', { length: 32 }).notNull().default('urun'),
   tedarik_tipi: varchar('tedarik_tipi', { length: 32 }).notNull().default('uretim'),
   urun_grubu: varchar('urun_grubu', { length: 128 }),
+  alt_grup: varchar('alt_grup', { length: 128 }),
   kod: varchar('kod', { length: 64 }).notNull(),
   ad: varchar('ad', { length: 255 }).notNull(),
   aciklama: varchar('aciklama', { length: 500 }),
@@ -34,6 +35,7 @@ export type UrunDto = {
   kategori: string;
   tedarikTipi: string;
   urunGrubu: string | null;
+  altGrup: string | null;
   kod: string;
   ad: string;
   aciklama: string | null;
@@ -61,6 +63,7 @@ export function rowToDto(row: UrunRow): UrunDto {
     kategori: row.kategori,
     tedarikTipi: row.tedarik_tipi,
     urunGrubu: row.urun_grubu ?? null,
+    altGrup: row.alt_grup ?? null,
     kod: row.kod,
     ad: row.ad,
     aciklama: row.aciklama ?? null,

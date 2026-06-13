@@ -86,6 +86,7 @@ function mapKalemInsert(siparisId: string, items: CreateBody['items'] | PatchBod
     urun_id: item.urunId,
     miktar: item.miktar.toFixed(4),
     birim_fiyat: item.birimFiyat.toFixed(2),
+    termin_tarihi: item.terminTarihi ? new Date(item.terminTarihi) : null,
     sira: item.sira,
   }));
 }
@@ -321,6 +322,8 @@ export async function repoList(query: ListQuery): Promise<ListResult> {
       birim: urunler.birim,
       miktar: satinAlmaKalemleri.miktar,
       birim_fiyat: satinAlmaKalemleri.birim_fiyat,
+      termin_tarihi: satinAlmaKalemleri.termin_tarihi,
+      siparis_termin_tarihi: satinAlmaSiparisleri.termin_tarihi,
       sira: satinAlmaKalemleri.sira,
       kabul_miktar: sql<string>`(SELECT COALESCE(SUM(m.gelen_miktar), 0) FROM mal_kabul_kayitlari m WHERE m.satin_alma_kalem_id = ${satinAlmaKalemleri.id} AND m.kalite_durumu IN ('kabul', 'kosullu'))`,
       urun_stok: urunler.stok,
@@ -329,6 +332,7 @@ export async function repoList(query: ListQuery): Promise<ListResult> {
       updated_at: satinAlmaKalemleri.updated_at,
     })
     .from(satinAlmaKalemleri)
+    .innerJoin(satinAlmaSiparisleri, eq(satinAlmaSiparisleri.id, satinAlmaKalemleri.siparis_id))
     .leftJoin(urunler, eq(urunler.id, satinAlmaKalemleri.urun_id))
     .where(inArray(satinAlmaKalemleri.siparis_id, siparisIds))
     .orderBy(asc(satinAlmaKalemleri.sira));
@@ -381,6 +385,8 @@ export async function repoGetById(id: string): Promise<DetailResult | null> {
       birim: urunler.birim,
       miktar: satinAlmaKalemleri.miktar,
       birim_fiyat: satinAlmaKalemleri.birim_fiyat,
+      termin_tarihi: satinAlmaKalemleri.termin_tarihi,
+      siparis_termin_tarihi: satinAlmaSiparisleri.termin_tarihi,
       sira: satinAlmaKalemleri.sira,
       kabul_miktar: sql<string>`(SELECT COALESCE(SUM(m.gelen_miktar), 0) FROM mal_kabul_kayitlari m WHERE m.satin_alma_kalem_id = ${satinAlmaKalemleri.id} AND m.kalite_durumu IN ('kabul', 'kosullu'))`,
       urun_stok: urunler.stok,
@@ -389,6 +395,7 @@ export async function repoGetById(id: string): Promise<DetailResult | null> {
       updated_at: satinAlmaKalemleri.updated_at,
     })
     .from(satinAlmaKalemleri)
+    .innerJoin(satinAlmaSiparisleri, eq(satinAlmaSiparisleri.id, satinAlmaKalemleri.siparis_id))
     .leftJoin(urunler, eq(urunler.id, satinAlmaKalemleri.urun_id))
     .where(eq(satinAlmaKalemleri.siparis_id, id))
     .orderBy(asc(satinAlmaKalemleri.sira));

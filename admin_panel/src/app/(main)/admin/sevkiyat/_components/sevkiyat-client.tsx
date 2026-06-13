@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Check, ChevronDown, ChevronRight, Package, RefreshCcw, Search, Send, Truck, X } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -30,7 +30,7 @@ import {
 } from '@/integrations/endpoints/admin/erp/sevkiyat_admin.endpoints';
 import { useListMusterilerAdminQuery } from '@/integrations/endpoints/admin/erp/musteriler_admin.endpoints';
 import { useStatusQuery } from '@/integrations/endpoints/users/auth_public.endpoints';
-import type { BekleyenSatirDto, SiparissizUrunDto } from '@/integrations/shared/erp/sevkiyat.types';
+import type { BekleyenSatirDto, SevkEmriDto, SiparissizUrunDto } from '@/integrations/shared/erp/sevkiyat.types';
 import { SEVK_DURUM_LABELS, SEVK_DURUM_BADGE } from '@/integrations/shared/erp/sevkiyat.types';
 import type { AuthStatusResponse } from '@/integrations/shared/users/auth.public';
 import { normalizeMeFromStatus } from '@/integrations/shared/users/auth.public';
@@ -68,7 +68,11 @@ function formatShortDate(value: string | null | undefined): string {
 
 export default function SevkiyatClient() {
   const { t } = useLocaleContext();
-  const [tab, setTab] = useState<string>('bekleyenler');
+  const statusQ = useStatusQuery();
+  const currentUser = normalizeMeFromStatus(statusQ.data as AuthStatusResponse | undefined);
+  const isAdmin = currentUser?.isAdmin ?? false;
+  const [tab, setTab] = useState<string>(isAdmin ? 'bekleyenler' : 'emirler');
+  const effectiveTab = isAdmin ? tab : 'emirler';
 
   return (
     <div className="space-y-4">
@@ -77,21 +81,25 @@ export default function SevkiyatClient() {
         <p className="text-sm text-muted-foreground">{t('admin.erp.sevkiyat.description')}</p>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={effectiveTab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="bekleyenler">
-            <Package className="size-4 mr-2" />
-            {t('admin.erp.sevkiyat.tabs.bekleyenler')}
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="bekleyenler">
+              <Package className="size-4 mr-2" />
+              {t('admin.erp.sevkiyat.tabs.bekleyenler')}
+            </TabsTrigger>
+          )}
           <TabsTrigger value="emirler">
             <Truck className="size-4 mr-2" />
             {t('admin.erp.sevkiyat.tabs.emirler')}
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="bekleyenler">
-          <BekleyenlerTab />
-        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="bekleyenler">
+            <BekleyenlerTab />
+          </TabsContent>
+        )}
         <TabsContent value="emirler">
           <EmirleriTab />
         </TabsContent>
@@ -310,10 +318,22 @@ function FlatTable({ items, onSevkEt, compact }: {
                 </TableCell>
                 <TableCell className="text-xs">{formatShortDate(row.terminTarihi)}</TableCell>
                 <TableCell>
-                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onSevkEt(row)}>
-                    <Send className="size-3 mr-1" />
-                    {row.acikSevkEmriMiktar > 0 ? t('admin.erp.sevkiyat.actions.sevkEmriVar') : t('admin.erp.sevkiyat.actions.olustur')}
-                  </Button>
+                  {row.acikSevkEmriMiktar > 0 ? (
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge variant="secondary" className="h-6 whitespace-nowrap text-[10px]">
+                        {t('admin.erp.sevkiyat.actions.sevkEmriVar')}
+                      </Badge>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onSevkEt(row)}>
+                        <Send className="size-3 mr-1" />
+                        Yeni Sevk Emri Oluştur
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onSevkEt(row)}>
+                      <Send className="size-3 mr-1" />
+                      {t('admin.erp.sevkiyat.actions.olustur')}
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             );
@@ -360,10 +380,22 @@ function UrunGrupTable({ items, onSevkEt }: {
               <TableCell className="text-right text-xs font-medium">{row.kalanMiktar}</TableCell>
               <TableCell className="text-xs">{formatShortDate(row.terminTarihi)}</TableCell>
               <TableCell>
-                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onSevkEt(row)}>
-                  <Send className="size-3 mr-1" />
-                  {row.acikSevkEmriMiktar > 0 ? t('admin.erp.sevkiyat.actions.sevkEmriVar') : t('admin.erp.sevkiyat.actions.olustur')}
-                </Button>
+                {row.acikSevkEmriMiktar > 0 ? (
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge variant="secondary" className="h-6 whitespace-nowrap text-[10px]">
+                      {t('admin.erp.sevkiyat.actions.sevkEmriVar')}
+                    </Badge>
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onSevkEt(row)}>
+                      <Send className="size-3 mr-1" />
+                      Yeni Sevk Emri Oluştur
+                    </Button>
+                  </div>
+                ) : (
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onSevkEt(row)}>
+                    <Send className="size-3 mr-1" />
+                    {t('admin.erp.sevkiyat.actions.olustur')}
+                  </Button>
+                )}
               </TableCell>
             </TableRow>
           ))}
@@ -656,9 +688,11 @@ function EmirleriTab() {
   const statusQ = useStatusQuery();
   const currentUser = normalizeMeFromStatus(statusQ.data as AuthStatusResponse | undefined);
   const isAdmin = currentUser?.isAdmin ?? false;
-  const canShipPhysically = isAdmin || currentUser?.role === 'sevkiyatci';
+  const currentRole = currentUser?.role as string | undefined;
+  const canShipPhysically = isAdmin || currentRole === 'sevkiyatci' || currentRole === 'nakliyeci';
   const [q, setQ] = useState('');
-  const [durumFilter, setDurumFilter] = useState('');
+  const [durumFilter, setDurumFilter] = useState('bekliyor');
+  const [physicalShipTarget, setPhysicalShipTarget] = useState<SevkEmriDto | null>(null);
   const [updateEmri] = useUpdateSevkEmriAdminMutation();
 
   const { data, isLoading, isFetching, isError, error, refetch } = useListSevkEmirleriAdminQuery({
@@ -668,12 +702,13 @@ function EmirleriTab() {
   });
   const items = data?.items ?? [];
 
-  async function handleDurumChange(id: string, durum: 'onaylandi' | 'sevk_edildi' | 'iptal') {
+  async function handleDurumChange(id: string, durum: 'onaylandi' | 'sevk_edildi' | 'iptal', miktar?: number) {
     try {
-      await updateEmri({ id, body: { durum } }).unwrap();
+      await updateEmri({ id, body: { durum, miktar } }).unwrap();
       toast.success(t('admin.erp.sevkiyat.messages.durumGuncellendi', { durum: SEVK_DURUM_LABELS[durum]?.toLowerCase() ?? durum }));
-    } catch {
-      toast.error(t('admin.erp.sevkiyat.messages.durumHata'));
+      setPhysicalShipTarget(null);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error) ?? t('admin.erp.sevkiyat.messages.durumHata'));
     }
   }
 
@@ -789,7 +824,7 @@ function EmirleriTab() {
                           <Button
                             size="sm"
                             className="h-6 text-[10px] px-2"
-                            onClick={() => handleDurumChange(row.id, 'sevk_edildi')}
+                            onClick={() => setPhysicalShipTarget(row)}
                           >
                             <Truck className="size-3 mr-0.5" /> {t('admin.erp.sevkiyat.actions.fizikselSevkEt')}
                           </Button>
@@ -816,7 +851,60 @@ function EmirleriTab() {
           </Table>
         </div>
       )}
+      <PhysicalShipDialog
+        row={physicalShipTarget}
+        onClose={() => setPhysicalShipTarget(null)}
+        onSubmit={(row, miktar) => handleDurumChange(row.id, 'sevk_edildi', miktar)}
+      />
     </div>
+  );
+}
+
+function PhysicalShipDialog({
+  row,
+  onClose,
+  onSubmit,
+}: {
+  row: SevkEmriDto | null;
+  onClose: () => void;
+  onSubmit: (row: SevkEmriDto, miktar: number) => void;
+}) {
+  const { t } = useLocaleContext();
+  const [miktar, setMiktar] = useState('');
+
+  useEffect(() => {
+    setMiktar(row ? String(row.miktar) : '');
+  }, [row]);
+
+  const miktarNum = Number(miktar);
+  const stokYetersiz = row ? miktarNum > row.stokMiktar : false;
+
+  return (
+    <Dialog open={!!row} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('admin.erp.sevkiyat.actions.fizikselSevkEt')}</DialogTitle>
+          <DialogDescription>{row ? `${row.sevkEmriNo} · ${row.urunKod ?? ''} ${row.urunAd ?? ''}` : ''}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label>Sevk Miktarı</Label>
+          <Input type="number" min="0" step="0.0001" value={miktar} onChange={(e) => setMiktar(e.target.value)} />
+          {row && (
+            <p className={stokYetersiz ? 'text-destructive text-sm' : 'text-muted-foreground text-sm'}>
+              Stok: {row.stokMiktar}
+              {stokYetersiz ? ' · Stok yetersiz. Yöneticinizle görüşün.' : ''}
+            </p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>İptal</Button>
+          <Button disabled={!row || !miktarNum || miktarNum <= 0 || stokYetersiz} onClick={() => row && onSubmit(row, miktarNum)}>
+            <Truck className="size-4 mr-2" />
+            {t('admin.erp.sevkiyat.actions.fizikselSevkEt')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

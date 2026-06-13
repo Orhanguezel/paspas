@@ -25,6 +25,7 @@ export const subCategories = mysqlTable(
     category_id: char('category_id', { length: 36 })
       .notNull()
       .references(() => categories.id, { onDelete: 'cascade' }),
+    parent_id: char('parent_id', { length: 36 }),
 
     name: varchar('name', { length: 255 }).notNull(),
     slug: varchar('slug', { length: 255 }).notNull(),
@@ -54,6 +55,7 @@ export const subCategories = mysqlTable(
   (t) => ({
     ux_category_slug: uniqueIndex('sub_categories_category_slug_uq').on(t.category_id, t.slug),
     sc_category_idx: index('sub_categories_category_idx').on(t.category_id),
+    sc_parent_idx: index('sub_categories_parent_idx').on(t.parent_id),
     sc_active_idx: index('sub_categories_active_idx').on(t.is_active),
     sc_order_idx: index('sub_categories_order_idx').on(t.display_order),
   }),
