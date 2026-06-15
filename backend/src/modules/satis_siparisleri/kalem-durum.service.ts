@@ -9,8 +9,13 @@ import type { MySql2Database } from 'drizzle-orm/mysql2';
  */
 const VALID_TRANSITIONS: Record<KalemUretimDurumu, KalemUretimDurumu[]> = {
   beklemede: ['uretime_aktarildi'],
-  uretime_aktarildi: ['makineye_atandi', 'beklemede'],
-  makineye_atandi: ['uretiliyor', 'uretime_aktarildi'],
+  // Üretim tamamlandığında kalem her aktif alt-durumdan tamamlanabilir.
+  // Operatör üretimi bitirdiğinde kalemin ara durumları (makineye_atandi→uretiliyor)
+  // ilerlememiş olabilir; üretim bitişi belirleyicidir ve kalem 'uretim_tamamlandi'
+  // olur. Aksi halde kalem 'uretime_aktarildi'da takılı kalıyordu
+  // (gecersiz_gecis:uretime_aktarildi_to_uretim_tamamlandi → sipariş otomatik kapanmıyordu).
+  uretime_aktarildi: ['makineye_atandi', 'beklemede', 'uretim_tamamlandi'],
+  makineye_atandi: ['uretiliyor', 'uretime_aktarildi', 'uretim_tamamlandi'],
   uretiliyor: ['duraklatildi', 'uretim_tamamlandi'],
   duraklatildi: ['uretiliyor', 'uretim_tamamlandi'],
   uretim_tamamlandi: [],
