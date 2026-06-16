@@ -49,6 +49,16 @@ import UretimEmriForm from "./uretim-emri-form";
 import { ReceteDetayModal } from "./recete-detay-modal";
 import { MakineAtaSheet } from "./makine-ata-sheet";
 
+// Çift taraflı ürünün operasyonel YM tarafını (Sağ/Sol) tespit eder.
+// Kod sonu -R/-L veya adda "Sağ"/"Sol" geçer. Taraf yoksa null.
+function detectTaraf(kod: string | null | undefined, ad: string | null | undefined): "Sağ" | "Sol" | null {
+  const k = (kod ?? "").trim().toLocaleUpperCase("tr");
+  const a = (ad ?? "").toLocaleLowerCase("tr");
+  if (/-R\b/.test(k) || /\bsağ\b/.test(a)) return "Sağ";
+  if (/-L\b/.test(k) || /\bsol\b/.test(a)) return "Sol";
+  return null;
+}
+
 // ── MalzemeBadge ─────────────────────────────────────────────
 function MalzemeBadge({ urunId, miktar, receteId }: { urunId: string; miktar: number; receteId: string | null }) {
   const { data, isLoading } = useCheckYeterlilikAdminQuery(
@@ -408,6 +418,10 @@ export default function UretimEmirleriClient() {
               const showOperasyonelUrun =
                 Boolean(e.siparisUrunAd || e.siparisUrunKod) &&
                 (e.urunAd !== e.siparisUrunAd || e.urunKod !== e.siparisUrunKod);
+              // Çift taraflı ürünlerde Sağ/Sol operasyonel YM'leri ayrı üretim
+              // emri olur (montaj gereği). Kullanıcı bunu "çift kayıt" sanmasın
+              // diye taraf rozeti gösterilir.
+              const taraf = detectTaraf(e.urunKod, e.urunAd);
 
               return (
                 <TableRow
@@ -445,8 +459,20 @@ export default function UretimEmirleriClient() {
                         <div className="font-medium text-sm text-slate-900 line-clamp-1">{displayUrunAd}</div>
                         {displayUrunKod && <div className="text-xs text-muted-foreground font-mono">{displayUrunKod}</div>}
                         {showOperasyonelUrun && (
-                          <div className="text-[10px] text-muted-foreground mt-0.5">
-                            Operasyonel YM: {e.urunKod ? `${e.urunKod} — ` : ""}{e.urunAd ?? e.urunId}
+                          <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                            {taraf && (
+                              <Badge
+                                variant="outline"
+                                className={`px-1 py-0 text-[9px] font-bold ${
+                                  taraf === "Sağ"
+                                    ? "border-blue-300 bg-blue-50 text-blue-700"
+                                    : "border-purple-300 bg-purple-50 text-purple-700"
+                                }`}
+                              >
+                                {taraf === "Sağ" ? "ÇİFT TARAFLI · SAĞ" : "ÇİFT TARAFLI · SOL"}
+                              </Badge>
+                            )}
+                            <span>Operasyonel YM: {e.urunKod ? `${e.urunKod} — ` : ""}{e.urunAd ?? e.urunId}</span>
                           </div>
                         )}
                         {e.siparisNo && (
