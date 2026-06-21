@@ -287,6 +287,87 @@ function UretimOlusturGrid({ onCreated }: { onCreated: () => void }) {
   );
 }
 
+function YariMamulIhtiyaciOzet({
+  items,
+  groupLabelFor,
+}: {
+  items: UretimEmriDto[];
+  groupLabelFor: (item: UretimEmriDto) => string;
+}) {
+  const groups = useMemo(() => {
+    const map = new Map<string, Map<string, {
+      urunAd: string;
+      urunKod: string | null;
+      miktar: number;
+      makineler: Set<string>;
+      montaj: boolean;
+    }>>();
+
+    for (const item of items) {
+      const group = groupLabelFor(item);
+      const groupMap = map.get(group) ?? new Map();
+      const existing = groupMap.get(item.urunId);
+      if (existing) {
+        existing.miktar += item.planlananMiktar;
+        if (item.makineAdlari) existing.makineler.add(item.makineAdlari);
+      } else {
+        groupMap.set(item.urunId, {
+          urunAd: item.urunAd ?? item.urunId,
+          urunKod: item.urunKod,
+          miktar: item.planlananMiktar,
+          makineler: new Set(item.makineAdlari ? [item.makineAdlari] : []),
+          montaj: item.durum === "montaj_bekliyor",
+        });
+      }
+      map.set(group, groupMap);
+    }
+
+    return Array.from(map.entries()).map(([group, rows]) => ({
+      group,
+      rows: Array.from(rows.values()).sort((a, b) => a.urunAd.localeCompare(b.urunAd, "tr")),
+    }));
+  }, [groupLabelFor, items]);
+
+  if (groups.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <h2 className="font-semibold text-sm">Yarı Mamul İhtiyacı</h2>
+        <p className="text-muted-foreground text-xs">Aynı yarı mamuller ürün grubu içinde toplanır.</p>
+      </div>
+      {groups.map((group) => (
+        <div key={group.group} className="overflow-hidden rounded-md border">
+          <div className="bg-muted/40 px-3 py-2 font-semibold text-xs">{group.group}</div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Yarı Mamul Adı</TableHead>
+                <TableHead className="text-right">Miktar</TableHead>
+                <TableHead>Makine</TableHead>
+                <TableHead className="text-center">Montaj</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {group.rows.map((row) => (
+                <TableRow key={`${group.group}-${row.urunKod ?? row.urunAd}`}>
+                  <TableCell>
+                    <div className="font-medium text-sm">{row.urunAd}</div>
+                    {row.urunKod && <div className="font-mono text-muted-foreground text-xs">{row.urunKod}</div>}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{row.miktar.toLocaleString("tr-TR")}</TableCell>
+                  <TableCell className="text-xs">{Array.from(row.makineler).join(", ") || "Atanmamış"}</TableCell>
+                  <TableCell className="text-center">{row.montaj ? "Yes" : "No"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Ana Bileşen ───────────────────────────────────────────────
 export default function UretimEmirleriClient() {
   const { t } = useLocaleContext();
@@ -850,6 +931,10 @@ export default function UretimEmirleriClient() {
           </div>
         )}
       </div>
+
+      {isPlanlaTab && (
+        <YariMamulIhtiyaciOzet items={items} groupLabelFor={productGroupLabel} />
+      )}
 
       {/* Form Sheet */}
       <UretimEmriForm open={formOpen} onClose={() => setFormOpen(false)} emri={editing} initialKaynak={formInitialKaynak} />
