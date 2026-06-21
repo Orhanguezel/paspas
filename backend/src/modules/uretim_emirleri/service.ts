@@ -17,6 +17,7 @@ type Opts = {
   baslangicTarihi?: string;
   bitisTarihi?: string;
   terminTarihi?: string;
+  miktarOverride?: number;
 };
 
 const OPERASYON_KAYNAGI_KATEGORILERI = ['operasyonel_ym', 'yarimamul'] as const;
@@ -144,7 +145,7 @@ export async function createUretimEmirleriFromSiparisKalemi(
     throw new SiparisUretimEmirHatasi('asil_urun_yarimamul_icermiyor');
   }
 
-  const kalemMiktar = Number(kalem.miktar);
+  const kalemMiktar = opts.miktarOverride && opts.miktarOverride > 0 ? opts.miktarOverride : Number(kalem.miktar);
   const results: CreateResult[] = [];
 
   for (const k of yariMamulKalemler) {

@@ -195,7 +195,8 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
     if (!parsed.success) {
       return reply.code(400).send({ error: { message: 'gecersiz_body', issues: parsed.error.flatten() } });
     }
-    const { kalemIds, birlestir } = parsed.data;
+    const kalemMiktarMap = new Map((parsed.data.kalemler ?? []).map((item) => [item.kalemId, item.miktar]));
+    const kalemIds = parsed.data.kalemler?.map((item) => item.kalemId) ?? parsed.data.kalemIds ?? [];
 
     // Kalemleri al — urun, musteri bilgileriyle
     const kalemRows = await db
@@ -230,7 +231,9 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
     const activeKalemIds = new Set(activeLinks.map((row) => row.kalemId));
 
     // Sadece beklemede olan ve aktif üretim emri bulunmayanlar aktarilir; digerleri sessizce atlanir.
-    const aktarilacaklar = kalemRows.filter((k) => k.uretimDurumu === 'beklemede' && !activeKalemIds.has(k.id));
+    const aktarilacaklar = kalemRows
+      .filter((k) => k.uretimDurumu === 'beklemede' && !activeKalemIds.has(k.id))
+      .map((k) => ({ ...k, aktarilacakMiktar: Math.min(Number(k.miktar), kalemMiktarMap.get(k.id) ?? Number(k.miktar)) }));
     let atlananSayisi = kalemRows.length - aktarilacaklar.length;
 
     if (aktarilacaklar.length === 0) {
@@ -246,7 +249,7 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
     // Not: birlestir=true yeni mimaride uygulanmıyor — her kalem için yarı mamuller ayrı emirler açar.
     for (const k of aktarilacaklar) {
       try {
-        const results = await createUretimEmirleriFromSiparisKalemi(k.id);
+        const results = await createUretimEmirleriFromSiparisKalemi(k.id, { miktarOverride: k.aktarilacakMiktar });
         for (const r of results) olusturulanEmirler.push(r.row.emir_no);
       } catch (err) {
         if (!(err instanceof SiparisUretimEmirHatasi)) throw err;
@@ -268,7 +271,7 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
         const result = await ueRepoCreate({
           emirNo,
           urunId: k.urunId,
-          planlananMiktar: Number(k.miktar),
+          planlananMiktar: k.aktarilacakMiktar,
           uretilenMiktar: 0,
           durum: 'atanmamis',
           siparisKalemIds: [k.id],

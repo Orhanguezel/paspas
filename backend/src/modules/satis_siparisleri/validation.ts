@@ -73,8 +73,14 @@ export const islemlerQuerySchema = z.object({
 });
 
 export const uretimeAktarSchema = z.object({
-  kalemIds: z.array(z.string().min(1)).min(1),
+  kalemIds: z.array(z.string().min(1)).optional(),
+  kalemler: z.array(z.object({
+    kalemId: z.string().min(1),
+    miktar: z.coerce.number().positive(),
+  })).optional(),
   birlestir: z.boolean().default(false),
+}).refine((value) => (value.kalemler?.length ?? 0) > 0 || (value.kalemIds?.length ?? 0) > 0, {
+  message: 'kalem_secimi_zorunlu',
 });
 
 export type ListQuery = z.infer<typeof listQuerySchema>;

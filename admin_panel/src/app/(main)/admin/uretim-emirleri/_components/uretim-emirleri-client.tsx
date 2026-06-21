@@ -25,6 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -38,10 +39,15 @@ import {
   useListUretimEmirleriAdminQuery,
 } from "@/integrations/endpoints/admin/erp/uretim_emirleri_admin.endpoints";
 import {
+  useListSiparisIslemleriAdminQuery,
+  useUretimeAktarAdminMutation,
+} from "@/integrations/endpoints/admin/erp/satis_siparisleri_admin.endpoints";
+import {
   useKuyrukCikarAdminMutation,
   useListKuyrukAdminQuery,
 } from "@/integrations/endpoints/admin/erp/makine_havuzu_admin.endpoints";
 import type { UretimEmriDto, UretimEmriDurum } from "@/integrations/shared/erp/uretim_emirleri.types";
+import type { SiparisIslemSatiri } from "@/integrations/shared/erp/satis_siparisleri.types";
 import { EMIR_DURUM_BADGE } from "@/integrations/shared/erp/uretim_emirleri.types";
 import { useCheckYeterlilikAdminQuery } from "@/integrations/endpoints/admin/erp/stoklar_admin.endpoints";
 
@@ -94,6 +100,190 @@ function MalzemeBadge({ urunId, miktar, receteId }: { urunId: string; miktar: nu
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
+  );
+}
+
+function UretimOlusturGrid({ onCreated }: { onCreated: () => void }) {
+  const [selectedGroup, setSelectedGroup] = useState<string>("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [aktarilacak, setAktarilacak] = useState<Record<string, string>>({});
+  const { data: rows = [], isLoading } = useListSiparisIslemleriAdminQuery({
+    uretimDurumu: "beklemede",
+    gizleTamamlanan: true,
+    limit: 500,
+    sort: "created_at",
+    order: "desc",
+  });
+  const [uretimeAktar, aktarState] = useUretimeAktarAdminMutation();
+
+  const groups = useMemo(() => {
+    const values = new Set<string>();
+    for (const row of rows) values.add(row.urunAltGrup || "Genel");
+    return Array.from(values).sort((a, b) => a.localeCompare(b, "tr"));
+  }, [rows]);
+
+  const filteredRows = useMemo(() => {
+    if (!selectedGroup) return [];
+    return rows.filter((row) => (row.urunAltGrup || "Genel") === selectedGroup);
+  }, [rows, selectedGroup]);
+
+  function kalan(row: SiparisIslemSatiri) {
+    return Math.max(0, row.miktar - row.uretilenMiktar);
+  }
+
+  function toggleRow(row: SiparisIslemSatiri, checked: boolean) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (checked) {
+        next.add(row.kalemId);
+        setAktarilacak((values) => ({ ...values, [row.kalemId]: values[row.kalemId] ?? String(kalan(row)) }));
+      } else {
+        next.delete(row.kalemId);
+      }
+      return next;
+    });
+  }
+
+  async function handleAktar() {
+    const kalemler = filteredRows
+      .filter((row) => selectedIds.has(row.kalemId))
+      .map((row) => ({
+        kalemId: row.kalemId,
+        miktar: Math.min(kalan(row), Number(aktarilacak[row.kalemId] ?? kalan(row))),
+      }))
+      .filter((row) => row.miktar > 0);
+
+    if (kalemler.length === 0) {
+      toast.error("Üretime aktarılacak satır seçin.");
+      return;
+    }
+
+    try {
+      const result = await uretimeAktar({ kalemler, birlestir: false }).unwrap();
+      toast.success(result.message);
+      setSelectedIds(new Set());
+      setAktarilacak({});
+      onCreated();
+    } catch (error: unknown) {
+      const message =
+        typeof error === "object" && error && "data" in error
+          ? (error as { data?: { error?: { detail?: string; message?: string } } }).data?.error?.detail ??
+            (error as { data?: { error?: { detail?: string; message?: string } } }).data?.error?.message
+          : undefined;
+      toast.error(message ?? "Üretime aktarma başarısız.");
+    }
+  }
+
+  return (
+    <Card className="shadow-none">
+      <CardContent className="space-y-3 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-semibold text-sm">Yeni Üretim Oluştur</h2>
+            <p className="text-muted-foreground text-xs">Sipariş kalemlerini ürün grubuna göre üretime aktar.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select
+              value={selectedGroup || "_none"}
+              onValueChange={(value) => {
+                setSelectedGroup(value === "_none" ? "" : value);
+                setSelectedIds(new Set());
+                setAktarilacak({});
+              }}
+            >
+              <SelectTrigger className="h-8 w-52 text-xs">
+                <SelectValue placeholder="Ürün grubu seç" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none" className="text-xs">Ürün grubu seç</SelectItem>
+                {groups.map((group) => (
+                  <SelectItem key={group} value={group} className="text-xs">{group}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button size="sm" onClick={handleAktar} disabled={aktarState.isLoading || selectedIds.size === 0}>
+              Üretime Aktar
+            </Button>
+          </div>
+        </div>
+
+        <div className="overflow-auto rounded-md border">
+          <Table>
+            <TableHeader className="bg-muted/30">
+              <TableRow>
+                <TableHead className="w-12">Seç</TableHead>
+                <TableHead>Sipariş No</TableHead>
+                <TableHead>Müşteri</TableHead>
+                <TableHead>Ürün</TableHead>
+                <TableHead className="text-right">Sipariş Miktarı</TableHead>
+                <TableHead className="text-right">Daha Önce Üretilen</TableHead>
+                <TableHead className="text-right">Kalan</TableHead>
+                <TableHead className="w-36 text-right">Üretime Aktarılacak</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">Yükleniyor...</TableCell>
+                </TableRow>
+              ) : !selectedGroup ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">Ürün grubu seçin.</TableCell>
+                </TableRow>
+              ) : filteredRows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">Bu grupta açık sipariş satırı yok.</TableCell>
+                </TableRow>
+              ) : (
+                filteredRows.map((row) => {
+                  const kalanMiktar = kalan(row);
+                  return (
+                    <TableRow key={row.kalemId}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(row.kalemId)}
+                          onCheckedChange={(value) => toggleRow(row, value === true)}
+                          disabled={kalanMiktar <= 0}
+                        />
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{row.siparisNo}</TableCell>
+                      <TableCell className="text-xs">{row.musteriAd}</TableCell>
+                      <TableCell>
+                        <div className="text-xs font-medium">{row.urunAd}</div>
+                        <div className="font-mono text-muted-foreground text-[10px]">{row.urunKod}</div>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{row.miktar.toLocaleString("tr-TR")}</TableCell>
+                      <TableCell className="text-right tabular-nums">{row.uretilenMiktar.toLocaleString("tr-TR")}</TableCell>
+                      <TableCell className="text-right tabular-nums">{kalanMiktar.toLocaleString("tr-TR")}</TableCell>
+                      <TableCell className="text-right">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={kalanMiktar}
+                          step="0.0001"
+                          className="ml-auto h-8 w-28 text-right text-xs"
+                          value={aktarilacak[row.kalemId] ?? String(kalanMiktar)}
+                          onChange={(event) => setAktarilacak((values) => ({ ...values, [row.kalemId]: event.target.value }))}
+                          disabled={!selectedIds.has(row.kalemId)}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => toast.info("Manuel üretim için sağ üstteki Yeni Üretim Satırı Ekle butonunu kullanın.")}
+        >
+          Manuel Üretim Ekle
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -392,6 +582,10 @@ export default function UretimEmirleriClient() {
           {showCompleted ? "Tamamlananları Gizle" : "Tamamlananları Göster"}
         </Button>
       </div>
+
+      {isPlanlaTab && (
+        <UretimOlusturGrid onCreated={() => refetch()} />
+      )}
 
       {/* Tablo */}
       <div className="rounded-md border bg-white shadow-sm overflow-hidden">

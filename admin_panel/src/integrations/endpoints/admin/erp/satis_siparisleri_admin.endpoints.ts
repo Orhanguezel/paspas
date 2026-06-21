@@ -99,7 +99,10 @@ export const satisSiparisleriAdminApi = baseApi.injectEndpoints({
       providesTags: [{ type: 'SatisSiparisleri' as const, id: 'ISLEMLER' }],
     }),
 
-    uretimeAktarAdmin: b.mutation<{ message: string; emirler: string[]; atlananSayisi: number }, { kalemIds: string[]; birlestir: boolean }>({
+    uretimeAktarAdmin: b.mutation<
+      { message: string; emirler: string[]; atlananSayisi: number },
+      { kalemIds?: string[]; kalemler?: Array<{ kalemId: string; miktar: number }>; birlestir: boolean }
+    >({
       query: (body) => ({ url: `${BASE}/islemler/uretime-aktar`, method: 'POST', body }),
       invalidatesTags: [
         { type: 'SatisSiparisleri', id: 'LIST' },
