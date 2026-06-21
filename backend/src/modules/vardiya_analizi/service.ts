@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { users } from '@/modules/auth/schema';
@@ -53,18 +53,21 @@ export type VardiyaAnalizItem = {
     digerSayisi: number;
     digerDk: number;
   };
-  oee: number;
+  oee: number | null;
+  verimlilik: number | null;
 };
 
 export type VardiyaAnalizOzet = {
   toplamUretim: number;
+  toplamFire: number;
   toplamCalismaDk: number;
   toplamDurusDk: number;
+  durusSayisi: number;
   durusOrani: number;
   arizaSayisi: number;
   kalipDegisimSayisi: number;
   aktifVardiyaSayisi: number;
-  oee: number;
+  oee: number | null;
 };
 
 export type MakineRollup = {
@@ -73,8 +76,10 @@ export type MakineRollup = {
   vardiyaSayisi: number;
   aktifVardiya: boolean;
   toplamUretim: number;
+  fireToplam: number;
   calismaSuresiDk: number;
   durusToplamDk: number;
+  durusSayisi: number;
   arizaSayisi: number;
   arizaDk: number;
   kalipDegisimSayisi: number;
@@ -84,7 +89,42 @@ export type MakineRollup = {
   teorikHedef: number | null;
   hedefGerceklesmeYuzde: number | null;
   operasyonKirilimi: OperasyonKirilim[];
-  oee: number;
+  oee: number | null;
+};
+
+export type UretimKaydiOzet = {
+  id: string;
+  vardiyaTipi: string;
+  vardiyaBaslangic: string | null;
+  vardiyaBitis: string | null;
+  makineId: string | null;
+  makineAd: string | null;
+  baslangic: string;
+  bitis: string | null;
+  urunAd: string;
+  urunKod: string | null;
+  operasyonAdi: string | null;
+  netMiktar: number;
+  fireMiktar: number;
+  verimlilik: number | null;
+  operatorAd: string | null;
+};
+
+export type DurusDetayOzet = {
+  id: string;
+  makineId: string;
+  makineAd: string | null;
+  baslangic: string;
+  bitis: string | null;
+  sureDk: number;
+  neden: string;
+  operatorAd: string | null;
+};
+
+export type DurusNedeniOzet = {
+  neden: string;
+  adet: number;
+  toplamDk: number;
 };
 
 export type KalipRollup = {
@@ -105,6 +145,9 @@ export type VardiyaAnalizResponse = {
   vardiyalar: VardiyaAnalizItem[];
   makineler: MakineRollup[];
   kaliplar: KalipRollup[];
+  uretimKayitlari: UretimKaydiOzet[];
+  durusDetaylari: DurusDetayOzet[];
+  durusOzeti: DurusNedeniOzet[];
   ozet: VardiyaAnalizOzet;
 };
 
@@ -182,6 +225,52 @@ function dateRange(query: ListQuery): { baslangic: Date; bitis: Date; tarihLabel
     bitis: new Date(`${tarih}T23:59:59`),
     tarihLabel: tarih,
   };
+}
+
+function selectedMakineIds(query: ListQuery): string[] | undefined {
+  return Array.isArray(query.makineId) && query.makineId.length > 0 ? query.makineId : undefined;
+}
+
+function selectedVardiyaTipleri(query: ListQuery): string[] | undefined {
+  return Array.isArray(query.vardiyaTipi) && query.vardiyaTipi.length > 0 ? query.vardiyaTipi : undefined;
+}
+
+function machineCondition(query: ListQuery, column: any) {
+  const ids = selectedMakineIds(query);
+  return ids ? inArray(column, ids) : sql`1 = 1`;
+}
+
+function shiftTypeCondition(query: ListQuery, column: any) {
+  const tipler = selectedVardiyaTipleri(query);
+  return tipler ? inArray(column, tipler) : sql`1 = 1`;
+}
+
+function roundRatio(value: number | null): number | null {
+  if (value === null || !Number.isFinite(value)) return null;
+  return Number(value.toFixed(3));
+}
+
+function calculateOee(input: {
+  planlananSureDk: number;
+  calismaSuresiDk: number;
+  net: number;
+  fire: number;
+  idealCalismaSn: number;
+  hasCycle: boolean;
+}): number | null {
+  if (input.planlananSureDk <= 0 || input.net + input.fire <= 0) return null;
+  const availability = input.calismaSuresiDk / input.planlananSureDk;
+  const quality = input.net / (input.net + input.fire);
+  const performance = input.hasCycle && input.calismaSuresiDk > 0
+    ? input.idealCalismaSn / (input.calismaSuresiDk * 60)
+    : 1;
+  return roundRatio(Math.max(0, Math.min(1, availability * performance * quality)));
+}
+
+function calculateVerimlilik(input: { net: number; sureDk: number; cevrimSn: number | null }): number | null {
+  if (!input.cevrimSn || input.cevrimSn <= 0 || input.sureDk <= 0) return null;
+  const teorik = (input.sureDk * 60) / input.cevrimSn;
+  return teorik > 0 ? roundRatio(input.net / teorik) : null;
 }
 
 function diffMinutes(a: Date, b: Date): number {
@@ -548,7 +637,8 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
       OR (${vardiyaKayitlari.bitis} IS NULL AND ${vardiyaKayitlari.baslangic} >= DATE_SUB(${baslangic}, INTERVAL 2 DAY))
     )`,
   ];
-  if (query.makineId) vardiyaConditions.push(eq(vardiyaKayitlari.makine_id, query.makineId));
+  vardiyaConditions.push(machineCondition(query, vardiyaKayitlari.makine_id));
+  vardiyaConditions.push(shiftTypeCondition(query, vardiyaKayitlari.vardiya_tipi));
 
   const vardiyaRows: VardiyaRow[] = await db
     .select({
@@ -584,7 +674,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
       and(
         gte(operatorGunlukKayitlari.kayit_tarihi, baslangic),
         lte(operatorGunlukKayitlari.kayit_tarihi, bitis),
-        query.makineId ? eq(operatorGunlukKayitlari.makine_id, query.makineId) : sql`1 = 1`,
+        machineCondition(query, operatorGunlukKayitlari.makine_id),
         sql`${operatorGunlukKayitlari.net_miktar} != 0`,
         sql`(${operatorGunlukKayitlari.emir_operasyon_id} IS NULL OR COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 0)`,
       ),
@@ -662,6 +752,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         kalipId: kaliplar.id,
         kalipKod: kaliplar.kod,
         kalipAd: kaliplar.ad,
+        cevrimSn: uretimEmriOperasyonlari.cevrim_suresi_sn,
         netMiktar: sql<number>`coalesce(sum(${operatorGunlukKayitlari.net_miktar}), 0)`,
       })
       .from(operatorGunlukKayitlari)
@@ -684,6 +775,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         kaliplar.id,
         kaliplar.kod,
         kaliplar.ad,
+        uretimEmriOperasyonlari.cevrim_suresi_sn,
       );
 
     const { urunKirilimi, uretimToplam, fireToplam } = buildUretimKirilimSummary(uretimRows);
@@ -698,6 +790,16 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         miktar: Number(r.netMiktar ?? 0),
       }))
       .sort((a, b) => b.miktar - a.miktar || a.operasyonAdi.localeCompare(b.operasyonAdi, 'tr'));
+    let idealCalismaSn = 0;
+    let hasCycle = false;
+    for (const row of operasyonRows) {
+      const cevrimSn = Number(row.cevrimSn ?? 0);
+      const net = Number(row.netMiktar ?? 0);
+      if (cevrimSn > 0 && net > 0) {
+        idealCalismaSn += net * cevrimSn;
+        hasCycle = true;
+      }
+    }
 
     // Duruş analizi
     const durusRows = await db
@@ -750,9 +852,19 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
     }
 
     const calismaSuresiDk = Math.max(0, planlananSureDk - d.toplamDk);
-    // Basitleştirilmiş OEE: Availability × 0.95 (performance & quality varsayım)
-    const availability = planlananSureDk > 0 ? calismaSuresiDk / planlananSureDk : 0;
-    const oee = availability * 0.95;
+    const oee = calculateOee({
+      planlananSureDk,
+      calismaSuresiDk,
+      net: uretimToplam,
+      fire: fireToplam,
+      idealCalismaSn,
+      hasCycle,
+    });
+    const verimlilik = calculateVerimlilik({
+      net: uretimToplam,
+      sureDk: calismaSuresiDk,
+      cevrimSn: hasCycle && uretimToplam > 0 ? idealCalismaSn / uretimToplam : null,
+    });
 
     vardiyalar.push({
       id: v.id,
@@ -775,23 +887,29 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         operasyonKirilimi,
       },
       duruslar: d,
-      oee: Number(oee.toFixed(3)),
+      oee,
+      verimlilik,
     });
   }
 
   const ozet: VardiyaAnalizOzet = {
     toplamUretim: vardiyalar.reduce((s, v) => s + v.uretim.toplamMiktar, 0),
+    toplamFire: vardiyalar.reduce((s, v) => s + v.uretim.fireToplam, 0),
     toplamCalismaDk: vardiyalar.reduce((s, v) => s + v.calismaSuresiDk, 0),
     toplamDurusDk: vardiyalar.reduce((s, v) => s + v.durusToplamDk, 0),
+    durusSayisi: vardiyalar.reduce((s, v) => (
+      s + v.duruslar.arizaSayisi + v.duruslar.kalipDegisimSayisi + v.duruslar.bakimSayisi + v.duruslar.digerSayisi
+    ), 0),
     durusOrani: 0,
     arizaSayisi: vardiyalar.reduce((s, v) => s + v.duruslar.arizaSayisi, 0),
     kalipDegisimSayisi: vardiyalar.reduce((s, v) => s + v.duruslar.kalipDegisimSayisi, 0),
     aktifVardiyaSayisi: vardiyalar.filter((v) => v.aktif).length,
-    oee: vardiyalar.length ? vardiyalar.reduce((s, v) => s + v.oee, 0) / vardiyalar.length : 0,
+    oee: null,
   };
   const toplamSure = ozet.toplamCalismaDk + ozet.toplamDurusDk;
   ozet.durusOrani = toplamSure > 0 ? Number((ozet.toplamDurusDk / toplamSure).toFixed(3)) : 0;
-  ozet.oee = Number(ozet.oee.toFixed(3));
+  const oeeValues = vardiyalar.map((v) => v.oee).filter((value): value is number => value !== null);
+  ozet.oee = oeeValues.length ? roundRatio(oeeValues.reduce((s, value) => s + value, 0) / oeeValues.length) : null;
 
   // Makine bazlı rollup — vardiyaları makine_id'ye göre topla
   const makineRollupMap = new Map<string, MakineRollup>();
@@ -801,8 +919,10 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
       existing.vardiyaSayisi += 1;
       existing.aktifVardiya = existing.aktifVardiya || v.aktif;
       existing.toplamUretim += v.uretim.toplamMiktar;
+      existing.fireToplam += v.uretim.fireToplam;
       existing.calismaSuresiDk += v.calismaSuresiDk;
       existing.durusToplamDk += v.durusToplamDk;
+      existing.durusSayisi += v.duruslar.arizaSayisi + v.duruslar.kalipDegisimSayisi + v.duruslar.bakimSayisi + v.duruslar.digerSayisi;
       existing.arizaSayisi += v.duruslar.arizaSayisi;
       existing.arizaDk += v.duruslar.arizaDk;
       existing.kalipDegisimSayisi += v.duruslar.kalipDegisimSayisi;
@@ -816,8 +936,10 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         vardiyaSayisi: 1,
         aktifVardiya: v.aktif,
         toplamUretim: v.uretim.toplamMiktar,
+        fireToplam: v.uretim.fireToplam,
         calismaSuresiDk: v.calismaSuresiDk,
         durusToplamDk: v.durusToplamDk,
+        durusSayisi: v.duruslar.arizaSayisi + v.duruslar.kalipDegisimSayisi + v.duruslar.bakimSayisi + v.duruslar.digerSayisi,
         arizaSayisi: v.duruslar.arizaSayisi,
         arizaDk: v.duruslar.arizaDk,
         kalipDegisimSayisi: v.duruslar.kalipDegisimSayisi,
@@ -880,10 +1002,16 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
       }
     }
 
-    // OEE: makine için basitleştirilmiş availability × 0.95
     const planlananSure = m.calismaSuresiDk + m.durusToplamDk;
-    const availability = planlananSure > 0 ? m.calismaSuresiDk / planlananSure : 0;
-    m.oee = Number((availability * 0.95).toFixed(3));
+    const avgCevrim = m.ortCevrimSaniye ?? null;
+    m.oee = calculateOee({
+      planlananSureDk: planlananSure,
+      calismaSuresiDk: m.calismaSuresiDk,
+      net: m.toplamUretim,
+      fire: m.fireToplam,
+      idealCalismaSn: avgCevrim ? m.toplamUretim * avgCevrim : 0,
+      hasCycle: avgCevrim !== null,
+    });
   }
 
   const makineler = Array.from(makineRollupMap.values()).sort((a, b) =>
@@ -914,7 +1042,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
       and(
         gte(operatorGunlukKayitlari.kayit_tarihi, baslangic),
         lte(operatorGunlukKayitlari.kayit_tarihi, bitis),
-        query.makineId ? eq(operatorGunlukKayitlari.makine_id, query.makineId) : sql`1 = 1`,
+        machineCondition(query, operatorGunlukKayitlari.makine_id),
         eq(uretimEmriOperasyonlari.montaj, 0),
       ),
     );
@@ -971,7 +1099,135 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
     }))
     .sort((a, b) => b.toplamUretim - a.toplamUretim);
 
-  return { tarih: tarihLabel, vardiyalar, makineler, kaliplar: kalipListesi, ozet };
+  const findVardiyaFor = (makineId: string | null, tarih: Date) => {
+    if (!makineId) return null;
+    return vardiyalar.find((v) => {
+      if (v.makineId !== makineId) return false;
+      const start = new Date(v.baslangic);
+      const end = v.bitis ? new Date(v.bitis) : bitis;
+      return tarih >= start && tarih <= end;
+    }) ?? null;
+  };
+
+  const uretimDetayRows = await db
+    .select({
+      id: operatorGunlukKayitlari.id,
+      kayitTarihi: operatorGunlukKayitlari.kayit_tarihi,
+      makineId: operatorGunlukKayitlari.makine_id,
+      makineAd: makinelerTbl.ad,
+      urunAd: urunler.ad,
+      urunKod: urunler.kod,
+      operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
+      netMiktar: operatorGunlukKayitlari.net_miktar,
+      fireMiktar: operatorGunlukKayitlari.fire_miktari,
+      operatorAd: users.full_name,
+      cevrimSn: uretimEmriOperasyonlari.cevrim_suresi_sn,
+      operasyonBaslangic: uretimEmriOperasyonlari.gercek_baslangic,
+      operasyonBitis: uretimEmriOperasyonlari.gercek_bitis,
+    })
+    .from(operatorGunlukKayitlari)
+    .innerJoin(uretimEmirleri, eq(operatorGunlukKayitlari.uretim_emri_id, uretimEmirleri.id))
+    .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+    .leftJoin(makinelerTbl, eq(operatorGunlukKayitlari.makine_id, makinelerTbl.id))
+    .leftJoin(uretimEmriOperasyonlari, eq(operatorGunlukKayitlari.emir_operasyon_id, uretimEmriOperasyonlari.id))
+    .leftJoin(users, eq(operatorGunlukKayitlari.operator_user_id, users.id))
+    .where(
+      and(
+        gte(operatorGunlukKayitlari.kayit_tarihi, baslangic),
+        lte(operatorGunlukKayitlari.kayit_tarihi, bitis),
+        machineCondition(query, operatorGunlukKayitlari.makine_id),
+        sql`${operatorGunlukKayitlari.net_miktar} != 0`,
+        sql`(${operatorGunlukKayitlari.emir_operasyon_id} IS NULL OR COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 0)`,
+      ),
+    )
+    .orderBy(asc(operatorGunlukKayitlari.kayit_tarihi));
+
+  const uretimKayitlari: UretimKaydiOzet[] = uretimDetayRows
+    .map((row): UretimKaydiOzet | null => {
+      const kayitTarihi = new Date(row.kayitTarihi);
+      const vardiya = findVardiyaFor(row.makineId ?? null, kayitTarihi);
+      if (selectedVardiyaTipleri(query) && (!vardiya || !selectedVardiyaTipleri(query)!.includes(vardiya.vardiyaTipi))) return null;
+      const baslangicForEfficiency = row.operasyonBaslangic ? new Date(row.operasyonBaslangic) : null;
+      const bitisForEfficiency = row.operasyonBitis ? new Date(row.operasyonBitis) : null;
+      const sureDk = baslangicForEfficiency && bitisForEfficiency ? diffMinutes(baslangicForEfficiency, bitisForEfficiency) : 0;
+      return {
+        id: row.id,
+        vardiyaTipi: vardiya?.vardiyaTipi ?? '—',
+        vardiyaBaslangic: vardiya?.baslangic ?? null,
+        vardiyaBitis: vardiya?.bitis ?? null,
+        makineId: row.makineId ?? null,
+        makineAd: row.makineAd ?? null,
+        baslangic: (row.operasyonBaslangic ?? row.kayitTarihi).toISOString(),
+        bitis: row.operasyonBitis ? row.operasyonBitis.toISOString() : null,
+        urunAd: row.urunAd,
+        urunKod: row.urunKod ?? null,
+        operasyonAdi: row.operasyonAdi ?? null,
+        netMiktar: Number(row.netMiktar ?? 0),
+        fireMiktar: Number(row.fireMiktar ?? 0),
+        verimlilik: calculateVerimlilik({
+          net: Number(row.netMiktar ?? 0),
+          sureDk,
+          cevrimSn: row.cevrimSn ? Number(row.cevrimSn) : null,
+        }),
+        operatorAd: row.operatorAd ?? null,
+      };
+    })
+    .filter((row): row is UretimKaydiOzet => row !== null);
+
+  const durusRows = await db
+    .select({
+      id: durusKayitlari.id,
+      makineId: durusKayitlari.makine_id,
+      makineAd: makinelerTbl.ad,
+      baslangic: durusKayitlari.baslangic,
+      bitis: durusKayitlari.bitis,
+      sureDk: durusKayitlari.sure_dk,
+      neden: durusKayitlari.neden,
+      operatorAd: users.full_name,
+    })
+    .from(durusKayitlari)
+    .leftJoin(makinelerTbl, eq(durusKayitlari.makine_id, makinelerTbl.id))
+    .leftJoin(users, eq(durusKayitlari.operator_user_id, users.id))
+    .where(
+      and(
+        gte(durusKayitlari.baslangic, baslangic),
+        lte(durusKayitlari.baslangic, bitis),
+        machineCondition(query, durusKayitlari.makine_id),
+      ),
+    )
+    .orderBy(asc(durusKayitlari.baslangic));
+
+  const durusDetaylari: DurusDetayOzet[] = durusRows
+    .map((row) => {
+      const vardiya = findVardiyaFor(row.makineId, new Date(row.baslangic));
+      if (selectedVardiyaTipleri(query) && (!vardiya || !selectedVardiyaTipleri(query)!.includes(vardiya.vardiyaTipi))) return null;
+      return {
+        id: row.id,
+        makineId: row.makineId,
+        makineAd: row.makineAd ?? null,
+        baslangic: row.baslangic.toISOString(),
+        bitis: row.bitis ? row.bitis.toISOString() : null,
+        sureDk: row.sureDk ?? (row.bitis ? diffMinutes(new Date(row.baslangic), new Date(row.bitis)) : 0),
+        neden: row.neden,
+        operatorAd: row.operatorAd ?? null,
+      };
+    })
+    .filter((row): row is DurusDetayOzet => row !== null);
+
+  const durusOzetiMap = new Map<string, DurusNedeniOzet>();
+  for (const row of durusDetaylari) {
+    const key = row.neden || 'Diğer';
+    const existing = durusOzetiMap.get(key);
+    if (existing) {
+      existing.adet += 1;
+      existing.toplamDk += row.sureDk;
+    } else {
+      durusOzetiMap.set(key, { neden: key, adet: 1, toplamDk: row.sureDk });
+    }
+  }
+  const durusOzeti = Array.from(durusOzetiMap.values()).sort((a, b) => b.toplamDk - a.toplamDk);
+
+  return { tarih: tarihLabel, vardiyalar, makineler, kaliplar: kalipListesi, uretimKayitlari, durusDetaylari, durusOzeti, ozet };
 }
 
 export type TrendGun = {
@@ -1003,7 +1259,7 @@ export async function getTrend(query: TrendQuery): Promise<TrendResponse> {
     const gun = new Date(start);
     gun.setDate(start.getDate() + i);
     const tarih = gun.toISOString().slice(0, 10);
-    const analiz = await getVardiyaAnalizi({ tarih, makineId: query.makineId });
+    const analiz = await getVardiyaAnalizi({ tarih, makineId: query.makineId ? [query.makineId] : undefined });
     gunler.push({
       tarih,
       toplamUretim: analiz.ozet.toplamUretim,
@@ -1011,7 +1267,7 @@ export async function getTrend(query: TrendQuery): Promise<TrendResponse> {
       toplamDurusDk: analiz.ozet.toplamDurusDk,
       arizaSayisi: analiz.ozet.arizaSayisi,
       kalipDegisimSayisi: analiz.ozet.kalipDegisimSayisi,
-      oee: analiz.ozet.oee,
+      oee: analiz.ozet.oee ?? 0,
     });
   }
   return { gunSayisi: query.gunSayisi, gunler };

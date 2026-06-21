@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   AlertTriangle,
@@ -18,15 +18,28 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
+import { useListMakinelerAdminQuery } from "@/integrations/endpoints/admin/erp/makine_havuzu_admin.endpoints";
 import {
   useGetVardiyaAnaliziAdminQuery,
   useGetVardiyaTrendAdminQuery,
+  type DurusDetayOzet,
+  type DurusNedeniOzet,
   type KalipRollup,
   type MakineRollup,
+  type UretimKaydiOzet,
   type VardiyaAnalizItem,
 } from "@/integrations/endpoints/admin/erp/vardiya_analizi_admin.endpoints";
 import {
@@ -55,6 +68,10 @@ type DetayTarget =
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+function yesterdayIsoDate(): string {
+  return shiftIsoDate(todayIsoDate(), -1);
 }
 
 function shiftIsoDate(iso: string, days: number): string {
@@ -104,6 +121,15 @@ function formatDateTimeLabel(iso: string | null): string {
   });
 }
 
+function formatDateTimeRange(start: string | null, end: string | null): string {
+  if (!start) return "—";
+  return `${formatDateTimeLabel(start)} - ${end ? formatTime(end) : "—"}`;
+}
+
+function formatPercent(value: number | null): string {
+  return value === null ? "—" : `%${Math.round(value * 100)}`;
+}
+
 function vardiyaLabel(tipi: string): string {
   if (tipi === "gece") return "Gece Vardiyası";
   if (tipi === "gunduz") return "Gündüz Vardiyası";
@@ -133,7 +159,7 @@ function ozetMetrics(ozet: NonNullable<ReturnType<typeof getOzetLike>>): ReportM
     },
     { label: "Arıza", value: `${ozet.arizaSayisi} adet` },
     { label: "Kalıp Değişimi", value: `${ozet.kalipDegisimSayisi} adet` },
-    { label: "OEE", value: `%${Math.round(ozet.oee * 100)}` },
+    { label: "OEE", value: formatPercent(ozet.oee) },
   ];
 }
 
@@ -170,13 +196,25 @@ type ViewMode = "vardiya" | "makine" | "kalip" | "trend";
 type RangePreset = "gun" | "hafta" | "ay" | "ozel";
 
 export default function VardiyaAnaliziClient() {
-  const [tarih, setTarih] = useState(todayIsoDate());
+  const [tarih, setTarih] = useState(yesterdayIsoDate());
   const [rangePreset, setRangePreset] = useState<RangePreset>("gun");
-  const [customBaslangic, setCustomBaslangic] = useState(shiftIsoDate(todayIsoDate(), -6));
-  const [customBitis, setCustomBitis] = useState(todayIsoDate());
+  const [customBaslangic, setCustomBaslangic] = useState(shiftIsoDate(yesterdayIsoDate(), -6));
+  const [customBitis, setCustomBitis] = useState(yesterdayIsoDate());
   const [view, setView] = useState<ViewMode>("vardiya");
   const [trendGunSayisi, setTrendGunSayisi] = useState<7 | 30>(7);
   const [detay, setDetay] = useState<DetayTarget | null>(null);
+  const [selectedVardiyaTipleri, setSelectedVardiyaTipleri] = useState<string[]>(["gunduz", "gece"]);
+  const [selectedMakineIds, setSelectedMakineIds] = useState<string[]>([]);
+  const { data: makineData } = useListMakinelerAdminQuery({ durum: "aktif" });
+  const makineSecenekleri = makineData?.items ?? [];
+
+  useEffect(() => {
+    if (selectedMakineIds.length > 0 || makineSecenekleri.length === 0) return;
+    const preferred = makineSecenekleri
+      .filter((makine) => /enjeksiyon\s*[12]/i.test(makine.ad))
+      .slice(0, 2);
+    setSelectedMakineIds((preferred.length >= 2 ? preferred : makineSecenekleri.slice(0, 2)).map((makine) => makine.id));
+  }, [makineSecenekleri, selectedMakineIds.length]);
 
   const range = useMemo(() => {
     if (rangePreset === "gun") {
@@ -213,8 +251,14 @@ export default function VardiyaAnaliziClient() {
     };
   }, [customBaslangic, customBitis, rangePreset, tarih]);
 
+  const analizQuery = useMemo(() => ({
+    ...range.query,
+    makineId: selectedMakineIds.length > 0 ? selectedMakineIds : undefined,
+    vardiyaTipi: selectedVardiyaTipleri.length > 0 ? selectedVardiyaTipleri : undefined,
+  }), [range.query, selectedMakineIds, selectedVardiyaTipleri]);
+
   const { data, isLoading, isFetching, refetch } = useGetVardiyaAnaliziAdminQuery(
-    range.query,
+    analizQuery,
     { pollingInterval: 60000 },
   );
   const { data: trendData, isLoading: isTrendLoading } = useGetVardiyaTrendAdminQuery(
@@ -225,6 +269,9 @@ export default function VardiyaAnaliziClient() {
   const vardiyalar = data?.vardiyalar ?? [];
   const makineler = data?.makineler ?? [];
   const kaliplar = data?.kaliplar ?? [];
+  const uretimKayitlari = data?.uretimKayitlari ?? [];
+  const durusDetaylari = data?.durusDetaylari ?? [];
+  const durusOzeti = data?.durusOzeti ?? [];
   const ozet = data?.ozet;
 
   const gruplandirilmis = useMemo(() => {
@@ -311,7 +358,7 @@ export default function VardiyaAnaliziClient() {
               : "—",
             formatDk(vardiya.calismaSuresiDk),
             formatDk(vardiya.durusToplamDk),
-            `%${Math.round(vardiya.oee * 100)}`,
+            formatPercent(vardiya.oee),
             vardiya.uretim.urunKirilimi.length > 0
               ? vardiya.uretim.urunKirilimi
                   .map((urun) => `${urun.urunAd}: ${urun.miktar.toLocaleString("tr-TR")}`)
@@ -356,7 +403,7 @@ export default function VardiyaAnaliziClient() {
             makine.ortCevrimSaniye != null ? `${makine.ortCevrimSaniye} sn` : "—",
             makine.teorikHedef != null ? makine.teorikHedef.toLocaleString("tr-TR") : "—",
             makine.hedefGerceklesmeYuzde != null ? `%${makine.hedefGerceklesmeYuzde}` : "—",
-            `%${Math.round(makine.oee * 100)}`,
+            formatPercent(makine.oee),
           ]),
         },
       ];
@@ -433,6 +480,18 @@ export default function VardiyaAnaliziClient() {
     setTarih(today);
     setCustomBaslangic(today);
     setCustomBitis(today);
+  }
+
+  function toggleVardiyaTipi(tip: string) {
+    setSelectedVardiyaTipleri((current) =>
+      current.includes(tip) ? current.filter((item) => item !== tip) : [...current, tip],
+    );
+  }
+
+  function toggleMakine(id: string) {
+    setSelectedMakineIds((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+    );
   }
 
   function handleExcelExport() {
@@ -562,6 +621,33 @@ export default function VardiyaAnaliziClient() {
               className="w-auto"
             />
           )}
+          <div className="flex items-center gap-2 rounded-md border px-2 py-1">
+            {[
+              ["gunduz", "Gündüz"],
+              ["gece", "Gece"],
+            ].map(([value, label]) => (
+              <label key={value} className="flex items-center gap-1.5 text-xs">
+                <Checkbox
+                  checked={selectedVardiyaTipleri.includes(value)}
+                  onCheckedChange={() => toggleVardiyaTipi(value)}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          {makineSecenekleri.length > 0 && (
+            <div className="flex max-w-full flex-wrap items-center gap-2 rounded-md border px-2 py-1">
+              {makineSecenekleri.slice(0, 6).map((makine) => (
+                <label key={makine.id} className="flex items-center gap-1.5 text-xs">
+                  <Checkbox
+                    checked={selectedMakineIds.includes(makine.id)}
+                    onCheckedChange={() => toggleMakine(makine.id)}
+                  />
+                  {makine.ad}
+                </label>
+              ))}
+            </div>
+          )}
           <Button variant="outline" size="sm" onClick={resetToday}>
             Bugün
           </Button>
@@ -588,31 +674,31 @@ export default function VardiyaAnaliziClient() {
         </div>
       ) : ozet ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
-          <MetricCard icon={<Package className="size-4" />} label="Toplam Üretim" value={ozet.toplamUretim.toLocaleString("tr-TR")} />
+          <MetricCard icon={<Package className="size-4" />} label="Net Üretim" value={ozet.toplamUretim.toLocaleString("tr-TR")} />
+          <MetricCard
+            icon={<AlertTriangle className="size-4 text-amber-500" />}
+            label="Fire"
+            value={ozet.toplamFire.toLocaleString("tr-TR")}
+          />
           <MetricCard
             icon={<Clock className="size-4" />}
-            label="Çalışma"
+            label="Çalışma Süresi"
             value={formatDk(ozet.toplamCalismaDk)}
           />
           <MetricCard
             icon={<AlertTriangle className="size-4 text-amber-500" />}
-            label="Duruş"
-            value={`${formatDk(ozet.toplamDurusDk)} (%${Math.round(ozet.durusOrani * 100)})`}
-          />
-          <MetricCard
-            icon={<AlertTriangle className="size-4 text-destructive" />}
-            label="Arıza"
-            value={`${ozet.arizaSayisi} adet`}
+            label="Duruş Süresi"
+            value={formatDk(ozet.toplamDurusDk)}
           />
           <MetricCard
             icon={<Wrench className="size-4" />}
-            label="Kalıp Değişimi"
-            value={`${ozet.kalipDegisimSayisi} adet`}
+            label="Duruş Sayısı"
+            value={`${ozet.durusSayisi} adet`}
           />
           <MetricCard
             icon={<Factory className="size-4 text-primary" />}
             label="OEE"
-            value={`%${Math.round(ozet.oee * 100)}`}
+            value={formatPercent(ozet.oee)}
           />
         </div>
       ) : null}
@@ -633,46 +719,14 @@ export default function VardiyaAnaliziClient() {
           <Skeleton className="h-64" />
         </div>
       ) : view === "vardiya" ? (
-        vardiyalar.length === 0 ? (
-          <Card>
-            <CardContent className="py-10 text-center text-muted-foreground text-sm">
-              Seçilen tarihte vardiya kaydı bulunmuyor.
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            {Array.from(gruplandirilmis.entries()).map(([key, group]) => {
-              const [tipi, durum] = key.split("-");
-              return (
-                <div key={key} className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <h2 className="font-semibold text-sm">{vardiyaLabel(tipi)}</h2>
-                    <Badge variant={durum === "aktif" ? "default" : "secondary"}>
-                      {durum === "aktif" ? "Aktif" : "Tamamlandı"}
-                    </Badge>
-                    <span className="text-muted-foreground text-xs">({group.length} kayıt)</span>
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {group.map((v) => (
-                      <VardiyaCard
-                        key={v.id}
-                        v={v}
-                        onOpenDetay={() =>
-                          setDetay({
-                            type: "vardiya",
-                            vardiyaKayitId: v.id,
-                            title: `${v.makineAd} — ${vardiyaLabel(v.vardiyaTipi)}`,
-                            subtitle: `${v.operatorAd ?? "Operatör yok"} · ${formatTime(v.baslangic)} - ${formatTime(v.bitis)}`,
-                          })
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </>
-        )
+        <VardiyaYoneticiGorunumu
+          vardiyalar={vardiyalar}
+          makineler={makineler}
+          uretimKayitlari={uretimKayitlari}
+          durusDetaylari={durusDetaylari}
+          durusOzeti={durusOzeti}
+          onEditUretim={() => toast.info("Günlük üretim kaydı düzenleme endpoint'i henüz yok.")}
+        />
       ) : view === "makine" ? (
         makineler.length === 0 ? (
           <Card>
@@ -694,7 +748,7 @@ export default function VardiyaAnaliziClient() {
                           makineId: m.makineId,
                           tarih: range.query.tarih,
                           title: m.makineAd,
-                          subtitle: `${m.vardiyaSayisi} vardiya · OEE %${Math.round(m.oee * 100)} · ${range.subtitle}`,
+                          subtitle: `${m.vardiyaSayisi} vardiya · OEE ${formatPercent(m.oee)} · ${range.subtitle}`,
                         }
                       : {
                           type: "makine",
@@ -702,7 +756,7 @@ export default function VardiyaAnaliziClient() {
                           baslangicTarih: range.query.baslangicTarih,
                           bitisTarih: range.query.bitisTarih,
                           title: m.makineAd,
-                          subtitle: `${m.vardiyaSayisi} vardiya · OEE %${Math.round(m.oee * 100)} · ${range.subtitle}`,
+                          subtitle: `${m.vardiyaSayisi} vardiya · OEE ${formatPercent(m.oee)} · ${range.subtitle}`,
                         },
                   )
                 }
@@ -725,6 +779,197 @@ export default function VardiyaAnaliziClient() {
       )}
 
       <VardiyaDetaySheet open={!!detay} onClose={() => setDetay(null)} target={detay} />
+    </div>
+  );
+}
+
+function VardiyaYoneticiGorunumu({
+  vardiyalar,
+  makineler,
+  uretimKayitlari,
+  durusDetaylari,
+  durusOzeti,
+  onEditUretim,
+}: {
+  vardiyalar: VardiyaAnalizItem[];
+  makineler: MakineRollup[];
+  uretimKayitlari: UretimKaydiOzet[];
+  durusDetaylari: DurusDetayOzet[];
+  durusOzeti: DurusNedeniOzet[];
+  onEditUretim: () => void;
+}) {
+  if (vardiyalar.length === 0 && uretimKayitlari.length === 0 && durusDetaylari.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-muted-foreground text-sm">
+          Seçilen filtrelerde vardiya kaydı bulunmuyor.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <TableSection title="Makine Bazlı Özet">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Makine</TableHead>
+              <TableHead className="text-right">Net Üretim</TableHead>
+              <TableHead className="text-right">Fire</TableHead>
+              <TableHead className="text-right">Duruş Sayısı</TableHead>
+              <TableHead className="text-right">Toplam Duruş</TableHead>
+              <TableHead className="text-right">OEE</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {makineler.map((m) => (
+              <TableRow key={m.makineId}>
+                <TableCell className="font-medium">{m.makineAd}</TableCell>
+                <TableCell className="text-right tabular-nums">{m.toplamUretim.toLocaleString("tr-TR")}</TableCell>
+                <TableCell className="text-right tabular-nums">{m.fireToplam.toLocaleString("tr-TR")}</TableCell>
+                <TableCell className="text-right tabular-nums">{m.durusSayisi}</TableCell>
+                <TableCell className="text-right tabular-nums">{formatDk(m.durusToplamDk)}</TableCell>
+                <TableCell className="text-right tabular-nums">{formatPercent(m.oee)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableSection>
+
+      <TableSection title="Üretim Kayıtları">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Vardiya</TableHead>
+              <TableHead>Tarih-Saat</TableHead>
+              <TableHead>Ürün</TableHead>
+              <TableHead>Operasyon</TableHead>
+              <TableHead className="text-right">Net</TableHead>
+              <TableHead className="text-right">Fire</TableHead>
+              <TableHead className="text-right">Verimlilik</TableHead>
+              <TableHead>Operatör</TableHead>
+              <TableHead className="text-right">İşlem</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {uretimKayitlari.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
+                  Net üretimi olan kayıt bulunmuyor.
+                </TableCell>
+              </TableRow>
+            ) : (
+              uretimKayitlari.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell>{vardiyaLabel(row.vardiyaTipi)}</TableCell>
+                  <TableCell>{formatDateTimeRange(row.baslangic, row.bitis)}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{row.urunAd}</div>
+                    {row.urunKod && <div className="font-mono text-muted-foreground text-xs">{row.urunKod}</div>}
+                  </TableCell>
+                  <TableCell>{row.operasyonAdi ?? "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{row.netMiktar.toLocaleString("tr-TR")}</TableCell>
+                  <TableCell className="text-right tabular-nums">{row.fireMiktar.toLocaleString("tr-TR")}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatPercent(row.verimlilik)}</TableCell>
+                  <TableCell>{row.operatorAd ?? "—"}</TableCell>
+                  <TableCell className="text-right">
+                    <Button size="sm" variant="outline" onClick={onEditUretim}>
+                      Düzenle
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableSection>
+
+      <TableSection title="Vardiya Toplamları">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Vardiya</TableHead>
+              <TableHead>Makine</TableHead>
+              <TableHead className="text-right">Net Üretim</TableHead>
+              <TableHead className="text-right">Fire</TableHead>
+              <TableHead className="text-right">Çalışma</TableHead>
+              <TableHead className="text-right">Duruş</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {vardiyalar.map((v) => (
+              <TableRow key={v.id}>
+                <TableCell>{vardiyaLabel(v.vardiyaTipi)}</TableCell>
+                <TableCell>{v.makineAd}</TableCell>
+                <TableCell className="text-right tabular-nums">{v.uretim.netToplam.toLocaleString("tr-TR")}</TableCell>
+                <TableCell className="text-right tabular-nums">{v.uretim.fireToplam.toLocaleString("tr-TR")}</TableCell>
+                <TableCell className="text-right tabular-nums">{formatDk(v.calismaSuresiDk)}</TableCell>
+                <TableCell className="text-right tabular-nums">{formatDk(v.durusToplamDk)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableSection>
+
+      <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+        <TableSection title="Duruşlar">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Makine</TableHead>
+                <TableHead>Başlangıç</TableHead>
+                <TableHead>Bitiş</TableHead>
+                <TableHead className="text-right">Süre</TableHead>
+                <TableHead>Duruş Nedeni</TableHead>
+                <TableHead>Operatör</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {durusDetaylari.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell>{row.makineAd ?? "—"}</TableCell>
+                  <TableCell>{formatDateTimeLabel(row.baslangic)}</TableCell>
+                  <TableCell>{formatTime(row.bitis)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatDk(row.sureDk)}</TableCell>
+                  <TableCell>{row.neden}</TableCell>
+                  <TableCell>{row.operatorAd ?? "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableSection>
+
+        <TableSection title="Duruş Özeti">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Duruş Nedeni</TableHead>
+                <TableHead className="text-right">Adet</TableHead>
+                <TableHead className="text-right">Toplam Süre</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {durusOzeti.map((row) => (
+                <TableRow key={row.neden}>
+                  <TableCell>{row.neden}</TableCell>
+                  <TableCell className="text-right tabular-nums">{row.adet}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatDk(row.toplamDk)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableSection>
+      </div>
+    </div>
+  );
+}
+
+function TableSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <h2 className="font-semibold text-sm">{title}</h2>
+      <div className="overflow-auto rounded-md border">{children}</div>
     </div>
   );
 }
@@ -812,7 +1057,7 @@ function MakineCard({ m, onOpenDetay }: { m: MakineRollup; onOpenDetay: () => vo
           <div>
             <CardTitle className="text-sm">{m.makineAd}</CardTitle>
             <p className="text-muted-foreground text-xs">
-              {m.vardiyaSayisi} vardiya · OEE: %{Math.round(m.oee * 100)}
+              {m.vardiyaSayisi} vardiya · OEE: {formatPercent(m.oee)}
             </p>
           </div>
           {m.aktifVardiya && (
@@ -1065,7 +1310,7 @@ function VardiyaCard({ v, onOpenDetay }: { v: VardiyaAnalizItem; onOpenDetay: ()
         {/* OEE */}
         <div className="flex items-center justify-between border-t pt-2 text-xs">
           <span className="text-muted-foreground">OEE</span>
-          <span className="font-semibold tabular-nums">%{Math.round(v.oee * 100)}</span>
+          <span className="font-semibold tabular-nums">{formatPercent(v.oee)}</span>
         </div>
       </CardContent>
     </Card>

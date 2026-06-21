@@ -65,7 +65,7 @@ export default function VardiyaOzetWidget() {
               </div>
               <div className="flex items-center gap-1.5">
                 <Factory className="size-3.5" />
-                <span>OEE: <span className="font-semibold text-foreground">%{Math.round(ozet.oee * 100)}</span></span>
+                <span>OEE: <span className="font-semibold text-foreground">{ozet.oee === null ? "—" : `%${Math.round(ozet.oee * 100)}`}</span></span>
               </div>
             </div>
 
@@ -94,7 +94,7 @@ export default function VardiyaOzetWidget() {
                       </td>
                       <td className="py-2.5 text-right tabular-nums">
                         <div className="flex flex-col items-end">
-                          <span className="font-semibold text-primary">%{Math.round(m.oee * 100)}</span>
+                          <span className="font-semibold text-primary">{m.oee === null ? "—" : `%${Math.round(m.oee * 100)}`}</span>
                           {m.hedefGerceklesmeYuzde !== null && (
                             <span className="text-[10px] text-muted-foreground">Hedef: %{m.hedefGerceklesmeYuzde}</span>
                           )}
@@ -132,4 +132,3 @@ export default function VardiyaOzetWidget() {
     </Card>
   );
 }
-

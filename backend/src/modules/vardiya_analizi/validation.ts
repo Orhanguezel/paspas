@@ -1,10 +1,21 @@
 import { z } from 'zod';
 
+const optionalStringArray = z
+  .union([z.string().trim(), z.array(z.string().trim())])
+  .optional()
+  .transform((value) => {
+    if (!value) return undefined;
+    const values = Array.isArray(value) ? value : value.split(',');
+    const cleaned = values.map((item) => item.trim()).filter(Boolean);
+    return cleaned.length > 0 ? cleaned : undefined;
+  });
+
 export const listQuerySchema = z.object({
   tarih: z.string().date().optional(),
   baslangicTarih: z.string().date().optional(),
   bitisTarih: z.string().date().optional(),
-  makineId: z.string().trim().max(36).optional(),
+  makineId: optionalStringArray,
+  vardiyaTipi: optionalStringArray,
 });
 
 export type ListQuery = z.infer<typeof listQuerySchema>;

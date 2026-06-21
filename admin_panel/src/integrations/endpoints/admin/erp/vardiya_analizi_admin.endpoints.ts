@@ -55,18 +55,21 @@ export type VardiyaAnalizItem = {
     digerSayisi: number;
     digerDk: number;
   };
-  oee: number;
+  oee: number | null;
+  verimlilik: number | null;
 };
 
 export type VardiyaAnalizOzet = {
   toplamUretim: number;
+  toplamFire: number;
   toplamCalismaDk: number;
   toplamDurusDk: number;
+  durusSayisi: number;
   durusOrani: number;
   arizaSayisi: number;
   kalipDegisimSayisi: number;
   aktifVardiyaSayisi: number;
-  oee: number;
+  oee: number | null;
 };
 
 export type MakineRollup = {
@@ -75,8 +78,10 @@ export type MakineRollup = {
   vardiyaSayisi: number;
   aktifVardiya: boolean;
   toplamUretim: number;
+  fireToplam: number;
   calismaSuresiDk: number;
   durusToplamDk: number;
+  durusSayisi: number;
   arizaSayisi: number;
   arizaDk: number;
   kalipDegisimSayisi: number;
@@ -86,7 +91,42 @@ export type MakineRollup = {
   teorikHedef: number | null;
   hedefGerceklesmeYuzde: number | null;
   operasyonKirilimi: OperasyonKirilim[];
-  oee: number;
+  oee: number | null;
+};
+
+export type UretimKaydiOzet = {
+  id: string;
+  vardiyaTipi: string;
+  vardiyaBaslangic: string | null;
+  vardiyaBitis: string | null;
+  makineId: string | null;
+  makineAd: string | null;
+  baslangic: string;
+  bitis: string | null;
+  urunAd: string;
+  urunKod: string | null;
+  operasyonAdi: string | null;
+  netMiktar: number;
+  fireMiktar: number;
+  verimlilik: number | null;
+  operatorAd: string | null;
+};
+
+export type DurusDetayOzet = {
+  id: string;
+  makineId: string;
+  makineAd: string | null;
+  baslangic: string;
+  bitis: string | null;
+  sureDk: number;
+  neden: string;
+  operatorAd: string | null;
+};
+
+export type DurusNedeniOzet = {
+  neden: string;
+  adet: number;
+  toplamDk: number;
 };
 
 export type KalipRollup = {
@@ -107,6 +147,9 @@ export type VardiyaAnalizResponse = {
   vardiyalar: VardiyaAnalizItem[];
   makineler: MakineRollup[];
   kaliplar: KalipRollup[];
+  uretimKayitlari: UretimKaydiOzet[];
+  durusDetaylari: DurusDetayOzet[];
+  durusOzeti: DurusNedeniOzet[];
   ozet: VardiyaAnalizOzet;
 };
 
@@ -163,7 +206,7 @@ export const vardiyaAnaliziAdminApi = baseApi.injectEndpoints({
   endpoints: (b) => ({
     getVardiyaAnaliziAdmin: b.query<
       VardiyaAnalizResponse,
-      { tarih?: string; baslangicTarih?: string; bitisTarih?: string; makineId?: string } | undefined
+      { tarih?: string; baslangicTarih?: string; bitisTarih?: string; makineId?: string[]; vardiyaTipi?: string[] } | undefined
     >({
       query: (params) => ({ url: BASE, params: params ?? undefined }),
     }),
