@@ -470,20 +470,16 @@ export async function repoPatchSevkEmri(id: string, patch: SevkEmriPatch, operat
   const existing = await repoGetSevkEmriById(id);
   if (!existing) return null;
 
-  // Sevk edilmiş emir iptal edilemez (stok hareketi yapılmış, müşteriye gitmiş).
-  // İade gerekirse ayrı bir 'iade' akışıyla yönetilmeli.
-  if (patch.durum === 'iptal' && existing.durum === 'sevk_edildi') {
-    const err = new Error('sevk_emri_kilitli');
-    (err as any).detail = 'Sevk edilmiş emir iptal edilemez. İade için ayrı akış kullanın.';
-    throw err;
-  }
-
-  await db.update(sevkEmirleri).set({ durum: patch.durum }).where(eq(sevkEmirleri.id, id));
+  const nextMiktar = patch.miktar ?? existing.miktar;
+  await db
+    .update(sevkEmirleri)
+    .set({ durum: patch.durum, miktar: String(nextMiktar) })
+    .where(eq(sevkEmirleri.id, id));
 
   let touchedSiparisId: string | null = null;
 
   if (patch.durum === 'sevk_edildi' && existing.durum !== 'sevk_edildi') {
-    const sevkMiktar = patch.miktar ?? existing.miktar;
+    const sevkMiktar = nextMiktar;
     if (sevkMiktar > existing.stokMiktar) {
       const err = new Error('stok_yetersiz');
       (err as any).detail = 'Stok yetersiz. Yöneticinizle görüşün.';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Check, ChevronDown, ChevronRight, Package, RefreshCcw, Search, Send, Truck, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, ChevronRight, Package, Pencil, RefreshCcw, Search, Send, Truck, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +36,10 @@ import type { AuthStatusResponse } from '@/integrations/shared/users/auth.public
 import { normalizeMeFromStatus } from '@/integrations/shared/users/auth.public';
 
 type Gruplama = 'musteri' | 'urun' | 'duz';
+type SevkDurum = 'bekliyor' | 'onaylandi' | 'sevk_edildi' | 'iptal';
+type EmirDurumFilter = 'aktif' | 'all' | SevkDurum;
+
+const AKTIF_SEVK_DURUMLARI = new Set(['bekliyor', 'onaylandi']);
 
 function getApiErrorMessage(error: unknown): string | null {
   if (
@@ -691,18 +695,24 @@ function EmirleriTab() {
   const currentRole = currentUser?.role as string | undefined;
   const canShipPhysically = isAdmin || currentRole === 'sevkiyatci' || currentRole === 'nakliyeci';
   const [q, setQ] = useState('');
-  const [durumFilter, setDurumFilter] = useState('bekliyor');
+  const [durumFilter, setDurumFilter] = useState<EmirDurumFilter>('aktif');
   const [physicalShipTarget, setPhysicalShipTarget] = useState<SevkEmriDto | null>(null);
-  const [updateEmri] = useUpdateSevkEmriAdminMutation();
+  const [editTarget, setEditTarget] = useState<SevkEmriDto | null>(null);
+  const [updateEmri, updateState] = useUpdateSevkEmriAdminMutation();
 
   const { data, isLoading, isFetching, isError, error, refetch } = useListSevkEmirleriAdminQuery({
     q: q.trim() || undefined,
-    durum: durumFilter || undefined,
+    durum: durumFilter === 'aktif' || durumFilter === 'all' ? undefined : durumFilter,
     limit: 100,
   });
-  const items = data?.items ?? [];
+  const items = useMemo(() => {
+    const rawItems = data?.items ?? [];
+    if (durumFilter !== 'aktif') return rawItems;
+    return rawItems.filter((row) => AKTIF_SEVK_DURUMLARI.has(row.durum));
+  }, [data?.items, durumFilter]);
+  const visibleTotal = durumFilter === 'aktif' ? items.length : (data?.total ?? items.length);
 
-  async function handleDurumChange(id: string, durum: 'onaylandi' | 'sevk_edildi' | 'iptal', miktar?: number) {
+  async function handleDurumChange(id: string, durum: SevkDurum, miktar?: number) {
     try {
       await updateEmri({ id, body: { durum, miktar } }).unwrap();
       toast.success(t('admin.erp.sevkiyat.messages.durumGuncellendi', { durum: SEVK_DURUM_LABELS[durum]?.toLowerCase() ?? durum }));
@@ -730,12 +740,13 @@ function EmirleriTab() {
 
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">{t('admin.erp.sevkiyat.filters.durum')}</Label>
-          <Select value={durumFilter || '_all'} onValueChange={(v) => setDurumFilter(v === '_all' ? '' : v)}>
-            <SelectTrigger className="w-40 h-8">
+          <Select value={durumFilter} onValueChange={(v) => setDurumFilter(v as EmirDurumFilter)}>
+            <SelectTrigger className="w-48 h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="_all">{t('admin.erp.sevkiyat.filters.tumDurumlar')}</SelectItem>
+              <SelectItem value="aktif">{t('admin.erp.sevkiyat.filters.aktifDurumlar')}</SelectItem>
+              <SelectItem value="all">{t('admin.erp.sevkiyat.filters.tumDurumlar')}</SelectItem>
               <SelectItem value="bekliyor">{t('admin.erp.sevkiyat.durumlar.bekliyor')}</SelectItem>
               <SelectItem value="onaylandi">{t('admin.erp.sevkiyat.durumlar.onaylandi')}</SelectItem>
               <SelectItem value="sevk_edildi">{t('admin.erp.sevkiyat.durumlar.sevk_edildi')}</SelectItem>
@@ -749,7 +760,7 @@ function EmirleriTab() {
         </Button>
 
         <div className="ml-auto text-sm text-muted-foreground">
-          {data?.total ?? 0} {t('admin.erp.sevkiyat.sevkEmri')}
+          {visibleTotal} {t('admin.erp.sevkiyat.sevkEmri')}
         </div>
       </div>
 
@@ -801,6 +812,7 @@ function EmirleriTab() {
                             variant="outline"
                             className="h-6 text-[10px] px-2"
                             onClick={() => handleDurumChange(row.id, 'onaylandi')}
+                            disabled={updateState.isLoading}
                           >
                             <Check className="size-3 mr-0.5" /> {t('admin.erp.sevkiyat.actions.onayla')}
                           </Button>
@@ -809,6 +821,7 @@ function EmirleriTab() {
                             variant="ghost"
                             className="h-6 text-[10px] px-1 text-destructive hover:text-destructive"
                             onClick={() => handleDurumChange(row.id, 'iptal')}
+                            disabled={updateState.isLoading}
                           >
                             <X className="size-3" />
                           </Button>
@@ -825,6 +838,7 @@ function EmirleriTab() {
                             size="sm"
                             className="h-6 text-[10px] px-2"
                             onClick={() => setPhysicalShipTarget(row)}
+                            disabled={updateState.isLoading}
                           >
                             <Truck className="size-3 mr-0.5" /> {t('admin.erp.sevkiyat.actions.fizikselSevkEt')}
                           </Button>
@@ -833,6 +847,7 @@ function EmirleriTab() {
                             variant="ghost"
                             className="h-6 text-[10px] px-1 text-destructive hover:text-destructive"
                             onClick={() => handleDurumChange(row.id, 'iptal')}
+                            disabled={updateState.isLoading}
                           >
                             <X className="size-3" />
                           </Button>
@@ -842,6 +857,17 @@ function EmirleriTab() {
                         <span className="text-[10px] text-muted-foreground">
                           {t('admin.erp.sevkiyat.messages.fizikselSevkBekliyor')}
                         </span>
+                      )}
+                      {isAdmin && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-[10px] px-2"
+                          onClick={() => setEditTarget(row)}
+                          disabled={updateState.isLoading}
+                        >
+                          <Pencil className="size-3 mr-0.5" /> {t('admin.erp.sevkiyat.actions.duzenle')}
+                        </Button>
                       )}
                     </div>
                   </TableCell>
@@ -856,7 +882,97 @@ function EmirleriTab() {
         onClose={() => setPhysicalShipTarget(null)}
         onSubmit={(row, miktar) => handleDurumChange(row.id, 'sevk_edildi', miktar)}
       />
+      <EditSevkEmriDialog
+        row={editTarget}
+        isLoading={updateState.isLoading}
+        onClose={() => setEditTarget(null)}
+        onSubmit={async (row, patch) => {
+          await handleDurumChange(row.id, patch.durum, patch.miktar);
+          setEditTarget(null);
+        }}
+      />
     </div>
+  );
+}
+
+function EditSevkEmriDialog({
+  row,
+  isLoading,
+  onClose,
+  onSubmit,
+}: {
+  row: SevkEmriDto | null;
+  isLoading: boolean;
+  onClose: () => void;
+  onSubmit: (row: SevkEmriDto, patch: { durum: SevkDurum; miktar: number }) => Promise<void>;
+}) {
+  const { t } = useLocaleContext();
+  const [miktar, setMiktar] = useState('');
+  const [durum, setDurum] = useState<SevkDurum>('bekliyor');
+
+  useEffect(() => {
+    if (!row) {
+      setMiktar('');
+      setDurum('bekliyor');
+      return;
+    }
+    setMiktar(String(row.miktar));
+    setDurum(row.durum as SevkDurum);
+  }, [row]);
+
+  const miktarNum = Number(miktar);
+
+  return (
+    <Dialog open={!!row} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('admin.erp.sevkiyat.dialog.editTitle')}</DialogTitle>
+          <DialogDescription>
+            {row?.sevkEmriNo ?? ''}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-4 py-2">
+          <div className="space-y-2">
+            <Label>{t('admin.erp.sevkiyat.dialog.miktar')}</Label>
+            <Input
+              type="number"
+              value={miktar}
+              onChange={(e) => setMiktar(e.target.value)}
+              min={0.0001}
+              step="any"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>{t('admin.erp.sevkiyat.filters.durum')}</Label>
+            <Select value={durum} onValueChange={(value) => setDurum(value as SevkDurum)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bekliyor">{t('admin.erp.sevkiyat.durumlar.bekliyor')}</SelectItem>
+                <SelectItem value="onaylandi">{t('admin.erp.sevkiyat.durumlar.onaylandi')}</SelectItem>
+                <SelectItem value="sevk_edildi">{t('admin.erp.sevkiyat.durumlar.sevk_edildi')}</SelectItem>
+                <SelectItem value="iptal">{t('admin.erp.sevkiyat.durumlar.iptal')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isLoading}>
+            {t('admin.erp.sevkiyat.actions.iptal')}
+          </Button>
+          <Button
+            onClick={() => row && onSubmit(row, { durum, miktar: miktarNum })}
+            disabled={isLoading || !miktarNum || miktarNum <= 0}
+          >
+            {t('admin.erp.sevkiyat.actions.kaydet')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

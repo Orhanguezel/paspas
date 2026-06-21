@@ -5971,6 +5971,7 @@
           "stoklu": "Stokta Olanlar",
           "tumu": "Tümü",
           "durum": "Durum",
+          "aktifDurumlar": "Bekliyor + Onaylı",
           "tumDurumlar": "Tüm Durumlar"
         },
         "actions": {
@@ -5979,10 +5980,13 @@
           "onayla": "Onayla",
           "fizikselSevkEt": "Fiziksel Sevk Et",
           "olustur": "Sevk Emri Oluştur",
+          "duzenle": "Düzenle",
+          "kaydet": "Kaydet",
           "iptal": "İptal"
         },
         "dialog": {
           "title": "Sevk Emri Oluştur",
+          "editTitle": "Sevk Emrini Düzenle",
           "miktar": "Miktar",
           "tarih": "Sevk Tarihi",
           "notlar": "Notlar",
