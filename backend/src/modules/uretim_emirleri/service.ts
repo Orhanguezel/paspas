@@ -4,6 +4,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { hareketler } from '@/modules/hareketler/schema';
+import { makineler } from '@/modules/makine_havuzu/schema';
 import { receteKalemleri, receteler } from '@/modules/receteler/schema';
 import { siparisKalemleri, type KalemUretimDurumu } from '@/modules/satis_siparisleri/schema';
 import { canTransitionKalem } from '@/modules/satis_siparisleri/kalem-durum.service';
@@ -19,6 +20,34 @@ type Opts = {
 };
 
 const OPERASYON_KAYNAGI_KATEGORILERI = ['operasyonel_ym', 'yarimamul'] as const;
+
+function detectTaraf(kod: string | null | undefined, ad: string | null | undefined): 'sag' | 'sol' | null {
+  const normalizedKod = (kod ?? '').trim().toLocaleUpperCase('tr-TR');
+  const normalizedAd = (ad ?? '').toLocaleLowerCase('tr-TR');
+  if (/-R\b/.test(normalizedKod) || /\bsağ\b/.test(normalizedAd) || /\bsag\b/.test(normalizedAd)) return 'sag';
+  if (/-L\b/.test(normalizedKod) || /\bsol\b/.test(normalizedAd)) return 'sol';
+  return null;
+}
+
+async function defaultMakineIdForTaraf(taraf: 'sag' | 'sol' | null): Promise<string | null> {
+  const rows = await db
+    .select({ id: makineler.id, ad: makineler.ad })
+    .from(makineler)
+    .where(eq(makineler.is_active, 1));
+  const enj1 = rows.find((m) => /enjeksiyon\s*1/i.test(m.ad));
+  const enj2 = rows.find((m) => /enjeksiyon\s*2/i.test(m.ad));
+  if (taraf === 'sol') return enj2?.id ?? enj1?.id ?? null;
+  return enj1?.id ?? rows[0]?.id ?? null;
+}
+
+async function applyDefaultMakineAtamasi(uretimEmriId: string, taraf: 'sag' | 'sol' | null): Promise<void> {
+  const makineId = await defaultMakineIdForTaraf(taraf);
+  if (!makineId) return;
+  await db
+    .update(uretimEmriOperasyonlari)
+    .set({ makine_id: makineId })
+    .where(eq(uretimEmriOperasyonlari.uretim_emri_id, uretimEmriId));
+}
 
 export function pickOperasyonKaynakKalemler<T extends { kategori: string }>(kalemler: T[]): T[] {
   const operasyonelYmKalemleri = kalemler.filter((kalem) => kalem.kategori === 'operasyonel_ym');
@@ -97,6 +126,8 @@ export async function createUretimEmirleriFromSiparisKalemi(
       urun_id: receteKalemleri.urun_id,
       miktar: receteKalemleri.miktar,
       kategori: urunler.kategori,
+      kod: urunler.kod,
+      ad: urunler.ad,
     })
     .from(receteKalemleri)
     .innerJoin(urunler, eq(receteKalemleri.urun_id, urunler.id))
@@ -133,6 +164,7 @@ export async function createUretimEmirleriFromSiparisKalemi(
       },
       { skipKalemUrunCheck: true },
     );
+    await applyDefaultMakineAtamasi(created.row.id, detectTaraf(k.kod, k.ad));
     results.push(created);
   }
 

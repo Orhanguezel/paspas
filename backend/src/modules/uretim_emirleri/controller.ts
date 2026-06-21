@@ -150,6 +150,45 @@ export const listEmirOperasyonlari: RouteHandler = async (req, reply) => {
   }
 };
 
+const operasyonPlanPatchSchema = z.object({
+  operasyonlar: z.array(z.object({
+    id: z.string().trim().min(1).max(36),
+    makineId: z.string().trim().max(36).nullable().optional(),
+    montaj: z.boolean().optional(),
+  })).min(1),
+});
+
+/** PATCH /admin/uretim-emirleri/:id/operasyon-planlari — makine/montaj toplu güncelle */
+export const updateOperasyonPlanlari: RouteHandler = async (req, reply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const parsed = operasyonPlanPatchSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
+    }
+
+    const emir = await repoGetById(id);
+    if (!emir) return reply.code(404).send({ error: { message: 'uretim_emri_bulunamadi' } });
+
+    for (const operasyon of parsed.data.operasyonlar) {
+      const patch: Partial<typeof uretimEmriOperasyonlari.$inferInsert> = {};
+      if (operasyon.makineId !== undefined) patch.makine_id = operasyon.makineId || null;
+      if (operasyon.montaj !== undefined) patch.montaj = operasyon.montaj ? 1 : 0;
+      if (Object.keys(patch).length === 0) continue;
+      await db
+        .update(uretimEmriOperasyonlari)
+        .set(patch)
+        .where(and(eq(uretimEmriOperasyonlari.id, operasyon.id), eq(uretimEmriOperasyonlari.uretim_emri_id, id)));
+    }
+
+    const items = await repoGetOperasyonlar(id);
+    return reply.send({ items });
+  } catch (error) {
+    req.log.error({ error }, 'update_operasyon_planlari_failed');
+    return sendInternalError(reply);
+  }
+};
+
 /** GET /admin/uretim-emirleri/:id/hammadde-kontrol */
 export const checkHammadde: RouteHandler = async (req, reply) => {
   try {

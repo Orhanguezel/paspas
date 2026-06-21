@@ -89,6 +89,19 @@ export const uretimEmirleriAdminApi = baseApi.injectEndpoints({
       query: (id) => ({ url: `${BASE}/${id}/hammadde-yeterlilik` }),
     }),
 
+    updateUretimEmriOperasyonPlanlariAdmin: b.mutation<
+      { items: unknown[] },
+      { id: string; body: { operasyonlar: Array<{ id: string; makineId?: string | null; montaj?: boolean }> } }
+    >({
+      query: ({ id, body }) => ({ url: `${BASE}/${id}/operasyon-planlari`, method: 'PATCH', body }),
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: 'UretimEmri', id },
+        { type: 'UretimEmirleri', id: 'LIST' },
+        { type: 'MakineKuyrugu', id: 'ATANMAMIS' },
+        { type: 'MakineKuyrugu', id: 'KUYRUKLAR' },
+      ],
+    }),
+
     deleteUretimEmriAdmin: b.mutation<void, string>({
       query: (id) => ({ url: `${BASE}/${id}`, method: 'DELETE' }),
       invalidatesTags: (_r, _e, id) => [
@@ -119,4 +132,5 @@ export const {
   useLazyGetUretimKarsilastirmaAdminQuery,
   useGetHammaddeYeterlilikAdminQuery,
   useLazyGetHammaddeYeterlilikAdminQuery,
+  useUpdateUretimEmriOperasyonPlanlariAdminMutation,
 } = uretimEmirleriAdminApi;

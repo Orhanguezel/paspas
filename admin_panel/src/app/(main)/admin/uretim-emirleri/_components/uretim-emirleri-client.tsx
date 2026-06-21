@@ -5,7 +5,7 @@
 // Paspas ERP — Üretim Emirleri liste sayfası
 // =============================================================
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 
 import Link from "next/link";
 
@@ -30,8 +30,8 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { resolveMediaUrl } from "@/lib/media-url";
 import { useLocaleContext } from "@/i18n/LocaleProvider";
 import {
   useDeleteUretimEmriAdminMutation,
@@ -112,7 +112,9 @@ export default function UretimEmirleriClient() {
   const [makineAtaTarget, setMakineAtaTarget] = useState<UretimEmriDto | null>(null);
   const [cikarTarget, setCikarTarget] = useState<UretimEmriDto | null>(null);
   const [page, setPage] = useState(0);
+  const [activeTab, setActiveTab] = useState<"goruntule" | "planla">("goruntule");
   const PAGE_SIZE = 25;
+  const isPlanlaTab = activeTab === "planla";
 
   const DURUM_OPTIONS: Array<{ value: UretimEmriDurum | "hepsi"; label: string }> = [
     { value: "hepsi", label: t("admin.erp.uretimEmirleri.statuses.hepsi") },
@@ -251,6 +253,11 @@ export default function UretimEmirleriClient() {
     return t(`admin.erp.uretimEmirleri.statuses.${d}`);
   }
 
+  function productGroupLabel(e: UretimEmriDto): string {
+    const name = e.siparisUrunAd ?? e.urunAd ?? "Ürün Grubu Yok";
+    return name.split(/[/-]/)[0]?.trim() || name;
+  }
+
   function resetFilters() {
     setSearch("");
     setDurum("hepsi");
@@ -314,11 +321,20 @@ export default function UretimEmirleriClient() {
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCcw className={isFetching ? "size-4 animate-spin" : "size-4"} />
           </Button>
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="mr-1 size-4" /> {t("admin.erp.uretimEmirleri.newItem")}
-          </Button>
+          {isPlanlaTab && (
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="mr-1 size-4" /> Yeni Üretim Satırı Ekle
+            </Button>
+          )}
         </div>
       </div>
+
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "goruntule" | "planla")}>
+        <TabsList>
+          <TabsTrigger value="goruntule">Üretimleri Görüntüle</TabsTrigger>
+          <TabsTrigger value="planla">Üretim Planla</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Özet Kartlar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -389,32 +405,34 @@ export default function UretimEmirleriClient() {
               <TableHead className="w-24 text-right">{t("admin.erp.uretimEmirleri.columns.planlanan")}</TableHead>
               <TableHead className="w-36">{t("admin.erp.uretimEmirleri.columns.ilerleme")}</TableHead>
               <TableHead className="w-24 text-center">{t("admin.erp.uretimEmirleri.columns.malzeme")}</TableHead>
-              <TableHead className="w-48">Makine</TableHead>
-              <TableHead className="w-24 text-right pr-4" />
+              {isPlanlaTab && <TableHead className="w-48">Makine</TableHead>}
+              {isPlanlaTab && <TableHead className="w-24 text-right pr-4" />}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading &&
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`ue-skel-${i + 1}`}>
-                  {Array.from({ length: 9 }).map((__, j) => (
+                  {Array.from({ length: isPlanlaTab ? 9 : 7 }).map((__, j) => (
                     <TableCell key={`ue-skel-${i + 1}-${j + 1}`}><Skeleton className="h-5 w-full" /></TableCell>
                   ))}
                 </TableRow>
               ))}
             {!isLoading && items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="py-16 text-center text-muted-foreground">
+                <TableCell colSpan={isPlanlaTab ? 9 : 7} className="py-16 text-center text-muted-foreground">
                   {t("admin.erp.uretimEmirleri.notFound")}
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading && items.map((e) => {
+            {!isLoading && items.map((e, index) => {
               const planlananBitis = formatDateShort(e.planlananBitisTarihi);
               const ilerleYuzde = ilerlemeYuzde(e);
               const atanmamis = e.makineAtamaSayisi === 0;
               const displayUrunAd = e.siparisUrunAd ?? e.urunAd ?? e.urunId;
               const displayUrunKod = e.siparisUrunKod ?? e.urunKod;
+              const groupLabel = productGroupLabel(e);
+              const previousGroupLabel = index > 0 ? productGroupLabel(items[index - 1]) : null;
               const showOperasyonelUrun =
                 Boolean(e.siparisUrunAd || e.siparisUrunKod) &&
                 (e.urunAd !== e.siparisUrunAd || e.urunKod !== e.siparisUrunKod);
@@ -424,8 +442,15 @@ export default function UretimEmirleriClient() {
               const taraf = detectTaraf(e.urunKod, e.urunAd);
 
               return (
+                <Fragment key={e.id}>
+                {groupLabel !== previousGroupLabel && (
+                  <TableRow key={`${groupLabel}-group`}>
+                    <TableCell colSpan={isPlanlaTab ? 9 : 7} className="bg-muted/40 py-2 font-semibold text-xs">
+                      {groupLabel}
+                    </TableCell>
+                  </TableRow>
+                )}
                 <TableRow
-                  key={e.id}
                   className={`group hover:bg-slate-50/80 transition-colors ${e.terminRiski && e.durum !== "tamamlandi" ? "bg-destructive/5" : ""}`}
                 >
                   {/* Emir No + Durum */}
@@ -442,19 +467,6 @@ export default function UretimEmirleriClient() {
                   {/* Ürün */}
                   <TableCell>
                     <div className="flex items-start gap-2">
-                      {(() => {
-                        const gorsel = e.siparisUrunGorsel ?? e.urunGorsel;
-                        if (!gorsel) return null;
-                        return (
-                          // biome-ignore lint/performance/noImgElement: thumbnail source can be arbitrary media URLs.
-                          <img
-                            src={resolveMediaUrl(gorsel)}
-                            alt={displayUrunAd}
-                            className="size-10 shrink-0 rounded border object-cover"
-                            loading="lazy"
-                          />
-                        );
-                      })()}
                       <div className="min-w-0 flex-1">
                         <div className="font-medium text-sm text-slate-900 line-clamp-1">{displayUrunAd}</div>
                         {displayUrunKod && <div className="text-xs text-muted-foreground font-mono">{displayUrunKod}</div>}
@@ -539,7 +551,7 @@ export default function UretimEmirleriClient() {
                   </TableCell>
 
                   {/* Makine */}
-                  <TableCell>
+                  {isPlanlaTab && <TableCell>
                     {atanmamis ? (
                       <div className="space-y-1">
                         <span className="text-xs text-muted-foreground">Atanmamış</span>
@@ -572,10 +584,10 @@ export default function UretimEmirleriClient() {
                         </Button>
                       </div>
                     )}
-                  </TableCell>
+                  </TableCell>}
 
                   {/* Aksiyonlar */}
-                  <TableCell className="text-right pr-3">
+                  {isPlanlaTab && <TableCell className="text-right pr-3">
                     <div className="flex justify-end items-center gap-0.5">
                       <Button
                         variant="ghost"
@@ -596,8 +608,9 @@ export default function UretimEmirleriClient() {
                       </Button>
                       {renderDeleteButton(e)}
                     </div>
-                  </TableCell>
+                  </TableCell>}
                 </TableRow>
+                </Fragment>
               );
             })}
           </TableBody>

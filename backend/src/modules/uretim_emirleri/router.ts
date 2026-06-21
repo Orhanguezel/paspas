@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 
 import { makeAdminPermissionGuard } from '@/common/middleware/permissions';
 
-import { atamaGeriAl, checkHammadde, createUretimEmri, createUretimEmirleriFromSiparis, deleteUretimEmri, getHammaddeYeterlilik, getNextEmirNo, getUretimEmri, getUretimKarsilastirma, listEmirOperasyonlari, listUretimEmirleri, listUretimEmriAdaylari, updateUretimEmri } from './controller';
+import { atamaGeriAl, checkHammadde, createUretimEmri, createUretimEmirleriFromSiparis, deleteUretimEmri, getHammaddeYeterlilik, getNextEmirNo, getUretimEmri, getUretimKarsilastirma, listEmirOperasyonlari, listUretimEmirleri, listUretimEmriAdaylari, updateOperasyonPlanlari, updateUretimEmri } from './controller';
 
 export async function registerUretimEmirleri(app: FastifyInstance) {
   const BASE = '/uretim-emirleri';
@@ -19,6 +19,7 @@ export async function registerUretimEmirleri(app: FastifyInstance) {
   app.post(`${BASE}`, { preHandler: guard }, createUretimEmri);
   app.post(`${BASE}/siparis-kaleminden`, { preHandler: guard }, createUretimEmirleriFromSiparis);
   app.post(`${BASE}/:id/atama-geri-al`, { preHandler: guard }, atamaGeriAl);
+  app.patch(`${BASE}/:id/operasyon-planlari`, { preHandler: guard }, updateOperasyonPlanlari);
   app.patch(`${BASE}/:id`, { preHandler: guard }, updateUretimEmri);
   app.delete(`${BASE}/:id`, { preHandler: guard }, deleteUretimEmri);
 }
