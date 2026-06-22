@@ -16,6 +16,7 @@ import { receteler, receteKalemleri } from '@/modules/receteler/schema';
 import { tryMontajForUretimEmri, tryPendingMontajlarAfterStokArtis } from '@/modules/uretim_emirleri/service';
 import { iptalRezervasyon } from '@/modules/uretim_emirleri/hammadde_service';
 import { repoCreate as malKabulRepoCreate } from '@/modules/mal_kabul/repository';
+import { repoCreateOtomatikSevkEmriFromUretim } from '@/modules/sevkiyat/repository';
 import { createAdminNotification } from '@/modules/notifications/controller';
 import { isMakineWorkingDay, recalcMakineKuyrukTarihleri } from '@/modules/_shared/planlama';
 import { hammaddeRezervasyonlari } from '@/modules/urunler/schema';
@@ -971,6 +972,8 @@ export async function repoUretimBitir(
   const now = new Date();
   let stokFarki = 0;
   let tamamlananMakineId = '';
+  let tamamlananUretimEmriId: string | null = null;
+  let tamamlananHasStockImpact = false;
 
   const [existingQueue] = await db
     .select()
@@ -1060,6 +1063,11 @@ export async function repoUretimBitir(
       hasStockImpact = isSingleSided || (Number(opRow?.montaj ?? 0) === 1);
     }
 
+    if (kqRow.uretim_emri_id) {
+      tamamlananUretimEmriId = kqRow.uretim_emri_id;
+      tamamlananHasStockImpact = hasStockImpact;
+    }
+
     // Apply stock correction (reconcile measurements vs actual)
     // Only for montaj or single-sided operations.
     if (stokFarki !== 0 && kqRow.uretim_emri_id && hasStockImpact) {
@@ -1147,6 +1155,18 @@ export async function repoUretimBitir(
   // Recalc planned dates for all pending jobs on the machine using working hours, tatil, weekends
   if (tamamlananMakineId) {
     await runNonBlockingStep('recalc_makine_kuyruk_tarihleri', () => recalcMakineKuyrukTarihleri(tamamlananMakineId));
+  }
+
+  if (tamamlananUretimEmriId && stokFarki > 0 && tamamlananHasStockImpact) {
+    const uretimEmriId = tamamlananUretimEmriId;
+    await runNonBlockingStep('otomatik_sevk_emri', () =>
+      repoCreateOtomatikSevkEmriFromUretim({
+        uretimEmriId,
+        miktar: stokFarki,
+        tamamlanmaTarihi: now,
+        actorUserId: operatorUserId,
+      }).then(() => undefined),
+    );
   }
 
   // Auto-refresh linked sipariş durum after production complete

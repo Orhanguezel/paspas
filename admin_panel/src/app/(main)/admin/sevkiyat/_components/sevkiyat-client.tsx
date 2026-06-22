@@ -797,9 +797,16 @@ function EmirleriTab({ shipperMode = false }: { shipperMode?: boolean }) {
                   <div className="mt-1 truncate text-base font-semibold">{row.musteriAd ?? '—'}</div>
                   <div className="mt-1 text-sm text-muted-foreground">{row.urunKod ?? '—'} · {row.urunAd ?? '—'}</div>
                 </div>
-                <Badge variant={SEVK_DURUM_BADGE[row.durum] ?? 'outline'} className="shrink-0">
-                  {SEVK_DURUM_LABELS[row.durum] ?? row.durum}
-                </Badge>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  {row.otomatikOlusturuldu && (
+                    <Badge variant="outline" className="text-[10px]">
+                      Otomatik
+                    </Badge>
+                  )}
+                  <Badge variant={SEVK_DURUM_BADGE[row.durum] ?? 'outline'}>
+                    {SEVK_DURUM_LABELS[row.durum] ?? row.durum}
+                  </Badge>
+                </div>
               </div>
               <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
                 <div className="rounded-md bg-muted/40 p-2">
@@ -859,9 +866,16 @@ function EmirleriTab({ shipperMode = false }: { shipperMode?: boolean }) {
                   <TableCell className="text-right text-xs">{row.miktar}</TableCell>
                   <TableCell className="text-xs">{formatShortDate(row.tarih)}</TableCell>
                   <TableCell>
-                    <Badge variant={SEVK_DURUM_BADGE[row.durum] ?? 'outline'} className="text-[10px]">
-                      {SEVK_DURUM_LABELS[row.durum] ?? row.durum}
-                    </Badge>
+                    <div className="flex flex-col items-start gap-1">
+                      {row.otomatikOlusturuldu && (
+                        <Badge variant="outline" className="text-[10px]">
+                          Otomatik
+                        </Badge>
+                      )}
+                      <Badge variant={SEVK_DURUM_BADGE[row.durum] ?? 'outline'} className="text-[10px]">
+                        {SEVK_DURUM_LABELS[row.durum] ?? row.durum}
+                      </Badge>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">

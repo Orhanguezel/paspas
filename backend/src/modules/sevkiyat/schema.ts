@@ -12,6 +12,8 @@ export const sevkEmirleri = mysqlTable('sevk_emirleri', {
   tarih: date('tarih').notNull(),
   durum: varchar('durum', { length: 32 }).notNull().default('bekliyor'),
   operator_onay: tinyint('operator_onay', { unsigned: true }).notNull().default(0),
+  otomatik_olusturuldu: tinyint('otomatik_olusturuldu', { unsigned: true }).notNull().default(0),
+  kaynak_uretim_emri_id: char('kaynak_uretim_emri_id', { length: 36 }),
   notlar: varchar('notlar', { length: 500 }),
   created_by: char('created_by', { length: 36 }),
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -35,6 +37,8 @@ export type SevkEmriDto = {
   tarih: string;
   durum: string;
   operatorOnay: boolean;
+  otomatikOlusturuldu: boolean;
+  kaynakUretimEmriId: string | null;
   notlar: string | null;
   createdBy: string | null;
   createdAt: string;

@@ -41,6 +41,8 @@ export interface SevkEmriDto {
   tarih: string;
   durum: string;
   operatorOnay: boolean;
+  otomatikOlusturuldu: boolean;
+  kaynakUretimEmriId: string | null;
   notlar: string | null;
   createdBy: string | null;
   createdAt: string;
@@ -149,6 +151,8 @@ export function normalizeSevkEmri(raw: unknown): SevkEmriDto {
     tarih: toStr(r.tarih),
     durum: toStr(r.durum, 'bekliyor'),
     operatorOnay: toBool(r.operatorOnay),
+    otomatikOlusturuldu: toBool(r.otomatikOlusturuldu),
+    kaynakUretimEmriId: r.kaynakUretimEmriId != null ? toStr(r.kaynakUretimEmriId) : null,
     notlar: r.notlar != null ? toStr(r.notlar) : null,
     createdBy: r.createdBy != null ? toStr(r.createdBy) : null,
     createdAt: toStr(r.createdAt),

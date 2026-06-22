@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, desc, eq, gt, gte, like, lte, notInArray, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, inArray, like, lte, notInArray, or, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
@@ -8,6 +8,7 @@ import { repoCloseWorkflowTasks, repoUpsertWorkflowTask } from '@/modules/gorevl
 import { hareketler } from '@/modules/hareketler/schema';
 import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/schema';
 import { refreshSiparisDurum } from '@/modules/satis_siparisleri/repository';
+import { uretimEmriSiparisKalemleri } from '@/modules/uretim_emirleri/schema';
 import { musteriler } from '@/modules/musteriler/schema';
 import { urunler } from '@/modules/urunler/schema';
 import { sevkiyatlar, sevkiyatKalemleri } from '@/modules/operator/schema';
@@ -254,6 +255,8 @@ function rowToDto(row: EnrichedSevkEmriRow): SevkEmriDto {
     tarih: row.tarih ? String(row.tarih) : new Date().toISOString().slice(0, 10),
     durum: row.durum,
     operatorOnay: row.operator_onay === 1,
+    otomatikOlusturuldu: row.otomatik_olusturuldu === 1,
+    kaynakUretimEmriId: row.kaynak_uretim_emri_id ?? null,
     notlar: row.notlar ?? null,
     createdBy: row.created_by ?? null,
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
@@ -298,6 +301,8 @@ export async function repoListSevkEmirleri(q: SevkEmriListQuery): Promise<{ item
         tarih: sevkEmirleri.tarih,
         durum: sevkEmirleri.durum,
         operator_onay: sevkEmirleri.operator_onay,
+        otomatik_olusturuldu: sevkEmirleri.otomatik_olusturuldu,
+        kaynak_uretim_emri_id: sevkEmirleri.kaynak_uretim_emri_id,
         notlar: sevkEmirleri.notlar,
         created_by: sevkEmirleri.created_by,
         created_at: sevkEmirleri.created_at,
@@ -341,6 +346,8 @@ export async function repoGetSevkEmriById(id: string): Promise<SevkEmriDto | nul
       tarih: sevkEmirleri.tarih,
       durum: sevkEmirleri.durum,
       operator_onay: sevkEmirleri.operator_onay,
+      otomatik_olusturuldu: sevkEmirleri.otomatik_olusturuldu,
+      kaynak_uretim_emri_id: sevkEmirleri.kaynak_uretim_emri_id,
       notlar: sevkEmirleri.notlar,
       created_by: sevkEmirleri.created_by,
       created_at: sevkEmirleri.created_at,
@@ -356,6 +363,94 @@ export async function repoGetSevkEmriById(id: string): Promise<SevkEmriDto | nul
     .where(eq(sevkEmirleri.id, id))
     .limit(1);
   return rows[0] ? rowToDto(rows[0] as unknown as EnrichedSevkEmriRow) : null;
+}
+
+function getOtomatikSevkTarihi(tamamlanmaTarihi: Date): Date {
+  const sevkTarihi = new Date(tamamlanmaTarihi);
+  if (sevkTarihi.getHours() >= 8) sevkTarihi.setDate(sevkTarihi.getDate() + 1);
+  sevkTarihi.setHours(0, 0, 0, 0);
+  return sevkTarihi;
+}
+
+export async function repoCreateOtomatikSevkEmriFromUretim(input: {
+  uretimEmriId: string;
+  miktar: number;
+  tamamlanmaTarihi: Date;
+  actorUserId?: string | null;
+}): Promise<SevkEmriDto | null> {
+  if (input.miktar <= 0) return null;
+
+  const [link] = await db
+    .select({
+      siparisKalemId: uretimEmriSiparisKalemleri.siparis_kalem_id,
+      siparisId: siparisKalemleri.siparis_id,
+      musteriId: satisSiparisleri.musteri_id,
+      urunId: siparisKalemleri.urun_id,
+    })
+    .from(uretimEmriSiparisKalemleri)
+    .innerJoin(siparisKalemleri, eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemleri.id))
+    .innerJoin(satisSiparisleri, eq(siparisKalemleri.siparis_id, satisSiparisleri.id))
+    .where(eq(uretimEmriSiparisKalemleri.uretim_emri_id, input.uretimEmriId))
+    .limit(1);
+
+  if (!link?.siparisKalemId || !link.siparisId || !link.musteriId || !link.urunId) return null;
+
+  const [sameSource] = await db
+    .select({ id: sevkEmirleri.id })
+    .from(sevkEmirleri)
+    .where(
+      and(
+        eq(sevkEmirleri.kaynak_uretim_emri_id, input.uretimEmriId),
+        eq(sevkEmirleri.otomatik_olusturuldu, 1),
+      ),
+    )
+    .limit(1);
+  if (sameSource) return null;
+
+  const [openForLine] = await db
+    .select({ id: sevkEmirleri.id })
+    .from(sevkEmirleri)
+    .where(
+      and(
+        eq(sevkEmirleri.siparis_kalem_id, link.siparisKalemId),
+        inArray(sevkEmirleri.durum, ['bekliyor', 'onaylandi']),
+      ),
+    )
+    .limit(1);
+  if (openForLine) return null;
+
+  const id = randomUUID();
+  const sevkEmriNo = await generateSevkEmriNo();
+  const tarih = getOtomatikSevkTarihi(input.tamamlanmaTarihi);
+  const createdBy = input.actorUserId ?? null;
+
+  await db.transaction(async (tx) => {
+    await tx.insert(sevkEmirleri).values({
+      id,
+      sevk_emri_no: sevkEmriNo,
+      siparis_id: link.siparisId,
+      siparis_kalem_id: link.siparisKalemId,
+      musteri_id: link.musteriId,
+      urun_id: link.urunId,
+      miktar: String(input.miktar),
+      tarih,
+      durum: 'bekliyor',
+      otomatik_olusturuldu: 1,
+      kaynak_uretim_emri_id: input.uretimEmriId,
+      notlar: 'Otomatik oluşturuldu',
+      created_by: createdBy,
+    });
+
+    await tx
+      .update(urunler)
+      .set({ rezerve_stok: sql`${urunler.rezerve_stok} + ${String(input.miktar)}` })
+      .where(eq(urunler.id, link.urunId));
+  });
+
+  const row = await repoGetSevkEmriById(id);
+  if (!row) throw new Error('insert_failed');
+  await syncSevkEmriWorkflowTasks(row, createdBy);
+  return row;
 }
 
 export async function repoCreateSevkEmri(data: SevkEmriCreate, createdBy: string | null): Promise<SevkEmriDto> {
