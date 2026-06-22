@@ -379,8 +379,13 @@ async function ensureAutomaticShiftForMachine(
     vardiyaPenceresi = buildShiftWindow(now, preferredTanim);
   }
 
-  const calismaDurumu = await isMakineWorkingDay(makineId, vardiyaPenceresi.baslangic);
-  if (!calismaDurumu) {
+  // Gece vardiyası iki güne yayılır (örn. Pzt 06:20 → Pazar gece vardiyası,
+  // Cuma gece → Cumartesi sabah). Vardiyanın başlangıç GÜNÜ ya da bitiş GÜNÜ
+  // çalışma günüyse vardiya geçerlidir. Yalnız başlangıç gününe bakmak,
+  // çalışma gününe sarkmış gece vardiyalarını yanlışlıkla engelliyordu.
+  const calismaBaslangic = await isMakineWorkingDay(makineId, vardiyaPenceresi.baslangic);
+  const calismaBitis = await isMakineWorkingDay(makineId, vardiyaPenceresi.bitis);
+  if (!calismaBaslangic && !calismaBitis) {
     throw new Error('makine_bugun_calismiyor');
   }
 
