@@ -75,8 +75,10 @@ export default function SevkiyatClient() {
   const statusQ = useStatusQuery();
   const currentUser = normalizeMeFromStatus(statusQ.data as AuthStatusResponse | undefined);
   const isAdmin = currentUser?.isAdmin ?? false;
-  const [tab, setTab] = useState<string>(isAdmin ? 'bekleyenler' : 'emirler');
-  const effectiveTab = isAdmin ? tab : 'emirler';
+  const currentRole = currentUser?.role as string | undefined;
+  const isNakliyeciOnly = !isAdmin && currentRole === 'nakliyeci';
+  const [tab, setTab] = useState<string>(isAdmin ? 'bekleyenler' : isNakliyeciOnly ? 'yukle' : 'emirler');
+  const effectiveTab = isNakliyeciOnly ? 'yukle' : isAdmin ? tab : 'emirler';
 
   return (
     <div className="space-y-4">
@@ -93,10 +95,18 @@ export default function SevkiyatClient() {
               {t('admin.erp.sevkiyat.tabs.bekleyenler')}
             </TabsTrigger>
           )}
-          <TabsTrigger value="emirler">
-            <Truck className="size-4 mr-2" />
-            {t('admin.erp.sevkiyat.tabs.emirler')}
-          </TabsTrigger>
+          {!isNakliyeciOnly && (
+            <TabsTrigger value="emirler">
+              <Truck className="size-4 mr-2" />
+              {t('admin.erp.sevkiyat.tabs.emirler')}
+            </TabsTrigger>
+          )}
+          {isNakliyeciOnly && (
+            <TabsTrigger value="yukle">
+              <Truck className="size-4 mr-2" />
+              Yükle/Sevket
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {isAdmin && (
@@ -106,6 +116,9 @@ export default function SevkiyatClient() {
         )}
         <TabsContent value="emirler">
           <EmirleriTab />
+        </TabsContent>
+        <TabsContent value="yukle">
+          <EmirleriTab shipperMode />
         </TabsContent>
       </Tabs>
     </div>
@@ -687,7 +700,7 @@ function SiparissizSevkDialog({ urun, onClose }: { urun: SiparissizUrunDto | nul
 }
 
 // ─── Sevk Emirleri Tab ────────────────────────────────────────
-function EmirleriTab() {
+function EmirleriTab({ shipperMode = false }: { shipperMode?: boolean }) {
   const { t } = useLocaleContext();
   const statusQ = useStatusQuery();
   const currentUser = normalizeMeFromStatus(statusQ.data as AuthStatusResponse | undefined);
@@ -723,8 +736,8 @@ function EmirleriTab() {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-3 items-end">
+    <div className={shipperMode ? 'space-y-3 overflow-x-hidden' : 'space-y-3'}>
+      {!shipperMode && <div className="flex flex-wrap gap-3 items-end">
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">{t('admin.erp.sevkiyat.filters.ara')}</Label>
           <div className="relative">
@@ -762,7 +775,7 @@ function EmirleriTab() {
         <div className="ml-auto text-sm text-muted-foreground">
           {visibleTotal} {t('admin.erp.sevkiyat.sevkEmri')}
         </div>
-      </div>
+      </div>}
 
       {isLoading ? (
         <div className="space-y-2">
@@ -773,6 +786,53 @@ function EmirleriTab() {
       ) : items.length === 0 ? (
         <div className="rounded-md border py-12 text-center text-sm text-muted-foreground">
           {t('admin.erp.sevkiyat.noData')}
+        </div>
+      ) : shipperMode ? (
+        <div className="grid grid-cols-1 gap-3">
+          {items.map((row) => (
+            <div key={row.id} className="rounded-lg border bg-card p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-mono text-xs text-muted-foreground">{row.sevkEmriNo}</div>
+                  <div className="mt-1 truncate text-base font-semibold">{row.musteriAd ?? '—'}</div>
+                  <div className="mt-1 text-sm text-muted-foreground">{row.urunKod ?? '—'} · {row.urunAd ?? '—'}</div>
+                </div>
+                <Badge variant={SEVK_DURUM_BADGE[row.durum] ?? 'outline'} className="shrink-0">
+                  {SEVK_DURUM_LABELS[row.durum] ?? row.durum}
+                </Badge>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+                <div className="rounded-md bg-muted/40 p-2">
+                  <div className="text-xs text-muted-foreground">Miktar</div>
+                  <div className="font-semibold tabular-nums">{row.miktar}</div>
+                </div>
+                <div className="rounded-md bg-muted/40 p-2">
+                  <div className="text-xs text-muted-foreground">Stok</div>
+                  <div className="font-semibold tabular-nums">{row.stokMiktar}</div>
+                </div>
+                <div className="rounded-md bg-muted/40 p-2">
+                  <div className="text-xs text-muted-foreground">Tarih</div>
+                  <div className="font-semibold tabular-nums">{formatShortDate(row.tarih)}</div>
+                </div>
+              </div>
+              <div className="mt-4">
+                {row.durum === 'bekliyor' ? (
+                  <Button size="lg" className="w-full" variant="outline" disabled>
+                    Onay bekliyor
+                  </Button>
+                ) : row.durum === 'onaylandi' ? (
+                  <Button size="lg" className="w-full" onClick={() => setPhysicalShipTarget(row)} disabled={updateState.isLoading}>
+                    <Truck className="mr-2 size-5" />
+                    Fiziksel Sevket
+                  </Button>
+                ) : (
+                  <Button size="lg" className="w-full" variant="secondary" disabled>
+                    {SEVK_DURUM_LABELS[row.durum] ?? row.durum}
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="rounded-md border overflow-auto">

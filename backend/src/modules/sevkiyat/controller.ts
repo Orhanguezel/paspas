@@ -18,6 +18,11 @@ function isAdminRequest(req: FastifyRequest): boolean {
   return getUserRoles(req).includes('admin');
 }
 
+function canPlanShipments(req: FastifyRequest): boolean {
+  const roles = getUserRoles(req);
+  return roles.includes('admin') || roles.includes('sevkiyatci');
+}
+
 function canPhysicallyShip(req: FastifyRequest): boolean {
   const roles = getUserRoles(req);
   return roles.includes('admin') || roles.includes('sevkiyatci') || roles.includes('nakliyeci');
@@ -25,6 +30,7 @@ function canPhysicallyShip(req: FastifyRequest): boolean {
 
 /** GET /admin/sevkiyat/bekleyenler */
 export const listBekleyenler: RouteHandler = async (req, reply) => {
+  if (!canPlanShipments(req)) return reply.code(403).send({ error: { message: 'forbidden' } });
   const parsed = bekleyenlerQuerySchema.safeParse(req.query);
   if (!parsed.success) {
     return reply.code(400).send({ error: { message: 'invalid_query', issues: parsed.error.flatten() } });
@@ -36,6 +42,7 @@ export const listBekleyenler: RouteHandler = async (req, reply) => {
 
 /** GET /admin/sevkiyat/siparissiz — stokta olup siparişi olmayan ürünler */
 export const listSiparissizUrunler: RouteHandler = async (req, reply) => {
+  if (!canPlanShipments(req)) return reply.code(403).send({ error: { message: 'forbidden' } });
   const parsed = siparissizQuerySchema.safeParse(req.query);
   if (!parsed.success) {
     return reply.code(400).send({ error: { message: 'invalid_query', issues: parsed.error.flatten() } });
@@ -88,6 +95,13 @@ export const patchSevkEmri: RouteHandler = async (req, reply) => {
   }
   if (parsed.data.durum === 'sevk_edildi' && !canPhysicallyShip(req)) {
     return reply.code(403).send({ error: { message: 'forbidden' } });
+  }
+  if (parsed.data.durum === 'sevk_edildi' && !isAdminRequest(req)) {
+    const existing = await repoGetSevkEmriById(id);
+    if (!existing) return reply.code(404).send({ error: { message: 'not_found' } });
+    if (existing.durum !== 'onaylandi') {
+      return reply.code(409).send({ error: { message: 'sevk_emri_onay_bekliyor' } });
+    }
   }
   const userId = (req.user as { id?: string })?.id ?? null;
   try {
