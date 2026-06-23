@@ -79,6 +79,7 @@ export interface SevkEmriCreatePayload {
 export interface SevkEmriPatchPayload {
   durum: 'bekliyor' | 'onaylandi' | 'sevk_edildi' | 'iptal';
   miktar?: number;
+  tarih?: string;
 }
 
 export const SEVK_DURUM_LABELS: Record<string, string> = {

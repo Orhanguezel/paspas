@@ -28,6 +28,7 @@ export const sevkEmriCreateSchema = z.object({
 export const sevkEmriPatchSchema = z.object({
   durum: z.enum(['bekliyor', 'onaylandi', 'sevk_edildi', 'iptal']),
   miktar: z.coerce.number().min(0.0001).optional(),
+  tarih: z.string().trim().optional(),
 });
 
 export const sevkEmriListQuerySchema = z.object({

@@ -76,7 +76,10 @@ export default function SevkiyatClient() {
   const currentUser = normalizeMeFromStatus(statusQ.data as AuthStatusResponse | undefined);
   const isAdmin = currentUser?.isAdmin ?? false;
   const currentRole = currentUser?.role as string | undefined;
-  const isNakliyeciOnly = !isAdmin && currentRole === 'nakliyeci';
+  // Sevkiyatçı rolü DB'de 'sevkiyatci' olarak tutulur; panelde 'nakliyeci'ye
+  // eşlenir. İkisini de kapsa — aksi halde 'sevkiyatci' kullanıcı admin
+  // sekmelerini (Sevk Bekleyenler / Sevk Emirleri) görüyordu.
+  const isNakliyeciOnly = !isAdmin && (currentRole === 'nakliyeci' || currentRole === 'sevkiyatci');
   const [tab, setTab] = useState<string>(isAdmin ? 'bekleyenler' : isNakliyeciOnly ? 'yukle' : 'emirler');
   const effectiveTab = isNakliyeciOnly ? 'yukle' : isAdmin ? tab : 'emirler';
 
@@ -961,8 +964,16 @@ function EmirleriTab({ shipperMode = false }: { shipperMode?: boolean }) {
         isLoading={updateState.isLoading}
         onClose={() => setEditTarget(null)}
         onSubmit={async (row, patch) => {
-          await handleDurumChange(row.id, patch.durum, patch.miktar);
-          setEditTarget(null);
+          try {
+            await updateEmri({
+              id: row.id,
+              body: { durum: patch.durum, miktar: patch.miktar, tarih: patch.tarih || undefined },
+            }).unwrap();
+            toast.success(t('admin.erp.sevkiyat.messages.durumGuncellendi', { durum: SEVK_DURUM_LABELS[patch.durum]?.toLowerCase() ?? patch.durum }));
+            setEditTarget(null);
+          } catch (error) {
+            toast.error(getApiErrorMessage(error) ?? t('admin.erp.sevkiyat.messages.durumHata'));
+          }
         }}
       />
     </div>
@@ -978,20 +989,23 @@ function EditSevkEmriDialog({
   row: SevkEmriDto | null;
   isLoading: boolean;
   onClose: () => void;
-  onSubmit: (row: SevkEmriDto, patch: { durum: SevkDurum; miktar: number }) => Promise<void>;
+  onSubmit: (row: SevkEmriDto, patch: { durum: SevkDurum; miktar: number; tarih: string }) => Promise<void>;
 }) {
   const { t } = useLocaleContext();
   const [miktar, setMiktar] = useState('');
   const [durum, setDurum] = useState<SevkDurum>('bekliyor');
+  const [tarih, setTarih] = useState('');
 
   useEffect(() => {
     if (!row) {
       setMiktar('');
       setDurum('bekliyor');
+      setTarih('');
       return;
     }
     setMiktar(String(row.miktar));
     setDurum(row.durum as SevkDurum);
+    setTarih(row.tarih ? String(row.tarih).slice(0, 10) : '');
   }, [row]);
 
   const miktarNum = Number(miktar);
@@ -1019,6 +1033,11 @@ function EditSevkEmriDialog({
           </div>
 
           <div className="space-y-2">
+            <Label>{t('admin.erp.sevkiyat.dialog.tarih')}</Label>
+            <Input type="date" value={tarih} onChange={(e) => setTarih(e.target.value)} />
+          </div>
+
+          <div className="space-y-2">
             <Label>{t('admin.erp.sevkiyat.filters.durum')}</Label>
             <Select value={durum} onValueChange={(value) => setDurum(value as SevkDurum)}>
               <SelectTrigger>
@@ -1039,7 +1058,7 @@ function EditSevkEmriDialog({
             {t('admin.erp.sevkiyat.actions.iptal')}
           </Button>
           <Button
-            onClick={() => row && onSubmit(row, { durum, miktar: miktarNum })}
+            onClick={() => row && onSubmit(row, { durum, miktar: miktarNum, tarih })}
             disabled={isLoading || !miktarNum || miktarNum <= 0}
           >
             {t('admin.erp.sevkiyat.actions.kaydet')}

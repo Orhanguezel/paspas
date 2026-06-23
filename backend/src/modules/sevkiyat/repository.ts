@@ -566,9 +566,15 @@ export async function repoPatchSevkEmri(id: string, patch: SevkEmriPatch, operat
   if (!existing) return null;
 
   const nextMiktar = patch.miktar ?? existing.miktar;
+  const updatePayload: Partial<typeof sevkEmirleri.$inferInsert> = {
+    durum: patch.durum,
+    miktar: String(nextMiktar),
+  };
+  // Admin sevk emri tarihini de düzeltebilir (operatör/admin hatalı giriş düzeltme).
+  if (patch.tarih) updatePayload.tarih = new Date(`${patch.tarih}T00:00:00`);
   await db
     .update(sevkEmirleri)
-    .set({ durum: patch.durum, miktar: String(nextMiktar) })
+    .set(updatePayload)
     .where(eq(sevkEmirleri.id, id));
 
   let touchedSiparisId: string | null = null;
