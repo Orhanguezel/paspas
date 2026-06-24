@@ -108,6 +108,10 @@ export type UretimKaydiOzet = {
   netMiktar: number;
   fireMiktar: number;
   verimlilik: number | null;
+  // Net çalışma süresine göre verimlilik (operasyonun gerçek çalışma süresi bazlı)
+  verimlilikNet: number | null;
+  // Tam vardiya süresine göre verimlilik (12 saatlik vardiya bazlı)
+  verimlilikVardiya: number | null;
   operatorAd: string | null;
   notlar: string | null;
 };
@@ -166,6 +170,7 @@ export function buildUretimKirilimSummary(rows: UretimKirilimAggregateRow[]) {
   let fireToplam = 0;
 
   for (const row of rows) {
+    // netMiktar burada zaten net SQL ifadesinden (net_miktar ?? ek-fire) gelir
     const miktar = Number(row.netMiktar ?? 0);
     const existing = byProduct.get(row.urunId);
     if (existing) {
@@ -274,6 +279,31 @@ function calculateVerimlilik(input: { net: number; sureDk: number; cevrimSn: num
   const teorik = (input.sureDk * 60) / input.cevrimSn;
   return teorik > 0 ? roundRatio(input.net / teorik) : null;
 }
+
+/**
+ * Net üretim miktarı hesabı (JS tarafı).
+ * `net_miktar` doluysa (0 değilse) onu kullan; aksi halde `ek_uretim_miktari - fire_miktari`.
+ * Negatif sonuç 0'a sabitlenir.
+ */
+function resolveNet(netMiktar: number | string | null, ekMiktar: number | string | null, fireMiktar: number | string | null): number {
+  const net = Number(netMiktar ?? 0);
+  if (net !== 0) return net;
+  const ek = Number(ekMiktar ?? 0);
+  const fire = Number(fireMiktar ?? 0);
+  return Math.max(0, ek - fire);
+}
+
+/**
+ * Net üretim miktarı için SQL ifadesi (toplam/agregasyon sorgularında kullanılır).
+ * `net_miktar` 0 değilse onu kullan; aksi halde `ek_uretim_miktari - fire_miktari` (negatif ise 0).
+ */
+const netMiktarSql = sql<number>`GREATEST(CASE WHEN ${operatorGunlukKayitlari.net_miktar} <> 0 THEN ${operatorGunlukKayitlari.net_miktar} ELSE (${operatorGunlukKayitlari.ek_uretim_miktari} - ${operatorGunlukKayitlari.fire_miktari}) END, 0)`;
+
+/**
+ * Bir kaydın "üretimi var mı" koşulu (net_miktar != 0 yerine kullanılır).
+ * net_miktar dolu DEĞİL ama ek_uretim_miktari girilmiş kayıtları da kapsar.
+ */
+const hasProductionSql = sql`(${operatorGunlukKayitlari.net_miktar} <> 0 OR ${operatorGunlukKayitlari.ek_uretim_miktari} <> 0 OR ${operatorGunlukKayitlari.fire_miktari} <> 0)`;
 
 function diffMinutes(a: Date, b: Date): number {
   return Math.max(0, Math.floor((b.getTime() - a.getTime()) / 60000));
@@ -563,7 +593,7 @@ export async function getVardiyaAnaliziDetay(params: {
     urunId: r.urunId,
     urunAd: r.urunAd,
     urunKod: r.urunKod,
-    netMiktar: Number(r.netMiktar ?? 0),
+    netMiktar: resolveNet(r.netMiktar, r.ekMiktar, r.fireMiktar),
     fireMiktar: Number(r.fireMiktar ?? 0),
     operatorAd: r.operatorAd ?? null,
     notlar: r.notlar ?? null,
@@ -677,7 +707,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         gte(operatorGunlukKayitlari.kayit_tarihi, baslangic),
         lte(operatorGunlukKayitlari.kayit_tarihi, bitis),
         machineCondition(query, operatorGunlukKayitlari.makine_id),
-        sql`${operatorGunlukKayitlari.net_miktar} != 0`,
+        hasProductionSql,
         sql`(${operatorGunlukKayitlari.emir_operasyon_id} IS NULL OR COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 0)`,
       ),
     )
@@ -728,7 +758,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         urunId: urunler.id,
         urunAd: urunler.ad,
         urunKod: urunler.kod,
-        netMiktar: sql<number>`coalesce(sum(${operatorGunlukKayitlari.net_miktar}), 0)`,
+        netMiktar: sql<number>`coalesce(sum(${netMiktarSql}), 0)`,
         fireMiktar: sql<number>`coalesce(sum(${operatorGunlukKayitlari.fire_miktari}), 0)`,
         ekMiktar: sql<number>`coalesce(sum(${operatorGunlukKayitlari.ek_uretim_miktari}), 0)`,
       })
@@ -755,7 +785,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         kalipKod: kaliplar.kod,
         kalipAd: kaliplar.ad,
         cevrimSn: uretimEmriOperasyonlari.cevrim_suresi_sn,
-        netMiktar: sql<number>`coalesce(sum(${operatorGunlukKayitlari.net_miktar}), 0)`,
+        netMiktar: sql<number>`coalesce(sum(${netMiktarSql}), 0)`,
       })
       .from(operatorGunlukKayitlari)
       .innerJoin(uretimEmirleri, eq(operatorGunlukKayitlari.uretim_emri_id, uretimEmirleri.id))
@@ -1032,6 +1062,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
       urunAd: urunler.ad,
       netMiktar: operatorGunlukKayitlari.net_miktar,
       ekMiktar: operatorGunlukKayitlari.ek_uretim_miktari,
+      fireMiktar: operatorGunlukKayitlari.fire_miktari,
       cevrimSn: uretimEmriOperasyonlari.cevrim_suresi_sn,
     })
     .from(operatorGunlukKayitlari)
@@ -1052,7 +1083,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
   const kalipMap = new Map<string, KalipRollup & { _makineSet: Set<string>; _urunSet: Set<string> }>();
   for (const r of kalipRows) {
     if (!r.kalipId) continue;
-    const miktar = Number(r.netMiktar ?? 0);
+    const miktar = resolveNet(r.netMiktar, r.ekMiktar, r.fireMiktar);
     const cevrimSn = Number(r.cevrimSn ?? 0);
     const sureDk = cevrimSn > 0 ? (miktar * cevrimSn) / 60 : 0;
     const entry = kalipMap.get(r.kalipId);
@@ -1140,11 +1171,14 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         gte(operatorGunlukKayitlari.kayit_tarihi, baslangic),
         lte(operatorGunlukKayitlari.kayit_tarihi, bitis),
         machineCondition(query, operatorGunlukKayitlari.makine_id),
-        sql`${operatorGunlukKayitlari.net_miktar} != 0`,
+        hasProductionSql,
         sql`(${operatorGunlukKayitlari.emir_operasyon_id} IS NULL OR COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 0)`,
       ),
     )
     .orderBy(asc(operatorGunlukKayitlari.kayit_tarihi));
+
+  // Tam vardiya süresi (dakika) — 12 saatlik vardiya
+  const TAM_VARDIYA_SURE_DK = 12 * 60;
 
   const uretimKayitlari: UretimKaydiOzet[] = uretimDetayRows
     .map((row): UretimKaydiOzet | null => {
@@ -1154,6 +1188,12 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
       const baslangicForEfficiency = row.operasyonBaslangic ? new Date(row.operasyonBaslangic) : null;
       const bitisForEfficiency = row.operasyonBitis ? new Date(row.operasyonBitis) : null;
       const sureDk = baslangicForEfficiency && bitisForEfficiency ? diffMinutes(baslangicForEfficiency, bitisForEfficiency) : 0;
+      const net = resolveNet(row.netMiktar, row.ekUretimMiktari, row.fireMiktar);
+      const cevrimSn = row.cevrimSn ? Number(row.cevrimSn) : null;
+      // (1) Net çalışma süresine göre verimlilik = net / (netÇalışmaSüresi_sn / çevrim_sn)
+      const verimlilikNet = calculateVerimlilik({ net, sureDk, cevrimSn });
+      // (2) Tam vardiya süresine göre verimlilik = net / (vardiyaSüresi_sn / çevrim_sn)
+      const verimlilikVardiya = calculateVerimlilik({ net, sureDk: TAM_VARDIYA_SURE_DK, cevrimSn });
       return {
         id: row.id,
         vardiyaTipi: vardiya?.vardiyaTipi ?? '—',
@@ -1167,13 +1207,12 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         urunKod: row.urunKod ?? null,
         operasyonAdi: row.operasyonAdi ?? null,
         ekUretimMiktari: Number(row.ekUretimMiktari ?? 0),
-        netMiktar: Number(row.netMiktar ?? 0),
+        netMiktar: net,
         fireMiktar: Number(row.fireMiktar ?? 0),
-        verimlilik: calculateVerimlilik({
-          net: Number(row.netMiktar ?? 0),
-          sureDk,
-          cevrimSn: row.cevrimSn ? Number(row.cevrimSn) : null,
-        }),
+        // Geriye dönük uyumluluk: verimlilik = net çalışma süresine göre oran
+        verimlilik: verimlilikNet,
+        verimlilikNet,
+        verimlilikVardiya,
         operatorAd: row.operatorAd ?? null,
         notlar: row.notlar ?? null,
       };

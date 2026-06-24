@@ -110,6 +110,8 @@ export type UretimKaydiOzet = {
   netMiktar: number;
   fireMiktar: number;
   verimlilik: number | null;
+  verimlilikNet: number | null;
+  verimlilikVardiya: number | null;
   operatorAd: string | null;
   notlar: string | null;
 };

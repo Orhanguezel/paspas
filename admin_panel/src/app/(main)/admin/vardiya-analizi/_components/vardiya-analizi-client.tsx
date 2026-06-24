@@ -220,13 +220,9 @@ export default function VardiyaAnaliziClient() {
   const { data: makineData } = useListMakinelerAdminQuery({ durum: "aktif" });
   const makineSecenekleri = makineData?.items ?? [];
 
-  useEffect(() => {
-    if (selectedMakineIds.length > 0 || makineSecenekleri.length === 0) return;
-    const preferred = makineSecenekleri
-      .filter((makine) => /enjeksiyon\s*[12]/i.test(makine.ad))
-      .slice(0, 2);
-    setSelectedMakineIds((preferred.length >= 2 ? preferred : makineSecenekleri.slice(0, 2)).map((makine) => makine.id));
-  }, [makineSecenekleri, selectedMakineIds.length]);
+  // 4a: İlk açılışta makine filtresi UYGULAMA — önceki günün (yesterdayIsoDate)
+  // tüm makinelerinin gündüz + gece vardiyaları görünsün. Kullanıcı isterse
+  // aşağıdaki makine checkbox'larından filtreler.
 
   const range = useMemo(() => {
     if (rangePreset === "gun") {
@@ -922,7 +918,8 @@ function VardiyaYoneticiGorunumu({
                             <TableHead>Operasyon</TableHead>
                             <TableHead className="text-right">Net</TableHead>
                             <TableHead className="text-right">Fire</TableHead>
-                            <TableHead className="text-right">Verimlilik</TableHead>
+                            <TableHead className="text-right">Verim. (Net Çalışma)</TableHead>
+                            <TableHead className="text-right">Verim. (Vardiya)</TableHead>
                             <TableHead>Operatör</TableHead>
                             <TableHead className="text-right">İşlem</TableHead>
                           </TableRow>
@@ -930,7 +927,7 @@ function VardiyaYoneticiGorunumu({
                         <TableBody>
                           {shiftRows.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={9} className="py-6 text-center text-muted-foreground">
+                              <TableCell colSpan={10} className="py-6 text-center text-muted-foreground">
                                 Bu vardiyada net üretimi olan kayıt bulunmuyor.
                               </TableCell>
                             </TableRow>
@@ -946,7 +943,8 @@ function VardiyaYoneticiGorunumu({
                                 <TableCell>{row.operasyonAdi ?? "—"}</TableCell>
                                 <TableCell className="text-right tabular-nums">{row.netMiktar.toLocaleString("tr-TR")}</TableCell>
                                 <TableCell className="text-right tabular-nums">{row.fireMiktar.toLocaleString("tr-TR")}</TableCell>
-                                <TableCell className="text-right tabular-nums">{formatPercent(row.verimlilik)}</TableCell>
+                                <TableCell className="text-right tabular-nums">{formatPercent(row.verimlilikNet)}</TableCell>
+                                <TableCell className="text-right tabular-nums">{formatPercent(row.verimlilikVardiya)}</TableCell>
                                 <TableCell>{row.operatorAd ?? "—"}</TableCell>
                                 <TableCell className="text-right">
                                   <Button size="sm" variant="outline" onClick={() => onEditUretim(row)}>
@@ -960,7 +958,7 @@ function VardiyaYoneticiGorunumu({
                             <TableCell colSpan={4}>{vardiyaLabel(shift)} Toplamı</TableCell>
                             <TableCell className="text-right tabular-nums">{netTotal.toLocaleString("tr-TR")}</TableCell>
                             <TableCell className="text-right tabular-nums">{fireTotal.toLocaleString("tr-TR")}</TableCell>
-                            <TableCell colSpan={3} />
+                            <TableCell colSpan={4} />
                           </TableRow>
                         </TableBody>
                       </Table>
