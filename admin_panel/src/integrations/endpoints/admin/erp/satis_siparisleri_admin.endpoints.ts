@@ -100,8 +100,13 @@ export const satisSiparisleriAdminApi = baseApi.injectEndpoints({
     }),
 
     uretimeAktarAdmin: b.mutation<
-      { message: string; emirler: string[]; atlananSayisi: number },
-      { kalemIds?: string[]; kalemler?: Array<{ kalemId: string; miktar: number }>; birlestir: boolean }
+      { message: string; emirler: string[]; partiNo: string; atlananSayisi: number },
+      {
+        kalemIds?: string[];
+        kalemler?: Array<{ kalemId: string; miktar: number }>;
+        manuelEmirler?: Array<{ urunId: string; miktar: number; musteriOzet?: string }>;
+        birlestir: boolean;
+      }
     >({
       query: (body) => ({ url: `${BASE}/islemler/uretime-aktar`, method: 'POST', body }),
       invalidatesTags: [

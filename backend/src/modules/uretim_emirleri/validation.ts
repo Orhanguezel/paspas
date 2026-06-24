@@ -49,6 +49,7 @@ export const listQuerySchema = z.object({
 
 export const createSchema = z.object({
   emirNo: z.string().trim().min(1).max(64),
+  partiNo: z.string().trim().max(32).optional(),
   siparisKalemIds: optionalUuidArraySchema,
   urunId: uuidSchema,
   receteId: optionalUuidSchema,

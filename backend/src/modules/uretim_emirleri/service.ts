@@ -18,6 +18,7 @@ type Opts = {
   bitisTarihi?: string;
   terminTarihi?: string;
   miktarOverride?: number;
+  partiNo?: string;
 };
 
 const OPERASYON_KAYNAGI_KATEGORILERI = ['operasyonel_ym', 'yarimamul'] as const;
@@ -154,6 +155,7 @@ export async function createUretimEmirleriFromSiparisKalemi(
     const created = await repoCreate(
       {
         emirNo,
+        partiNo: opts.partiNo,
         urunId: k.urun_id,
         planlananMiktar,
         uretilenMiktar: 0,

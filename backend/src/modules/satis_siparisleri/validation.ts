@@ -78,8 +78,17 @@ export const uretimeAktarSchema = z.object({
     kalemId: z.string().min(1),
     miktar: z.coerce.number().positive(),
   })).optional(),
+  manuelEmirler: z.array(z.object({
+    urunId: z.string().min(1),
+    miktar: z.coerce.number().positive(),
+    musteriOzet: z.string().trim().max(255).optional(),
+  })).optional(),
   birlestir: z.boolean().default(false),
-}).refine((value) => (value.kalemler?.length ?? 0) > 0 || (value.kalemIds?.length ?? 0) > 0, {
+}).refine((value) =>
+  (value.kalemler?.length ?? 0) > 0 ||
+  (value.kalemIds?.length ?? 0) > 0 ||
+  (value.manuelEmirler?.length ?? 0) > 0,
+{
   message: 'kalem_secimi_zorunlu',
 });
 

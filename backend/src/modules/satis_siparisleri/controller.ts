@@ -14,7 +14,7 @@ import {
   repoUpdate,
 } from './repository';
 import { createSchema, islemlerQuerySchema, listQuerySchema, patchSchema, uretimeAktarSchema } from './validation';
-import { repoCreate as ueRepoCreate, repoGetNextEmirNo } from '@/modules/uretim_emirleri/repository';
+import { repoCreate as ueRepoCreate, repoGetNextEmirNo, repoGetNextPartiNo } from '@/modules/uretim_emirleri/repository';
 import { createUretimEmirleriFromSiparisKalemi, SiparisUretimEmirHatasi } from '@/modules/uretim_emirleri/service';
 import { uretimEmirleri, uretimEmriSiparisKalemleri } from '@/modules/uretim_emirleri/schema';
 import { db } from '@/db/client';
@@ -197,37 +197,42 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
     }
     const kalemMiktarMap = new Map((parsed.data.kalemler ?? []).map((item) => [item.kalemId, item.miktar]));
     const kalemIds = parsed.data.kalemler?.map((item) => item.kalemId) ?? parsed.data.kalemIds ?? [];
+    const partiNo = await repoGetNextPartiNo();
 
     // Kalemleri al — urun, musteri bilgileriyle
-    const kalemRows = await db
-      .select({
-        id: siparisKalemleri.id,
-        urunId: siparisKalemleri.urun_id,
-        miktar: siparisKalemleri.miktar,
-        uretimDurumu: siparisKalemleri.uretim_durumu,
-        siparisId: siparisKalemleri.siparis_id,
-        musteriAd: musteriler.ad,
-      })
-      .from(siparisKalemleri)
-      .innerJoin(satisSiparisleri, eq(siparisKalemleri.siparis_id, satisSiparisleri.id))
-      .innerJoin(musteriler, eq(satisSiparisleri.musteri_id, musteriler.id))
-      .where(inArray(siparisKalemleri.id, kalemIds));
+    const kalemRows = kalemIds.length > 0
+      ? await db
+        .select({
+          id: siparisKalemleri.id,
+          urunId: siparisKalemleri.urun_id,
+          miktar: siparisKalemleri.miktar,
+          uretimDurumu: siparisKalemleri.uretim_durumu,
+          siparisId: siparisKalemleri.siparis_id,
+          musteriAd: musteriler.ad,
+        })
+        .from(siparisKalemleri)
+        .innerJoin(satisSiparisleri, eq(siparisKalemleri.siparis_id, satisSiparisleri.id))
+        .innerJoin(musteriler, eq(satisSiparisleri.musteri_id, musteriler.id))
+        .where(inArray(siparisKalemleri.id, kalemIds))
+      : [];
 
-    const activeLinks = await db
-      .select({
-        kalemId: uretimEmriSiparisKalemleri.siparis_kalem_id,
-        count: sql<number>`count(distinct ${uretimEmirleri.id})`,
-      })
-      .from(uretimEmriSiparisKalemleri)
-      .innerJoin(uretimEmirleri, eq(uretimEmriSiparisKalemleri.uretim_emri_id, uretimEmirleri.id))
-      .where(
-        and(
-          inArray(uretimEmriSiparisKalemleri.siparis_kalem_id, kalemIds),
-          eq(uretimEmirleri.is_active, 1),
-          sql`${uretimEmirleri.durum} != 'iptal'`,
-        ),
-      )
-      .groupBy(uretimEmriSiparisKalemleri.siparis_kalem_id);
+    const activeLinks = kalemIds.length > 0
+      ? await db
+        .select({
+          kalemId: uretimEmriSiparisKalemleri.siparis_kalem_id,
+          count: sql<number>`count(distinct ${uretimEmirleri.id})`,
+        })
+        .from(uretimEmriSiparisKalemleri)
+        .innerJoin(uretimEmirleri, eq(uretimEmriSiparisKalemleri.uretim_emri_id, uretimEmirleri.id))
+        .where(
+          and(
+            inArray(uretimEmriSiparisKalemleri.siparis_kalem_id, kalemIds),
+            eq(uretimEmirleri.is_active, 1),
+            sql`${uretimEmirleri.durum} != 'iptal'`,
+          ),
+        )
+        .groupBy(uretimEmriSiparisKalemleri.siparis_kalem_id)
+      : [];
     const activeKalemIds = new Set(activeLinks.map((row) => row.kalemId));
 
     // Sadece beklemede olan ve aktif üretim emri bulunmayanlar aktarilir; digerleri sessizce atlanir.
@@ -236,7 +241,7 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
       .map((k) => ({ ...k, aktarilacakMiktar: Math.min(Number(k.miktar), kalemMiktarMap.get(k.id) ?? Number(k.miktar)) }));
     let atlananSayisi = kalemRows.length - aktarilacaklar.length;
 
-    if (aktarilacaklar.length === 0) {
+    if (aktarilacaklar.length === 0 && (parsed.data.manuelEmirler?.length ?? 0) === 0) {
       return reply.code(409).send({
         error: { message: 'kalem_zaten_uretimde', detail: 'Seçili kalemlerin tamamı zaten üretime aktarılmış.' },
       });
@@ -249,7 +254,7 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
     // Not: birlestir=true yeni mimaride uygulanmıyor — her kalem için yarı mamuller ayrı emirler açar.
     for (const k of aktarilacaklar) {
       try {
-        const results = await createUretimEmirleriFromSiparisKalemi(k.id, { miktarOverride: k.aktarilacakMiktar });
+        const results = await createUretimEmirleriFromSiparisKalemi(k.id, { miktarOverride: k.aktarilacakMiktar, partiNo });
         for (const r of results) olusturulanEmirler.push(r.row.emir_no);
       } catch (err) {
         if (!(err instanceof SiparisUretimEmirHatasi)) throw err;
@@ -270,6 +275,7 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
         const emirNo = await repoGetNextEmirNo();
         const result = await ueRepoCreate({
           emirNo,
+          partiNo,
           urunId: k.urunId,
           planlananMiktar: k.aktarilacakMiktar,
           uretilenMiktar: 0,
@@ -281,6 +287,20 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
       }
     }
 
+    for (const manuel of parsed.data.manuelEmirler ?? []) {
+      const emirNo = await repoGetNextEmirNo();
+      const result = await ueRepoCreate({
+        emirNo,
+        partiNo,
+        urunId: manuel.urunId,
+        planlananMiktar: manuel.miktar,
+        uretilenMiktar: 0,
+        durum: 'atanmamis',
+        musteriOzet: manuel.musteriOzet ?? 'Manuel üretim',
+      });
+      olusturulanEmirler.push(result.row.emir_no);
+    }
+
     const atlamaUyarisi = atlananSayisi > 0
       ? ` (${atlananSayisi} kalem zaten üretime aktarılmıştı, atlandı)`
       : '';
@@ -288,6 +308,7 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
     return reply.code(201).send({
       message: `${olusturulanEmirler.length} üretim emri oluşturuldu.${atlamaUyarisi}`,
       emirler: olusturulanEmirler,
+      partiNo,
       atlananSayisi,
     });
   } catch (error) {

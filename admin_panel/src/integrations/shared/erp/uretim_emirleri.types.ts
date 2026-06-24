@@ -8,6 +8,7 @@ export type UretimEmriDurum = "atanmamis" | "planlandi" | "uretimde" | "montaj_b
 export interface UretimEmriDto {
   id: string;
   emirNo: string;
+  partiNo: string | null;
   siparisKalemIds: string[];
   siparisNo: string | null;
   siparisUrunKod: string | null;
@@ -46,6 +47,7 @@ export interface UretimEmriListResponse {
 
 export interface UretimEmriCreatePayload {
   emirNo: string;
+  partiNo?: string;
   siparisKalemIds?: string[];
   urunId: string;
   receteId?: string;
@@ -162,6 +164,7 @@ export function normalizeUretimEmri(raw: unknown): UretimEmriDto {
   return {
     id: toStr(r.id),
     emirNo: toStr(r.emirNo),
+    partiNo: r.partiNo != null ? toStr(r.partiNo) : null,
     siparisKalemIds: toStrArray(r.siparisKalemIds),
     siparisNo: r.siparisNo != null ? toStr(r.siparisNo) : null,
     siparisUrunKod: r.siparisUrunKod != null ? toStr(r.siparisUrunKod) : null,

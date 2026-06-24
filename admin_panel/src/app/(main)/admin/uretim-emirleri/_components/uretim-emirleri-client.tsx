@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -50,6 +51,7 @@ import type { UretimEmriDto, UretimEmriDurum } from "@/integrations/shared/erp/u
 import type { SiparisIslemSatiri } from "@/integrations/shared/erp/satis_siparisleri.types";
 import { EMIR_DURUM_BADGE } from "@/integrations/shared/erp/uretim_emirleri.types";
 import { useCheckYeterlilikAdminQuery } from "@/integrations/endpoints/admin/erp/stoklar_admin.endpoints";
+import { useListUrunlerAdminQuery } from "@/integrations/endpoints/admin/erp/urunler_admin.endpoints";
 
 import UretimEmriForm from "./uretim-emri-form";
 import { ReceteDetayModal } from "./recete-detay-modal";
@@ -107,6 +109,7 @@ function UretimOlusturGrid({ onCreated }: { onCreated: () => void }) {
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [aktarilacak, setAktarilacak] = useState<Record<string, string>>({});
+  const [manuelRows, setManuelRows] = useState<Array<{ id: string; urunId: string; miktar: string }>>([]);
   const { data: rows = [], isLoading } = useListSiparisIslemleriAdminQuery({
     uretimDurumu: "beklemede",
     gizleTamamlanan: true,
@@ -115,6 +118,14 @@ function UretimOlusturGrid({ onCreated }: { onCreated: () => void }) {
     order: "desc",
   });
   const [uretimeAktar, aktarState] = useUretimeAktarAdminMutation();
+  const { data: urunData } = useListUrunlerAdminQuery({
+    kategori: "urun",
+    tedarikTipi: "uretim",
+    isActive: true,
+    limit: 500,
+    sort: "ad",
+    order: "asc",
+  });
 
   const groups = useMemo(() => {
     const values = new Set<string>();
@@ -124,8 +135,13 @@ function UretimOlusturGrid({ onCreated }: { onCreated: () => void }) {
 
   const filteredRows = useMemo(() => {
     if (!selectedGroup) return [];
-    return rows.filter((row) => (row.urunAltGrup || "Genel") === selectedGroup);
+    return rows.filter((row) => (row.urunAltGrup || "Genel") === selectedGroup && kalan(row) > 0);
   }, [rows, selectedGroup]);
+
+  const manuelUrunler = useMemo(() => {
+    if (!selectedGroup) return [];
+    return (urunData?.items ?? []).filter((urun) => (urun.altGrup || "Genel") === selectedGroup);
+  }, [selectedGroup, urunData?.items]);
 
   function kalan(row: SiparisIslemSatiri) {
     return Math.max(0, row.miktar - row.uretilenMiktar);
@@ -152,17 +168,21 @@ function UretimOlusturGrid({ onCreated }: { onCreated: () => void }) {
         miktar: Math.min(kalan(row), Number(aktarilacak[row.kalemId] ?? kalan(row))),
       }))
       .filter((row) => row.miktar > 0);
+    const manuelEmirler = manuelRows
+      .map((row) => ({ urunId: row.urunId, miktar: Number(row.miktar), musteriOzet: "Manuel üretim" }))
+      .filter((row) => row.urunId && row.miktar > 0);
 
-    if (kalemler.length === 0) {
+    if (kalemler.length === 0 && manuelEmirler.length === 0) {
       toast.error("Üretime aktarılacak satır seçin.");
       return;
     }
 
     try {
-      const result = await uretimeAktar({ kalemler, birlestir: false }).unwrap();
-      toast.success(result.message);
+      const result = await uretimeAktar({ kalemler, manuelEmirler, birlestir: false }).unwrap();
+      toast.success(`${result.message} Parti: ${result.partiNo}`);
       setSelectedIds(new Set());
       setAktarilacak({});
+      setManuelRows([]);
       onCreated();
     } catch (error: unknown) {
       const message =
@@ -175,8 +195,7 @@ function UretimOlusturGrid({ onCreated }: { onCreated: () => void }) {
   }
 
   return (
-    <Card className="shadow-none">
-      <CardContent className="space-y-3 p-4">
+    <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-semibold text-sm">Yeni Üretim Oluştur</h2>
@@ -189,6 +208,7 @@ function UretimOlusturGrid({ onCreated }: { onCreated: () => void }) {
                 setSelectedGroup(value === "_none" ? "" : value);
                 setSelectedIds(new Set());
                 setAktarilacak({});
+                setManuelRows([]);
               }}
             >
               <SelectTrigger className="h-8 w-52 text-xs">
@@ -201,7 +221,7 @@ function UretimOlusturGrid({ onCreated }: { onCreated: () => void }) {
                 ))}
               </SelectContent>
             </Select>
-            <Button size="sm" onClick={handleAktar} disabled={aktarState.isLoading || selectedIds.size === 0}>
+            <Button size="sm" onClick={handleAktar} disabled={aktarState.isLoading || (selectedIds.size === 0 && manuelRows.length === 0)}>
               Üretime Aktar
             </Button>
           </div>
@@ -275,15 +295,64 @@ function UretimOlusturGrid({ onCreated }: { onCreated: () => void }) {
           </Table>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => toast.info("Manuel üretim için sağ üstteki Yeni Üretim Satırı Ekle butonunu kullanın.")}
-        >
-          Manuel Üretim Ekle
-        </Button>
-      </CardContent>
-    </Card>
+        <div className="space-y-2 rounded-md border p-3">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h3 className="font-semibold text-sm">Manuel Üretim</h3>
+              <p className="text-muted-foreground text-xs">Yalnızca seçilen gruba ait mamuller listelenir.</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!selectedGroup || manuelUrunler.length === 0}
+              onClick={() => setManuelRows((current) => [...current, { id: crypto.randomUUID(), urunId: "", miktar: "1" }])}
+            >
+              <Plus className="mr-1 size-4" />
+              Manuel Üretim Ekle
+            </Button>
+          </div>
+          {manuelRows.map((row) => (
+            <div key={row.id} className="grid gap-2 md:grid-cols-[1fr_140px_40px]">
+              <Select
+                value={row.urunId || "_none"}
+                onValueChange={(value) =>
+                  setManuelRows((current) => current.map((item) => item.id === row.id ? { ...item, urunId: value === "_none" ? "" : value } : item))
+                }
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Mamül seç" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none" className="text-xs">Mamül seç</SelectItem>
+                  {manuelUrunler.map((urun) => (
+                    <SelectItem key={urun.id} value={urun.id} className="text-xs">
+                      {urun.kod} — {urun.ad}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                type="number"
+                min={0.0001}
+                step="0.0001"
+                className="h-8 text-right text-xs"
+                value={row.miktar}
+                onChange={(event) =>
+                  setManuelRows((current) => current.map((item) => item.id === row.id ? { ...item, miktar: event.target.value } : item))
+                }
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 text-destructive"
+                onClick={() => setManuelRows((current) => current.filter((item) => item.id !== row.id))}
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+    </div>
   );
 }
 
@@ -333,8 +402,8 @@ function YariMamulIhtiyaciOzet({
   return (
     <div className="space-y-3">
       <div>
-        <h2 className="font-semibold text-sm">Yarı Mamul İhtiyacı</h2>
-        <p className="text-muted-foreground text-xs">Aynı yarı mamuller ürün grubu içinde toplanır.</p>
+        <h2 className="font-semibold text-sm">Makine ve Montaj Planlama</h2>
+        <p className="text-muted-foreground text-xs">Aynı yarı mamuller parti içinde toplanır.</p>
       </div>
       {groups.map((group) => (
         <div key={group.group} className="overflow-hidden rounded-md border">
@@ -342,7 +411,7 @@ function YariMamulIhtiyaciOzet({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Yarı Mamul Adı</TableHead>
+                <TableHead>Parça / Yarı Mamul</TableHead>
                 <TableHead className="text-right">Miktar</TableHead>
                 <TableHead>Makine</TableHead>
                 <TableHead className="text-center">Montaj</TableHead>
@@ -376,6 +445,7 @@ export default function UretimEmirleriClient() {
   const [showCompleted, setShowCompleted] = useState(false);
   const [sortBy, setSortBy] = useState("bitis_tarihi");
   const [formOpen, setFormOpen] = useState(false);
+  const [aktarModalOpen, setAktarModalOpen] = useState(false);
   const [editing, setEditing] = useState<UretimEmriDto | null>(null);
   const [formInitialKaynak, setFormInitialKaynak] = useState<"manuel" | "siparis">("manuel");
   const [deleteTarget, setDelete] = useState<UretimEmriDto | null>(null);
@@ -421,8 +491,10 @@ export default function UretimEmirleriClient() {
   const rawItems = data?.items ?? [];
 
   const items = useMemo(() => {
-    if (sortBy !== "bitis_tarihi") return rawItems;
     return [...rawItems].sort((a, b) => {
+      const partiCompare = (a.partiNo ?? "ZZZ").localeCompare(b.partiNo ?? "ZZZ", "tr");
+      if (partiCompare !== 0) return partiCompare;
+      if (sortBy !== "bitis_tarihi") return 0;
       const dateA = a.planlananBitisTarihi ?? a.bitisTarihi;
       const dateB = b.planlananBitisTarihi ?? b.bitisTarihi;
       if (!dateA && !dateB) return 0;
@@ -529,6 +601,10 @@ export default function UretimEmirleriClient() {
     return name.split(/[/-]/)[0]?.trim() || name;
   }
 
+  function partiGroupLabel(e: UretimEmriDto): string {
+    return e.partiNo ?? "Partisiz Üretimler";
+  }
+
   function resetFilters() {
     setSearch("");
     setDurum("hepsi");
@@ -593,8 +669,8 @@ export default function UretimEmirleriClient() {
             <RefreshCcw className={isFetching ? "size-4 animate-spin" : "size-4"} />
           </Button>
           {isPlanlaTab && (
-            <Button size="sm" onClick={openCreate}>
-              <Plus className="mr-1 size-4" /> Yeni Üretim Satırı Ekle
+            <Button size="sm" onClick={() => setAktarModalOpen(true)}>
+              <Plus className="mr-1 size-4" /> Yeni Üretim Oluştur
             </Button>
           )}
         </div>
@@ -664,9 +740,19 @@ export default function UretimEmirleriClient() {
         </Button>
       </div>
 
-      {isPlanlaTab && (
-        <UretimOlusturGrid onCreated={() => refetch()} />
-      )}
+      <Dialog open={aktarModalOpen} onOpenChange={setAktarModalOpen}>
+        <DialogContent className="max-h-[90vh] max-w-6xl overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Yeni Üretim Oluştur</DialogTitle>
+          </DialogHeader>
+          <UretimOlusturGrid
+            onCreated={() => {
+              setAktarModalOpen(false);
+              refetch();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Tablo */}
       <div className="rounded-md border bg-white shadow-sm overflow-hidden">
@@ -706,8 +792,8 @@ export default function UretimEmirleriClient() {
               const atanmamis = e.makineAtamaSayisi === 0;
               const displayUrunAd = e.siparisUrunAd ?? e.urunAd ?? e.urunId;
               const displayUrunKod = e.siparisUrunKod ?? e.urunKod;
-              const groupLabel = productGroupLabel(e);
-              const previousGroupLabel = index > 0 ? productGroupLabel(items[index - 1]) : null;
+              const groupLabel = partiGroupLabel(e);
+              const previousGroupLabel = index > 0 ? partiGroupLabel(items[index - 1]) : null;
               const showOperasyonelUrun =
                 Boolean(e.siparisUrunAd || e.siparisUrunKod) &&
                 (e.urunAd !== e.siparisUrunAd || e.urunKod !== e.siparisUrunKod);
@@ -933,7 +1019,7 @@ export default function UretimEmirleriClient() {
       </div>
 
       {isPlanlaTab && (
-        <YariMamulIhtiyaciOzet items={items} groupLabelFor={productGroupLabel} />
+        <YariMamulIhtiyaciOzet items={items} groupLabelFor={partiGroupLabel} />
       )}
 
       {/* Form Sheet */}

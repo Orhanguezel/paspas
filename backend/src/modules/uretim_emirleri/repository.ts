@@ -196,6 +196,7 @@ function mapCreateInput(data: CreateBody): typeof uretimEmirleri.$inferInsert {
   return {
     id: randomUUID(),
     emir_no: data.emirNo,
+    parti_no: data.partiNo,
     urun_id: data.urunId,
     recete_id: data.receteId,
     musteri_ozet: data.musteriOzet,
@@ -213,6 +214,7 @@ function mapCreateInput(data: CreateBody): typeof uretimEmirleri.$inferInsert {
 function mapPatchInput(data: PatchBody): Partial<typeof uretimEmirleri.$inferInsert> {
   const payload: Partial<typeof uretimEmirleri.$inferInsert> = {};
   if (data.emirNo !== undefined) payload.emir_no = data.emirNo;
+  if (data.partiNo !== undefined) payload.parti_no = data.partiNo;
   if (data.urunId !== undefined) payload.urun_id = data.urunId;
   if (data.receteId !== undefined) payload.recete_id = data.receteId;
   if (data.musteriOzet !== undefined) payload.musteri_ozet = data.musteriOzet;
@@ -644,6 +646,21 @@ export async function repoGetNextEmirNo(): Promise<string> {
     .orderBy(desc(uretimEmirleri.emir_no))
     .limit(1);
   const last = rows[0]?.emir_no;
+  if (!last) return `${prefix}0001`;
+  const seq = Number.parseInt(last.replace(prefix, ''), 10);
+  return `${prefix}${String(seq + 1).padStart(4, '0')}`;
+}
+
+export async function repoGetNextPartiNo(): Promise<string> {
+  const year = new Date().getFullYear();
+  const prefix = `UP-${year}-`;
+  const rows = await db
+    .select({ parti_no: uretimEmirleri.parti_no })
+    .from(uretimEmirleri)
+    .where(like(uretimEmirleri.parti_no, `${prefix}%`))
+    .orderBy(desc(uretimEmirleri.parti_no))
+    .limit(1);
+  const last = rows[0]?.parti_no;
   if (!last) return `${prefix}0001`;
   const seq = Number.parseInt(last.replace(prefix, ''), 10);
   return `${prefix}${String(seq + 1).padStart(4, '0')}`;

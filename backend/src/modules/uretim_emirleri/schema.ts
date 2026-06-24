@@ -16,6 +16,7 @@ const toDateTimeString = (value: Date | string | null | undefined): string | nul
 export const uretimEmirleri = mysqlTable('uretim_emirleri', {
   id: char('id', { length: 36 }).primaryKey().notNull(),
   emir_no: varchar('emir_no', { length: 64 }).notNull(),
+  parti_no: varchar('parti_no', { length: 32 }),
   siparis_id: char('siparis_id', { length: 36 }),
   siparis_kalem_id: char('siparis_kalem_id', { length: 36 }),
   urun_id: char('urun_id', { length: 36 }).notNull(),
@@ -38,6 +39,7 @@ export type UretimEmriRow = typeof uretimEmirleri.$inferSelect;
 export type UretimEmriDto = {
   id: string;
   emirNo: string;
+  partiNo: string | null;
   siparisKalemIds: string[];
   siparisNo: string | null;
   siparisUrunKod: string | null;
@@ -97,6 +99,7 @@ export function rowToDto(row: UretimEmriDtoRow): UretimEmriDto {
   return {
     id: row.id,
     emirNo: row.emir_no,
+    partiNo: row.parti_no ?? null,
     siparisKalemIds: kalemIds,
     siparisNo: row.siparisNo ?? null,
     siparisUrunKod: row.siparisUrunKod ?? null,
