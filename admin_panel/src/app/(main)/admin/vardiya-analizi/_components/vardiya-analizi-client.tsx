@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 import {
   AlertTriangle,
@@ -19,9 +19,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -35,6 +44,7 @@ import { useListMakinelerAdminQuery } from "@/integrations/endpoints/admin/erp/m
 import {
   useGetVardiyaAnaliziAdminQuery,
   useGetVardiyaTrendAdminQuery,
+  useUpdateGunlukUretimKaydiAdminMutation,
   type DurusDetayOzet,
   type DurusNedeniOzet,
   type KalipRollup,
@@ -203,8 +213,10 @@ export default function VardiyaAnaliziClient() {
   const [view, setView] = useState<ViewMode>("vardiya");
   const [trendGunSayisi, setTrendGunSayisi] = useState<7 | 30>(7);
   const [detay, setDetay] = useState<DetayTarget | null>(null);
+  const [editingKayit, setEditingKayit] = useState<UretimKaydiOzet | null>(null);
   const [selectedVardiyaTipleri, setSelectedVardiyaTipleri] = useState<string[]>(["gunduz", "gece"]);
   const [selectedMakineIds, setSelectedMakineIds] = useState<string[]>([]);
+  const [updateGunlukKayit, { isLoading: isUpdatingKayit }] = useUpdateGunlukUretimKaydiAdminMutation();
   const { data: makineData } = useListMakinelerAdminQuery({ durum: "aktif" });
   const makineSecenekleri = makineData?.items ?? [];
 
@@ -516,6 +528,18 @@ export default function VardiyaAnaliziClient() {
     toast.success("PDF yazdırma penceresi açıldı.");
   }
 
+  async function handleUpdateKayit(body: { ekUretimMiktari: number; fireMiktari: number; netMiktar: number; notlar: string | null }) {
+    if (!editingKayit) return;
+    try {
+      await updateGunlukKayit({ id: editingKayit.id, body }).unwrap();
+      toast.success("Üretim kaydı güncellendi.");
+      setEditingKayit(null);
+      refetch();
+    } catch {
+      toast.error("Üretim kaydı güncellenemedi.");
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Başlık + Filtre */}
@@ -725,7 +749,7 @@ export default function VardiyaAnaliziClient() {
           uretimKayitlari={uretimKayitlari}
           durusDetaylari={durusDetaylari}
           durusOzeti={durusOzeti}
-          onEditUretim={() => toast.info("Günlük üretim kaydı düzenleme endpoint'i henüz yok.")}
+          onEditUretim={setEditingKayit}
         />
       ) : view === "makine" ? (
         makineler.length === 0 ? (
@@ -779,6 +803,13 @@ export default function VardiyaAnaliziClient() {
       )}
 
       <VardiyaDetaySheet open={!!detay} onClose={() => setDetay(null)} target={detay} />
+      <UretimKaydiEditDialog
+        kayit={editingKayit}
+        open={!!editingKayit}
+        isSaving={isUpdatingKayit}
+        onClose={() => setEditingKayit(null)}
+        onSubmit={handleUpdateKayit}
+      />
     </div>
   );
 }
@@ -796,8 +827,39 @@ function VardiyaYoneticiGorunumu({
   uretimKayitlari: UretimKaydiOzet[];
   durusDetaylari: DurusDetayOzet[];
   durusOzeti: DurusNedeniOzet[];
-  onEditUretim: () => void;
+  onEditUretim: (kayit: UretimKaydiOzet) => void;
 }) {
+  const machineGroups = useMemo(() => {
+    const makineMap = new Map(makineler.map((makine) => [makine.makineId, makine]));
+    const ids = new Set<string>();
+    for (const makine of makineler) ids.add(makine.makineId);
+    for (const kayit of uretimKayitlari) {
+      if (kayit.makineId) ids.add(kayit.makineId);
+    }
+
+    return Array.from(ids).map((makineId) => {
+      const makine = makineMap.get(makineId);
+      const records = uretimKayitlari.filter((kayit) => kayit.makineId === makineId);
+      const shiftKeys = new Set<string>();
+      for (const vardiya of vardiyalar) {
+        if (vardiya.makineId === makineId) shiftKeys.add(vardiya.vardiyaTipi);
+      }
+      for (const kayit of records) shiftKeys.add(kayit.vardiyaTipi);
+      const shifts = Array.from(shiftKeys).sort((a, b) => {
+        const order = { gunduz: 0, gece: 1 } as Record<string, number>;
+        return (order[a] ?? 9) - (order[b] ?? 9) || a.localeCompare(b, "tr");
+      });
+
+      return {
+        makineId,
+        makineAd: makine?.makineAd ?? records[0]?.makineAd ?? "Makine",
+        makine,
+        shifts,
+        records,
+      };
+    });
+  }, [makineler, uretimKayitlari, vardiyalar]);
+
   if (vardiyalar.length === 0 && uretimKayitlari.length === 0 && durusDetaylari.length === 0) {
     return (
       <Card>
@@ -810,107 +872,106 @@ function VardiyaYoneticiGorunumu({
 
   return (
     <div className="space-y-4">
-      <TableSection title="Makine Bazlı Özet">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Makine</TableHead>
-              <TableHead className="text-right">Net Üretim</TableHead>
-              <TableHead className="text-right">Fire</TableHead>
-              <TableHead className="text-right">Duruş Sayısı</TableHead>
-              <TableHead className="text-right">Toplam Duruş</TableHead>
-              <TableHead className="text-right">OEE</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {makineler.map((m) => (
-              <TableRow key={m.makineId}>
-                <TableCell className="font-medium">{m.makineAd}</TableCell>
-                <TableCell className="text-right tabular-nums">{m.toplamUretim.toLocaleString("tr-TR")}</TableCell>
-                <TableCell className="text-right tabular-nums">{m.fireToplam.toLocaleString("tr-TR")}</TableCell>
-                <TableCell className="text-right tabular-nums">{m.durusSayisi}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatDk(m.durusToplamDk)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatPercent(m.oee)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableSection>
-
-      <TableSection title="Üretim Kayıtları">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Vardiya</TableHead>
-              <TableHead>Tarih-Saat</TableHead>
-              <TableHead>Ürün</TableHead>
-              <TableHead>Operasyon</TableHead>
-              <TableHead className="text-right">Net</TableHead>
-              <TableHead className="text-right">Fire</TableHead>
-              <TableHead className="text-right">Verimlilik</TableHead>
-              <TableHead>Operatör</TableHead>
-              <TableHead className="text-right">İşlem</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {uretimKayitlari.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
-                  Net üretimi olan kayıt bulunmuyor.
-                </TableCell>
-              </TableRow>
+      {machineGroups.map(({ makineId, makineAd, makine, shifts, records }) => (
+        <Card key={makineId}>
+          <CardHeader className="space-y-3 pb-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle className="text-base">{makineAd}</CardTitle>
+                <p className="text-muted-foreground text-xs">
+                  {records.length} üretim kaydı • {makine?.vardiyaSayisi ?? shifts.length} vardiya
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-6">
+                <MiniMetric label="Net Üretim" value={(makine?.toplamUretim ?? 0).toLocaleString("tr-TR")} />
+                <MiniMetric label="Fire" value={(makine?.fireToplam ?? 0).toLocaleString("tr-TR")} />
+                <MiniMetric label="Duruş Sayısı" value={`${makine?.durusSayisi ?? 0}`} />
+                <MiniMetric label="Toplam Duruş" value={formatDk(makine?.durusToplamDk ?? 0)} />
+                <MiniMetric label="Net Çalışma" value={formatDk(makine?.calismaSuresiDk ?? 0)} />
+                <MiniMetric label="OEE" value={formatPercent(makine?.oee ?? null)} />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-0">
+            {shifts.length === 0 ? (
+              <div className="rounded-md border py-8 text-center text-muted-foreground text-sm">
+                Bu makine için üretim kaydı bulunmuyor.
+              </div>
             ) : (
-              uretimKayitlari.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell>{vardiyaLabel(row.vardiyaTipi)}</TableCell>
-                  <TableCell>{formatDateTimeRange(row.baslangic, row.bitis)}</TableCell>
-                  <TableCell>
-                    <div className="font-medium">{row.urunAd}</div>
-                    {row.urunKod && <div className="font-mono text-muted-foreground text-xs">{row.urunKod}</div>}
-                  </TableCell>
-                  <TableCell>{row.operasyonAdi ?? "—"}</TableCell>
-                  <TableCell className="text-right tabular-nums">{row.netMiktar.toLocaleString("tr-TR")}</TableCell>
-                  <TableCell className="text-right tabular-nums">{row.fireMiktar.toLocaleString("tr-TR")}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatPercent(row.verimlilik)}</TableCell>
-                  <TableCell>{row.operatorAd ?? "—"}</TableCell>
-                  <TableCell className="text-right">
-                    <Button size="sm" variant="outline" onClick={onEditUretim}>
-                      Düzenle
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableSection>
+              shifts.map((shift) => {
+                const shiftRows = records.filter((row) => row.vardiyaTipi === shift);
+                const vardiyaTotal = vardiyalar.find((v) => v.makineId === makineId && v.vardiyaTipi === shift);
+                const netTotal = vardiyaTotal?.uretim.netToplam ?? shiftRows.reduce((sum, row) => sum + row.netMiktar, 0);
+                const fireTotal = vardiyaTotal?.uretim.fireToplam ?? shiftRows.reduce((sum, row) => sum + row.fireMiktar, 0);
 
-      <TableSection title="Vardiya Toplamları">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Vardiya</TableHead>
-              <TableHead>Makine</TableHead>
-              <TableHead className="text-right">Net Üretim</TableHead>
-              <TableHead className="text-right">Fire</TableHead>
-              <TableHead className="text-right">Çalışma</TableHead>
-              <TableHead className="text-right">Duruş</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {vardiyalar.map((v) => (
-              <TableRow key={v.id}>
-                <TableCell>{vardiyaLabel(v.vardiyaTipi)}</TableCell>
-                <TableCell>{v.makineAd}</TableCell>
-                <TableCell className="text-right tabular-nums">{v.uretim.netToplam.toLocaleString("tr-TR")}</TableCell>
-                <TableCell className="text-right tabular-nums">{v.uretim.fireToplam.toLocaleString("tr-TR")}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatDk(v.calismaSuresiDk)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatDk(v.durusToplamDk)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableSection>
+                return (
+                  <div key={`${makineId}-${shift}`} className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="font-semibold text-sm">{vardiyaLabel(shift)}</h3>
+                      <Badge variant="outline" className="font-mono">
+                        Net {netTotal.toLocaleString("tr-TR")} • Fire {fireTotal.toLocaleString("tr-TR")}
+                      </Badge>
+                    </div>
+                    <div className="overflow-auto rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Vardiya</TableHead>
+                            <TableHead>Tarih-Saat</TableHead>
+                            <TableHead>Ürün</TableHead>
+                            <TableHead>Operasyon</TableHead>
+                            <TableHead className="text-right">Net</TableHead>
+                            <TableHead className="text-right">Fire</TableHead>
+                            <TableHead className="text-right">Verimlilik</TableHead>
+                            <TableHead>Operatör</TableHead>
+                            <TableHead className="text-right">İşlem</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {shiftRows.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={9} className="py-6 text-center text-muted-foreground">
+                                Bu vardiyada net üretimi olan kayıt bulunmuyor.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            shiftRows.map((row) => (
+                              <TableRow key={row.id}>
+                                <TableCell>{vardiyaLabel(row.vardiyaTipi)}</TableCell>
+                                <TableCell>{formatDateTimeRange(row.baslangic, row.bitis)}</TableCell>
+                                <TableCell>
+                                  <div className="font-medium">{row.urunAd}</div>
+                                  {row.urunKod && <div className="font-mono text-muted-foreground text-xs">{row.urunKod}</div>}
+                                </TableCell>
+                                <TableCell>{row.operasyonAdi ?? "—"}</TableCell>
+                                <TableCell className="text-right tabular-nums">{row.netMiktar.toLocaleString("tr-TR")}</TableCell>
+                                <TableCell className="text-right tabular-nums">{row.fireMiktar.toLocaleString("tr-TR")}</TableCell>
+                                <TableCell className="text-right tabular-nums">{formatPercent(row.verimlilik)}</TableCell>
+                                <TableCell>{row.operatorAd ?? "—"}</TableCell>
+                                <TableCell className="text-right">
+                                  <Button size="sm" variant="outline" onClick={() => onEditUretim(row)}>
+                                    Düzenle
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                          <TableRow className="bg-muted/50 font-semibold">
+                            <TableCell colSpan={4}>{vardiyaLabel(shift)} Toplamı</TableCell>
+                            <TableCell className="text-right tabular-nums">{netTotal.toLocaleString("tr-TR")}</TableCell>
+                            <TableCell className="text-right tabular-nums">{fireTotal.toLocaleString("tr-TR")}</TableCell>
+                            <TableCell colSpan={3} />
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+      ))}
 
       <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
         <TableSection title="Duruşlar">
@@ -971,6 +1032,149 @@ function TableSection({ title, children }: { title: string; children: React.Reac
       <h2 className="font-semibold text-sm">{title}</h2>
       <div className="overflow-auto rounded-md border">{children}</div>
     </div>
+  );
+}
+
+function MiniMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-24 rounded-md border bg-muted/40 px-2 py-1.5">
+      <div className="text-muted-foreground">{label}</div>
+      <div className="font-semibold tabular-nums">{value}</div>
+    </div>
+  );
+}
+
+function UretimKaydiEditDialog({
+  kayit,
+  open,
+  isSaving,
+  onClose,
+  onSubmit,
+}: {
+  kayit: UretimKaydiOzet | null;
+  open: boolean;
+  isSaving: boolean;
+  onClose: () => void;
+  onSubmit: (body: { ekUretimMiktari: number; fireMiktari: number; netMiktar: number; notlar: string | null }) => Promise<void>;
+}) {
+  const [ekUretimMiktari, setEkUretimMiktari] = useState("0");
+  const [fireMiktari, setFireMiktari] = useState("0");
+  const [netMiktar, setNetMiktar] = useState("0");
+  const [notlar, setNotlar] = useState("");
+
+  useEffect(() => {
+    if (!kayit) return;
+    setEkUretimMiktari(String(kayit.ekUretimMiktari ?? kayit.netMiktar + kayit.fireMiktar));
+    setFireMiktari(String(kayit.fireMiktar ?? 0));
+    setNetMiktar(String(kayit.netMiktar ?? 0));
+    setNotlar(kayit.notlar ?? "");
+  }, [kayit]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const ek = Number(ekUretimMiktari);
+    const fire = Number(fireMiktari);
+    const net = Number(netMiktar);
+    if (!Number.isFinite(ek) || !Number.isFinite(fire) || !Number.isFinite(net)) {
+      toast.error("Miktar alanları geçerli sayı olmalı.");
+      return;
+    }
+    if (ek < 0 || fire < 0 || net < 0) {
+      toast.error("Miktarlar negatif olamaz.");
+      return;
+    }
+    if (Math.abs((ek - fire) - net) > 0.0001) {
+      toast.error("Net miktar, üretim eksi fire ile uyumlu olmalı.");
+      return;
+    }
+    await onSubmit({
+      ekUretimMiktari: ek,
+      fireMiktari: fire,
+      netMiktar: net,
+      notlar: notlar.trim() || null,
+    });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Üretim Kaydı Düzenle</DialogTitle>
+        </DialogHeader>
+        {kayit && (
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div className="rounded-md border bg-muted/30 p-3 text-sm">
+              <div className="font-medium">{kayit.urunAd}</div>
+              <div className="text-muted-foreground text-xs">
+                {kayit.makineAd ?? "Makine yok"} • {vardiyaLabel(kayit.vardiyaTipi)} • {formatDateTimeLabel(kayit.baslangic)}
+              </div>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="ek-uretim">Üretim</Label>
+                <Input
+                  id="ek-uretim"
+                  type="number"
+                  min="0"
+                  step="0.0001"
+                  value={ekUretimMiktari}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setEkUretimMiktari(next);
+                    const calculated = Number(next) - Number(fireMiktari);
+                    if (Number.isFinite(calculated) && calculated >= 0) setNetMiktar(String(calculated));
+                  }}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="fire">Fire</Label>
+                <Input
+                  id="fire"
+                  type="number"
+                  min="0"
+                  step="0.0001"
+                  value={fireMiktari}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setFireMiktari(next);
+                    const calculated = Number(ekUretimMiktari) - Number(next);
+                    if (Number.isFinite(calculated) && calculated >= 0) setNetMiktar(String(calculated));
+                  }}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="net">Net</Label>
+                <Input
+                  id="net"
+                  type="number"
+                  min="0"
+                  step="0.0001"
+                  value={netMiktar}
+                  onChange={(event) => setNetMiktar(event.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="notlar">Notlar</Label>
+              <Textarea
+                id="notlar"
+                value={notlar}
+                onChange={(event) => setNotlar(event.target.value)}
+                rows={3}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>
+                Vazgeç
+              </Button>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving ? "Kaydediliyor..." : "Kaydet"}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

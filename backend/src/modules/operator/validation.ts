@@ -67,6 +67,33 @@ export const gunlukUretimBodySchema = z.object({
   notlar: z.string().trim().max(500).optional(),
 });
 
+export const gunlukUretimPatchBodySchema = z.object({
+  ekUretimMiktari: z.coerce.number().min(0).optional(),
+  fireMiktari: z.coerce.number().min(0).optional(),
+  netMiktar: z.coerce.number().min(0).optional(),
+  notlar: z.string().trim().max(1000).nullable().optional(),
+}).superRefine((value, ctx) => {
+  const keys = Object.keys(value).filter((key) => (value as Record<string, unknown>)[key] !== undefined);
+  if (keys.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'en_az_bir_alan_gonderilmeli',
+    });
+  }
+  if (
+    value.ekUretimMiktari !== undefined &&
+    value.fireMiktari !== undefined &&
+    value.netMiktar !== undefined &&
+    Math.abs((value.ekUretimMiktari - value.fireMiktari) - value.netMiktar) > 0.0001
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['netMiktar'],
+      message: 'net_miktar_uretim_eksi_fire_olmali',
+    });
+  }
+});
+
 export const kalipDegisimBaslatBodySchema = z.object({
   makineId: z.string().min(1),
   makineKuyrukId: z.string().min(1).optional(),
@@ -138,6 +165,7 @@ export type DevamEtBody = z.infer<typeof devamEtBodySchema>;
 export type VardiyaBasiBody = z.infer<typeof vardiyaBasiBodySchema>;
 export type VardiyaSonuBody = z.infer<typeof vardiyaSonuBodySchema>;
 export type GunlukUretimBody = z.infer<typeof gunlukUretimBodySchema>;
+export type GunlukUretimPatchBody = z.infer<typeof gunlukUretimPatchBodySchema>;
 export type KalipDegisimBaslatBody = z.infer<typeof kalipDegisimBaslatBodySchema>;
 export type KalipDegisimBitirBody = z.infer<typeof kalipDegisimBitirBodySchema>;
 export type SevkiyatBody = z.infer<typeof sevkiyatBodySchema>;

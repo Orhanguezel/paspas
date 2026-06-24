@@ -9,6 +9,7 @@ import {
   vardiyaBasiBodySchema,
   vardiyaSonuBodySchema,
   gunlukUretimBodySchema,
+  gunlukUretimPatchBodySchema,
   sevkiyatBodySchema,
   malKabulBodySchema,
   listGunlukGirislerQuerySchema,
@@ -24,6 +25,7 @@ import {
   repoVardiyaBasi,
   repoVardiyaSonu,
   repoGunlukUretimGir,
+  repoUpdateGunlukUretimKaydi,
   repoGetAcikVardiyalar,
   repoSevkiyatOlustur,
   repoMalKabul,
@@ -203,6 +205,21 @@ export const gunlukUretimGir: RouteHandler = async (req, reply) => {
     if (msg === 'vardiya_kaydi_bulunamadi') return sendError(reply, 404, msg);
     if (msg === 'makine_bugun_calismiyor') return sendError(reply, 409, msg);
     req.log.error({ error: msg, stack }, 'gunluk_uretim_gir_failed');
+    return sendError(reply, 500, msg || 'sunucu_hatasi');
+  }
+};
+
+export const updateGunlukUretimKaydi: RouteHandler = async (req, reply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const parsed = gunlukUretimPatchBodySchema.safeParse(req.body);
+    if (!parsed.success) return sendError(reply, 400, 'gecersiz_istek_govdesi');
+    const result = await repoUpdateGunlukUretimKaydi(id, parsed.data, getOperatorUserId(req));
+    if (!result) return sendError(reply, 404, 'gunluk_kayit_bulunamadi');
+    return result;
+  } catch (error) {
+    const { msg, stack } = extractError(error);
+    req.log.error({ error: msg, stack }, 'gunluk_uretim_kaydi_update_failed');
     return sendError(reply, 500, msg || 'sunucu_hatasi');
   }
 };

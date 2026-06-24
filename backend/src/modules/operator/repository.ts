@@ -55,6 +55,7 @@ import type {
   UretimBitirBody,
   VardiyaBasiBody,
   GunlukUretimBody,
+  GunlukUretimPatchBody,
   VardiyaSonuBody,
   KalipDegisimBaslatBody,
   KalipDegisimBitirBody,
@@ -413,7 +414,7 @@ async function consumeRecipeMaterials(
   netMiktar: number,
   operatorUserId: string | null = null,
 ): Promise<void> {
-  if (netMiktar <= 0) return;
+  if (Math.abs(netMiktar) < 0.0001) return;
 
   const [emir] = await tx
     .select({ recete_id: uretimEmirleri.recete_id })
@@ -445,7 +446,7 @@ async function consumeRecipeMaterials(
 
   for (const line of lines) {
     const rawQty = (Number(line.miktar) / targetQty) * netMiktar;
-    if (rawQty <= 0) continue;
+    if (Math.abs(rawQty) < 0.0001) continue;
 
     if (line.stokTakipAktif === 1) {
       await tx
@@ -457,11 +458,13 @@ async function consumeRecipeMaterials(
     await tx.insert(hareketler).values({
       id: randomUUID(),
       urun_id: line.urun_id,
-      hareket_tipi: 'cikis',
+      hareket_tipi: rawQty > 0 ? 'cikis' : 'giris',
       referans_tipi: 'uretim',
       referans_id: uretimEmriId,
-      miktar: rawQty.toFixed(4),
-      aciklama: `Üretim hammadde sarfı (Emir: ${uretimEmriId})`,
+      miktar: Math.abs(rawQty).toFixed(4),
+      aciklama: rawQty > 0
+        ? `Üretim hammadde sarfı (Emir: ${uretimEmriId})`
+        : `Üretim hammadde sarfı düzeltme (Emir: ${uretimEmriId})`,
       created_by_user_id: operatorUserId,
     });
   }
@@ -658,6 +661,85 @@ async function runNonBlockingStep(label: string, step: () => Promise<void>): Pro
   } catch (error) {
     console.error(`[operator] ${label} failed`, error);
   }
+}
+
+async function applyGunlukUretimStockDelta(
+  kayitId: string,
+  netDelta: number,
+  fireDelta: number,
+  operatorUserId: string | null,
+): Promise<void> {
+  if (Math.abs(netDelta) < 0.0001 && Math.abs(fireDelta) < 0.0001) return;
+
+  await db.transaction(async (tx) => {
+    const [kayit] = await tx
+      .select({
+        uretimEmriId: operatorGunlukKayitlari.uretim_emri_id,
+        emirOperasyonId: operatorGunlukKayitlari.emir_operasyon_id,
+      })
+      .from(operatorGunlukKayitlari)
+      .where(eq(operatorGunlukKayitlari.id, kayitId))
+      .limit(1);
+    if (!kayit) return;
+
+    const kqRow = {
+      emir_operasyon_id: kayit.emirOperasyonId ?? null,
+      uretim_emri_id: kayit.uretimEmriId,
+    };
+    const hasStockImpact = await hasIncrementalStockImpact(tx, kqRow);
+
+    if (kayit.emirOperasyonId) {
+      await tx
+        .update(uretimEmriOperasyonlari)
+        .set({
+          uretilen_miktar: sql`${uretimEmriOperasyonlari.uretilen_miktar} + ${netDelta.toFixed(4)}`,
+          fire_miktar: sql`${uretimEmriOperasyonlari.fire_miktar} + ${fireDelta.toFixed(4)}`,
+        })
+        .where(eq(uretimEmriOperasyonlari.id, kayit.emirOperasyonId));
+    }
+
+    if (hasStockImpact) {
+      await tx
+        .update(uretimEmirleri)
+        .set({
+          uretilen_miktar: sql`${uretimEmirleri.uretilen_miktar} + ${netDelta.toFixed(4)}`,
+        })
+        .where(eq(uretimEmirleri.id, kayit.uretimEmriId));
+    }
+
+    if (Math.abs(netDelta) < 0.0001 || !hasStockImpact) return;
+
+    const [emirRow] = await tx
+      .select({
+        urunId: uretimEmirleri.urun_id,
+        stokTakipAktif: urunler.stok_takip_aktif,
+      })
+      .from(uretimEmirleri)
+      .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+      .where(eq(uretimEmirleri.id, kayit.uretimEmriId))
+      .limit(1);
+    if (!emirRow) return;
+
+    if (emirRow.stokTakipAktif === 1) {
+      await tx
+        .update(urunler)
+        .set({ stok: sql`${urunler.stok} + ${netDelta.toFixed(4)}` })
+        .where(eq(urunler.id, emirRow.urunId));
+    }
+
+    await tx.insert(hareketler).values({
+      id: randomUUID(),
+      urun_id: emirRow.urunId,
+      hareket_tipi: netDelta > 0 ? 'giris' : 'cikis',
+      referans_tipi: 'uretim',
+      referans_id: kayit.uretimEmriId,
+      miktar: Math.abs(netDelta).toFixed(4),
+      aciklama: `Günlük üretim kaydı düzenleme farkı (${kayitId})`,
+      created_by_user_id: operatorUserId,
+    });
+
+    await consumeRecipeMaterials(tx, kayit.uretimEmriId, netDelta, operatorUserId);
+  });
 }
 
 // ============================================================
@@ -1897,6 +1979,59 @@ export async function repoGunlukUretimGir(
   });
 
   return kayit;
+}
+
+export async function repoUpdateGunlukUretimKaydi(
+  kayitId: string,
+  body: GunlukUretimPatchBody,
+  operatorUserId: string | null,
+): Promise<OperatorGunlukGirisDto | null> {
+  let netDelta = 0;
+  let fireDelta = 0;
+
+  const updated = await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(operatorGunlukKayitlari)
+      .where(eq(operatorGunlukKayitlari.id, kayitId))
+      .limit(1);
+    if (!existing) return null;
+
+    const prevEk = Number(existing.ek_uretim_miktari ?? 0);
+    const prevFire = Number(existing.fire_miktari ?? 0);
+    const prevNet = Number(existing.net_miktar ?? 0);
+    const nextEk = body.ekUretimMiktari ?? prevEk;
+    const nextFire = body.fireMiktari ?? prevFire;
+    const nextNet = body.netMiktar ?? Math.max(0, nextEk - nextFire);
+
+    netDelta = nextNet - prevNet;
+    fireDelta = nextFire - prevFire;
+
+    await tx
+      .update(operatorGunlukKayitlari)
+      .set({
+        ek_uretim_miktari: nextEk.toFixed(4),
+        fire_miktari: nextFire.toFixed(4),
+        net_miktar: nextNet.toFixed(4),
+        notlar: body.notlar === undefined ? existing.notlar : (body.notlar?.trim() || null),
+      })
+      .where(eq(operatorGunlukKayitlari.id, kayitId));
+
+    const [row] = await tx
+      .select()
+      .from(operatorGunlukKayitlari)
+      .where(eq(operatorGunlukKayitlari.id, kayitId))
+      .limit(1);
+    return row ? rowToGunlukGirisDto(row) : null;
+  });
+
+  if (!updated) return null;
+
+  await runNonBlockingStep('gunluk_uretim_kaydi_stok_farki', () =>
+    applyGunlukUretimStockDelta(kayitId, netDelta, fireDelta, operatorUserId),
+  );
+
+  return updated;
 }
 
 // ============================================================

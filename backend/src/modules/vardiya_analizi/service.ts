@@ -104,10 +104,12 @@ export type UretimKaydiOzet = {
   urunAd: string;
   urunKod: string | null;
   operasyonAdi: string | null;
+  ekUretimMiktari: number;
   netMiktar: number;
   fireMiktar: number;
   verimlilik: number | null;
   operatorAd: string | null;
+  notlar: string | null;
 };
 
 export type DurusDetayOzet = {
@@ -1118,9 +1120,11 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
       urunAd: urunler.ad,
       urunKod: urunler.kod,
       operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
+      ekUretimMiktari: operatorGunlukKayitlari.ek_uretim_miktari,
       netMiktar: operatorGunlukKayitlari.net_miktar,
       fireMiktar: operatorGunlukKayitlari.fire_miktari,
       operatorAd: users.full_name,
+      notlar: operatorGunlukKayitlari.notlar,
       cevrimSn: uretimEmriOperasyonlari.cevrim_suresi_sn,
       operasyonBaslangic: uretimEmriOperasyonlari.gercek_baslangic,
       operasyonBitis: uretimEmriOperasyonlari.gercek_bitis,
@@ -1162,6 +1166,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         urunAd: row.urunAd,
         urunKod: row.urunKod ?? null,
         operasyonAdi: row.operasyonAdi ?? null,
+        ekUretimMiktari: Number(row.ekUretimMiktari ?? 0),
         netMiktar: Number(row.netMiktar ?? 0),
         fireMiktar: Number(row.fireMiktar ?? 0),
         verimlilik: calculateVerimlilik({
@@ -1170,6 +1175,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
           cevrimSn: row.cevrimSn ? Number(row.cevrimSn) : null,
         }),
         operatorAd: row.operatorAd ?? null,
+        notlar: row.notlar ?? null,
       };
     })
     .filter((row): row is UretimKaydiOzet => row !== null);

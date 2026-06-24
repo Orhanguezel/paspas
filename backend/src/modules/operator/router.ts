@@ -11,6 +11,7 @@ import {
   vardiyaBasi,
   vardiyaSonu,
   gunlukUretimGir,
+  updateGunlukUretimKaydi,
   getAcikVardiyalar,
   sevkiyatOlustur,
   malKabul,
@@ -37,6 +38,7 @@ export async function registerOperator(app: FastifyInstance) {
   app.post(`${BASE}/vardiya-basi`, { preHandler: guard }, vardiyaBasi);
   app.post(`${BASE}/vardiya-sonu`, { preHandler: guard }, vardiyaSonu);
   app.post(`${BASE}/gunluk-giris`, { preHandler: guard }, gunlukUretimGir);
+  app.patch(`${BASE}/gunluk-giris/:id`, { preHandler: guard }, updateGunlukUretimKaydi);
 
   // Tab 2: Sevkiyat
   app.post(`${BASE}/sevkiyat`, { preHandler: guard }, sevkiyatOlustur);

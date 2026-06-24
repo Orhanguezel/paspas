@@ -106,10 +106,12 @@ export type UretimKaydiOzet = {
   urunAd: string;
   urunKod: string | null;
   operasyonAdi: string | null;
+  ekUretimMiktari: number;
   netMiktar: number;
   fireMiktar: number;
   verimlilik: number | null;
   operatorAd: string | null;
+  notlar: string | null;
 };
 
 export type DurusDetayOzet = {
@@ -202,6 +204,13 @@ export type VardiyaDetayResponse = {
   bagliEmirler: BagliEmir[];
 };
 
+export type GunlukUretimKaydiPatchPayload = {
+  ekUretimMiktari?: number;
+  fireMiktari?: number;
+  netMiktar?: number;
+  notlar?: string | null;
+};
+
 export const vardiyaAnaliziAdminApi = baseApi.injectEndpoints({
   endpoints: (b) => ({
     getVardiyaAnaliziAdmin: b.query<
@@ -209,6 +218,7 @@ export const vardiyaAnaliziAdminApi = baseApi.injectEndpoints({
       { tarih?: string; baslangicTarih?: string; bitisTarih?: string; makineId?: string[]; vardiyaTipi?: string[] } | undefined
     >({
       query: (params) => ({ url: BASE, params: params ?? undefined }),
+      providesTags: [{ type: "Vardiyalar", id: "ANALIZ" }],
     }),
     getVardiyaDetayAdmin: b.query<
       VardiyaDetayResponse,
@@ -227,6 +237,19 @@ export const vardiyaAnaliziAdminApi = baseApi.injectEndpoints({
       { gunSayisi?: number; makineId?: string } | undefined
     >({
       query: (params) => ({ url: `${BASE}/trend`, params: params ?? undefined }),
+    }),
+    updateGunlukUretimKaydiAdmin: b.mutation<
+      unknown,
+      { id: string; body: GunlukUretimKaydiPatchPayload }
+    >({
+      query: ({ id, body }) => ({ url: `/admin/operator/gunluk-giris/${id}`, method: "PATCH", body }),
+      invalidatesTags: [
+        { type: "Vardiyalar", id: "ANALIZ" },
+        { type: "Vardiyalar", id: "LIST" },
+        { type: "Stoklar", id: "LIST" },
+        { type: "Hareketler", id: "LIST" },
+        { type: "UretimEmirleri", id: "LIST" },
+      ],
     }),
   }),
   overrideExisting: true,
@@ -251,4 +274,5 @@ export const {
   useGetVardiyaAnaliziAdminQuery,
   useGetVardiyaDetayAdminQuery,
   useGetVardiyaTrendAdminQuery,
+  useUpdateGunlukUretimKaydiAdminMutation,
 } = vardiyaAnaliziAdminApi;
