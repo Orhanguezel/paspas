@@ -90,7 +90,7 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
     items: [
 
       // V2: görevler (tasks/notifications) buraya eklenecek
-      // { key: 'gorevler', url: '/admin/gorevler', icon: ClipboardList, roles: ['admin', 'operator', 'satin_almaci', 'nakliyeci'] },
+      // { key: 'gorevler', url: '/admin/gorevler', icon: ClipboardList, roles: ['admin', 'operator', 'satin_almaci'] },
       {
         key: 'is_ortaklari',
         url: '/admin/musteriler',  
@@ -134,11 +134,11 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
     id: 2,
     key: 'production',
     items: [
-      { key: 'satis_siparisleri', url: '/admin/satis-siparisleri', icon: ShoppingCart, roles: ['admin', 'nakliyeci'] },
+      { key: 'satis_siparisleri', url: '/admin/satis-siparisleri', icon: ShoppingCart, roles: ['admin'] },
       { key: 'uretim_emirleri',   url: '/admin/uretim-emirleri',   icon: Factory,     roles: ['admin'] },
       { key: 'is_yukler',         url: '/admin/is-yukler',         icon: Cpu,         roles: ['admin'] },
       { key: 'operator',          url: '/admin/operator',          icon: Play,        roles: ['admin', 'operator'] },
-      { key: 'gantt',             url: '/admin/gantt',             icon: Calendar,    roles: ['admin', 'operator', 'nakliyeci'] },
+      { key: 'gantt',             url: '/admin/gantt',             icon: Calendar,    roles: ['admin', 'operator'] },
       { key: 'vardiya_analizi',   url: '/admin/vardiya-analizi',   icon: Timer,       roles: ['admin'] },
     ],
   },
@@ -151,7 +151,7 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
       { key: 'stoklar',           url: '/admin/stoklar',           icon: BarChart2,  roles: ['admin', 'satin_almaci'] },
       { key: 'satin_alma',        url: '/admin/satin-alma',        icon: Truck,      roles: ['admin', 'satin_almaci'] },
       { key: 'mal_kabul',         url: '/admin/mal-kabul',         icon: ClipboardCheck, roles: ['admin', 'satin_almaci'] },
-      { key: 'hareketler',        url: '/admin/hareketler',        icon: Activity,   roles: ['admin', 'satin_almaci', 'nakliyeci'] },
+      { key: 'hareketler',        url: '/admin/hareketler',        icon: Activity,   roles: ['admin', 'satin_almaci'] },
     ],
   },
   {
