@@ -49,7 +49,7 @@ export default function SiparisIslemleriTab() {
     uretimDurumu: durumFiltre !== "all" ? (durumFiltre as KalemUretimDurumu) : undefined,
     gizleTamamlanan,
     limit: 200,
-  }, { pollingInterval: 30_000 });
+  }, { pollingInterval: 30_000, refetchOnMountOrArgChange: true, refetchOnFocus: true });
 
   const [uretimeAktar, { isLoading: aktarLoading }] = useUretimeAktarAdminMutation();
 
