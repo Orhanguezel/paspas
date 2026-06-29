@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const sortEnum = z.enum(['siparis_tarihi', 'siparis_no', 'created_at']);
 const orderEnum = z.enum(['asc', 'desc']);
-const durumEnum = z.enum(['taslak', 'onaylandi', 'siparis_verildi', 'kismen_teslim', 'tamamlandi', 'iptal']);
+const durumEnum = z.enum(['taslak', 'onaylandi', 'siparis_verildi', 'kismen_teslim', 'tamamlandi', 'kapali', 'iptal']);
 
 const isActiveQuerySchema = z.preprocess((value) => {
   if (value === 'true' || value === '1') return true;
@@ -23,6 +23,8 @@ export const listQuerySchema = z.object({
   tedarikciId: z.string().uuid().optional(),
   durum: durumEnum.optional(),
   isActive: isActiveQuerySchema.optional(),
+  // Varsayilan liste yalnizca acik siparisleri gosterir; bu bayrak true ise kapali/tamamlandi/iptal de gelir.
+  tamamlananlariGoster: isActiveQuerySchema.optional(),
   limit: z.coerce.number().int().min(1).max(500).default(100),
   offset: z.coerce.number().int().min(0).default(0),
   sort: sortEnum.default('created_at'),

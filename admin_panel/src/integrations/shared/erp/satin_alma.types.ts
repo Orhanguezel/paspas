@@ -3,7 +3,7 @@
 // Paspas ERP — Satın Alma DTO & normalizers
 // =============================================================
 
-export type SatinAlmaDurum = 'taslak' | 'onaylandi' | 'siparis_verildi' | 'kismen_teslim' | 'tamamlandi' | 'iptal';
+export type SatinAlmaDurum = 'taslak' | 'onaylandi' | 'siparis_verildi' | 'kismen_teslim' | 'tamamlandi' | 'kapali' | 'iptal';
 
 export interface SatinAlmaKalemDto {
   id: string;
@@ -70,6 +70,7 @@ export const SATIN_ALMA_DURUM_LABELS: Record<SatinAlmaDurum, string> = {
   siparis_verildi: 'Sipariş Verildi',
   kismen_teslim:   'Kısmen Teslim',
   tamamlandi:      'Tamamlandı',
+  kapali:          'Kapalı',
   iptal:           'İptal',
 };
 
@@ -79,6 +80,7 @@ export const SATIN_ALMA_DURUM_BADGE: Record<SatinAlmaDurum, 'default' | 'seconda
   siparis_verildi: 'secondary',
   kismen_teslim:   'secondary',
   tamamlandi:      'default',
+  kapali:          'outline',
   iptal:           'destructive',
 };
 

@@ -5442,6 +5442,7 @@
           "siparis_verildi": "Sipariş Verildi",
           "kismen_teslim": "Kısmen Teslim",
           "tamamlandi": "Tamamlandı",
+          "kapali": "Kapalı",
           "iptal": "İptal"
         },
         "columns": {

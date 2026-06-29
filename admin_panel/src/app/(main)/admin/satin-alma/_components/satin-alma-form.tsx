@@ -44,7 +44,7 @@ const schema = z.object({
   tedarikciId:  z.string().min(1, 'Tedarikçi seçiniz'),
   siparisTarihi: z.string().min(1, 'Zorunlu'),
   terminTarihi: z.string().optional(),
-  durum:        z.enum(['taslak', 'onaylandi', 'siparis_verildi', 'kismen_teslim', 'tamamlandi', 'iptal']).default('taslak'),
+  durum:        z.enum(['taslak', 'onaylandi', 'siparis_verildi', 'kismen_teslim', 'tamamlandi', 'kapali', 'iptal']).default('taslak'),
   aciklama:     z.string().optional(),
 });
 

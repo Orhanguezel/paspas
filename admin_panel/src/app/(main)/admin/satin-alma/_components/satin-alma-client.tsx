@@ -7,7 +7,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { AlertCircle, Plus, RefreshCcw, Pencil, Trash2, Search, Eye } from 'lucide-react';
+import { AlertCircle, Plus, RefreshCcw, Pencil, Trash2, Search, Eye, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
 
@@ -32,6 +32,7 @@ import {
   useGetSatinAlmaAdminQuery,
   useListSatinAlmaAdminQuery,
   useDeleteSatinAlmaAdminMutation,
+  useUpdateSatinAlmaAdminMutation,
 } from '@/integrations/endpoints/admin/erp/satin_alma_admin.endpoints';
 import type { SatinAlmaSiparisDto, SatinAlmaDurum } from '@/integrations/shared/erp/satin_alma.types';
 import { SATIN_ALMA_DURUM_BADGE } from '@/integrations/shared/erp/satin_alma.types';
@@ -48,6 +49,7 @@ export default function SatinAlmaClient({ initialTedarikciId }: SatinAlmaClientP
   const [formOpen, setFormOpen]   = useState(false);
   const [editing, setEditing]     = useState<SatinAlmaSiparisDto | null>(null);
   const [deleteTarget, setDelete] = useState<SatinAlmaSiparisDto | null>(null);
+  const [closeTarget, setCloseTarget] = useState<SatinAlmaSiparisDto | null>(null);
 
   const DURUM_OPTIONS: Array<{ value: SatinAlmaDurum | 'hepsi'; label: string }> = [
     { value: 'hepsi',           label: t('admin.erp.common.allStatuses') },
@@ -65,6 +67,7 @@ export default function SatinAlmaClient({ initialTedarikciId }: SatinAlmaClientP
     siparis_verildi: t('admin.erp.satinAlma.statuses.siparis_verildi'),
     kismen_teslim: t('admin.erp.satinAlma.statuses.kismen_teslim'),
     tamamlandi: t('admin.erp.satinAlma.statuses.tamamlandi'),
+    kapali: t('admin.erp.satinAlma.statuses.kapali'),
     iptal: t('admin.erp.satinAlma.statuses.iptal'),
   };
 
@@ -79,6 +82,7 @@ export default function SatinAlmaClient({ initialTedarikciId }: SatinAlmaClientP
     skip: !editing?.id,
   });
   const [deleteSiparis, deleteState] = useDeleteSatinAlmaAdminMutation();
+  const [updateSiparis, closeState] = useUpdateSatinAlmaAdminMutation();
   const [checkCriticalStock, checkState] = useCheckCriticalStockAdminMutation();
 
   const items = data?.items ?? [];
@@ -126,6 +130,20 @@ export default function SatinAlmaClient({ initialTedarikciId }: SatinAlmaClientP
       toast.error(err?.data?.error?.message ?? t('admin.erp.common.deleteFailed'));
     } finally {
       setDelete(null);
+    }
+  }
+
+  // Manuel kapat: kısmen teslim/açık siparişi kapatır. durum='kapali' mal kabul kaydı OLUŞTURMAZ
+  // (tamamlandı'dan farklı) — kalan miktar teslim alınmış sayılmaz.
+  async function confirmClose() {
+    if (!closeTarget) return;
+    try {
+      await updateSiparis({ id: closeTarget.id, body: { durum: 'kapali' } }).unwrap();
+      toast.success('Sipariş kapatıldı.');
+    } catch (err: any) {
+      toast.error(err?.data?.error?.message ?? 'Sipariş kapatılamadı.');
+    } finally {
+      setCloseTarget(null);
     }
   }
 
@@ -302,6 +320,16 @@ export default function SatinAlmaClient({ initialTedarikciId }: SatinAlmaClientP
                     <Button variant="ghost" size="icon" onClick={() => openEdit(s)}>
                       <Pencil className="size-4" />
                     </Button>
+                    {s.durum !== 'tamamlandi' && s.durum !== 'kapali' && s.durum !== 'iptal' ? (
+                      <Button
+                        variant="ghost" size="icon"
+                        title="Siparişi Kapat"
+                        aria-label="Siparişi Kapat"
+                        onClick={() => setCloseTarget(s)}
+                      >
+                        <Lock className="size-4" />
+                      </Button>
+                    ) : null}
                     <Button
                       variant="ghost" size="icon"
                       className="text-destructive hover:text-destructive"
@@ -339,6 +367,25 @@ export default function SatinAlmaClient({ initialTedarikciId }: SatinAlmaClientP
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteState.isLoading ? t('admin.erp.common.deleting') : t('admin.common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!closeTarget} onOpenChange={(v) => !v && setCloseTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Siparişi Kapat</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{closeTarget?.siparisNo}</strong> siparişi kapatılacak. Bu işlem siparişi
+              kapalı duruma alır ve aktif listeden kaldırır. Kalan (teslim alınmayan) miktar
+              teslim alınmış sayılmaz; stok etkilenmez.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('admin.common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmClose} disabled={closeState.isLoading}>
+              {closeState.isLoading ? 'Kapatılıyor...' : 'Kapat'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

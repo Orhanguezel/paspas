@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, desc, eq, inArray, like, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, like, notInArray, or, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
@@ -42,6 +42,11 @@ function buildWhere(query: ListQuery): SQL | undefined {
   if (query.tedarikciId) conditions.push(eq(satinAlmaSiparisleri.tedarikci_id, query.tedarikciId));
   if (query.durum) conditions.push(eq(satinAlmaSiparisleri.durum, query.durum));
   if (typeof query.isActive === 'boolean') conditions.push(eq(satinAlmaSiparisleri.is_active, query.isActive ? 1 : 0));
+  // Belirli durum filtresi yoksa ve "tamamlananları göster" işaretli değilse: kapalı/tamamlandı/iptal gizlenir
+  // (tamamı teslim alınmamış her sipariş açık sayılır). satış/üretim modülleriyle aynı desen.
+  if (!query.durum && !query.tamamlananlariGoster) {
+    conditions.push(notInArray(satinAlmaSiparisleri.durum, ['tamamlandi', 'kapali', 'iptal']));
+  }
   if (conditions.length === 0) return undefined;
   if (conditions.length === 1) return conditions[0];
   return and(...conditions);
