@@ -32,6 +32,8 @@ export type SevkEmriDto = {
   urunId: string;
   urunKod: string | null;
   urunAd: string | null;
+  urunBirim: string | null;
+  koliCarpan: number | null; // 1 koli = koliCarpan ana birim (takım/adet); yoksa null
   miktar: number;
   stokMiktar: number;
   tarih: string;

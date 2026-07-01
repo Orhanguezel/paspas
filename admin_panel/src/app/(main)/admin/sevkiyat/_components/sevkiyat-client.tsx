@@ -83,6 +83,26 @@ export default function SevkiyatClient() {
   const [tab, setTab] = useState<string>(isAdmin ? 'bekleyenler' : isNakliyeciOnly ? 'yukle' : 'emirler');
   const effectiveTab = isNakliyeciOnly ? 'yukle' : isAdmin ? tab : 'emirler';
 
+  if (isNakliyeciOnly) {
+    return (
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 overflow-x-hidden pb-8">
+        <div className="rounded-2xl bg-slate-950 p-4 text-white shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white/10">
+              <Truck className="size-6" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl font-black leading-tight">Yükle/Sevket</h1>
+              <p className="mt-1 text-sm text-white/70">Onaylı sevk emirlerini yükle ve sevk et.</p>
+            </div>
+          </div>
+        </div>
+
+        <EmirleriTab shipperMode />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div>
@@ -739,15 +759,15 @@ function EmirleriTab({ shipperMode = false }: { shipperMode?: boolean }) {
   }
 
   return (
-    <div className={shipperMode ? 'space-y-3 overflow-x-hidden' : 'space-y-3'}>
+    <div className={shipperMode ? 'space-y-4 overflow-x-hidden' : 'space-y-3'}>
       {shipperMode ? (
-        <div className="space-y-3 rounded-xl border bg-card p-3 shadow-sm">
+        <div className="space-y-3 rounded-2xl border bg-card p-3 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-lg font-bold leading-tight">Yükle/Sevket</div>
-              <div className="text-sm text-muted-foreground">{visibleTotal} sevk emri</div>
+              <div className="text-sm font-semibold text-muted-foreground">Aktif sevk emirleri</div>
+              <div className="mt-1 text-2xl font-black leading-none">{visibleTotal}</div>
             </div>
-            <Button variant="outline" className="h-12 shrink-0 px-4" onClick={() => refetch()} disabled={isFetching}>
+            <Button variant="outline" className="h-12 shrink-0 rounded-xl px-4" onClick={() => refetch()} disabled={isFetching} aria-label="Yenile">
               <RefreshCcw className={`size-5${isFetching ? ' animate-spin' : ''}`} />
             </Button>
           </div>
@@ -814,11 +834,11 @@ function EmirleriTab({ shipperMode = false }: { shipperMode?: boolean }) {
           {t('admin.erp.sevkiyat.noData')}
         </div>
       ) : shipperMode ? (
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-4">
           {items.map((row) => {
             const stokYetersiz = row.stokMiktar < row.miktar;
             return (
-              <div key={row.id} className="overflow-hidden rounded-xl border bg-card shadow-sm">
+              <div key={row.id} className="overflow-hidden rounded-2xl border bg-card shadow-sm">
                 <div className="space-y-4 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 space-y-2">
@@ -1127,35 +1147,95 @@ function PhysicalShipDialog({
   onSubmit: (row: SevkEmriDto, miktar: number) => void;
 }) {
   const { t } = useLocaleContext();
-  const [miktar, setMiktar] = useState('');
+  const [koli, setKoli] = useState('');
+  const [takim, setTakim] = useState('');
+
+  const carpan = row?.koliCarpan && row.koliCarpan > 0 ? row.koliCarpan : null;
+  const anaBirim = row?.urunBirim || 'takım';
 
   useEffect(() => {
-    setMiktar(row ? String(row.miktar) : '');
+    // Varsayılan: emrin miktarını ana birim (takım) alanına koy, koli boş.
+    setKoli('');
+    setTakim(row ? String(row.miktar) : '');
   }, [row]);
 
-  const miktarNum = Number(miktar);
-  const stokYetersiz = row ? miktarNum > row.stokMiktar : false;
+  // Toplam ana birim = koli × çarpan + takım. Koli dönüşümü yoksa sadece takım.
+  const koliNum = Number(koli) || 0;
+  const takimNum = Number(takim) || 0;
+  const toplamMiktar = carpan ? koliNum * carpan + takimNum : takimNum;
+  const stokAsimi = row ? toplamMiktar > row.stokMiktar : false;
 
   return (
     <Dialog open={!!row} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-md rounded-2xl">
         <DialogHeader>
           <DialogTitle>{t('admin.erp.sevkiyat.actions.fizikselSevkEt')}</DialogTitle>
           <DialogDescription>{row ? `${row.sevkEmriNo} · ${row.urunKod ?? ''} ${row.urunAd ?? ''}` : ''}</DialogDescription>
         </DialogHeader>
-        <div className="space-y-2">
-          <Label>Sevk Miktarı</Label>
-          <Input type="number" min="0" step="0.0001" value={miktar} onChange={(e) => setMiktar(e.target.value)} />
+        <div className="space-y-3">
+          {carpan ? (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Koli</Label>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="1"
+                    value={koli}
+                    onChange={(e) => setKoli(e.target.value)}
+                    placeholder="0"
+                    className="h-12 rounded-xl text-base font-semibold"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{anaBirim.charAt(0).toUpperCase() + anaBirim.slice(1)}</Label>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.0001"
+                    value={takim}
+                    onChange={(e) => setTakim(e.target.value)}
+                    placeholder="0"
+                    className="h-12 rounded-xl text-base font-semibold"
+                  />
+                </div>
+              </div>
+              <p className="text-muted-foreground text-xs">
+                1 koli = {carpan} {anaBirim} · Toplam:{' '}
+                <span className="font-semibold text-foreground">{toplamMiktar} {anaBirim}</span>
+              </p>
+            </>
+          ) : (
+            <>
+              <Label>Sevk Miktarı ({anaBirim})</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.0001"
+                value={takim}
+                onChange={(e) => setTakim(e.target.value)}
+                className="h-12 rounded-xl text-base font-semibold"
+              />
+            </>
+          )}
           {row && (
-            <p className={stokYetersiz ? 'text-destructive text-sm' : 'text-muted-foreground text-sm'}>
+            <p className={stokAsimi ? 'text-amber-600 text-sm' : 'text-muted-foreground text-sm'}>
               Stok: {row.stokMiktar}
-              {stokYetersiz ? ' · Stok yetersiz. Yöneticinizle görüşün.' : ''}
+              {stokAsimi ? ' · Stok yetersiz; sevk edilebilir, stok eksiye düşer (üretim girilince düzelir).' : ''}
             </p>
           )}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>İptal</Button>
-          <Button disabled={!row || !miktarNum || miktarNum <= 0 || stokYetersiz} onClick={() => row && onSubmit(row, miktarNum)}>
+        <DialogFooter className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <Button variant="outline" className="h-12 rounded-xl" onClick={onClose}>İptal</Button>
+          <Button
+            className="h-12 rounded-xl font-bold"
+            disabled={!row || toplamMiktar <= 0}
+            onClick={() => row && onSubmit(row, toplamMiktar)}
+          >
             <Truck className="size-4 mr-2" />
             {t('admin.erp.sevkiyat.actions.fizikselSevkEt')}
           </Button>

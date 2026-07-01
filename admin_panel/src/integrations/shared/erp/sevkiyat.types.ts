@@ -36,6 +36,8 @@ export interface SevkEmriDto {
   urunId: string;
   urunKod: string | null;
   urunAd: string | null;
+  urunBirim: string | null;
+  koliCarpan: number | null; // 1 koli = koliCarpan ana birim; yoksa null
   miktar: number;
   stokMiktar: number;
   tarih: string;
@@ -147,6 +149,8 @@ export function normalizeSevkEmri(raw: unknown): SevkEmriDto {
     urunId: toStr(r.urunId),
     urunKod: r.urunKod != null ? toStr(r.urunKod) : null,
     urunAd: r.urunAd != null ? toStr(r.urunAd) : null,
+    urunBirim: r.urunBirim != null ? toStr(r.urunBirim) : null,
+    koliCarpan: r.koliCarpan != null ? toNum(r.koliCarpan) : null,
     miktar: toNum(r.miktar),
     stokMiktar: toNum(r.stokMiktar),
     tarih: toStr(r.tarih),

@@ -241,6 +241,8 @@ type EnrichedSevkEmriRow = SevkEmriRow & {
   musteriAd?: string | null;
   urunKod?: string | null;
   urunAd?: string | null;
+  urunBirim?: string | null;
+  koliCarpan?: string | null;
   stokMiktar?: string | null;
 };
 
@@ -255,6 +257,8 @@ function rowToDto(row: EnrichedSevkEmriRow): SevkEmriDto {
     urunId: row.urun_id,
     urunKod: row.urunKod ?? null,
     urunAd: row.urunAd ?? null,
+    urunBirim: row.urunBirim ?? null,
+    koliCarpan: row.koliCarpan != null ? Number(row.koliCarpan) : null,
     miktar: Number(row.miktar ?? 0),
     stokMiktar: Number(row.stokMiktar ?? 0),
     tarih: row.tarih ? String(row.tarih) : new Date().toISOString().slice(0, 10),
@@ -315,6 +319,8 @@ export async function repoListSevkEmirleri(q: SevkEmriListQuery): Promise<{ item
         musteriAd: musteriler.ad,
         urunKod: urunler.kod,
         urunAd: urunler.ad,
+        urunBirim: urunler.birim,
+        koliCarpan: sql<string | null>`(SELECT d.carpan FROM urun_birim_donusumleri d WHERE d.urun_id = ${sevkEmirleri.urun_id} AND LOWER(d.hedef_birim) = 'koli' LIMIT 1)`,
         stokMiktar: urunler.stok,
       })
       .from(sevkEmirleri)
