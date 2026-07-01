@@ -79,6 +79,7 @@ export const satisSiparisleriAdminApi = baseApi.injectEndpoints({
       invalidatesTags: (_r, _e, { id }) => [
         { type: 'SatisSiparis', id },
         { type: 'SatisSiparisleri', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'ISLEMLER' },
         { type: 'UretimEmirleri', id: 'LIST' },
         { type: 'UretimEmirleri', id: 'ADAYLAR' },
       ],

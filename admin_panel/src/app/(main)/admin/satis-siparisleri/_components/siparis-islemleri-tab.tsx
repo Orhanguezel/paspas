@@ -21,11 +21,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Factory, RefreshCcw } from "lucide-react";
+import { Search, Factory, RefreshCcw, Lock } from "lucide-react";
 import { toast } from "sonner";
 import {
   useListSiparisIslemleriAdminQuery,
   useUretimeAktarAdminMutation,
+  useUpdateSatisSiparisiAdminMutation,
 } from "@/integrations/endpoints/admin/erp/satis_siparisleri_admin.endpoints";
 import type { KalemUretimDurumu, SiparisIslemSatiri } from "@/integrations/shared/erp/satis_siparisleri.types";
 import {
@@ -52,6 +53,22 @@ export default function SiparisIslemleriTab() {
   }, { pollingInterval: 30_000, refetchOnMountOrArgChange: true, refetchOnFocus: true });
 
   const [uretimeAktar, { isLoading: aktarLoading }] = useUretimeAktarAdminMutation();
+  const [updateSiparis, closeState] = useUpdateSatisSiparisiAdminMutation();
+  const [closeTarget, setCloseTarget] = React.useState<SiparisIslemSatiri | null>(null);
+
+  // Siparişi kapat: tüm kalemleri açık listeden düşürür (üretimdeki sipariş kapatılamaz).
+  async function confirmClose() {
+    if (!closeTarget) return;
+    try {
+      await updateSiparis({ id: closeTarget.siparisId, body: { durum: "kapali" } }).unwrap();
+      toast.success(`${closeTarget.siparisNo} siparişi kapatıldı.`);
+    } catch (err: unknown) {
+      const e = err as { data?: { error?: { detail?: string; message?: string } } };
+      toast.error(e?.data?.error?.detail ?? e?.data?.error?.message ?? "Sipariş kapatılamadı.");
+    } finally {
+      setCloseTarget(null);
+    }
+  }
 
   // Sadece beklemede olanlar secilebilir
   const secilebilirler = React.useMemo(
@@ -154,6 +171,7 @@ export default function SiparisIslemleriTab() {
             <TableHead className="text-right">Sevk Edilen</TableHead>
             <TableHead>Üretim Durumu</TableHead>
             <TableHead>Planlanan Bitiş</TableHead>
+            <TableHead className="w-12 text-center">Kapat</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -202,12 +220,24 @@ export default function SiparisIslemleriTab() {
                       })
                     : "—"}
                 </TableCell>
+                <TableCell className="text-center">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8"
+                    title={`${item.siparisNo} siparişini kapat`}
+                    aria-label="Siparişi kapat"
+                    onClick={() => setCloseTarget(item)}
+                  >
+                    <Lock className="size-4" />
+                  </Button>
+                </TableCell>
               </TableRow>
             );
           })}
           {rows.length === 0 && (
             <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                 Kayıt bulunamadı
               </TableCell>
             </TableRow>
@@ -333,6 +363,26 @@ export default function SiparisIslemleriTab() {
             )}
             <AlertDialogAction onClick={() => handleAktar(false)} disabled={aktarLoading}>
               {ayniUrunVarMi ? "Ayrı Ayrı" : "Üretime Aktar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Siparişi Kapat Dialog */}
+      <AlertDialog open={!!closeTarget} onOpenChange={(v) => !v && setCloseTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Siparişi Kapat</AlertDialogTitle>
+            <AlertDialogDescription>
+              {closeTarget?.siparisNo} siparişi kapatılacak. Kapatılan siparişin tüm satırları bu
+              ekrandan düşer ve yalnızca açık siparişler görünmeye devam eder. Üretimi devam eden
+              bir sipariş kapatılamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmClose} disabled={closeState.isLoading}>
+              Siparişi Kapat
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
