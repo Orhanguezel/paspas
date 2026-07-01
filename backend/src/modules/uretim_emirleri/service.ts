@@ -9,7 +9,7 @@ import { siparisKalemleri, type KalemUretimDurumu } from '@/modules/satis_sipari
 import { canTransitionKalem } from '@/modules/satis_siparisleri/kalem-durum.service';
 import { urunler } from '@/modules/urunler/schema';
 
-import { uretimEmirleri, uretimEmriSiparisKalemleri } from './schema';
+import { uretimEmirleri, uretimEmriOperasyonlari, uretimEmriSiparisKalemleri } from './schema';
 import { repoCreate, repoGetNextEmirNo, type CreateResult } from './repository';
 
 type Opts = {
@@ -211,37 +211,46 @@ export async function tryMontajForUretimEmri(
   const hammaddeler = kalemler.filter((k) => k.kategori === 'hammadde');
   if (yariMamuller.length === 0) return null;
 
-  const eksikYariMamuller: Array<{ urunId: string; ad: string; gerekli: number; mevcut: number }> = [];
+  // Achievable montaj: sipariş miktarına kilitli "hep-ya-hiç" yerine, eldeki
+  // bileşenlerle yapılabilecek TAM TAKIM sayısını montajla. Kalem miktarını aşma.
+  // Kontrol edilen bileşen kümesi bugünküyle birebir aynı: operasyonel-YM taraflar
+  // (+ varsa hammadde). Ambalaj yarimamulleri bilinçli olarak hariç (ayrı revizyon).
+  let montajMiktar = kalemMiktar;
   for (const ym of yariMamuller) {
-    const gerekli = Number(ym.miktar) * kalemMiktar;
-    const mevcut = Number(ym.stok);
     if (ym.stokTakipAktif === 0) continue;
-    if (mevcut + 1e-9 < gerekli) {
-      eksikYariMamuller.push({ urunId: ym.urun_id, ad: ym.ad, gerekli, mevcut });
-    }
+    const perUnit = Number(ym.miktar);
+    if (perUnit <= 0) continue;
+    const yapilabilir = Math.floor((Number(ym.stok) + 1e-9) / perUnit);
+    if (yapilabilir < montajMiktar) montajMiktar = yapilabilir;
   }
-
-  if (eksikYariMamuller.length > 0) {
-    await db.update(uretimEmirleri).set({ durum: 'montaj_bekliyor' }).where(eq(uretimEmirleri.id, uretimEmriId));
-    return { basarili: false, urunId: asilUrunId, uretilenMiktar: kalemMiktar, eksikYariMamuller };
-  }
-
-  // Hammadde eksikse de uyar (ambalaj vs.)
   for (const hm of hammaddeler) {
-    const gerekli = Number(hm.miktar) * kalemMiktar;
     if (hm.stokTakipAktif === 0) continue;
-    if (Number(hm.stok) + 1e-9 < gerekli) {
-      eksikYariMamuller.push({ urunId: hm.urun_id, ad: hm.ad, gerekli, mevcut: Number(hm.stok) });
-    }
+    const perUnit = Number(hm.miktar);
+    if (perUnit <= 0) continue;
+    const yapilabilir = Math.floor((Number(hm.stok) + 1e-9) / perUnit);
+    if (yapilabilir < montajMiktar) montajMiktar = yapilabilir;
   }
-  if (eksikYariMamuller.length > 0) {
+
+  if (montajMiktar <= 0) {
+    // Hiçbir tam takım yapılamıyor → beklemede kal. Bilgi amaçlı eksik listesi üret.
     await db.update(uretimEmirleri).set({ durum: 'montaj_bekliyor' }).where(eq(uretimEmirleri.id, uretimEmriId));
+    const eksikYariMamuller = [...yariMamuller, ...hammaddeler]
+      .filter((k) => k.stokTakipAktif === 1 && Number(k.stok) + 1e-9 < Number(k.miktar) * kalemMiktar)
+      .map((k) => ({ urunId: k.urun_id, ad: k.ad, gerekli: Number(k.miktar) * kalemMiktar, mevcut: Number(k.stok) }));
     return { basarili: false, urunId: asilUrunId, uretilenMiktar: kalemMiktar, eksikYariMamuller };
   }
+
+  // Kısmi montaj (montajMiktar < kalemMiktar): kalan üretim gelebilir mi?
+  // Tüm kardeş üretim operasyonları bittiyse daha fazla üretim yok → tamamlandi.
+  // Değilse montaj_bekliyor'da kal; sonraki stok artışında eldeki kadar yeniden montajla.
+  const yeniDurum: 'tamamlandi' | 'montaj_bekliyor' =
+    montajMiktar + 1e-9 >= kalemMiktar || (await tumKardesOperasyonBitti(uretimEmriId))
+      ? 'tamamlandi'
+      : 'montaj_bekliyor';
 
   await db.transaction(async (tx) => {
     for (const ym of yariMamuller) {
-      const dus = Number(ym.miktar) * kalemMiktar;
+      const dus = Number(ym.miktar) * montajMiktar;
       if (ym.stokTakipAktif === 1) {
         await tx.update(urunler).set({ stok: sql`${urunler.stok} - ${dus.toFixed(4)}` }).where(eq(urunler.id, ym.urun_id));
       }
@@ -258,7 +267,7 @@ export async function tryMontajForUretimEmri(
     }
 
     for (const hm of hammaddeler) {
-      const dus = Number(hm.miktar) * kalemMiktar;
+      const dus = Number(hm.miktar) * montajMiktar;
       if (hm.stokTakipAktif === 1) {
         await tx.update(urunler).set({ stok: sql`${urunler.stok} - ${dus.toFixed(4)}` }).where(eq(urunler.id, hm.urun_id));
       }
@@ -276,7 +285,7 @@ export async function tryMontajForUretimEmri(
 
     await tx
       .update(urunler)
-      .set({ stok: sql`${urunler.stok} + ${kalemMiktar.toFixed(4)}` })
+      .set({ stok: sql`${urunler.stok} + ${montajMiktar.toFixed(4)}` })
       .where(and(eq(urunler.id, asilUrunId), eq(urunler.stok_takip_aktif, 1)));
     await tx.insert(hareketler).values({
       id: randomUUID(),
@@ -284,15 +293,45 @@ export async function tryMontajForUretimEmri(
       hareket_tipi: 'giris',
       referans_tipi: 'montaj',
       referans_id: uretimEmriId,
-      miktar: kalemMiktar.toFixed(4),
+      miktar: montajMiktar.toFixed(4),
       aciklama: 'Montaj tamamlandı: asıl ürün girişi',
       created_by_user_id: operatorUserId ?? null,
     });
 
-    await tx.update(uretimEmirleri).set({ durum: 'tamamlandi' }).where(eq(uretimEmirleri.id, uretimEmriId));
+    await tx.update(uretimEmirleri).set({ durum: yeniDurum }).where(eq(uretimEmirleri.id, uretimEmriId));
   });
 
-  return { basarili: true, urunId: asilUrunId, uretilenMiktar: kalemMiktar };
+  return { basarili: true, urunId: asilUrunId, uretilenMiktar: montajMiktar };
+}
+
+/**
+ * Bu üretim emrinin bağlı olduğu sipariş kalem(ler)ine bağlı TÜM üretim emirlerinin
+ * operasyonları `tamamlandi` mı? (Daha fazla üretim gelmeyecek mi?)
+ * Kısmi montajda emrin `tamamlandi` mı yoksa `montaj_bekliyor` mu kalacağını belirler.
+ */
+async function tumKardesOperasyonBitti(uretimEmriId: string): Promise<boolean> {
+  const kalemRows = await db
+    .select({ kalemId: uretimEmriSiparisKalemleri.siparis_kalem_id })
+    .from(uretimEmriSiparisKalemleri)
+    .where(eq(uretimEmriSiparisKalemleri.uretim_emri_id, uretimEmriId));
+  const kalemIds = kalemRows.map((r) => r.kalemId).filter((x): x is string => Boolean(x));
+  if (kalemIds.length === 0) return true;
+
+  const emirRows = await db
+    .selectDistinct({ emirId: uretimEmriSiparisKalemleri.uretim_emri_id })
+    .from(uretimEmriSiparisKalemleri)
+    .where(inArray(uretimEmriSiparisKalemleri.siparis_kalem_id, kalemIds));
+  const emirIds = emirRows.map((r) => r.emirId).filter((x): x is string => Boolean(x));
+  if (emirIds.length === 0) return true;
+
+  const [bekleyen] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(uretimEmriOperasyonlari)
+    .where(and(
+      inArray(uretimEmriOperasyonlari.uretim_emri_id, emirIds),
+      sql`${uretimEmriOperasyonlari.durum} != 'tamamlandi'`,
+    ));
+  return Number(bekleyen?.count ?? 0) === 0;
 }
 
 /**

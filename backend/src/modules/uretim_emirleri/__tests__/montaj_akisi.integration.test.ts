@@ -277,9 +277,41 @@ describeIntegration("tryMontajForUretimEmri — montaj akışı", () => {
     expect(Number(solCikis!.miktar)).toBe(20);
   });
 
-  it("yetersiz sağ stok: tryMontaj false döner, emir 'montaj_bekliyor' olur, stoklar dokunulmaz", async () => {
-    // Sağ stok yetersiz (5 < 10), sol yeterli
+  it("kısmi stok (achievable): eldeki taraflarla yapılabilecek tam takım kadar montajlar", async () => {
+    // Sağ 5 (per_unit 1 → 5 takım), sol 20 (per_unit 2 → 10 takım). Sipariş 10.
+    // Achievable = min(10, 5, 10) = 5 → 5 takım montajlanır, kalan stok düşer.
     await seedWithStocks({ sagStok: "5.0000", solStok: "20.0000" });
+
+    const sonuc = await tryMontajForUretimEmri(ids.uretimSol);
+    expect(sonuc).not.toBeNull();
+    expect(sonuc!.basarili).toBe(true);
+    expect(sonuc!.uretilenMiktar).toBe(5);
+    expect(sonuc!.urunId).toBe(ids.asil);
+
+    const after = await getStokAndDurum();
+    expect(after.asilStok).toBe(5); // 0 + 5
+    expect(after.sagStok).toBe(0); // 5 - (1 * 5)
+    expect(after.solStok).toBe(10); // 20 - (2 * 5)
+    // Bu testte operasyon seed edilmedi → bekleyen operasyon yok → tüm üretim bitti sayılır → tamamlandi
+    expect(after.emirDurum).toBe("tamamlandi");
+
+    const hareketRows = await db
+      .select({ urun_id: hareketler.urun_id, hareket_tipi: hareketler.hareket_tipi, miktar: hareketler.miktar })
+      .from(hareketler)
+      .where(eq(hareketler.referans_id, ids.uretimSol));
+    expect(hareketRows).toHaveLength(3);
+    const giris = hareketRows.find((h) => h.hareket_tipi === "giris");
+    expect(giris!.urun_id).toBe(ids.asil);
+    expect(Number(giris!.miktar)).toBe(5);
+    const sagCikis = hareketRows.find((h) => h.hareket_tipi === "cikis" && h.urun_id === ids.oymSag);
+    const solCikis = hareketRows.find((h) => h.hareket_tipi === "cikis" && h.urun_id === ids.oymSol);
+    expect(Number(sagCikis!.miktar)).toBe(5);
+    expect(Number(solCikis!.miktar)).toBe(10);
+  });
+
+  it("hiç tam takım yapılamıyor (sağ=0): tryMontaj false, emir 'montaj_bekliyor', stoklar dokunulmaz", async () => {
+    // Sağ stok 0 (takip aktif) → montajMiktar 0 → montaj yapılmaz.
+    await seedWithStocks({ sagStok: "0.0000", solStok: "20.0000" });
 
     const sonuc = await tryMontajForUretimEmri(ids.uretimSol);
     expect(sonuc).not.toBeNull();
@@ -289,13 +321,13 @@ describeIntegration("tryMontajForUretimEmri — montaj akışı", () => {
       const eksikSag = sonuc!.eksikYariMamuller.find((e) => e.urunId === ids.oymSag);
       expect(eksikSag).toBeDefined();
       expect(eksikSag!.gerekli).toBe(10);
-      expect(eksikSag!.mevcut).toBe(5);
+      expect(eksikSag!.mevcut).toBe(0);
     }
 
     const after = await getStokAndDurum();
     // Stoklar değişmemiş olmalı
     expect(after.asilStok).toBe(0);
-    expect(after.sagStok).toBe(5);
+    expect(after.sagStok).toBe(0);
     expect(after.solStok).toBe(20);
     expect(after.emirDurum).toBe("montaj_bekliyor");
 
