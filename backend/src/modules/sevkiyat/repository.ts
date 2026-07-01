@@ -571,34 +571,26 @@ export async function repoPatchSevkEmri(id: string, patch: SevkEmriPatch, operat
   if (!existing) return null;
 
   const nextMiktar = patch.miktar ?? existing.miktar;
-  const updatePayload: Partial<typeof sevkEmirleri.$inferInsert> = {
-    durum: patch.durum,
-    miktar: String(nextMiktar),
-  };
-  // Admin sevk emri tarihini de düzeltebilir (operatör/admin hatalı giriş düzeltme).
-  if (patch.tarih) updatePayload.tarih = new Date(`${patch.tarih}T00:00:00`);
-  await db
-    .update(sevkEmirleri)
-    .set(updatePayload)
-    .where(eq(sevkEmirleri.id, id));
+  const isShip = patch.durum === 'sevk_edildi' && existing.durum !== 'sevk_edildi';
 
   let touchedSiparisId: string | null = null;
 
-  if (patch.durum === 'sevk_edildi' && existing.durum !== 'sevk_edildi') {
+  if (isShip) {
     const sevkMiktar = nextMiktar;
     // YN#2b: Stok yetersiz olsa da sevke izin verilir. Üretim verileri henüz
     // girilmemiş olabilir; stok eksiye düşer, üretim girilince normale döner.
-
     const sevkiyatId = randomUUID();
     const sevkNo = await generateSevkNo();
 
+    // Durum/miktar güncellemesi + stok hareketi tek transaction: yarım kalırsa
+    // sevk emri "sevk_edildi" olarak kalmaz (eski sıralamada bu bug vardı).
     await db.transaction(async (tx) => {
-      if (sevkMiktar !== existing.miktar) {
-        await tx
-          .update(sevkEmirleri)
-          .set({ miktar: String(sevkMiktar) })
-          .where(eq(sevkEmirleri.id, id));
-      }
+      const shipPayload: Partial<typeof sevkEmirleri.$inferInsert> = {
+        durum: 'sevk_edildi',
+        miktar: String(sevkMiktar),
+      };
+      if (patch.tarih) shipPayload.tarih = new Date(`${patch.tarih}T00:00:00`);
+      await tx.update(sevkEmirleri).set(shipPayload).where(eq(sevkEmirleri.id, id));
 
       await tx.insert(sevkiyatlar).values({
         id: sevkiyatId,
@@ -639,14 +631,22 @@ export async function repoPatchSevkEmri(id: string, patch: SevkEmriPatch, operat
     });
 
     touchedSiparisId = existing.siparisId ?? null;
-  }
+  } else {
+    // Sevk dışı güncellemeler (onaylandi, iptal, bekliyor, miktar/tarih düzeltme)
+    const updatePayload: Partial<typeof sevkEmirleri.$inferInsert> = {
+      durum: patch.durum,
+      miktar: String(nextMiktar),
+    };
+    if (patch.tarih) updatePayload.tarih = new Date(`${patch.tarih}T00:00:00`);
+    await db.update(sevkEmirleri).set(updatePayload).where(eq(sevkEmirleri.id, id));
 
-  // Iptal durumunda rezervasyonu geri al
-  if (patch.durum === 'iptal' && existing.durum !== 'iptal' && existing.durum !== 'sevk_edildi') {
-    await db
-      .update(urunler)
-      .set({ rezerve_stok: sql`GREATEST(0, ${urunler.rezerve_stok} - ${String(existing.miktar)})` })
-      .where(eq(urunler.id, existing.urunId));
+    // Iptal durumunda rezervasyonu geri al
+    if (patch.durum === 'iptal' && existing.durum !== 'iptal' && existing.durum !== 'sevk_edildi') {
+      await db
+        .update(urunler)
+        .set({ rezerve_stok: sql`GREATEST(0, ${urunler.rezerve_stok} - ${String(existing.miktar)})` })
+        .where(eq(urunler.id, existing.urunId));
+    }
   }
 
   if (touchedSiparisId) {
