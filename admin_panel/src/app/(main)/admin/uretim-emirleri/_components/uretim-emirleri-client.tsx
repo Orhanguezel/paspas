@@ -421,6 +421,7 @@ export default function UretimEmirleriClient() {
     { value: "atanmamis", label: t("admin.erp.uretimEmirleri.statuses.atanmamis") },
     { value: "planlandi", label: t("admin.erp.uretimEmirleri.statuses.planlandi") },
     { value: "uretimde", label: t("admin.erp.uretimEmirleri.statuses.uretimde") },
+    { value: "montaj_bekliyor", label: t("admin.erp.uretimEmirleri.statuses.montaj_bekliyor") },
     { value: "tamamlandi", label: t("admin.erp.uretimEmirleri.statuses.tamamlandi") },
     { value: "iptal", label: t("admin.erp.uretimEmirleri.statuses.iptal") },
   ];
