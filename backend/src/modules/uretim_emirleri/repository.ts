@@ -31,9 +31,19 @@ type ListResult = {
   total: number;
 };
 
+export type OperasyonOzetRow = {
+  operasyonAdi: string;
+  makineAd: string | null;
+  montaj: boolean;
+  planlananMiktar: number;
+  uretilenMiktar: number;
+  durum: string;
+};
+
 type EnrichedUretimEmriRow = UretimEmriRow & {
   siparisKalemIds: string[];
   siparisNo: string | null;
+  operasyonlar: OperasyonOzetRow[];
   siparisUrunKod: string | null;
   siparisUrunAd: string | null;
   siparisUrunGorsel: string | null;
@@ -56,6 +66,10 @@ type EnrichedUretimEmriRow = UretimEmriRow & {
 type EmirOperasyonPlanRow = {
   uretimEmriId: string;
   makineId: string | null;
+  makineAd: string | null;
+  operasyonAdi: string;
+  montaj: boolean;
+  sira: number;
   hazirlikSuresiDk: number;
   cevrimSuresiSn: number;
   planlananMiktar: number;
@@ -315,6 +329,10 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
       .select({
         uretimEmriId: uretimEmriOperasyonlari.uretim_emri_id,
         makineId: uretimEmriOperasyonlari.makine_id,
+        makineAd: makineler.ad,
+        operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
+        montaj: uretimEmriOperasyonlari.montaj,
+        sira: uretimEmriOperasyonlari.sira,
         hazirlikSuresiDk: uretimEmriOperasyonlari.hazirlik_suresi_dk,
         cevrimSuresiSn: uretimEmriOperasyonlari.cevrim_suresi_sn,
         planlananMiktar: uretimEmriOperasyonlari.planlanan_miktar,
@@ -327,6 +345,7 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
         durum: uretimEmriOperasyonlari.durum,
       })
       .from(uretimEmriOperasyonlari)
+      .leftJoin(makineler, eq(uretimEmriOperasyonlari.makine_id, makineler.id))
       .where(inArray(uretimEmriOperasyonlari.uretim_emri_id, emirIds))
       .orderBy(asc(uretimEmriOperasyonlari.sira)),
     db
@@ -374,6 +393,10 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
     items.push({
       uretimEmriId: row.uretimEmriId,
       makineId: row.makineId ?? null,
+      makineAd: row.makineAd ?? null,
+      operasyonAdi: row.operasyonAdi,
+      montaj: row.montaj === 1,
+      sira: Number(row.sira ?? 0),
       hazirlikSuresiDk: Number(row.hazirlikSuresiDk ?? 0),
       cevrimSuresiSn: Number(row.cevrimSuresiSn ?? 0),
       planlananMiktar: Number(row.planlananMiktar ?? 0),
@@ -432,6 +455,16 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
       ...row,
       siparisKalemIds: j?.siparisKalemIds ?? [],
       siparisNo: j?.siparisNo ?? null,
+      operasyonlar: [...operasyonlar]
+        .sort((a, b) => a.sira - b.sira)
+        .map((op) => ({
+          operasyonAdi: op.operasyonAdi,
+          makineAd: op.makineAd ?? null,
+          montaj: op.montaj,
+          planlananMiktar: op.planlananMiktar,
+          uretilenMiktar: op.uretilenMiktar,
+          durum: op.durum,
+        })),
       siparisUrunKod: j?.siparisUrunKod ?? null,
       siparisUrunAd: j?.siparisUrunAd ?? null,
       siparisUrunGorsel: j?.siparisUrunGorsel ?? null,

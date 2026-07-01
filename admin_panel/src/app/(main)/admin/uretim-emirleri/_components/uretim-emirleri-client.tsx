@@ -942,7 +942,7 @@ export default function UretimEmirleriClient() {
                             </span>
                           </TableCell>
 
-                          {/* İlerleme */}
+                          {/* İlerleme — mamul özeti + makine bazlı taraf kırılımı (YN#5) */}
                           <TableCell>
                             <div className="text-xs text-muted-foreground mb-1">
                               {agg.uretilenMiktar.toLocaleString("tr-TR")} /{" "}
@@ -952,6 +952,36 @@ export default function UretimEmirleriClient() {
                               <Progress value={agg.yuzde} className="h-1.5 flex-1 max-w-20" />
                               <span className="text-[10px] font-bold text-slate-500 tabular-nums">{agg.yuzde}%</span>
                             </div>
+                            {(() => {
+                              const ops = mamul.emirler.flatMap((em) => em.operasyonlar ?? []);
+                              if (ops.length < 2) return null;
+                              return (
+                                <div className="mt-1.5 space-y-0.5 border-t pt-1">
+                                  {ops.map((op, i) => {
+                                    const pct =
+                                      op.planlananMiktar > 0
+                                        ? Math.min(100, Math.round((op.uretilenMiktar / op.planlananMiktar) * 100))
+                                        : 0;
+                                    return (
+                                      <div key={i} className="flex items-center justify-between gap-2 text-[10px]">
+                                        <span className="flex items-center gap-1 text-slate-600 truncate max-w-28">
+                                          <Factory className="size-2.5 text-slate-400 shrink-0" />
+                                          <span className="truncate">
+                                            {op.makineAd ?? "Atanmamış"}
+                                            {op.montaj ? " · Montaj" : ""}
+                                          </span>
+                                        </span>
+                                        <span className="shrink-0 tabular-nums text-slate-500">
+                                          {op.uretilenMiktar > 0
+                                            ? `${op.uretilenMiktar.toLocaleString("tr-TR")}/${op.planlananMiktar.toLocaleString("tr-TR")} (%${pct})`
+                                            : "Başlamadı"}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
 
                           {/* Malzeme */}

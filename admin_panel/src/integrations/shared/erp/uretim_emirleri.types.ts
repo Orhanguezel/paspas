@@ -5,10 +5,20 @@
 
 export type UretimEmriDurum = "atanmamis" | "planlandi" | "uretimde" | "montaj_bekliyor" | "tamamlandi" | "iptal";
 
+export interface UretimEmriOperasyonOzet {
+  operasyonAdi: string;
+  makineAd: string | null;
+  montaj: boolean;
+  planlananMiktar: number;
+  uretilenMiktar: number;
+  durum: string;
+}
+
 export interface UretimEmriDto {
   id: string;
   emirNo: string;
   partiNo: string | null;
+  operasyonlar: UretimEmriOperasyonOzet[];
   siparisKalemIds: string[];
   siparisNo: string | null;
   siparisUrunKod: string | null;
@@ -165,6 +175,19 @@ export function normalizeUretimEmri(raw: unknown): UretimEmriDto {
     id: toStr(r.id),
     emirNo: toStr(r.emirNo),
     partiNo: r.partiNo != null ? toStr(r.partiNo) : null,
+    operasyonlar: Array.isArray(r.operasyonlar)
+      ? (r.operasyonlar as unknown[]).map((o) => {
+          const op = isRecord(o) ? o : {};
+          return {
+            operasyonAdi: toStr(op.operasyonAdi),
+            makineAd: op.makineAd != null ? toStr(op.makineAd) : null,
+            montaj: toBool(op.montaj, false),
+            planlananMiktar: toNum(op.planlananMiktar),
+            uretilenMiktar: toNum(op.uretilenMiktar),
+            durum: toStr(op.durum, "bekliyor"),
+          };
+        })
+      : [],
     siparisKalemIds: toStrArray(r.siparisKalemIds),
     siparisNo: r.siparisNo != null ? toStr(r.siparisNo) : null,
     siparisUrunKod: r.siparisUrunKod != null ? toStr(r.siparisUrunKod) : null,

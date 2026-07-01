@@ -36,10 +36,20 @@ export const uretimEmirleri = mysqlTable('uretim_emirleri', {
 
 export type UretimEmriRow = typeof uretimEmirleri.$inferSelect;
 
+export type UretimEmriOperasyonOzetDto = {
+  operasyonAdi: string;
+  makineAd: string | null;
+  montaj: boolean;
+  planlananMiktar: number;
+  uretilenMiktar: number;
+  durum: string;
+};
+
 export type UretimEmriDto = {
   id: string;
   emirNo: string;
   partiNo: string | null;
+  operasyonlar: UretimEmriOperasyonOzetDto[];
   siparisKalemIds: string[];
   siparisNo: string | null;
   siparisUrunKod: string | null;
@@ -73,6 +83,7 @@ export type UretimEmriDto = {
 
 type UretimEmriDtoRow = UretimEmriRow & {
   siparisKalemIds?: string[];
+  operasyonlar?: UretimEmriOperasyonOzetDto[];
   siparisNo?: string | null;
   siparisUrunKod?: string | null;
   siparisUrunAd?: string | null;
@@ -100,6 +111,7 @@ export function rowToDto(row: UretimEmriDtoRow): UretimEmriDto {
     id: row.id,
     emirNo: row.emir_no,
     partiNo: row.parti_no ?? null,
+    operasyonlar: row.operasyonlar ?? [],
     siparisKalemIds: kalemIds,
     siparisNo: row.siparisNo ?? null,
     siparisUrunKod: row.siparisUrunKod ?? null,
