@@ -206,10 +206,12 @@ export function MakineMontajPlanlama({ uretimEmriIds }: Props) {
               return (
                 <TableRow key={satir.emirOperasyonId}>
                   <TableCell>
-                    <div className="font-medium text-sm">{satir.urunAd}</div>
+                    {/* Parça / Yarı Mamul: operasyon adı her zaman üretilen yarımamulü verir */}
+                    <div className="font-medium text-sm">{satir.operasyonAdi || satir.urunAd}</div>
                     <div className="font-mono text-muted-foreground text-xs">
                       {satir.urunKod ? `${satir.urunKod} · ` : ""}
                       {satir.emirNo}
+                      {satir.urunAd ? ` · ${satir.urunAd}` : ""}
                     </div>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
