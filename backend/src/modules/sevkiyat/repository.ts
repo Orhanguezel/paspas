@@ -163,8 +163,13 @@ export async function repoListBekleyenler(q: BekleyenlerQuery): Promise<{ items:
   // Kalan miktar > 0 kontrolu — kalanMiktar = siparisMiktar - sevkEdilen - acikSevkEmirleri
   const kalanFilter = sql`(${siparisKalemleri.miktar} - ${sevkToplamSubquery} - ${acikSevkEmriSubquery}) > 0`;
 
-  // Stok filtresi
-  const stokCondition = q.stokFiltre === 'stoklu' ? and(kalanFilter, gt(urunler.stok, '0')) : kalanFilter;
+  // Stok filtresi — "stoklu": stokta olan VEYA üretim hattında olan (uretim_durumu != beklemede)
+  // kalemler. Üretiliyor durumundaki açık siparişler stok 0/yetersiz olsa da görünür (YN#2a).
+  const uretimdeCondition = sql`${siparisKalemleri.uretim_durumu} <> 'beklemede'`;
+  const stokCondition =
+    q.stokFiltre === 'stoklu'
+      ? and(kalanFilter, or(gt(urunler.stok, '0'), uretimdeCondition))
+      : kalanFilter;
 
   const [rows, countResult] = await Promise.all([
     db
@@ -581,11 +586,8 @@ export async function repoPatchSevkEmri(id: string, patch: SevkEmriPatch, operat
 
   if (patch.durum === 'sevk_edildi' && existing.durum !== 'sevk_edildi') {
     const sevkMiktar = nextMiktar;
-    if (sevkMiktar > existing.stokMiktar) {
-      const err = new Error('stok_yetersiz');
-      (err as any).detail = 'Stok yetersiz. Yöneticinizle görüşün.';
-      throw err;
-    }
+    // YN#2b: Stok yetersiz olsa da sevke izin verilir. Üretim verileri henüz
+    // girilmemiş olabilir; stok eksiye düşer, üretim girilince normale döner.
 
     const sevkiyatId = randomUUID();
     const sevkNo = await generateSevkNo();
@@ -618,7 +620,8 @@ export async function repoPatchSevkEmri(id: string, patch: SevkEmriPatch, operat
       await tx
         .update(urunler)
         .set({
-          stok: sql`GREATEST(0, ${urunler.stok} - ${String(sevkMiktar)})`,
+          // YN#2b: stok eksiye düşebilir (signed decimal) — üretim girilince normale döner.
+          stok: sql`${urunler.stok} - ${String(sevkMiktar)}`,
           rezerve_stok: sql`GREATEST(0, ${urunler.rezerve_stok} - ${String(existing.miktar)})`,
         })
         .where(eq(urunler.id, existing.urunId));

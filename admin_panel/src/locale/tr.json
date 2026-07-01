@@ -5992,7 +5992,7 @@
           "tarih": "Sevk Tarihi",
           "notlar": "Notlar",
           "notlarPlaceholder": "Sevkiyat ile ilgili not...",
-          "stokUyari": "Girilen miktar mevcut stoku aşıyor!"
+          "stokUyari": "Girilen miktar mevcut stoku aşıyor; sevk edilebilir, stok eksiye düşer (üretim girilince düzelir)."
         },
         "gruplama": {
           "label": "Gruplama",
