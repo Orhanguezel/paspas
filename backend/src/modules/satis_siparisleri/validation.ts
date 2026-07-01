@@ -10,10 +10,11 @@ const isActiveQuerySchema = z.preprocess((value) => {
   return value;
 }, z.boolean());
 
+// DB: miktar decimal(12,4) → maks 99.999.999,9999 · birim_fiyat decimal(12,2) → maks 9.999.999.999,99
 const siparisKalemSchema = z.object({
   urunId: z.string().uuid(),
-  miktar: z.coerce.number().positive(),
-  birimFiyat: z.coerce.number().min(0).default(0),
+  miktar: z.coerce.number().positive().max(99_999_999.9999, 'Miktar çok büyük (en fazla 99.999.999)'),
+  birimFiyat: z.coerce.number().min(0).max(9_999_999_999.99, 'Birim fiyat çok büyük').default(0),
   sira: z.coerce.number().int().min(0).default(0),
 });
 

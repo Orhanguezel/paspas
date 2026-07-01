@@ -37,8 +37,9 @@ const durumManualValues = ["kapali", "iptal"] as const;
 
 const kalemSchema = z.object({
   urunId: z.string().min(1, "Ürün seçiniz"),
-  miktar: z.coerce.number().positive("Pozitif olmalı"),
-  birimFiyat: z.coerce.number().min(0).default(0),
+  // DB: miktar decimal(12,4) → maks 99.999.999 · birim_fiyat decimal(12,2)
+  miktar: z.coerce.number().positive("Pozitif olmalı").max(99_999_999.9999, "Miktar çok büyük (en fazla 99.999.999)"),
+  birimFiyat: z.coerce.number().min(0).max(9_999_999_999.99, "Birim fiyat çok büyük").default(0),
   sira: z.coerce.number().int().min(0).default(0),
 });
 

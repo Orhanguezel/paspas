@@ -123,6 +123,7 @@ export const createSatisSiparisi: RouteHandler = async (req, reply) => {
     req.log.error({ error }, 'create_satis_siparisi_failed');
     const err = error as { code?: string };
     if (err.code === 'ER_DUP_ENTRY') return reply.code(409).send({ error: { message: 'siparis_no_zaten_var' } });
+    if (err.code === 'ER_WARN_DATA_OUT_OF_RANGE') return reply.code(400).send({ error: { message: 'Girilen miktar veya fiyat çok büyük.' } });
     return sendInternalError(reply);
   }
 };
@@ -155,6 +156,7 @@ export const updateSatisSiparisi: RouteHandler = async (req, reply) => {
     req.log.error({ error }, 'update_satis_siparisi_failed');
     const err = error as { code?: string; message?: string };
     if (err.code === 'ER_DUP_ENTRY') return reply.code(409).send({ error: { message: 'siparis_no_zaten_var' } });
+    if (err.code === 'ER_WARN_DATA_OUT_OF_RANGE') return reply.code(400).send({ error: { message: 'Girilen miktar veya fiyat çok büyük.' } });
     if (err.message === 'siparis_kilitli') return reply.code(409).send({ error: { message: 'siparis_kilitli' } });
     return sendInternalError(reply);
   }
