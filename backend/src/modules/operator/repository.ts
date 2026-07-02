@@ -413,6 +413,7 @@ async function consumeRecipeMaterials(
   uretimEmriId: string,
   netMiktar: number,
   operatorUserId: string | null = null,
+  opts: { skipOperasyonelYm?: boolean } = {},
 ): Promise<void> {
   if (Math.abs(netMiktar) < 0.0001) return;
 
@@ -438,6 +439,7 @@ async function consumeRecipeMaterials(
     .select({
       urun_id: receteKalemleri.urun_id,
       miktar: receteKalemleri.miktar,
+      kategori: urunler.kategori,
       stokTakipAktif: urunler.stok_takip_aktif,
     })
     .from(receteKalemleri)
@@ -445,6 +447,11 @@ async function consumeRecipeMaterials(
     .where(eq(receteKalemleri.recete_id, emir.recete_id));
 
   for (const line of lines) {
+    // Çok-operasyonlu (tek emir mamul) modelinde reçetedeki operasyonel_ym Sağ/Sol
+    // kalemleri, emrin OPERASYONLARININ kendisidir; ayrı stok olarak tüketilmemeli
+    // (aksi halde stok eksiye çekilir / çift sayım). Yalnız gerçek malzeme tüketilir.
+    if (opts.skipOperasyonelYm && line.kategori === 'operasyonel_ym') continue;
+
     const rawQty = (Number(line.miktar) / targetQty) * netMiktar;
     if (Math.abs(rawQty) < 0.0001) continue;
 
@@ -748,6 +755,7 @@ async function applyUretimStockDelta(
   stokDelta: number,
   operatorUserId: string | null,
   aciklama: string,
+  opts: { skipOperasyonelYm?: boolean } = {},
 ): Promise<void> {
   if (Math.abs(stokDelta) < 0.0001) return;
 
@@ -781,7 +789,7 @@ async function applyUretimStockDelta(
     created_by_user_id: operatorUserId ?? null,
   });
 
-  await consumeRecipeMaterials(tx, uretimEmriId, stokDelta, operatorUserId);
+  await consumeRecipeMaterials(tx, uretimEmriId, stokDelta, operatorUserId, opts);
 }
 
 // ============================================================
@@ -1257,6 +1265,9 @@ export async function repoUretimBitir(
           stokFarki > 0
             ? `Üretim tamamlandı — ek stok (fark: +${stokFarki.toFixed(0)})`
             : `Üretim tamamlandı — stok düzeltme (fark: ${stokFarki.toFixed(0)})`,
+          // Çok-op mamul modelinde reçetedeki operasyonel_ym Sağ/Sol = operasyonların
+          // kendisi; ayrı stok olarak tüketme (eksiye çekilmesin / çift sayım olmasın).
+          { skipOperasyonelYm: isMultiOpWithoutMontaj },
         );
       }
 
