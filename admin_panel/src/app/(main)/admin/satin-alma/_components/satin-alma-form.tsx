@@ -266,8 +266,8 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
               )}
 
               {kalemler.map((kalem, idx) => (
-                <div key={`kalem-${idx}`} className="flex items-end gap-2 rounded-md border p-3">
-                  <div className="flex-1 space-y-1">
+                <div key={`kalem-${idx}`} className="flex flex-wrap items-end gap-2 rounded-md border p-3">
+                  <div className="min-w-50 flex-1 space-y-1">
                     <Label className="text-xs">Malzeme</Label>
                     <MalzemeCombobox
                       urunler={urunler}
@@ -275,7 +275,7 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
                       onChange={(value) => updateKalem(idx, 'urunId', value)}
                     />
                   </div>
-                  <div className="w-24 space-y-1">
+                  <div className="w-24 shrink-0 space-y-1">
                     <Label className="text-xs">Miktar</Label>
                     <Input
                       type="number"
@@ -286,7 +286,7 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
                       onChange={(e) => updateKalem(idx, 'miktar', e.target.value)}
                     />
                   </div>
-                  <div className="w-28 space-y-1">
+                  <div className="w-28 shrink-0 space-y-1">
                     <Label className="text-xs">Birim Fiyat</Label>
                     <Input
                       type="number"
@@ -297,7 +297,7 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
                       onChange={(e) => updateKalem(idx, 'birimFiyat', e.target.value)}
                     />
                   </div>
-                  <div className="w-36 space-y-1">
+                  <div className="w-36 shrink-0 space-y-1">
                     <Label className="text-xs">Satır Termin</Label>
                     <Input
                       type="date"

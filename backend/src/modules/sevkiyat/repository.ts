@@ -163,9 +163,17 @@ export async function repoListBekleyenler(q: BekleyenlerQuery): Promise<{ items:
   // Kalan miktar > 0 kontrolu — kalanMiktar = siparisMiktar - sevkEdilen - acikSevkEmirleri
   const kalanFilter = sql`(${siparisKalemleri.miktar} - ${sevkToplamSubquery} - ${acikSevkEmriSubquery}) > 0`;
 
-  // Stok filtresi — "stoklu": stokta olan VEYA üretim hattında olan (uretim_durumu != beklemede)
-  // kalemler. Üretiliyor durumundaki açık siparişler stok 0/yetersiz olsa da görünür (YN#2a).
-  const uretimdeCondition = sql`${siparisKalemleri.uretim_durumu} <> 'beklemede'`;
+  // Stok filtresi — "stoklu": stokta olan VEYA ürünü için aktif (hattaki) üretim emri
+  // bulunan kalemler. Üretim hattındaki açık siparişler stok 0/yetersiz olsa da görünür (YN-V9-B).
+  // NOT: Kalem durumu (uretim_durumu) yerine ürün bazlı aktif üretim emri EXISTS'e bakılır;
+  // çünkü stok/parti üretim emirleri sipariş kalemine bağlı olmayabilir ve
+  // 'uretim_tamamlandi' kalemler yanlışlıkla "üretimde" sayılıyordu.
+  const uretimdeCondition = sql`EXISTS (
+    SELECT 1 FROM uretim_emirleri ue
+    WHERE ue.urun_id = ${siparisKalemleri.urun_id}
+      AND ue.is_active = 1
+      AND ue.durum IN ('atanmamis','planlandi','uretimde','montaj_bekliyor')
+  )`;
   const stokCondition =
     q.stokFiltre === 'stoklu'
       ? and(kalanFilter, or(gt(urunler.stok, '0'), uretimdeCondition))
