@@ -227,9 +227,13 @@ function dateRange(query: ListQuery): { baslangic: Date; bitis: Date; tarihLabel
     };
   }
   const tarih = query.tarih ?? new Date().toISOString().slice(0, 10);
+  const baslangic = new Date(`${tarih}T00:00:00`);
+  const bitis = new Date(`${tarih}T00:00:00`);
+  bitis.setDate(bitis.getDate() + 1);
+  bitis.setHours(7, 30, 0, 0);
   return {
-    baslangic: new Date(`${tarih}T00:00:00`),
-    bitis: new Date(`${tarih}T23:59:59`),
+    baslangic,
+    bitis,
     tarihLabel: tarih,
   };
 }
