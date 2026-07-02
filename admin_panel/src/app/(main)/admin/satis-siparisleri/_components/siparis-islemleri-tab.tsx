@@ -122,7 +122,7 @@ export default function SiparisIslemleriTab() {
   // Gruplama — SP-7: musteri bazında en geç planlanan bitiş hesaplanır
   const grouped = React.useMemo(() => {
     if (gorunum === "duz") return null;
-    const map = new Map<string, { label: string; items: SiparisIslemSatiri[]; maxPlanned: string | null }>();
+    const map = new Map<string, { label: string; items: SiparisIslemSatiri[]; maxPlanned: string | null; kalanToplam: number }>();
     for (const item of items) {
       const key =
         gorunum === "musteri" ? item.musteriId :
@@ -132,9 +132,10 @@ export default function SiparisIslemleriTab() {
         gorunum === "musteri" ? item.musteriAd :
         gorunum === "alt_grup" ? (item.urunAltGrup || "Alt grup yok") :
         `${item.urunKod} — ${item.urunAd}`;
-      if (!map.has(key)) map.set(key, { label, items: [], maxPlanned: null });
+      if (!map.has(key)) map.set(key, { label, items: [], maxPlanned: null, kalanToplam: 0 });
       const group = map.get(key)!;
       group.items.push(item);
+      group.kalanToplam += item.uretimKalanMiktar ?? Math.max(item.miktar - item.uretilenMiktar, 0);
       if (item.planlananBitis) {
         if (!group.maxPlanned || item.planlananBitis > group.maxPlanned) {
           group.maxPlanned = item.planlananBitis;
@@ -166,6 +167,7 @@ export default function SiparisIslemleriTab() {
             <TableHead>Sipariş No</TableHead>
             {gorunum !== "musteri" && <TableHead>Müşteri</TableHead>}
             {gorunum !== "urun" && <TableHead>Ürün</TableHead>}
+            <TableHead className="text-right">Stok</TableHead>
             <TableHead className="text-right">Miktar</TableHead>
             <TableHead className="text-right">Üretilen</TableHead>
             <TableHead className="text-right">Sevk Edilen</TableHead>
@@ -177,6 +179,8 @@ export default function SiparisIslemleriTab() {
         <TableBody>
           {rows.map((item) => {
             const secilebilir = item.uretimDurumu === "beklemede";
+            const uretimKalan = item.uretimKalanMiktar ?? Math.max(item.miktar - item.uretilenMiktar, 0);
+            const sevkKalan = item.sevkKalanMiktar ?? Math.max(item.miktar - item.sevkEdilenMiktar, 0);
             return (
               <TableRow key={item.kalemId} className={seciliKalemler.has(item.kalemId) ? "bg-primary/5" : ""}>
                 <TableCell>
@@ -195,18 +199,25 @@ export default function SiparisIslemleriTab() {
                         <span className="text-muted-foreground text-xs mr-1">{item.urunKod}</span>
                         {item.urunAd}
                       </div>
-                      <div className="text-muted-foreground text-xs">
-                        Stok: {item.urunStok.toLocaleString("tr-TR")} {item.urunBirim}
-                      </div>
+                      {item.urunAltGrup && <div className="text-muted-foreground text-xs">{item.urunAltGrup}</div>}
                     </div>
                   </TableCell>
                 )}
+                <TableCell className="text-right tabular-nums">
+                  {item.urunStok.toLocaleString("tr-TR")} {item.urunBirim}
+                </TableCell>
                 <TableCell className="text-right font-medium">{item.miktar.toLocaleString("tr-TR")}</TableCell>
                 <TableCell className="text-right">
-                  {item.uretilenMiktar > 0 ? item.uretilenMiktar.toLocaleString("tr-TR") : "—"}
+                  <div className="font-medium tabular-nums">
+                    {item.uretilenMiktar.toLocaleString("tr-TR")} / {uretimKalan.toLocaleString("tr-TR")}
+                  </div>
+                  <div className="text-muted-foreground text-[10px]">üretilen / kalan</div>
                 </TableCell>
                 <TableCell className="text-right">
-                  {item.sevkEdilenMiktar > 0 ? item.sevkEdilenMiktar.toLocaleString("tr-TR") : "—"}
+                  <div className="font-medium tabular-nums">
+                    {item.sevkEdilenMiktar.toLocaleString("tr-TR")} / {sevkKalan.toLocaleString("tr-TR")}
+                  </div>
+                  <div className="text-muted-foreground text-[10px]">sevk / kalan</div>
                 </TableCell>
                 <TableCell>{durumBadge(item.uretimDurumu)}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">
@@ -324,15 +335,27 @@ export default function SiparisIslemleriTab() {
           <Card key={group.label}>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium">{group.label}</CardTitle>
-                {group.maxPlanned && (
-                  <span className="text-xs text-muted-foreground">
-                    Planlanan Bitiş (En Geç):{" "}
-                    <span className="font-medium text-foreground">
-                      {new Date(group.maxPlanned).toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                <div>
+                  <CardTitle className="text-sm font-medium">{group.label}</CardTitle>
+                  {(gorunum === "urun" || gorunum === "alt_grup") && (
+                    <p className="text-muted-foreground text-xs">
+                      Kalan toplam:{" "}
+                      <span className="font-medium text-foreground tabular-nums">
+                        {group.kalanToplam.toLocaleString("tr-TR")}
+                      </span>
+                    </p>
+                  )}
+                </div>
+                <div className="text-right">
+                  {group.maxPlanned && (
+                    <span className="text-xs text-muted-foreground">
+                      Planlanan Bitiş (En Geç):{" "}
+                      <span className="font-medium text-foreground">
+                        {new Date(group.maxPlanned).toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </span>
                     </span>
-                  </span>
-                )}
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">{renderTable(group.items)}</CardContent>

@@ -520,9 +520,11 @@ export interface SiparisIslemSatiri {
   urunBirim: string;
   miktar: number;
   uretilenMiktar: number;
+  uretimKalanMiktar: number;
   birimFiyat: number;
   uretimDurumu: string;
   sevkEdilenMiktar: number;
+  sevkKalanMiktar: number;
   uretimEmriId: string | null;
   planlananBitis: string | null;
   terminTarihi: string | null;
@@ -632,7 +634,11 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
   ]);
 
   return {
-    items: rows.map((r) => ({
+    items: rows.map((r) => {
+      const miktar = Number(r.miktar);
+      const uretilenMiktar = Number(r.uretilenMiktar ?? 0);
+      const sevkEdilenMiktar = Number(r.sevkEdilenMiktar ?? 0);
+      return {
       kalemId: r.kalemId,
       siparisId: r.siparisId,
       siparisNo: r.siparisNo,
@@ -644,17 +650,20 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
       urunAltGrup: r.urunAltGrup ?? null,
       urunStok: Number(r.urunStok ?? 0),
       urunBirim: r.urunBirim ?? '',
-      miktar: Number(r.miktar),
-      uretilenMiktar: Number(r.uretilenMiktar ?? 0),
+      miktar,
+      uretilenMiktar,
+      uretimKalanMiktar: Math.max(miktar - uretilenMiktar, 0),
       birimFiyat: Number(r.birimFiyat),
       uretimDurumu: r.uretimDurumu,
-      sevkEdilenMiktar: Number(r.sevkEdilenMiktar ?? 0),
+      sevkEdilenMiktar,
+      sevkKalanMiktar: Math.max(miktar - sevkEdilenMiktar, 0),
       uretimEmriId: r.uretimEmriId ?? null,
       planlananBitis: r.planlananBitis
         ? String(r.planlananBitis).replace(' ', 'T') + 'Z'
         : null,
       terminTarihi: r.terminTarihi ? String(r.terminTarihi).slice(0, 10) : null,
-    })),
+    };
+    }),
     total: Number(countResult[0]?.count ?? 0),
   };
 }
