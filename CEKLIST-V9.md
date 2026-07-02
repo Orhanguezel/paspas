@@ -118,7 +118,7 @@ Kural: göster EĞER `kalan>0 filtre AND (stok>0 OR aktif üretim emri var)`. Bu
 | C | Vardiya toplam sıfır (gece clamp) | Codex | ☑ deploy (ac2628a) + thread kapatıldı |
 | D | Vardiya default açılış (saat bazlı) | Codex | ☑ deploy (f8fdca1) + thread kapatıldı |
 | E | Vardiya montaj kırılımı | Codex | ☑ deploy (d37c8b9) + thread kapatıldı |
-| F | Tuna Siyah stok/montaj (F1: çok-op mamul) | Codex + Claude(veri) | ◑ kod deploy (c121708); canlı veri: aşağı bakınız |
+| F | Tuna Siyah stok/montaj (F1: çok-op mamul) | Codex + Claude | ☑ kod deploy (c121708 + e4d100d) + canlı veri + thread kapatıldı |
 | G | Sipariş işlemleri (stok/ikili/kalan) | Codex | ☑ deploy (d358268) + thread kapatıldı |
 | H | Sipariş işlemleri (sipariş bazlı filtre) | Codex | ☑ deploy (93fe147) + thread kapatıldı |
 
@@ -131,6 +131,15 @@ Codex F1 yolunu uyguladı: **çok operasyonlu + montaj-op'suz "tek emir mamul"**
 - **Aktif emirler (UE-2026-0079, 0080 `uretimde`):** UE-0079 Sağ op tamamlandi (2460), Sol op `calisiyor` (1235). Operatör Sol'u tamamlayınca yeni kod mamul stoğunu `min(2460, Sol)` kadar kredileyecek. Semantik olarak doğru (üretim henüz bitmemiş).
 - **B fix'i sayesinde** Tuna Siyah artık üretimdeyken Sevk Bekleyenler'de görünür → 0 stokla bile sevk emri açılabilir.
 
-**Açık soru (kullanıcıya):** UE-0079 Sol operasyonunu şimdi kontrollü tamamlayıp 1235'i stoğa kredileyeyim mi, yoksa operatör normal akışta bitirsin mi? (Sol=1235 < Sağ=2460 → eşleşmeyen 1225 Sağ kalır.)
+**🔴 Review'da yakalanan bug (Claude, `e4d100d`):** Codex F1'in çağırdığı `consumeRecipeMaterials`, reçetedeki **operasyonel_ym Sağ/Sol** kalemlerini de tüketiyordu. Tuna reçetesi Megane-tarzı (1114 101-R/-L içeriyor, stok 0); completion bunları -1235'e çekerdi (fantom stok). `skipOperasyonelYm` opsiyonu eklendi — multi-op-no-montaj yolunda operasyonel_ym atlanıyor, yalnız gerçek malzeme/ambalaj tüketiliyor.
+
+**Canlı düzeltme (Claude, gerçek kod yolu — `repoUretimBitir`):** UE-2026-0079 Sol operasyonu ek üretim=0 ile finalize edildi:
+- TUNA SİYAH mamul: 0 → **1235** (min(Sağ 2460, Sol 1235))
+- operasyonel_ym Sağ/Sol: **0 → 0 (değişmedi)** ✓ (skipOperasyonelYm doğrulandı)
+- Ambalaj malzemeleri düşüldü (Şaft/PVC/İç Kutu 1235, Etiket 494, Koli 247, Çember 432.25)
+- emir + Sol op → tamamlandi
+- Eski tamamlanmış emirler zaten mahsuplaşmıştı → dokunulmadı.
+
+**✅ 8/8 not resolved.**
 
 **Push YOK** — her madde Claude review + deploy + thread kapatma.
