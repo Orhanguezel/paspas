@@ -742,6 +742,48 @@ async function applyGunlukUretimStockDelta(
   });
 }
 
+async function applyUretimStockDelta(
+  tx: DbTransaction,
+  uretimEmriId: string,
+  stokDelta: number,
+  operatorUserId: string | null,
+  aciklama: string,
+): Promise<void> {
+  if (Math.abs(stokDelta) < 0.0001) return;
+
+  const [emirRow] = await tx
+    .select({
+      urun_id: uretimEmirleri.urun_id,
+      stokTakipAktif: urunler.stok_takip_aktif,
+    })
+    .from(uretimEmirleri)
+    .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+    .where(eq(uretimEmirleri.id, uretimEmriId))
+    .limit(1);
+
+  if (!emirRow?.urun_id) return;
+
+  if (emirRow.stokTakipAktif === 1) {
+    await tx
+      .update(urunler)
+      .set({ stok: sql`${urunler.stok} + ${stokDelta.toFixed(4)}` })
+      .where(eq(urunler.id, emirRow.urun_id));
+  }
+
+  await tx.insert(hareketler).values({
+    id: randomUUID(),
+    urun_id: emirRow.urun_id,
+    hareket_tipi: stokDelta > 0 ? 'giris' : 'cikis',
+    referans_tipi: 'uretim',
+    referans_id: uretimEmriId,
+    miktar: Math.abs(stokDelta).toFixed(4),
+    aciklama,
+    created_by_user_id: operatorUserId ?? null,
+  });
+
+  await consumeRecipeMaterials(tx, uretimEmriId, stokDelta, operatorUserId);
+}
+
 // ============================================================
 // 1) Makine Kuyrugu Listeleme
 // ============================================================
@@ -1112,8 +1154,6 @@ export async function repoUretimBitir(
     const toplamNet = oncekiNet + sonEkNet;
     const toplamFire = oncekiFire + body.fireMiktar;
 
-    stokFarki = sonEkNet;
-
     // Log final günlük kayıt as one more incremental entry.
     await tx.insert(operatorGunlukKayitlari).values({
       id: randomUUID(),
@@ -1124,75 +1164,34 @@ export async function repoUretimBitir(
       gunluk_durum: 'tamamlandi',
       ek_uretim_miktari: body.uretilenMiktar.toFixed(4),
       fire_miktari: body.fireMiktar.toFixed(4),
-      net_miktar: stokFarki.toFixed(4),
+      net_miktar: sonEkNet.toFixed(4),
       birim_tipi: body.birimTipi,
       notlar: body.notlar ?? null,
       kayit_tarihi: now,
     });
 
-    // OP-10: Determine stock impact upfront — used for both stock update AND parent qty.
-    // For dual-sided (çift taraflı) products only the montaj operation affects stock & progress.
-    // Single-sided or legacy (no emir_operasyon_id) always affect stock.
-    let hasStockImpact = true;
+    // Single-op and montaj operations affect stock immediately.
+    // Multi-op, no-montaj "tek emir mamul" products affect finished stock once all ops are complete.
+    let hasImmediateStockImpact = true;
+    let isMultiOpWithoutMontaj = false;
     if (kqRow.emir_operasyon_id && kqRow.uretim_emri_id) {
-      const [opCount] = await tx
-        .select({ count: sql<number>`count(*)` })
+      const opRows = await tx
+        .select({
+          id: uretimEmriOperasyonlari.id,
+          montaj: uretimEmriOperasyonlari.montaj,
+        })
         .from(uretimEmriOperasyonlari)
         .where(eq(uretimEmriOperasyonlari.uretim_emri_id, kqRow.uretim_emri_id));
-      const isSingleSided = Number(opCount?.count ?? 0) <= 1;
 
-      const [opRow] = await tx
-        .select({ montaj: uretimEmriOperasyonlari.montaj })
-        .from(uretimEmriOperasyonlari)
-        .where(eq(uretimEmriOperasyonlari.id, kqRow.emir_operasyon_id))
-        .limit(1);
-
-      hasStockImpact = isSingleSided || (Number(opRow?.montaj ?? 0) === 1);
+      const isSingleOperation = opRows.length <= 1;
+      const hasMontajOperation = opRows.some((op) => Number(op.montaj ?? 0) === 1);
+      const currentOpIsMontaj = opRows.some((op) => op.id === kqRow.emir_operasyon_id && Number(op.montaj ?? 0) === 1);
+      hasImmediateStockImpact = isSingleOperation || currentOpIsMontaj;
+      isMultiOpWithoutMontaj = opRows.length > 1 && !hasMontajOperation;
     }
 
     if (kqRow.uretim_emri_id) {
       tamamlananUretimEmriId = kqRow.uretim_emri_id;
-      tamamlananHasStockImpact = hasStockImpact;
-    }
-
-    // Apply stock correction (reconcile measurements vs actual)
-    // Only for montaj or single-sided operations.
-    if (stokFarki !== 0 && kqRow.uretim_emri_id && hasStockImpact) {
-      const [emirRow] = await tx
-        .select({
-          urun_id: uretimEmirleri.urun_id,
-          recete_id: uretimEmirleri.recete_id,
-          stokTakipAktif: urunler.stok_takip_aktif,
-        })
-        .from(uretimEmirleri)
-        .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
-        .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id))
-        .limit(1);
-
-      if (emirRow?.urun_id) {
-        if (emirRow.stokTakipAktif === 1) {
-          await tx
-            .update(urunler)
-            .set({ stok: sql`${urunler.stok} + ${stokFarki.toFixed(4)}` })
-            .where(eq(urunler.id, emirRow.urun_id));
-        }
-
-        await tx.insert(hareketler).values({
-          id: randomUUID(),
-          urun_id: emirRow.urun_id,
-          hareket_tipi: stokFarki > 0 ? 'giris' : 'cikis',
-          referans_tipi: 'uretim',
-          referans_id: kqRow.uretim_emri_id,
-          miktar: Math.abs(stokFarki).toFixed(4),
-          aciklama: stokFarki > 0
-            ? `Üretim tamamlandı — ek stok (fark: +${stokFarki.toFixed(0)})`
-            : `Üretim tamamlandı — stok düzeltme (fark: ${stokFarki.toFixed(0)})`,
-          created_by_user_id: operatorUserId ?? null,
-        });
-
-        // Consume raw materials for the delta
-        await consumeRecipeMaterials(tx, kqRow.uretim_emri_id, stokFarki, operatorUserId);
-      }
     }
 
     // Update emir operasyonu with final actual totals
@@ -1226,8 +1225,40 @@ export async function repoUretimBitir(
       const remaining = Number(pendingOps[0]?.count ?? 0);
 
       const emirUpdate: Record<string, unknown> = {};
-      if (hasStockImpact) emirUpdate.uretilen_miktar = toplamNet.toFixed(4);
+      if (hasImmediateStockImpact) {
+        stokFarki = sonEkNet;
+        tamamlananHasStockImpact = true;
+        emirUpdate.uretilen_miktar = toplamNet.toFixed(4);
+      } else if (isMultiOpWithoutMontaj && remaining <= 0) {
+        const [emirTotals] = await tx
+          .select({ oncekiUretilen: uretimEmirleri.uretilen_miktar })
+          .from(uretimEmirleri)
+          .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id))
+          .limit(1);
+        const opTotals = await tx
+          .select({ uretilen: uretimEmriOperasyonlari.uretilen_miktar })
+          .from(uretimEmriOperasyonlari)
+          .where(eq(uretimEmriOperasyonlari.uretim_emri_id, kqRow.uretim_emri_id));
+        const tamamlananMamulMiktar = Math.min(...opTotals.map((op) => Number(op.uretilen ?? 0)));
+        const oncekiMamulMiktar = Number(emirTotals?.oncekiUretilen ?? 0);
+        stokFarki = tamamlananMamulMiktar - oncekiMamulMiktar;
+        tamamlananHasStockImpact = Math.abs(stokFarki) >= 0.0001;
+        emirUpdate.uretilen_miktar = tamamlananMamulMiktar.toFixed(4);
+      }
+
       if (remaining <= 0) { emirUpdate.durum = 'tamamlandi'; emirUpdate.bitis_tarihi = now; }
+
+      if (Math.abs(stokFarki) >= 0.0001 && tamamlananHasStockImpact) {
+        await applyUretimStockDelta(
+          tx,
+          kqRow.uretim_emri_id,
+          stokFarki,
+          operatorUserId,
+          stokFarki > 0
+            ? `Üretim tamamlandı — ek stok (fark: +${stokFarki.toFixed(0)})`
+            : `Üretim tamamlandı — stok düzeltme (fark: ${stokFarki.toFixed(0)})`,
+        );
+      }
 
       if (Object.keys(emirUpdate).length > 0) {
         await tx
