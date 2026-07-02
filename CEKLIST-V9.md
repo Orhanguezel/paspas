@@ -104,10 +104,22 @@ Kural: göster EĞER `kalan>0 filtre AND (stok>0 OR aktif üretim emri var)`. Bu
 
 ---
 
-## Sıra ve Sahiplik
+## Verilmiş Kararlar (kullanıcı onayı 2026-07-02)
 
-1. **Claude hemen (net):** A (UI), B (sevk filtresi), C+D (vardiya toplam+default).
-2. **Admin kararı bekle:** E (montaj gösterimi), F (Tuna çift/tek + stok mantığı).
-3. **Feature (karar sonrası Codex/Claude):** G, H.
+- **E:** Montaj üretimi Vardiya Analizi'nde **ayrı "montaj" kırılımı** olarak gösterilir (OEE/verimlilik hesabına katılmaz, ekranda görünür).
+- **F:** Tuna Siyah **çift taraflı** kabul edilir. `operasyon_tipi='cift_tarafli'` + montaj mantığı düzeltilir; UE-2026-0079 canlı düzeltilir; yanlış kurulmuş diğer ürünler taranır. (Codex önce iki-model farkını netleştirecek — bkz. CODEX-PROMPT-V9 F.)
+
+## Durum
+
+| # | Konu | Sahip | Durum |
+|---|------|-------|-------|
+| A | Satın alma input layout | Claude | ☑ deploy (69448f1) |
+| B | Sevk filtresi (üretimde tespiti) | Claude | ☑ deploy (69448f1) — canlı doğrulanacak |
+| C | Vardiya toplam sıfır (gece clamp) | Codex | ⬜ CODEX-PROMPT-V9 |
+| D | Vardiya default açılış (saat bazlı) | Codex | ⬜ CODEX-PROMPT-V9 |
+| E | Vardiya montaj kırılımı | Codex | ⬜ CODEX-PROMPT-V9 (karar: ayrı kırılım) |
+| F | Tuna Siyah stok/montaj | Codex + Claude(veri) | ⬜ CODEX-PROMPT-V9 (karar: çift taraflı) |
+| G | Sipariş işlemleri (stok/ikili/kalan) | Codex | ⬜ CODEX-PROMPT-V9 |
+| H | Sipariş işlemleri (sipariş bazlı filtre) | Codex | ⬜ CODEX-PROMPT-V9 |
 
 **Push YOK** — her madde Claude review + deploy + thread kapatma.
