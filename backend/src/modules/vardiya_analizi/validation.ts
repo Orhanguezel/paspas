@@ -14,6 +14,7 @@ export const listQuerySchema = z.object({
   tarih: z.string().date().optional(),
   baslangicTarih: z.string().date().optional(),
   bitisTarih: z.string().date().optional(),
+  vardiyaCifti: z.enum(['gunduz-gece', 'gece-gunduz']).optional(),
   makineId: optionalStringArray,
   vardiyaTipi: optionalStringArray,
 });

@@ -217,7 +217,7 @@ export const vardiyaAnaliziAdminApi = baseApi.injectEndpoints({
   endpoints: (b) => ({
     getVardiyaAnaliziAdmin: b.query<
       VardiyaAnalizResponse,
-      { tarih?: string; baslangicTarih?: string; bitisTarih?: string; makineId?: string[]; vardiyaTipi?: string[] } | undefined
+      { tarih?: string; baslangicTarih?: string; bitisTarih?: string; vardiyaCifti?: "gunduz-gece" | "gece-gunduz"; makineId?: string[]; vardiyaTipi?: string[] } | undefined
     >({
       query: (params) => ({ url: BASE, params: params ?? undefined }),
       providesTags: [{ type: "Vardiyalar", id: "ANALIZ" }],

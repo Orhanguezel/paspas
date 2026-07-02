@@ -203,13 +203,31 @@ function buildTrendMetrics(gunler: Array<{
 }
 
 type ViewMode = "vardiya" | "makine" | "kalip" | "trend";
-type RangePreset = "gun" | "hafta" | "ay" | "ozel";
+type RangePreset = "gun" | "hafta" | "ay" | "ozel" | "vardiya-cifti";
+type VardiyaCiftiMode = "gunduz-gece" | "gece-gunduz";
+
+function defaultShiftPairRange(): { baslangicTarih: string; bitisTarih: string; vardiyaCifti: VardiyaCiftiMode } {
+  const now = new Date();
+  const h = now.getHours() + now.getMinutes() / 60;
+  const today = todayIsoDate();
+
+  if (h >= 7.5 && h < 19.5) {
+    return { baslangicTarih: shiftIsoDate(today, -1), bitisTarih: today, vardiyaCifti: "gunduz-gece" };
+  }
+
+  if (h >= 19.5) {
+    return { baslangicTarih: shiftIsoDate(today, -1), bitisTarih: today, vardiyaCifti: "gece-gunduz" };
+  }
+
+  return { baslangicTarih: shiftIsoDate(today, -2), bitisTarih: shiftIsoDate(today, -1), vardiyaCifti: "gece-gunduz" };
+}
 
 export default function VardiyaAnaliziClient() {
-  const [tarih, setTarih] = useState(yesterdayIsoDate());
-  const [rangePreset, setRangePreset] = useState<RangePreset>("gun");
-  const [customBaslangic, setCustomBaslangic] = useState(shiftIsoDate(yesterdayIsoDate(), -6));
-  const [customBitis, setCustomBitis] = useState(yesterdayIsoDate());
+  const [defaultPair] = useState(defaultShiftPairRange);
+  const [tarih, setTarih] = useState(defaultPair.bitisTarih);
+  const [rangePreset, setRangePreset] = useState<RangePreset>("vardiya-cifti");
+  const [customBaslangic, setCustomBaslangic] = useState(defaultPair.baslangicTarih);
+  const [customBitis, setCustomBitis] = useState(defaultPair.bitisTarih);
   const [view, setView] = useState<ViewMode>("vardiya");
   const [trendGunSayisi, setTrendGunSayisi] = useState<7 | 30>(7);
   const [detay, setDetay] = useState<DetayTarget | null>(null);
@@ -251,19 +269,29 @@ export default function VardiyaAnaliziClient() {
       };
     }
 
+    if (rangePreset === "vardiya-cifti") {
+      return {
+        label: "Vardiya çifti",
+        query: defaultPair,
+        subtitle: `${formatDateLabel(defaultPair.baslangicTarih)} - ${formatDateLabel(defaultPair.bitisTarih)}`,
+      };
+    }
+
     const sorted = sortIsoDates(customBaslangic, customBitis);
     return {
       label: "Özel aralık",
       query: sorted,
       subtitle: `${formatDateLabel(sorted.baslangicTarih)} - ${formatDateLabel(sorted.bitisTarih)}`,
     };
-  }, [customBaslangic, customBitis, rangePreset, tarih]);
+  }, [customBaslangic, customBitis, defaultPair, rangePreset, tarih]);
 
   const analizQuery = useMemo(() => ({
     ...range.query,
     makineId: selectedMakineIds.length > 0 ? selectedMakineIds : undefined,
-    vardiyaTipi: selectedVardiyaTipleri.length > 0 ? selectedVardiyaTipleri : undefined,
-  }), [range.query, selectedMakineIds, selectedVardiyaTipleri]);
+    vardiyaTipi: rangePreset === "vardiya-cifti"
+      ? undefined
+      : selectedVardiyaTipleri.length > 0 ? selectedVardiyaTipleri : undefined,
+  }), [range.query, rangePreset, selectedMakineIds, selectedVardiyaTipleri]);
 
   const { data, isLoading, isFetching, refetch } = useGetVardiyaAnaliziAdminQuery(
     analizQuery,
@@ -488,6 +516,7 @@ export default function VardiyaAnaliziClient() {
     setTarih(today);
     setCustomBaslangic(today);
     setCustomBitis(today);
+    setRangePreset("gun");
   }
 
   function toggleVardiyaTipi(tip: string) {
@@ -592,6 +621,14 @@ export default function VardiyaAnaliziClient() {
               onClick={() => applyPreset("gun")}
             >
               Gün
+            </Button>
+            <Button
+              size="sm"
+              variant={rangePreset === "vardiya-cifti" ? "default" : "ghost"}
+              className="h-7 px-3"
+              onClick={() => applyPreset("vardiya-cifti")}
+            >
+              Vardiya Çifti
             </Button>
             <Button
               size="sm"

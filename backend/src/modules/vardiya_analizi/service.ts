@@ -220,6 +220,27 @@ type VardiyaRow = {
 
 function dateRange(query: ListQuery): { baslangic: Date; bitis: Date; tarihLabel: string } {
   if (query.baslangicTarih && query.bitisTarih) {
+    if (query.vardiyaCifti === 'gunduz-gece') {
+      const baslangic = new Date(`${query.baslangicTarih}T00:00:00`);
+      const bitis = new Date(`${query.bitisTarih}T00:00:00`);
+      bitis.setHours(7, 30, 0, 0);
+      return {
+        baslangic,
+        bitis,
+        tarihLabel: `${query.baslangicTarih} - ${query.bitisTarih}`,
+      };
+    }
+    if (query.vardiyaCifti === 'gece-gunduz') {
+      const baslangic = new Date(`${query.baslangicTarih}T00:00:00`);
+      baslangic.setHours(19, 30, 0, 0);
+      const bitis = new Date(`${query.bitisTarih}T00:00:00`);
+      bitis.setHours(19, 30, 0, 0);
+      return {
+        baslangic,
+        bitis,
+        tarihLabel: `${query.baslangicTarih} - ${query.bitisTarih}`,
+      };
+    }
     return {
       baslangic: new Date(`${query.baslangicTarih}T00:00:00`),
       bitis: new Date(`${query.bitisTarih}T23:59:59`),
