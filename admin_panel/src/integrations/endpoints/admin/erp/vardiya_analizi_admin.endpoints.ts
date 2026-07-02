@@ -24,6 +24,12 @@ export type OperasyonKirilim = {
   miktar: number;
 };
 
+export type MontajUretim = {
+  netToplam: number;
+  kayitSayisi: number;
+  operasyonlar: OperasyonKirilim[];
+};
+
 export type VardiyaAnalizItem = {
   id: string;
   makineId: string;
@@ -57,6 +63,7 @@ export type VardiyaAnalizItem = {
   };
   oee: number | null;
   verimlilik: number | null;
+  montajUretim: MontajUretim;
 };
 
 export type VardiyaAnalizOzet = {
@@ -91,6 +98,7 @@ export type MakineRollup = {
   teorikHedef: number | null;
   hedefGerceklesmeYuzde: number | null;
   operasyonKirilimi: OperasyonKirilim[];
+  montajUretim: MontajUretim;
   oee: number | null;
 };
 

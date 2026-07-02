@@ -22,6 +22,12 @@ export type OperasyonKirilim = {
   miktar: number;
 };
 
+export type MontajUretim = {
+  netToplam: number;
+  kayitSayisi: number;
+  operasyonlar: OperasyonKirilim[];
+};
+
 export type VardiyaAnalizItem = {
   id: string;
   makineId: string;
@@ -55,6 +61,7 @@ export type VardiyaAnalizItem = {
   };
   oee: number | null;
   verimlilik: number | null;
+  montajUretim: MontajUretim;
 };
 
 export type VardiyaAnalizOzet = {
@@ -89,6 +96,7 @@ export type MakineRollup = {
   teorikHedef: number | null;
   hedefGerceklesmeYuzde: number | null;
   operasyonKirilimi: OperasyonKirilim[];
+  montajUretim: MontajUretim;
   oee: number | null;
 };
 
@@ -431,6 +439,12 @@ function mergeOperasyonKirilimi(target: OperasyonKirilim[], source: OperasyonKir
   target.sort((a, b) => b.miktar - a.miktar || a.operasyonAdi.localeCompare(b.operasyonAdi, 'tr'));
 }
 
+function mergeMontajUretim(target: MontajUretim, source: MontajUretim) {
+  target.netToplam += source.netToplam;
+  target.kayitSayisi += source.kayitSayisi;
+  mergeOperasyonKirilimi(target.operasyonlar, source.operasyonlar);
+}
+
 export type DurusDetay = {
   id: string;
   baslangic: string;
@@ -733,7 +747,6 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         lte(operatorGunlukKayitlari.kayit_tarihi, bitis),
         machineCondition(query, operatorGunlukKayitlari.makine_id),
         hasProductionSql,
-        sql`(${operatorGunlukKayitlari.emir_operasyon_id} IS NULL OR COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 0)`,
       ),
     )
     .orderBy(desc(operatorGunlukKayitlari.kayit_tarihi));
@@ -835,6 +848,39 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         uretimEmriOperasyonlari.cevrim_suresi_sn,
       );
 
+    const montajRows = await db
+      .select({
+        operasyonId: uretimEmriOperasyonlari.id,
+        operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
+        operasyonTipi: urunler.operasyon_tipi,
+        kalipId: kaliplar.id,
+        kalipKod: kaliplar.kod,
+        kalipAd: kaliplar.ad,
+        netMiktar: sql<number>`coalesce(sum(${netMiktarSql}), 0)`,
+        kayitSayisi: sql<number>`count(*)`,
+      })
+      .from(operatorGunlukKayitlari)
+      .innerJoin(uretimEmirleri, eq(operatorGunlukKayitlari.uretim_emri_id, uretimEmirleri.id))
+      .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+      .innerJoin(uretimEmriOperasyonlari, eq(operatorGunlukKayitlari.emir_operasyon_id, uretimEmriOperasyonlari.id))
+      .leftJoin(kaliplar, eq(uretimEmriOperasyonlari.kalip_id, kaliplar.id))
+      .where(
+        and(
+          eq(operatorGunlukKayitlari.makine_id, v.makineId),
+          gte(operatorGunlukKayitlari.kayit_tarihi, vBaslangic),
+          lte(operatorGunlukKayitlari.kayit_tarihi, effectiveBitis),
+          sql`COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 1`,
+        ),
+      )
+      .groupBy(
+        uretimEmriOperasyonlari.id,
+        uretimEmriOperasyonlari.operasyon_adi,
+        urunler.operasyon_tipi,
+        kaliplar.id,
+        kaliplar.kod,
+        kaliplar.ad,
+      );
+
     const { urunKirilimi, uretimToplam, fireToplam } = buildUretimKirilimSummary(uretimRows);
     const operasyonKirilimi: OperasyonKirilim[] = operasyonRows
       .map((r) => ({
@@ -847,6 +893,21 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         miktar: Number(r.netMiktar ?? 0),
       }))
       .sort((a, b) => b.miktar - a.miktar || a.operasyonAdi.localeCompare(b.operasyonAdi, 'tr'));
+    const montajUretim: MontajUretim = {
+      netToplam: montajRows.reduce((sum, row) => sum + Number(row.netMiktar ?? 0), 0),
+      kayitSayisi: montajRows.reduce((sum, row) => sum + Number(row.kayitSayisi ?? 0), 0),
+      operasyonlar: montajRows
+        .map((r) => ({
+          operasyonId: r.operasyonId ?? null,
+          operasyonAdi: r.operasyonAdi ?? 'Montaj',
+          operasyonTipi: r.operasyonTipi ?? null,
+          kalipId: r.kalipId ?? null,
+          kalipKod: r.kalipKod ?? null,
+          kalipAd: r.kalipAd ?? null,
+          miktar: Number(r.netMiktar ?? 0),
+        }))
+        .sort((a, b) => b.miktar - a.miktar || a.operasyonAdi.localeCompare(b.operasyonAdi, 'tr')),
+    };
     let idealCalismaSn = 0;
     let hasCycle = false;
     for (const row of operasyonRows) {
@@ -946,6 +1007,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
       duruslar: d,
       oee,
       verimlilik,
+      montajUretim,
     });
   }
 
@@ -986,6 +1048,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
       existing.kalipDegisimDk += v.duruslar.kalipDegisimDk;
       existing.bakimDk += v.duruslar.bakimDk;
       mergeOperasyonKirilimi(existing.operasyonKirilimi, v.uretim.operasyonKirilimi);
+      mergeMontajUretim(existing.montajUretim, v.montajUretim);
     } else {
       makineRollupMap.set(v.makineId, {
         makineId: v.makineId,
@@ -1006,6 +1069,11 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         teorikHedef: null,
         hedefGerceklesmeYuzde: null,
         operasyonKirilimi: v.uretim.operasyonKirilimi.map((item) => ({ ...item })),
+        montajUretim: {
+          netToplam: v.montajUretim.netToplam,
+          kayitSayisi: v.montajUretim.kayitSayisi,
+          operasyonlar: v.montajUretim.operasyonlar.map((item) => ({ ...item })),
+        },
         oee: 0,
       });
     }
