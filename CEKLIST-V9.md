@@ -113,13 +113,24 @@ Kural: göster EĞER `kalan>0 filtre AND (stok>0 OR aktif üretim emri var)`. Bu
 
 | # | Konu | Sahip | Durum |
 |---|------|-------|-------|
-| A | Satın alma input layout | Claude | ☑ deploy (69448f1) |
-| B | Sevk filtresi (üretimde tespiti) | Claude | ☑ deploy (69448f1) — canlı doğrulanacak |
-| C | Vardiya toplam sıfır (gece clamp) | Codex | ⬜ CODEX-PROMPT-V9 |
-| D | Vardiya default açılış (saat bazlı) | Codex | ⬜ CODEX-PROMPT-V9 |
-| E | Vardiya montaj kırılımı | Codex | ⬜ CODEX-PROMPT-V9 (karar: ayrı kırılım) |
-| F | Tuna Siyah stok/montaj | Codex + Claude(veri) | ⬜ CODEX-PROMPT-V9 (karar: çift taraflı) |
-| G | Sipariş işlemleri (stok/ikili/kalan) | Codex | ⬜ CODEX-PROMPT-V9 |
-| H | Sipariş işlemleri (sipariş bazlı filtre) | Codex | ⬜ CODEX-PROMPT-V9 |
+| A | Satın alma input layout | Claude | ☑ deploy (69448f1) + thread kapatıldı |
+| B | Sevk filtresi (üretimde tespiti) | Claude | ☑ deploy (69448f1) + canlı doğrulandı + 2 thread kapatıldı |
+| C | Vardiya toplam sıfır (gece clamp) | Codex | ☑ deploy (ac2628a) + thread kapatıldı |
+| D | Vardiya default açılış (saat bazlı) | Codex | ☑ deploy (f8fdca1) + thread kapatıldı |
+| E | Vardiya montaj kırılımı | Codex | ☑ deploy (d37c8b9) + thread kapatıldı |
+| F | Tuna Siyah stok/montaj (F1: çok-op mamul) | Codex + Claude(veri) | ◑ kod deploy (c121708); canlı veri: aşağı bakınız |
+| G | Sipariş işlemleri (stok/ikili/kalan) | Codex | ☑ deploy (d358268) + thread kapatıldı |
+| H | Sipariş işlemleri (sipariş bazlı filtre) | Codex | ☑ deploy (93fe147) + thread kapatıldı |
+
+### F — canlı veri durumu (48ae4a9a hâlâ open)
+
+Codex F1 yolunu uyguladı: **çok operasyonlu + montaj-op'suz "tek emir mamul"** üretim emirlerinde, tüm operasyonlar bitince mamul stoğu `min(operasyon üretilenleri)` kadar kredilenir (achievable). Kod yayında — **bundan sonraki tamamlamalar kendi kendini düzeltir.**
+
+**Canlı veri taraması (Claude, salt-okuma):** `tek_tarafli` + 2+ Sağ/Sol operasyonlu 43 emir. Kritik bulgu:
+- **Eski tamamlanmış emirler (UE-0003…0061):** `uretilen_miktar` zaten dolu, mamul_stok 0 → sevk edilmiş / mahsuplaşmış. **TOPLU DÜZELTME YAPILMADI** (sevk edilmişleri bozardı).
+- **Aktif emirler (UE-2026-0079, 0080 `uretimde`):** UE-0079 Sağ op tamamlandi (2460), Sol op `calisiyor` (1235). Operatör Sol'u tamamlayınca yeni kod mamul stoğunu `min(2460, Sol)` kadar kredileyecek. Semantik olarak doğru (üretim henüz bitmemiş).
+- **B fix'i sayesinde** Tuna Siyah artık üretimdeyken Sevk Bekleyenler'de görünür → 0 stokla bile sevk emri açılabilir.
+
+**Açık soru (kullanıcıya):** UE-0079 Sol operasyonunu şimdi kontrollü tamamlayıp 1235'i stoğa kredileyeyim mi, yoksa operatör normal akışta bitirsin mi? (Sol=1235 < Sağ=2460 → eşleşmeyen 1225 Sağ kalır.)
 
 **Push YOK** — her madde Claude review + deploy + thread kapatma.
