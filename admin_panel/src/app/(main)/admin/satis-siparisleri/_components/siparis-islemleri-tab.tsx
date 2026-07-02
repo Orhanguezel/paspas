@@ -34,7 +34,7 @@ import {
   KALEM_URETIM_DURUMU_BADGE,
 } from "@/integrations/shared/erp/satis_siparisleri.types";
 
-type Gorunum = "duz" | "musteri" | "urun" | "alt_grup";
+type Gorunum = "duz" | "musteri" | "urun" | "alt_grup" | "siparis";
 
 export default function SiparisIslemleriTab() {
   const [search, setSearch] = React.useState("");
@@ -127,10 +127,12 @@ export default function SiparisIslemleriTab() {
       const key =
         gorunum === "musteri" ? item.musteriId :
         gorunum === "alt_grup" ? (item.urunAltGrup || "__alt_grup_yok") :
+        gorunum === "siparis" ? item.siparisId :
         item.urunId;
       const label =
         gorunum === "musteri" ? item.musteriAd :
         gorunum === "alt_grup" ? (item.urunAltGrup || "Alt grup yok") :
+        gorunum === "siparis" ? item.siparisNo :
         `${item.urunKod} — ${item.urunAd}`;
       if (!map.has(key)) map.set(key, { label, items: [], maxPlanned: null, kalanToplam: 0 });
       const group = map.get(key)!;
@@ -154,6 +156,12 @@ export default function SiparisIslemleriTab() {
   }
 
   function renderTable(rows: SiparisIslemSatiri[]) {
+    const showClose = gorunum === "siparis";
+    const emptyColSpan =
+      8 +
+      (gorunum !== "musteri" ? 1 : 0) +
+      (gorunum !== "urun" ? 1 : 0) +
+      (showClose ? 1 : 0);
     return (
       <Table>
         <TableHeader>
@@ -173,7 +181,7 @@ export default function SiparisIslemleriTab() {
             <TableHead className="text-right">Sevk Edilen</TableHead>
             <TableHead>Üretim Durumu</TableHead>
             <TableHead>Planlanan Bitiş</TableHead>
-            <TableHead className="w-12 text-center">Kapat</TableHead>
+            {showClose && <TableHead className="w-12 text-center">Kapat</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -231,24 +239,26 @@ export default function SiparisIslemleriTab() {
                       })
                     : "—"}
                 </TableCell>
-                <TableCell className="text-center">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8"
-                    title={`${item.siparisNo} siparişini kapat`}
-                    aria-label="Siparişi kapat"
-                    onClick={() => setCloseTarget(item)}
-                  >
-                    <Lock className="size-4" />
-                  </Button>
-                </TableCell>
+                {showClose && (
+                  <TableCell className="text-center">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8"
+                      title={`${item.siparisNo} siparişini kapat`}
+                      aria-label="Siparişi kapat"
+                      onClick={() => setCloseTarget(item)}
+                    >
+                      <Lock className="size-4" />
+                    </Button>
+                  </TableCell>
+                )}
               </TableRow>
             );
           })}
           {rows.length === 0 && (
             <TableRow>
-              <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={emptyColSpan} className="text-center text-muted-foreground py-8">
                 Kayıt bulunamadı
               </TableCell>
             </TableRow>
@@ -283,6 +293,7 @@ export default function SiparisIslemleriTab() {
                 <SelectItem value="musteri">Müşteri Bazlı</SelectItem>
                 <SelectItem value="urun">Ürün Bazlı</SelectItem>
                 <SelectItem value="alt_grup">Ürün Alt Grubu</SelectItem>
+                <SelectItem value="siparis">Sipariş Bazlı</SelectItem>
               </SelectContent>
             </Select>
 

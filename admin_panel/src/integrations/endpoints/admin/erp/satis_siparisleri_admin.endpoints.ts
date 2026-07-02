@@ -25,7 +25,7 @@ export interface SiparisIslemleriParams {
   musteriId?: string;
   urunId?: string;
   uretimDurumu?: KalemUretimDurumu;
-  gorunum?: 'duz' | 'musteri' | 'urun' | 'alt_grup';
+  gorunum?: 'duz' | 'musteri' | 'urun' | 'alt_grup' | 'siparis';
   gizleTamamlanan?: boolean;
   limit?: number;
   offset?: number;
