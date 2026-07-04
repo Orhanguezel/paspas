@@ -164,7 +164,10 @@ export async function createUrunWithYariMamuller(input: CreateUrunFullBody): Pro
         operasyon_adi: tanim.ad,
         hazirlik_suresi_dk: input.hazirlikSuresiDk,
         cevrim_suresi_sn: input.cevrimSuresiSn.toFixed(2),
-        montaj: 0,
+        // Montaj tarafı (YN-V11): çift taraflıda Sol, tek parçalıda Parça operasyonu
+        // montaj görevini taşır — bu YM emri tamamlanınca tryMontaj asıl ürün stoğunu
+        // üretir. Sağ tarafta montaj yoktur; stoğu birikir, Sol tamamlanınca eşleşir.
+        montaj: tanim.rol === 'sag' ? 0 : 1,
       });
     }
 
