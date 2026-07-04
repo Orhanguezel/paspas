@@ -97,7 +97,8 @@
 - [x] İş 1: Operatör ekranında mamul adı (YM üstünde) — notun 1. şikayeti.
 - [x] İş 2: Üretim planlamada Sağ/Sol taraf stokları gösterimi.
 - [x] Build kontrolleri: backend `bun run build`, admin `bunx tsc --noEmit`, admin `bun run build`.
-- Thread `51ac56d3` → UI işleri tamamlandı; review/deploy sonrası kapatılabilir.
+- Thread `51ac56d3` → **kapatıldı (resolved)**. Review + deploy tamam; canlıda doğrulandı.
+- **Review bulgusu (Claude, `5c91b2e`):** Aynı YM birden çok mamul reçetesinde geçtiği için `LIMIT 1` yanlış varyant döndürüyordu (UE-0091 → "AUTOMIX", doğrusu "GMAX"). Asıl ürün türetme sipariş bağlantısı öncelikli yapıldı (reçete fallback); mamul emirlerinde NULL guard eklendi. Canlıda doğrulandı: UE-0091 → "PARS SİYAH - GMAX" ✓.
 
 ### Hâlâ açık (V10'dan)
 - **K3:** UE-0079 (1235 kredi kalsın mı) + TIGER KROM ürünleri (yeni mi / NUMBER ONE ile aynı mı) — admin cevabı bekleniyor (WhatsApp soruları gönderildi).
