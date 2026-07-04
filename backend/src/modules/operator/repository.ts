@@ -16,7 +16,6 @@ import { receteler, receteKalemleri } from '@/modules/receteler/schema';
 import { tryMontajForUretimEmri, tryPendingMontajlarAfterStokArtis } from '@/modules/uretim_emirleri/service';
 import { iptalRezervasyon } from '@/modules/uretim_emirleri/hammadde_service';
 import { repoCreate as malKabulRepoCreate } from '@/modules/mal_kabul/repository';
-import { repoCreateOtomatikSevkEmriFromUretim } from '@/modules/sevkiyat/repository';
 import { createAdminNotification } from '@/modules/notifications/controller';
 import { isMakineWorkingDay, recalcMakineKuyrukTarihleri } from '@/modules/_shared/planlama';
 import { hammaddeRezervasyonlari } from '@/modules/urunler/schema';
@@ -1321,17 +1320,10 @@ export async function repoUretimBitir(
     await runNonBlockingStep('recalc_makine_kuyruk_tarihleri', () => recalcMakineKuyrukTarihleri(tamamlananMakineId));
   }
 
-  if (tamamlananUretimEmriId && stokFarki > 0 && tamamlananHasStockImpact) {
-    const uretimEmriId = tamamlananUretimEmriId;
-    await runNonBlockingStep('otomatik_sevk_emri', () =>
-      repoCreateOtomatikSevkEmriFromUretim({
-        uretimEmriId,
-        miktar: stokFarki,
-        tamamlanmaTarihi: now,
-        actorUserId: operatorUserId,
-      }).then(() => undefined),
-    );
-  }
+  // NOT (YN-V12 07aced9d): Üretim bitince otomatik sevk emri oluşturma KALDIRILDI.
+  // Admin kuralı: kullanıcı sevk emrini Sevk Bekleyenler'den kendisi oluşturur;
+  // sistem otomatik sevk emri üretmez (üretilenden fazla otomatik sevk, stokları
+  // eksiye düşürüyordu — KAPITONE örneği).
 
   // Auto-refresh linked sipariş durum after production complete
   await runNonBlockingStep('uretim_sonrasi_siparis_montaj_senkronizasyonu', async () => {

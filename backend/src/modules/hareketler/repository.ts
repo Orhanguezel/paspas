@@ -73,6 +73,7 @@ function kaynakTipiExpression() {
       when ${hareketler.referans_tipi} = 'stok_duzeltme' then 'stok_duzeltme'
       when ${hareketler.referans_tipi} = 'fire' then 'fire'
       when ${hareketler.referans_tipi} = 'uretim' then 'uretim'
+      when ${hareketler.referans_tipi} = 'montaj' then 'uretim'
       else 'manuel'
     end
   `;
