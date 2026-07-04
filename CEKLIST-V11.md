@@ -76,7 +76,27 @@
 
 ---
 
-## Açık kararlar
-- **K1:** Hangi model? (A: veri onar / B: basit "montaj sayısı=ürün" / C: mamul-emir modeli)
-- **K2:** ~25 çift taraflı üründe montaj-tarafını kim/nasıl belirleyecek (ürün tanımından mı, kural mı)?
-- **K3:** UE-0079 (1235) ve TIGER KROM (V10) bu kararla birlikte nasıl kapanacak?
+## Kararlar ve Uygulama (2026-07-04)
+
+- **K1 = Yol A** (kullanıcı onayı; B ile fark tartışıldı — achievable montaj B'nin ruhunu içerir, eşitsiz üretimde fantom mamul üretmez).
+- **K2 =** Kural: Sol (-L/-SL) ve tek parça (-X/-PR) montaj tarafı; emir bazında Makine ve Montaj Planlama bloğundan değiştirilebilir.
+
+### Yapılanlar (yayında)
+| İş | Uygulama | Commit |
+|----|----------|--------|
+| Montaj bayrakları geri | seed 206: 113 YM tanımı montaj=1 + 5 açık emrin op'ları hizalandı | 2d57988 |
+| Yeni YM'ler montajlı doğar | urunler/service.ts rol bazlı (sol/parca=1, sag=0) | 2d57988 |
+| YM stok takibi zorunlu | seed 207: 102 takipsiz YM açıldı; stok kesim-sonrası hareket netinden senkronlandı | 977e78f |
+| Yeni YM'ler hep takipli | urunler/service.ts stok_takip_aktif:1 | 977e78f |
+| Hayalet bakiye düzeltmesi | 17 YM: eski model kredisiz tüketimi sıfırlandı (denetim hareketli) | canlı |
+| Çift sayım telafisi | seed 207 + elle düzeltme çakışması geri alındı; Megane Sağ 92 gerçek bakiyesi korundu | canlı |
+
+**Doğrulanan son durum:** PARS Sol 1100 / Sağ 1510 (takipli, Sol montaj=1) → operatör Sol'u bitirince ~min eşleşen çift mamul stoğa girecek; kalan Sağ stokta bekleyip sonra eşleşecek — kullanıcının onayladığı senaryo birebir.
+
+### Devam eden (Codex) → [CODEX-PROMPT-V11.md](CODEX-PROMPT-V11.md)
+- İş 1: Operatör ekranında mamul adı (YM üstünde) — notun 1. şikayeti.
+- İş 2: Üretim planlamada Sağ/Sol taraf stokları gösterimi.
+- Thread `51ac56d3` → `in_review` (ara bilgi notu yazıldı); UI işleri bitince kapatılacak.
+
+### Hâlâ açık (V10'dan)
+- **K3:** UE-0079 (1235 kredi kalsın mı) + TIGER KROM ürünleri (yeni mi / NUMBER ONE ile aynı mı) — admin cevabı bekleniyor (WhatsApp soruları gönderildi).
