@@ -20,10 +20,13 @@ PREPARE stmt FROM @stmt;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+-- Gerçek makine kayıtları: kod='Enjeksiyon 1'/'Enjeksiyon 2'/'Ekstrüzyon'
+-- (ad = '900 T (ÖN)'/'900 T (ARKA)'/'Ekstrüzyon Hattı 1 (PVC)'). Hem kod hem
+-- olası eski kodlar (ENJ-01/EKS-) hem ad kalıpları kapsanır — deterministik.
 UPDATE `makineler`
 SET `gosterim_sira` = CASE
-  WHEN `kod` = 'ENJ-01' OR LOWER(`ad`) LIKE '%enjeksiyon%1%' OR LOWER(`ad`) LIKE '%haitian ma 2%' THEN 1
-  WHEN `kod` = 'ENJ-02' OR LOWER(`ad`) LIKE '%enjeksiyon%2%' OR LOWER(`ad`) LIKE '%haitian ma 5%' THEN 2
-  WHEN `kod` LIKE 'EKS-%' OR LOWER(`ad`) LIKE '%ekstr%' THEN 3
+  WHEN LOWER(`kod`) LIKE 'enjeksiyon%1%' OR `kod` = 'ENJ-01' OR LOWER(`ad`) LIKE '%enjeksiyon%1%' OR LOWER(`ad`) LIKE '%haitian ma 2%' THEN 1
+  WHEN LOWER(`kod`) LIKE 'enjeksiyon%2%' OR `kod` = 'ENJ-02' OR LOWER(`ad`) LIKE '%enjeksiyon%2%' OR LOWER(`ad`) LIKE '%haitian ma 5%' THEN 2
+  WHEN LOWER(`kod`) LIKE '%ekstr%' OR `kod` LIKE 'EKS-%' OR LOWER(`ad`) LIKE '%ekstr%' THEN 3
   ELSE 999
 END;
