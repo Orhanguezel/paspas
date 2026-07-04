@@ -115,6 +115,9 @@ export const satisSiparisleriAdminApi = baseApi.injectEndpoints({
         { type: 'SatisSiparisleri', id: 'ISLEMLER' },
         { type: 'UretimEmirleri', id: 'LIST' },
         { type: 'UretimEmirleri', id: 'ADAYLAR' },
+        { type: 'MakineKuyrugu', id: 'ATANMAMIS' },
+        { type: 'MakineKuyrugu', id: 'KUYRUKLAR' },
+        { type: 'Stoklar', id: 'LIST' },
       ],
     }),
 

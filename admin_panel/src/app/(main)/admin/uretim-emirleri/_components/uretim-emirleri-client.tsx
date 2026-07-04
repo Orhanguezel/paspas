@@ -406,7 +406,7 @@ export default function UretimEmirleriClient() {
   const [aktarModalOpen, setAktarModalOpen] = useState(false);
   const [editing, setEditing] = useState<UretimEmriDto | null>(null);
   const formInitialKaynak: "manuel" | "siparis" = "manuel";
-  const [deleteTarget, setDelete] = useState<UretimEmriDto | null>(null);
+  const [deleteTarget, setDelete] = useState<UretimEmriDto[] | null>(null);
   const [selectedEmirForRecete, setSelectedEmirForRecete] = useState<string | null>(null);
   // Makineden Çıkar bir mamul (tek/çift taraflı) bazında çalışır: aynı mamulün
   // tüm üretim emirlerinin kuyruk kayıtları çıkarılır.
@@ -530,9 +530,11 @@ export default function UretimEmirleriClient() {
   }, [currentPage, totalPages]);
 
   async function confirmDelete() {
-    if (!deleteTarget) return;
+    if (!deleteTarget?.length) return;
     try {
-      await deleteEmri(deleteTarget.id).unwrap();
+      for (const emri of deleteTarget) {
+        await deleteEmri(emri.id).unwrap();
+      }
       toast.success(t("admin.erp.common.deleted", { item: t("admin.erp.uretimEmirleri.singular") }));
     } catch (err: unknown) {
       const message =
@@ -656,7 +658,7 @@ export default function UretimEmirleriClient() {
         variant="ghost"
         size="icon"
         className="size-7 text-destructive hover:text-destructive disabled:text-muted-foreground"
-        onClick={() => setDelete(emirler[0])}
+        onClick={() => setDelete(emirler)}
         disabled={!silinebilir}
       >
         <Trash2 className="size-3.5" />
@@ -1116,7 +1118,9 @@ export default function UretimEmirleriClient() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t("admin.erp.uretimEmirleri.deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t("admin.erp.common.deleteDescriptionIrreversible", { name: deleteTarget?.emirNo ?? "" })}
+              {t("admin.erp.common.deleteDescriptionIrreversible", {
+                name: deleteTarget?.map((emri) => emri.emirNo).join(", ") ?? "",
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
