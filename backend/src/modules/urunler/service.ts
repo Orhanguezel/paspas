@@ -151,7 +151,10 @@ export async function createUrunWithYariMamuller(input: CreateUrunFullBody): Pro
         renk: input.renk ?? null,
         stok: '0.0000',
         kritik_stok: '0.0000',
-        stok_takip_aktif: input.stokTakipAktif ? 1 : 0,
+        // Operasyonel YM'lerde stok takibi HER ZAMAN açık (YN-V11): taraf stokları
+        // birikmezse achievable montaj min hesabına girmez ve yanlış mamul kredisi
+        // oluşur. Mamulün stok takip ayarından bağımsızdır.
+        stok_takip_aktif: 1,
         kdv_orani: input.kdvOrani.toFixed(2),
         operasyon_tipi: null,
       };
