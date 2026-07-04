@@ -887,9 +887,9 @@ export async function repoListMakineKuyrugu(
       .where(where),
   ]);
 
-  // Batch query accumulated measurements for active/paused jobs
+  // Batch query accumulated measurements for every queue item so modals can show
+  // previous production/fire totals without a separate request.
   const activeOpIds = rows
-    .filter((r) => r.kq.durum === 'calisiyor' || r.kq.durum === 'duraklatildi')
     .map((r) => r.kq.emir_operasyon_id ?? r.kq.uretim_emri_id)
     .filter(Boolean) as string[];
 
@@ -897,7 +897,7 @@ export async function repoListMakineKuyrugu(
 
   if (activeOpIds.length > 0) {
     // Query by emir_operasyon_id where available, else by uretim_emri_id
-    const opRows = rows.filter((r) => r.kq.durum === 'calisiyor' || r.kq.durum === 'duraklatildi');
+    const opRows = rows;
     const withOpId = opRows.filter((r) => r.kq.emir_operasyon_id);
     const withoutOpId = opRows.filter((r) => !r.kq.emir_operasyon_id);
 

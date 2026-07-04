@@ -79,6 +79,33 @@ function getJobSubtitle(job: MakineKuyruguDetayDto): string {
   return `${job.urunKod}${opText}`;
 }
 
+function formatQuantity(value: number): string {
+  return value.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
+}
+
+function PreviousTotalsCard({ job, hint }: { job: MakineKuyruguDetayDto; hint?: string }) {
+  return (
+    <div className="rounded-xl border bg-slate-50 p-4 text-sm">
+      <div className="text-xs font-bold uppercase text-slate-500">Şu ana kadar</div>
+      <div className="mt-2 grid grid-cols-2 gap-3">
+        <div className="rounded-lg bg-white p-3 shadow-sm">
+          <div className="text-xs font-medium text-muted-foreground">Üretim</div>
+          <div className="mt-1 text-2xl font-black tabular-nums text-slate-900">
+            {formatQuantity(job.oncekiUretimToplam ?? 0)}
+          </div>
+        </div>
+        <div className="rounded-lg bg-white p-3 shadow-sm">
+          <div className="text-xs font-medium text-muted-foreground">Fire</div>
+          <div className="mt-1 text-2xl font-black tabular-nums text-rose-600">
+            {formatQuantity(job.oncekiFireToplam ?? 0)}
+          </div>
+        </div>
+      </div>
+      {hint ? <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{hint}</p> : null}
+    </div>
+  );
+}
+
 export default function OperatorClient() {
   const { t } = useLocaleContext();
   const now = useRealtimeClock();
@@ -627,7 +654,7 @@ function MakineKuyruguTab() {
       )}
 
       <Sheet open={!!finishing} onOpenChange={(v) => !v && setFinishing(null)}>
-        <SheetContent side="right" className="h-dvh w-full max-w-full p-0 sm:h-auto sm:max-w-2xl">
+        <SheetContent side="right" className="h-dvh w-full max-w-full overflow-y-auto p-0 sm:h-auto sm:max-w-2xl">
           <SheetHeader className="border-b px-4 py-4">
             <SheetTitle>{t("admin.erp.operator.finishTitle")}</SheetTitle>
           </SheetHeader>
@@ -635,22 +662,14 @@ function MakineKuyruguTab() {
             <p className="text-sm text-muted-foreground">
               <strong className="font-mono">{finishing?.emirNo}</strong> — {finishing ? getJobTitle(finishing) : ""}
             </p>
-            {finishing && finishing.oncekiUretimToplam > 0 && (
-              <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
-                <div className="font-medium">{t("admin.erp.operator.previousMeasurements")}</div>
-                <div className="grid grid-cols-2 gap-2 text-muted-foreground">
-                  <div>{t("admin.erp.operator.producedQuantity")}: <span className="font-medium text-foreground">{finishing.oncekiUretimToplam ?? 0}</span></div>
-                  <div>{t("admin.erp.operator.scrapQuantity")}: <span className="font-medium text-foreground">{finishing.oncekiFireToplam ?? 0}</span></div>
-                </div>
-                <p className="text-xs text-muted-foreground">{t("admin.erp.operator.finishTotalHint")}</p>
-              </div>
-            )}
+            {finishing && <PreviousTotalsCard job={finishing} hint={t("admin.erp.operator.finishTotalHint")} />}
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label>
                   {finishing?.montaj ? t("admin.erp.operator.setCount") : t("admin.erp.operator.producedCount")}
                 </Label>
                 <Input
+                  className="h-12 rounded-xl text-lg font-semibold"
                   type="number"
                   step="0.0001"
                   value={uretilenMiktar}
@@ -660,25 +679,25 @@ function MakineKuyruguTab() {
               </div>
               <div className="space-y-1">
                 <Label>{t("admin.erp.operator.scrapCount")}</Label>
-                <Input type="number" step="0.0001" value={fireMiktar} onChange={(e) => setFireMiktar(e.target.value)} />
+                <Input className="h-12 rounded-xl text-lg font-semibold" type="number" step="0.0001" value={fireMiktar} onChange={(e) => setFireMiktar(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
               <Label>{t("admin.erp.operator.notes")}</Label>
-              <Textarea rows={2} value={notlar} onChange={(e) => setNotlar(e.target.value)} />
+              <Textarea className="min-h-24 rounded-xl text-base" rows={3} value={notlar} onChange={(e) => setNotlar(e.target.value)} />
             </div>
           </div>
-          <SheetFooter className="border-t px-4 py-4 sm:flex-row sm:justify-end">
-            <Button variant="outline" onClick={() => setFinishing(null)}>
+          <SheetFooter className="grid grid-cols-1 gap-2 border-t px-4 py-4 sm:grid-cols-2">
+            <Button variant="outline" className="h-12 rounded-xl text-base font-semibold" onClick={() => setFinishing(null)}>
               {t("admin.common.cancel")}
             </Button>
-            <Button onClick={confirmFinish}>{t("admin.common.save")}</Button>
+            <Button className="h-12 rounded-xl text-base font-bold" onClick={confirmFinish}>{t("admin.common.save")}</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
 
       <Sheet open={!!dailyEntry} onOpenChange={(v) => !v && setDailyEntry(null)}>
-        <SheetContent side="right" className="h-dvh w-full max-w-full p-0 sm:h-auto sm:max-w-2xl">
+        <SheetContent side="right" className="h-dvh w-full max-w-full overflow-y-auto p-0 sm:h-auto sm:max-w-2xl">
           <SheetHeader className="border-b px-4 py-4">
             <SheetTitle>Günlük Üretim Girişi</SheetTitle>
           </SheetHeader>
@@ -686,6 +705,7 @@ function MakineKuyruguTab() {
             <p className="text-sm text-muted-foreground">
               <strong className="font-mono">{dailyEntry?.emirNo}</strong> — {dailyEntry ? getJobTitle(dailyEntry) : ""}
             </p>
+            {dailyEntry && <PreviousTotalsCard job={dailyEntry} />}
             <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span>Bu alana toplam iş miktarını değil, yalnız bu vardiyada üretilen ek miktarı girin.</span>
@@ -693,7 +713,7 @@ function MakineKuyruguTab() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-7 rounded-full px-3 text-xs"
+                  className="h-10 rounded-xl px-4 text-sm font-semibold sm:h-8 sm:rounded-full sm:text-xs"
                   onClick={() => setDailyVardiyaTipi((current) => (current === "gunduz" ? "gece" : "gunduz"))}
                 >
                   {dailyVardiyaTipi === "gunduz" ? "Gündüz" : "Gece"} Vardiyası
@@ -706,6 +726,7 @@ function MakineKuyruguTab() {
                   {dailyEntry?.montaj ? "Vardiyada Üretilen Takım" : "Vardiyada Üretilen Adet"}
                 </Label>
                 <Input
+                  className="h-12 rounded-xl text-lg font-semibold"
                   type="number"
                   step="0.0001"
                   min={0}
@@ -717,6 +738,7 @@ function MakineKuyruguTab() {
               <div className="space-y-1">
                 <Label>Vardiya Fire Miktarı</Label>
                 <Input
+                  className="h-12 rounded-xl text-lg font-semibold"
                   type="number"
                   step="0.0001"
                   min={0}
@@ -727,21 +749,21 @@ function MakineKuyruguTab() {
             </div>
             <div className="space-y-1">
               <Label>{t("admin.erp.operator.notes")}</Label>
-              <Textarea rows={2} value={dailyNotlar} onChange={(e) => setDailyNotlar(e.target.value)} />
+              <Textarea className="min-h-24 rounded-xl text-base" rows={3} value={dailyNotlar} onChange={(e) => setDailyNotlar(e.target.value)} />
             </div>
           </div>
-          <SheetFooter className="border-t px-4 py-4 sm:flex-row sm:justify-end">
-            <Button variant="outline" onClick={() => setDailyEntry(null)}>
+          <SheetFooter className="grid grid-cols-1 gap-2 border-t px-4 py-4 sm:grid-cols-2">
+            <Button variant="outline" className="h-12 rounded-xl text-base font-semibold" onClick={() => setDailyEntry(null)}>
               {t("admin.common.cancel")}
             </Button>
-            <Button onClick={confirmDailyEntry}>Günlük Üretimi Kaydet</Button>
+            <Button className="h-12 rounded-xl text-base font-bold" onClick={confirmDailyEntry}>Günlük Üretimi Kaydet</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
 
       {/* Pause Sheet */}
       <Sheet open={!!pausing} onOpenChange={(v) => !v && setPausing(null)}>
-        <SheetContent side="right" className="h-dvh w-full max-w-full p-0 sm:h-auto sm:max-w-2xl">
+        <SheetContent side="right" className="h-dvh w-full max-w-full overflow-y-auto p-0 sm:h-auto sm:max-w-2xl">
           <SheetHeader className="border-b px-4 py-4">
             <SheetTitle>{t("admin.erp.operator.pauseTitle")}</SheetTitle>
           </SheetHeader>
@@ -749,6 +771,7 @@ function MakineKuyruguTab() {
             <p className="text-sm text-muted-foreground">
               <strong className="font-mono">{pausing?.emirNo}</strong> — {pausing ? getJobTitle(pausing) : ""}
             </p>
+            {pausing && <PreviousTotalsCard job={pausing} />}
             <div className="space-y-1">
               <Label>{t("admin.erp.operator.pauseReason")} *</Label>
               <Select value={pauseNedenId || "none"} onValueChange={(v) => {
@@ -757,7 +780,7 @@ function MakineKuyruguTab() {
                 const found = durusNedenleri.find((d) => d.id === id);
                 if (found) setPauseNeden(found.ad);
               }}>
-                <SelectTrigger>
+                <SelectTrigger className="h-12 rounded-xl text-base">
                   <SelectValue placeholder={t("admin.erp.operator.selectPauseReason")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -772,18 +795,18 @@ function MakineKuyruguTab() {
             </div>
             <div className="space-y-1">
               <Label>{t("admin.erp.operator.pauseNote")}</Label>
-              <Input value={pauseNeden} onChange={(e) => setPauseNeden(e.target.value)} placeholder={t("admin.erp.operator.pauseNotePlaceholder")} />
+              <Input className="h-12 rounded-xl text-base" value={pauseNeden} onChange={(e) => setPauseNeden(e.target.value)} placeholder={t("admin.erp.operator.pauseNotePlaceholder")} />
             </div>
             <div className="space-y-1">
               <Label>{t("admin.erp.operator.currentProduction")}</Label>
-              <Input type="number" step="0.0001" value={pauseUretimMiktari} onChange={(e) => setPauseUretimMiktari(e.target.value)} />
+              <Input className="h-12 rounded-xl text-lg font-semibold" type="number" step="0.0001" value={pauseUretimMiktari} onChange={(e) => setPauseUretimMiktari(e.target.value)} />
             </div>
           </div>
-          <SheetFooter className="border-t px-4 py-4 sm:flex-row sm:justify-end">
-            <Button variant="outline" onClick={() => setPausing(null)}>
+          <SheetFooter className="grid grid-cols-1 gap-2 border-t px-4 py-4 sm:grid-cols-2">
+            <Button variant="outline" className="h-12 rounded-xl text-base font-semibold" onClick={() => setPausing(null)}>
               {t("admin.common.cancel")}
             </Button>
-            <Button onClick={confirmPause} disabled={!pauseNedenId}>{t("admin.erp.operator.pauseConfirm")}</Button>
+            <Button className="h-12 rounded-xl text-base font-bold" onClick={confirmPause} disabled={!pauseNedenId}>{t("admin.erp.operator.pauseConfirm")}</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
