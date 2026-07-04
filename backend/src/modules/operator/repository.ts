@@ -817,22 +817,37 @@ export async function repoListMakineKuyrugu(
         ue_urun_id: uretimEmirleri.urun_id,
         u_kod: urunler.kod,
         u_ad: urunler.ad,
-        asil_urun_kod: sql<string | null>`(
-          select u2.kod
-          from recete_kalemleri rk
-          inner join receteler r2 on r2.id = rk.recete_id and r2.is_active = 1
-          inner join urunler u2 on u2.id = r2.urun_id and u2.kategori = 'urun'
-          where rk.urun_id = ${uretimEmirleri.urun_id}
-          limit 1
-        )`,
-        asil_urun_ad: sql<string | null>`(
-          select u2.ad
-          from recete_kalemleri rk
-          inner join receteler r2 on r2.id = rk.recete_id and r2.is_active = 1
-          inner join urunler u2 on u2.id = r2.urun_id and u2.kategori = 'urun'
-          where rk.urun_id = ${uretimEmirleri.urun_id}
-          limit 1
-        )`,
+        // Asıl ürün türetme: aynı YM birden çok mamul reçetesinde geçebildiği için
+        // önce emrin SİPARİŞ bağlantısındaki ürün (kesin), yoksa reçete fallback'i.
+        // Yalnız YM emirleri için dolar; mamul emirlerinde NULL kalır.
+        asil_urun_kod: sql<string | null>`case when ${urunler.kategori} in ('operasyonel_ym','yarimamul') then coalesce(
+          (select u3.kod
+           from uretim_emri_siparis_kalemleri uesk
+           inner join siparis_kalemleri sk3 on sk3.id = uesk.siparis_kalem_id
+           inner join urunler u3 on u3.id = sk3.urun_id
+           where uesk.uretim_emri_id = ${uretimEmirleri.id}
+           limit 1),
+          (select u2.kod
+           from recete_kalemleri rk
+           inner join receteler r2 on r2.id = rk.recete_id and r2.is_active = 1
+           inner join urunler u2 on u2.id = r2.urun_id and u2.kategori = 'urun'
+           where rk.urun_id = ${uretimEmirleri.urun_id}
+           limit 1)
+        ) else null end`,
+        asil_urun_ad: sql<string | null>`case when ${urunler.kategori} in ('operasyonel_ym','yarimamul') then coalesce(
+          (select u3.ad
+           from uretim_emri_siparis_kalemleri uesk
+           inner join siparis_kalemleri sk3 on sk3.id = uesk.siparis_kalem_id
+           inner join urunler u3 on u3.id = sk3.urun_id
+           where uesk.uretim_emri_id = ${uretimEmirleri.id}
+           limit 1),
+          (select u2.ad
+           from recete_kalemleri rk
+           inner join receteler r2 on r2.id = rk.recete_id and r2.is_active = 1
+           inner join urunler u2 on u2.id = r2.urun_id and u2.kategori = 'urun'
+           where rk.urun_id = ${uretimEmirleri.urun_id}
+           limit 1)
+        ) else null end`,
         op_operasyon_adi: uretimEmriOperasyonlari.operasyon_adi,
         op_sira: uretimEmriOperasyonlari.sira,
         op_planlanan_miktar: uretimEmriOperasyonlari.planlanan_miktar,
