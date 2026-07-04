@@ -68,6 +68,17 @@ function useRealtimeClock() {
   return now;
 }
 
+function getJobTitle(job: MakineKuyruguDetayDto): string {
+  return job.asilUrunAd || job.urunAd;
+}
+
+function getJobSubtitle(job: MakineKuyruguDetayDto): string {
+  const ymText = [job.urunKod, job.urunAd].filter(Boolean).join(" · ");
+  const opText = job.operasyonAdi ? ` · ${job.operasyonAdi}` : "";
+  if (job.asilUrunAd) return `${ymText}${opText}`;
+  return `${job.urunKod}${opText}`;
+}
+
 export default function OperatorClient() {
   const { t } = useLocaleContext();
   const now = useRealtimeClock();
@@ -401,8 +412,8 @@ function MakineKuyruguTab() {
                           </div>
 
                           <div className="min-w-0 space-y-2">
-                             <div className="break-words text-2xl font-black leading-tight text-slate-900 sm:text-3xl md:text-5xl">{activeJob.urunAd}</div>
-                             <div className="break-words text-base font-medium text-muted-foreground sm:text-lg md:text-xl">{activeJob.urunKod} {activeJob.operasyonAdi && `· ${activeJob.operasyonAdi}`}</div>
+                             <div className="break-words text-2xl font-black leading-tight text-slate-900 sm:text-3xl md:text-5xl">{getJobTitle(activeJob)}</div>
+                             <div className="break-words text-base font-medium text-muted-foreground sm:text-lg md:text-xl">{getJobSubtitle(activeJob)}</div>
                           </div>
 
                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-6">
@@ -522,7 +533,7 @@ function MakineKuyruguTab() {
                                 onClick={() => handleBaslat(firstBekleyenJob)}
                               >
                                 <span className="text-xs font-bold opacity-70 uppercase tracking-widest">SIRADAKİ İŞİ BAŞLAT</span>
-                                {firstBekleyenJob.urunAd}
+                                {getJobTitle(firstBekleyenJob)}
                               </Button>
                             )}
                             <Button
@@ -553,9 +564,9 @@ function MakineKuyruguTab() {
                             <Fragment key={job.id}>
                             <div className={`flex min-w-0 items-center gap-2 rounded-xl border bg-white p-2 sm:hidden ${canStart ? 'border-primary ring-1 ring-primary' : 'opacity-80'}`}>
                               <div className="min-w-0 flex-1">
-                                <div className="truncate text-sm font-black text-slate-800">{job.urunAd}</div>
+                                <div className="truncate text-sm font-black text-slate-800">{getJobTitle(job)}</div>
                                 <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-                                  <span className="truncate">{job.urunKod}</span>
+                                  <span className="truncate">{getJobSubtitle(job)}</span>
                                   <Badge variant="outline" className="h-5 shrink-0 px-1 text-[10px]">{job.planlananMiktar}</Badge>
                                   {job.makinePlanliKapali ? (
                                     <Badge variant="destructive" className="h-5 shrink-0 px-1 text-[10px]">Kapalı</Badge>
@@ -582,10 +593,10 @@ function MakineKuyruguTab() {
                                     <Badge variant="outline" className="text-[10px]">{job.planlananMiktar} Adet</Badge>
                                   </div>
                                 </div>
-                                <CardTitle className="mt-1 truncate text-sm font-black text-slate-800 sm:text-base">{job.urunAd}</CardTitle>
+                                <CardTitle className="mt-1 truncate text-sm font-black text-slate-800 sm:text-base">{getJobTitle(job)}</CardTitle>
                               </CardHeader>
                               <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                                <p className="mb-3 truncate text-xs text-muted-foreground sm:mb-4">{job.urunKod} {job.operasyonAdi && `· ${job.operasyonAdi}`}</p>
+                                <p className="mb-3 truncate text-xs text-muted-foreground sm:mb-4">{getJobSubtitle(job)}</p>
                                 <Button 
                                   className="h-9 w-full rounded-xl font-bold sm:h-10" 
                                   disabled={!canStart} 
@@ -622,7 +633,7 @@ function MakineKuyruguTab() {
           </SheetHeader>
           <div className="space-y-4 px-4 py-4">
             <p className="text-sm text-muted-foreground">
-              <strong className="font-mono">{finishing?.emirNo}</strong> — {finishing?.urunAd}
+              <strong className="font-mono">{finishing?.emirNo}</strong> — {finishing ? getJobTitle(finishing) : ""}
             </p>
             {finishing && finishing.oncekiUretimToplam > 0 && (
               <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
@@ -673,7 +684,7 @@ function MakineKuyruguTab() {
           </SheetHeader>
           <div className="space-y-4 px-4 py-4">
             <p className="text-sm text-muted-foreground">
-              <strong className="font-mono">{dailyEntry?.emirNo}</strong> — {dailyEntry?.urunAd}
+              <strong className="font-mono">{dailyEntry?.emirNo}</strong> — {dailyEntry ? getJobTitle(dailyEntry) : ""}
             </p>
             <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -736,7 +747,7 @@ function MakineKuyruguTab() {
           </SheetHeader>
           <div className="space-y-4 px-4 py-4">
             <p className="text-sm text-muted-foreground">
-              <strong className="font-mono">{pausing?.emirNo}</strong> — {pausing?.urunAd}
+              <strong className="font-mono">{pausing?.emirNo}</strong> — {pausing ? getJobTitle(pausing) : ""}
             </p>
             <div className="space-y-1">
               <Label>{t("admin.erp.operator.pauseReason")} *</Label>
@@ -785,7 +796,7 @@ function MakineKuyruguTab() {
           </SheetHeader>
           <div className="space-y-4 px-4 py-4">
             <p className="text-sm text-muted-foreground">
-              <strong className="font-mono">{resuming?.emirNo}</strong> — {resuming?.urunAd}
+              <strong className="font-mono">{resuming?.emirNo}</strong> — {resuming ? getJobTitle(resuming) : ""}
             </p>
             <div className="space-y-1">
               <Label>{t("admin.erp.operator.notes")}</Label>

@@ -635,6 +635,8 @@ export type MakineKuyruguDetayDto = {
   urunId: string;
   urunKod: string;
   urunAd: string;
+  asilUrunKod: string | null;
+  asilUrunAd: string | null;
   planlananMiktar: number;
   uretilenMiktar: number;
   fireMiktar: number;
@@ -815,6 +817,22 @@ export async function repoListMakineKuyrugu(
         ue_urun_id: uretimEmirleri.urun_id,
         u_kod: urunler.kod,
         u_ad: urunler.ad,
+        asil_urun_kod: sql<string | null>`(
+          select u2.kod
+          from recete_kalemleri rk
+          inner join receteler r2 on r2.id = rk.recete_id and r2.is_active = 1
+          inner join urunler u2 on u2.id = r2.urun_id and u2.kategori = 'urun'
+          where rk.urun_id = ${uretimEmirleri.urun_id}
+          limit 1
+        )`,
+        asil_urun_ad: sql<string | null>`(
+          select u2.ad
+          from recete_kalemleri rk
+          inner join receteler r2 on r2.id = rk.recete_id and r2.is_active = 1
+          inner join urunler u2 on u2.id = r2.urun_id and u2.kategori = 'urun'
+          where rk.urun_id = ${uretimEmirleri.urun_id}
+          limit 1
+        )`,
         op_operasyon_adi: uretimEmriOperasyonlari.operasyon_adi,
         op_sira: uretimEmriOperasyonlari.sira,
         op_planlanan_miktar: uretimEmriOperasyonlari.planlanan_miktar,
@@ -958,6 +976,8 @@ export async function repoListMakineKuyrugu(
       urunId: r.ue_urun_id ?? '',
       urunKod: r.u_kod ?? '',
       urunAd: r.u_ad ?? '',
+      asilUrunKod: r.asil_urun_kod ?? null,
+      asilUrunAd: r.asil_urun_ad ?? null,
       planlananMiktar: Number(r.op_planlanan_miktar ?? 0),
       uretilenMiktar: Number(r.op_uretilen_miktar ?? 0),
       fireMiktar: Number(r.op_fire_miktar ?? 0),
