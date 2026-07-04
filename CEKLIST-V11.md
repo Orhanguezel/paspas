@@ -100,5 +100,9 @@
 - Thread `51ac56d3` → **kapatıldı (resolved)**. Review + deploy tamam; canlıda doğrulandı.
 - **Review bulgusu (Claude, `5c91b2e`):** Aynı YM birden çok mamul reçetesinde geçtiği için `LIMIT 1` yanlış varyant döndürüyordu (UE-0091 → "AUTOMIX", doğrusu "GMAX"). Asıl ürün türetme sipariş bağlantısı öncelikli yapıldı (reçete fallback); mamul emirlerinde NULL guard eklendi. Canlıda doğrulandı: UE-0091 → "PARS SİYAH - GMAX" ✓.
 
-### Hâlâ açık (V10'dan)
-- **K3:** UE-0079 (1235 kredi kalsın mı) + TIGER KROM ürünleri (yeni mi / NUMBER ONE ile aynı mı) — admin cevabı bekleniyor (WhatsApp soruları gönderildi).
+### V10 kapanışı (admin cevapları, 2026-07-04)
+
+- **UE-0079 Tuna Siyah — KAPANDI:** Admin "bitti kabul edelim, Sol üretilince ürüne dönüşmesin" dedi. Canlı doğrulama: 1114 101-R/-L stokları **0** — eşleşmemiş 1225 Sağ eski tek-emir modelinde yalnız operasyon sayacıydı, YM stoğu olarak hiç yoktu → **otomatik dönüşüm riski zaten yok, veri değişikliği gerekmedi.** Emir tamamlandi durumda.
+- **TIGER KROM — KAPANDI (yanlış alarm + zamanlama):** Admin ürünleri **07-03'te manuel eklemiş** (benim taramam 07-02'ydi — o yüzden bulunamadı). Canlı doğrulama: 1132 211-214 "TIGER KROM ... - GMAX" ürün olarak kayıtlı ve listede; eski "Film-Tiger" yarımamulleri **2601 053-056'ya yeniden kodlanmış** (çift kod YOK, reçetelerde kullanımları sağlam). Reçeteleri de kurulmuş: 1× NumOne-X aramamul + 1× Tiger-Sol aramamul + malzemeler — her iki YM da seed 206 ile montaj=1, yeni montaj sistemiyle üretilebilir durumda.
+
+> **Açık madde kalmadı** — V10 + V11 zinciri komple kapandı (yukarıdaki V10 kapanışı bölümüne bakınız).
