@@ -413,8 +413,20 @@ export default function UretimEmirleriClient() {
   const [cikarTarget, setCikarTarget] = useState<{ emirNo: string; emirIds: string[] } | null>(null);
   const [page, setPage] = useState(0);
   const [activeTab, setActiveTab] = useState<"goruntule" | "planla">("goruntule");
+  // Parti bazında "Makine ve Montaj Planlama" bloğunu buton ile açma (YN 1ea4431f):
+  // otomatik render cache/zamanlama sorunlarına takılıyordu; kullanıcı butonla açar.
+  const [acikPlanlama, setAcikPlanlama] = useState<Set<string>>(new Set());
   const PAGE_SIZE = 25;
   const isPlanlaTab = activeTab === "planla";
+
+  function togglePlanlama(partiKey: string) {
+    setAcikPlanlama((current) => {
+      const next = new Set(current);
+      if (next.has(partiKey)) next.delete(partiKey);
+      else next.add(partiKey);
+      return next;
+    });
+  }
 
   const DURUM_OPTIONS: Array<{ value: UretimEmriDurum | "hepsi"; label: string }> = [
     { value: "hepsi", label: t("admin.erp.uretimEmirleri.statuses.hepsi") },
@@ -837,7 +849,25 @@ export default function UretimEmirleriClient() {
           {partiGruplari.map((parti) => (
             <div key={parti.parti} className="space-y-2">
               <div className="rounded-md border bg-white shadow-sm overflow-hidden">
-                <div className="bg-muted/40 px-4 py-2 font-semibold text-xs">{parti.parti}</div>
+                <div className="bg-muted/40 px-4 py-2 flex items-center justify-between gap-2">
+                  <span className="font-semibold text-xs">{parti.parti}</span>
+                  {isPlanlaTab && (
+                    <Button
+                      size="sm"
+                      variant={acikPlanlama.has(parti.parti) ? "secondary" : "outline"}
+                      className="h-7 gap-1 text-xs"
+                      onClick={() => togglePlanlama(parti.parti)}
+                    >
+                      <Wrench className="size-3.5" />
+                      Makine ve Montaj Planlama
+                      {acikPlanlama.has(parti.parti) ? (
+                        <ChevronLeft className="size-3.5 rotate-90" />
+                      ) : (
+                        <ChevronRight className="size-3.5 rotate-90" />
+                      )}
+                    </Button>
+                  )}
+                </div>
                 <Table>
                   <TableHeader className="bg-muted/30">
                     <TableRow>
@@ -1057,8 +1087,10 @@ export default function UretimEmirleriClient() {
                 </Table>
               </div>
 
-              {/* Partinin Makine ve Montaj Planlama bloğu */}
-              {isPlanlaTab && <MakineMontajPlanlama uretimEmriIds={parti.emirIds} />}
+              {/* Partinin Makine ve Montaj Planlama bloğu — butonla açılır */}
+              {isPlanlaTab && acikPlanlama.has(parti.parti) && (
+                <MakineMontajPlanlama uretimEmriIds={parti.emirIds} />
+              )}
             </div>
           ))}
 

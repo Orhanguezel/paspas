@@ -11,9 +11,11 @@
 
 import { useMemo, useState } from "react";
 
+import { RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -55,9 +57,15 @@ interface Props {
 export function MakineMontajPlanlama({ uretimEmriIds }: Props) {
   const emirIdSet = useMemo(() => new Set(uretimEmriIds), [uretimEmriIds]);
 
-  const { data: atanmamisler = [] } = useListAtanmamisAdminQuery();
-  const { data: kuyruklar = [] } = useListKuyrukAdminQuery();
+  const { data: atanmamisler = [], refetch: refetchAtanmamis, isFetching: atanmamisYukleniyor } =
+    useListAtanmamisAdminQuery();
+  const { data: kuyruklar = [], refetch: refetchKuyruk, isFetching: kuyrukYukleniyor } = useListKuyrukAdminQuery();
   const { data: makinelerData } = useListMakinelerAdminQuery({});
+
+  function yenile() {
+    refetchAtanmamis();
+    refetchKuyruk();
+  }
 
   const [ataOperasyon, { isLoading: ataliyor }] = useAtaOperasyonAdminMutation();
   const [kuyrukCikar, { isLoading: cikariliyor }] = useKuyrukCikarAdminMutation();
@@ -184,17 +192,40 @@ export function MakineMontajPlanlama({ uretimEmriIds }: Props) {
     }
   }
 
-  if (satirlar.length === 0) return null;
-
   const formatMiktar = (value: number) => value.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
+  const yukleniyor = atanmamisYukleniyor || kuyrukYukleniyor;
+
+  // Boşsa "return null" YAPMA — kullanıcı butonla açtığı için geri bildirim ver
+  // (henüz veri gelmemiş / cache tazelenmemiş olabilir; Yenile ile çözülür).
+  if (satirlar.length === 0) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed bg-muted/20 px-4 py-3">
+        <p className="text-muted-foreground text-xs">
+          {yukleniyor
+            ? "Planlama bilgileri yükleniyor…"
+            : "Bu partiye ait planlanabilir operasyon bulunamadı. Az önce oluşturduysanız Yenile'ye basın."}
+        </p>
+        <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={yenile} disabled={yukleniyor}>
+          <RefreshCcw className={`size-3.5 ${yukleniyor ? "animate-spin" : ""}`} />
+          Yenile
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
-      <div>
-        <h3 className="font-semibold text-sm">Makine ve Montaj Planlama</h3>
-        <p className="text-muted-foreground text-xs">
-          Çift taraflı ürünlerin Sağ/Sol operasyonel yarı mamulleri burada makineye atanır.
-        </p>
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <h3 className="font-semibold text-sm">Makine ve Montaj Planlama</h3>
+          <p className="text-muted-foreground text-xs">
+            Çift taraflı ürünlerin Sağ/Sol operasyonel yarı mamulleri burada makineye atanır.
+          </p>
+        </div>
+        <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={yenile} disabled={yukleniyor}>
+          <RefreshCcw className={`size-3.5 ${yukleniyor ? "animate-spin" : ""}`} />
+          Yenile
+        </Button>
       </div>
       <div className="overflow-hidden rounded-md border">
         <Table>
