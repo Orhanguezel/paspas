@@ -10,6 +10,7 @@ export const makineler = mysqlTable('makineler', {
   calisir_24_saat: tinyint('calisir_24_saat', { unsigned: true }).notNull().default(0),
   operator_de_goster: tinyint('operator_de_goster', { unsigned: true }).notNull().default(1),
   is_yuklerinde_goster: tinyint('is_yuklerinde_goster', { unsigned: true }).notNull().default(1),
+  gosterim_sira: int('gosterim_sira', { unsigned: true }).notNull().default(999),
   durum: varchar('durum', { length: 32 }).notNull().default('aktif'),
   is_active: tinyint('is_active', { unsigned: true }).notNull().default(1),
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),

@@ -877,7 +877,7 @@ export async function repoListMakineKuyrugu(
       .leftJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
       .leftJoin(uretimEmriOperasyonlari, eq(makineKuyrugu.emir_operasyon_id, uretimEmriOperasyonlari.id))
       .where(where)
-      .orderBy(asc(makineKuyrugu.makine_id), asc(makineKuyrugu.sira))
+      .orderBy(asc(makineler.gosterim_sira), asc(makineler.kod), asc(makineKuyrugu.sira))
       .limit(query.limit)
       .offset(query.offset),
     db

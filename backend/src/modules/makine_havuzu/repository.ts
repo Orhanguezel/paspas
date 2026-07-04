@@ -35,7 +35,8 @@ function buildWhere(query: ListQuery): SQL | undefined {
 function getOrderBy(query: ListQuery) {
   if (query.sort === 'ad') return query.order === 'asc' ? asc(makineler.ad) : desc(makineler.ad);
   if (query.sort === 'kod') return query.order === 'asc' ? asc(makineler.kod) : desc(makineler.kod);
-  return query.order === 'asc' ? asc(makineler.created_at) : desc(makineler.created_at);
+  if (query.sort === 'created_at') return query.order === 'asc' ? asc(makineler.created_at) : desc(makineler.created_at);
+  return asc(makineler.gosterim_sira);
 }
 
 function mapCreateInput(data: CreateBody): typeof makineler.$inferInsert {
@@ -308,7 +309,7 @@ export async function repoListKuyruklar(): Promise<KuyrukGrubuDto[]> {
     .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
     .leftJoin(uretimEmriOperasyonlari, eq(makineKuyrugu.emir_operasyon_id, uretimEmriOperasyonlari.id))
     .where(inArray(makineKuyrugu.durum, ['bekliyor', 'calisiyor', 'duraklatildi']))
-    .orderBy(asc(makineKuyrugu.makine_id), asc(makineKuyrugu.sira));
+    .orderBy(asc(makineler.gosterim_sira), asc(makineler.kod), asc(makineKuyrugu.sira));
 
   // Makine bilgileri
   const makineIds = [...new Set(rows.map((r) => r.makineId))];
@@ -317,7 +318,8 @@ export async function repoListKuyruklar(): Promise<KuyrukGrubuDto[]> {
   const makineRows = await db
     .select({ id: makineler.id, kod: makineler.kod, ad: makineler.ad })
     .from(makineler)
-    .where(inArray(makineler.id, makineIds));
+    .where(inArray(makineler.id, makineIds))
+    .orderBy(asc(makineler.gosterim_sira), asc(makineler.kod));
   const makineMap = new Map(makineRows.map((m) => [m.id, m]));
 
   // Grupla
