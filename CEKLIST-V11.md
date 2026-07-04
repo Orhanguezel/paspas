@@ -93,10 +93,11 @@
 
 **Doğrulanan son durum:** PARS Sol 1100 / Sağ 1510 (takipli, Sol montaj=1) → operatör Sol'u bitirince ~min eşleşen çift mamul stoğa girecek; kalan Sağ stokta bekleyip sonra eşleşecek — kullanıcının onayladığı senaryo birebir.
 
-### Devam eden (Codex) → [CODEX-PROMPT-V11.md](CODEX-PROMPT-V11.md)
-- İş 1: Operatör ekranında mamul adı (YM üstünde) — notun 1. şikayeti.
-- İş 2: Üretim planlamada Sağ/Sol taraf stokları gösterimi.
-- Thread `51ac56d3` → `in_review` (ara bilgi notu yazıldı); UI işleri bitince kapatılacak.
+### Tamamlandı (Codex) → [CODEX-PROMPT-V11.md](CODEX-PROMPT-V11.md)
+- [x] İş 1: Operatör ekranında mamul adı (YM üstünde) — notun 1. şikayeti.
+- [x] İş 2: Üretim planlamada Sağ/Sol taraf stokları gösterimi.
+- [x] Build kontrolleri: backend `bun run build`, admin `bunx tsc --noEmit`, admin `bun run build`.
+- Thread `51ac56d3` → UI işleri tamamlandı; review/deploy sonrası kapatılabilir.
 
 ### Hâlâ açık (V10'dan)
 - **K3:** UE-0079 (1235 kredi kalsın mı) + TIGER KROM ürünleri (yeni mi / NUMBER ONE ile aynı mı) — admin cevabı bekleniyor (WhatsApp soruları gönderildi).

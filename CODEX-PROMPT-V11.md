@@ -9,6 +9,8 @@
 
 ## İş 1 — Operatör ekranında mamul (asıl ürün) adı (notun 1. şikayeti)
 
+**Durum:** ✅ Tamamlandı. Operatör kuyruk DTO'su asıl ürün kod/ad alanlarını döner; iş kartlarında varsa mamul adı büyük başlık, YM adı/kodu alt satır olarak gösterilir.
+
 **Şikayet:** Ekranda yalnız YM adı görünüyor ("Pars Siyah Aramamul Sol"); mamul adı ("PARS SİYAH - GMAX") kayboldu — emirler artık YM'ye ait olduğu için.
 
 **Backend:** `operator/repository.ts` `repoListMakineKuyrugu` select'ine asıl ürün alanları ekle. Türetme: emrin `urun_id`'si (YM) → aktif reçete kalemi → reçetenin mamulü:
@@ -24,6 +26,8 @@
 
 ## İş 2 — Üretim planlamada Sağ/Sol taraf stokları
 
+**Durum:** ✅ Tamamlandı. Makine havuzu atanmamış/kuyruk DTO'ları `urunStok` döner; Makine ve Montaj Planlama satırlarında YM stok rozeti görünür.
+
 **İstek (kullanıcı onaylı senaryo):** "Elde 500 Sol varsa planlamada görünsün → sadece 500 Sağ üretilsin."
 
 **Yer:** `uretim-emirleri` "Üretim Planla" + "Makine ve Montaj Planlama" bloğu (`makine-montaj-planlama.tsx`). Her taraf satırında o YM'nin **güncel stok** miktarını göster (`urunler.stok`) — ör. rozet: "Stok: 1.100". Parti/mamul satırında iki tarafın stoğu yan yana görünebilir.
@@ -33,3 +37,5 @@
 ## Sınırlar
 - Montaj/stok mantığına DOKUNMA (tryMontaj, repoUretimBitir, consumeRecipeMaterials) — yeni yayınlandı.
 - Her iş ayrı commit; backend `bun run build`, admin `bunx tsc --noEmit` + `bun run build` temiz.
+
+**Doğrulama:** ✅ `backend: bun run build`, ✅ `admin_panel: bunx tsc --noEmit`, ✅ `admin_panel: bun run build`.
