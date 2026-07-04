@@ -180,6 +180,7 @@ export type AtanmamisOperasyonDto = {
   emirNo: string;
   urunKod: string;
   urunAd: string;
+  urunStok: number;
   operasyonAdi: string;
   sira: number;
   kalipId: string | null;
@@ -199,6 +200,7 @@ export async function repoListAtanmamis(): Promise<AtanmamisOperasyonDto[]> {
       emirNo: uretimEmirleri.emir_no,
       urunKod: urunler.kod,
       urunAd: urunler.ad,
+      urunStok: urunler.stok,
       operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
       sira: uretimEmriOperasyonlari.sira,
       kalipId: uretimEmriOperasyonlari.kalip_id,
@@ -226,6 +228,7 @@ export async function repoListAtanmamis(): Promise<AtanmamisOperasyonDto[]> {
     emirNo: r.emirNo,
     urunKod: r.urunKod,
     urunAd: r.urunAd,
+    urunStok: Number(r.urunStok ?? 0),
     operasyonAdi: r.operasyonAdi,
     sira: r.sira,
     kalipId: r.kalipId ?? null,
@@ -245,6 +248,7 @@ export type KuyrukItemDto = {
   emirNo: string;
   urunKod: string;
   urunAd: string;
+  urunStok: number;
   operasyonAdi: string;
   sira: number;
   planlananSureDk: number;
@@ -291,6 +295,7 @@ export async function repoListKuyruklar(): Promise<KuyrukGrubuDto[]> {
       musteriOzet: uretimEmirleri.musteri_ozet,
       urunKod: urunler.kod,
       urunAd: urunler.ad,
+      urunStok: urunler.stok,
       operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
       planlananMiktar: uretimEmriOperasyonlari.planlanan_miktar,
       uretilenMiktar: uretimEmriOperasyonlari.uretilen_miktar,
@@ -332,6 +337,7 @@ export async function repoListKuyruklar(): Promise<KuyrukGrubuDto[]> {
       emirNo: r.emirNo,
       urunKod: r.urunKod,
       urunAd: r.urunAd,
+      urunStok: Number(r.urunStok ?? 0),
       operasyonAdi: r.operasyonAdi ?? '',
       sira: r.sira,
       planlananSureDk: r.planlananSureDk,

@@ -13,6 +13,7 @@ import { useMemo, useState } from "react";
 
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -35,6 +36,7 @@ interface PlanlamaSatiri {
   emirNo: string;
   urunKod: string;
   urunAd: string;
+  urunStok: number;
   operasyonAdi: string;
   sira: number;
   planlananMiktar: number;
@@ -77,6 +79,7 @@ export function MakineMontajPlanlama({ uretimEmriIds }: Props) {
         emirNo: op.emirNo,
         urunKod: op.urunKod,
         urunAd: op.urunAd,
+        urunStok: op.urunStok,
         operasyonAdi: op.operasyonAdi,
         sira: op.sira,
         planlananMiktar: op.planlananMiktar,
@@ -99,6 +102,7 @@ export function MakineMontajPlanlama({ uretimEmriIds }: Props) {
           emirNo: item.emirNo,
           urunKod: item.urunKod,
           urunAd: item.urunAd,
+          urunStok: item.urunStok,
           operasyonAdi: item.operasyonAdi,
           sira: item.sira,
           planlananMiktar: item.planlananMiktar,
@@ -182,6 +186,8 @@ export function MakineMontajPlanlama({ uretimEmriIds }: Props) {
 
   if (satirlar.length === 0) return null;
 
+  const formatMiktar = (value: number) => value.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
+
   return (
     <div className="space-y-2">
       <div>
@@ -207,7 +213,12 @@ export function MakineMontajPlanlama({ uretimEmriIds }: Props) {
                 <TableRow key={satir.emirOperasyonId}>
                   <TableCell>
                     {/* Parça / Yarı Mamul: operasyon adı her zaman üretilen yarımamulü verir */}
-                    <div className="font-medium text-sm">{satir.operasyonAdi || satir.urunAd}</div>
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <div className="font-medium text-sm">{satir.operasyonAdi || satir.urunAd}</div>
+                      <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                        Stok: {formatMiktar(satir.urunStok)}
+                      </Badge>
+                    </div>
                     <div className="font-mono text-muted-foreground text-xs">
                       {satir.urunKod ? `${satir.urunKod} · ` : ""}
                       {satir.emirNo}

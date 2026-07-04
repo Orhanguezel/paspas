@@ -111,6 +111,7 @@ export interface AtanmamisOperasyonDto {
   emirNo: string;
   urunKod: string;
   urunAd: string;
+  urunStok: number;
   operasyonAdi: string;
   sira: number;
   kalipId: string | null;
@@ -140,6 +141,7 @@ export interface KuyrukItemDto {
   emirNo: string;
   urunKod: string;
   urunAd: string;
+  urunStok: number;
   operasyonAdi: string;
   sira: number;
   planlananSureDk: number;
@@ -185,6 +187,7 @@ export function normalizeAtanmamisOperasyon(raw: unknown): AtanmamisOperasyonDto
     emirNo: toStr(r.emirNo),
     urunKod: toStr(r.urunKod),
     urunAd: toStr(r.urunAd),
+    urunStok: toNum(r.urunStok),
     operasyonAdi: toStr(r.operasyonAdi),
     sira: toNum(r.sira, 1),
     kalipId: r.kalipId != null ? toStr(r.kalipId) : null,
@@ -228,6 +231,7 @@ function normalizeKuyrukItem(raw: unknown): KuyrukItemDto {
     emirNo: toStr(r.emirNo),
     urunKod: toStr(r.urunKod),
     urunAd: toStr(r.urunAd),
+    urunStok: toNum(r.urunStok),
     operasyonAdi: toStr(r.operasyonAdi),
     sira: toNum(r.sira),
     planlananSureDk: toNum(r.planlananSureDk),
