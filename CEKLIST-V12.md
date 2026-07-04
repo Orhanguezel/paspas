@@ -63,4 +63,5 @@ Operatör ekranı + Makine İş Yükleri: önce Enjeksiyon 1, sonra Enjeksiyon 2
 - **A/B (Claude):** deploy `cc373d1` — Dashboard montaj kaynağı + otomatik sevk emri kaldırıldı. Canlı doğrulandı.
 - **C/D/E (Codex):** deploy `47692ea` (+ Claude seed fix). Review'da **C'de bug yakalandı**: seed 208 CASE 'ENJ-01'/ad kalıbı ariyordu ama gerçek kod 'Enjeksiyon 1/2' → Enjeksiyon'lar sıra 999 kalıyordu; `kod LIKE 'enjeksiyon%1%'` eklendi. Canlı doğrulandı: Enj1=1, Enj2=2, Ekstrüzyon=3.
 - **5/5 thread resolved. Açık not: 0.**
-- **Açık admin sorusu:** bugünkü 3 deneme otomatik sevkinin (SVK-062/063/064) geri alınıp alınmayacağı (KAPITONE stokları 100/100/100'e düzelir).
+- **Kapitone deneme sevkleri (SVK-062/063/064):** Admin "geri alınmasına gerek yok" dedi → dokunulmadı, olduğu gibi bırakıldı. Bundan sonra otomatik sevk emri oluşmayacağı için yeni deneme/gerçek üretimlerde bu durum tekrar etmez.
+- **✅ V12 komple kapandı — açık madde yok.**
