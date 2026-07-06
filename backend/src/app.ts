@@ -127,7 +127,7 @@ export async function createApp() {
   // --- Cookie ---
   const cookieSecret =
     (globalThis as any).Bun?.env?.COOKIE_SECRET ??
-    process.env.COOKIE_SECRET ?? 'cookie-secret';
+    process.env.COOKIE_SECRET ?? (() => { throw new Error('Missing required env: COOKIE_SECRET'); })();
 
   await app.register(cookie, {
     secret: cookieSecret,
