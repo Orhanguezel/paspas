@@ -216,10 +216,12 @@ export async function tryMontajForUretimEmri(
 
   // Achievable montaj: sipariş miktarına kilitli "hep-ya-hiç" yerine, eldeki
   // bileşenlerle yapılabilecek TAM TAKIM sayısını montajla. Kalem miktarını aşma.
-  // Kontrol edilen bileşen kümesi: operasyonel-YM taraflar + operasyon kaynağı
-  // olmayan ambalaj yarımamulleri + varsa hammadde.
+  // GATE (montaj miktarını kısıtlayan) kümesi: yalnız operasyonel-YM taraflar + hammadde.
+  // Ambalaj yarımamulleri (kartela/etiket/koli vb.) TÜKETİLİR ama montaj miktarını
+  // KISITLAMAZ — bu kalemler sistemde çoğunlukla negatif/takipsiz stokta olduğundan
+  // gate'e alınırsa montaj tümüyle bloke olur (YN-V13 review; V8 ambalaj eklemesi).
   let montajMiktar = kalemMiktar;
-  for (const ym of yariMamuller) {
+  for (const ym of operasyonKaynaklari) {
     if (ym.stokTakipAktif === 0) continue;
     const perUnit = Number(ym.miktar);
     if (perUnit <= 0) continue;
@@ -235,9 +237,10 @@ export async function tryMontajForUretimEmri(
   }
 
   if (montajMiktar <= 0) {
-    // Hiçbir tam takım yapılamıyor → beklemede kal. Bilgi amaçlı eksik listesi üret.
+    // Hiçbir tam takım yapılamıyor → beklemede kal. Bilgi amaçlı eksik listesi üret
+    // (yalnız gate kümesi: taraflar + hammadde; ambalaj kısıtlamadığı için hariç).
     await db.update(uretimEmirleri).set({ durum: 'montaj_bekliyor' }).where(eq(uretimEmirleri.id, uretimEmriId));
-    const eksikYariMamuller = [...yariMamuller, ...hammaddeler]
+    const eksikYariMamuller = [...operasyonKaynaklari, ...hammaddeler]
       .filter((k) => k.stokTakipAktif === 1 && Number(k.stok) + 1e-9 < Number(k.miktar) * kalemMiktar)
       .map((k) => ({ urunId: k.urun_id, ad: k.ad, gerekli: Number(k.miktar) * kalemMiktar, mevcut: Number(k.stok) }));
     return { basarili: false, urunId: asilUrunId, uretilenMiktar: kalemMiktar, eksikYariMamuller };

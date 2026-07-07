@@ -407,7 +407,11 @@ describeIntegration("tryMontajForUretimEmri — montaj akışı", () => {
     ].sort((a, b) => a.urunId.localeCompare(b.urunId)));
   });
 
-  it("operasyonel YM disindaki ambalaj yarimamulunu montajda kontrol eder ve tuketir", async () => {
+  it("ambalaj yarimamulu montajda TUKETILIR ama montaj miktarini KISITLAMAZ (yetersizse eksiye düşer)", async () => {
+    // Ambalaj stok=4, per_unit=0.5 → 10 takım için 5 gerekir (yetersiz). Ancak ambalaj
+    // gate DEĞİL: montaj taraflarla sınırlı = min(10, sağ 10, sol 10) = 10. Ambalaj 5
+    // tüketilir ve -1'e düşer. (Gerçek sistemde ambalaj kalemleri çoğunlukla negatif
+    // stokta; gate'e alınsa montaj tümüyle bloke olurdu — YN-V13 review.)
     await seedWithStocks({
       sagStok: "10.0000",
       solStok: "20.0000",
@@ -420,17 +424,17 @@ describeIntegration("tryMontajForUretimEmri — montaj akışı", () => {
     const sonuc = await tryMontajForUretimEmri(ids.uretimSol);
     expect(sonuc).not.toBeNull();
     expect(sonuc!.basarili).toBe(true);
-    expect(sonuc!.uretilenMiktar).toBe(8);
+    expect(sonuc!.uretilenMiktar).toBe(10);
 
     const stokRows = await db
       .select({ id: urunler.id, stok: urunler.stok })
       .from(urunler)
       .where(inArray(urunler.id, [ids.asil, ids.oymSag, ids.oymSol, ids.yarimamulAmbalaj]));
     const stokById = new Map(stokRows.map((row) => [row.id, Number(row.stok)]));
-    expect(stokById.get(ids.asil)).toBe(8);
-    expect(stokById.get(ids.oymSag)).toBe(2);
-    expect(stokById.get(ids.oymSol)).toBe(4);
-    expect(stokById.get(ids.yarimamulAmbalaj)).toBe(0);
+    expect(stokById.get(ids.asil)).toBe(10); // 0 + 10
+    expect(stokById.get(ids.oymSag)).toBe(0); // 10 - (1 * 10)
+    expect(stokById.get(ids.oymSol)).toBe(0); // 20 - (2 * 10)
+    expect(stokById.get(ids.yarimamulAmbalaj)).toBe(-1); // 4 - (0.5 * 10) — tüketildi, eksiye düştü
 
     const hareketRows = await db
       .select({ urun_id: hareketler.urun_id, hareket_tipi: hareketler.hareket_tipi, miktar: hareketler.miktar })
@@ -439,7 +443,7 @@ describeIntegration("tryMontajForUretimEmri — montaj akışı", () => {
 
     const ambalajCikis = hareketRows.find((row) => row.hareket_tipi === "cikis" && row.urun_id === ids.yarimamulAmbalaj);
     expect(ambalajCikis).toBeDefined();
-    expect(Number(ambalajCikis!.miktar)).toBe(4);
+    expect(Number(ambalajCikis!.miktar)).toBe(5); // 0.5 * 10
   });
 
   it("vardiya analiz toplamlarından muafiyet: montaj kaydı toplam üretime karışmaz", async () => {
