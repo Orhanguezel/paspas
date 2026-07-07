@@ -178,7 +178,7 @@ export const updateOperasyonPlanlari: RouteHandler = async (req, reply) => {
       await db
         .update(uretimEmriOperasyonlari)
         .set(patch)
-        .where(and(eq(uretimEmriOperasyonlari.id, operasyon.id), eq(uretimEmriOperasyonlari.uretim_emri_id, id)));
+        .where(eq(uretimEmriOperasyonlari.id, operasyon.id));
     }
 
     const items = await repoGetOperasyonlar(id);

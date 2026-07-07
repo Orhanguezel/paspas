@@ -9,7 +9,7 @@
 // "Atanmamış" seçimi kuyruktan çıkarır (makine_id NULL).
 // =============================================================
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
@@ -30,6 +30,29 @@ import { useUpdateUretimEmriOperasyonPlanlariAdminMutation } from "@/integration
 const ATANMAMIS_VALUE = "_atanmamis_";
 const MONTAJ_EVET = "evet";
 const MONTAJ_HAYIR = "hayir";
+
+function normalizeTr(value: string) {
+  return value
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function getTarafKey(satir: PlanlamaSatiri) {
+  const text = normalizeTr(`${satir.operasyonAdi} ${satir.urunAd} ${satir.urunKod}`);
+  if (/\b(sag|sg)\b/.test(text) || text.endsWith("-sg")) return "sag";
+  if (/\b(sol|sl)\b/.test(text) || text.endsWith("-sl")) return "sol";
+  return null;
+}
+
+function getMamulKey(satir: PlanlamaSatiri) {
+  const source = satir.urunAd || satir.operasyonAdi || satir.urunKod || satir.emirNo;
+  return normalizeTr(source)
+    .replace(/\s*-\s*(sag|sol|sg|sl)\b/g, "")
+    .replace(/\b(sag|sol)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 // Bir parti içindeki operasyonların birleşik (atanmış + atanmamış) görünümü.
 interface PlanlamaSatiri {
@@ -74,6 +97,9 @@ export function MakineMontajPlanlama({ uretimEmriIds }: Props) {
 
   const makineler = makinelerData?.items ?? [];
   const islemDevam = ataliyor || cikariliyor || montajGuncelleniyor;
+  const defaultMontajAppliedRef = useRef<Set<string>>(new Set());
+  // İşlem sırasında satır bazlı kilit (çift tıklama önleme)
+  const [busyOpId, setBusyOpId] = useState<string | null>(null);
 
   const satirlar = useMemo<PlanlamaSatiri[]>(() => {
     const map = new Map<string, PlanlamaSatiri>();
@@ -130,8 +156,70 @@ export function MakineMontajPlanlama({ uretimEmriIds }: Props) {
     });
   }, [atanmamisler, kuyruklar, emirIdSet]);
 
-  // İşlem sırasında satır bazlı kilit (çift tıklama önleme)
-  const [busyOpId, setBusyOpId] = useState<string | null>(null);
+  const satirGruplari = useMemo(() => {
+    const groups = new Map<string, PlanlamaSatiri[]>();
+    for (const satir of satirlar) {
+      const key = getMamulKey(satir);
+      groups.set(key, [...(groups.get(key) ?? []), satir]);
+    }
+    return Array.from(groups.values()).map((group) => [...group].sort((a, b) => a.sira - b.sira));
+  }, [satirlar]);
+
+  function isEnjeksiyon2Satiri(satir: PlanlamaSatiri) {
+    const makine = makineler.find((m) => m.id === satir.makineId);
+    const text = normalizeTr(`${makine?.kod ?? ""} ${makine?.ad ?? ""} ${satir.makineAd ?? ""}`);
+    return text.includes("enjeksiyon 2") || text.includes("enj-02") || text.includes("900 t arka");
+  }
+
+  function findMontajDefaultSatiri(group: PlanlamaSatiri[]) {
+    return (
+      group.find(isEnjeksiyon2Satiri) ??
+      group.find((satir) => getTarafKey(satir) === "sol") ??
+      group[group.length - 1] ??
+      null
+    );
+  }
+
+  function getMontajPatch(target: PlanlamaSatiri, group: PlanlamaSatiri[]) {
+    return group
+      .filter((satir) => satir.emirOperasyonId)
+      .map((satir) => ({
+        id: satir.emirOperasyonId,
+        montaj: satir.emirOperasyonId === target.emirOperasyonId,
+      }));
+  }
+
+  async function setExclusiveMontaj(target: PlanlamaSatiri, group: PlanlamaSatiri[]) {
+    await updateOperasyonPlanlari({
+      id: target.uretimEmriId,
+      body: { operasyonlar: getMontajPatch(target, group) },
+    }).unwrap();
+  }
+
+  useEffect(() => {
+    if (montajGuncelleniyor || satirGruplari.length === 0) return;
+
+    const group = satirGruplari.find((items) => {
+      if (items.length !== 2) return false;
+      const key = items.map((satir) => `${satir.emirOperasyonId}:${satir.montaj ? 1 : 0}:${satir.makineId ?? ""}`).join("|");
+      if (defaultMontajAppliedRef.current.has(key)) return false;
+      return items.filter((satir) => satir.montaj).length !== 1;
+    });
+    if (!group) return;
+
+    const key = group.map((satir) => `${satir.emirOperasyonId}:${satir.montaj ? 1 : 0}:${satir.makineId ?? ""}`).join("|");
+    const target = findMontajDefaultSatiri(group);
+    if (!target) return;
+
+    defaultMontajAppliedRef.current.add(key);
+    setBusyOpId(target.emirOperasyonId);
+    setExclusiveMontaj(target, group)
+      .catch(() => {
+        defaultMontajAppliedRef.current.delete(key);
+        toast.error("Montaj default seçimi kaydedilemedi.");
+      })
+      .finally(() => setBusyOpId(null));
+  }, [montajGuncelleniyor, satirGruplari]);
 
   async function handleMakineChange(satir: PlanlamaSatiri, value: string) {
     if (satir.kilitli) {
@@ -149,11 +237,16 @@ export function MakineMontajPlanlama({ uretimEmriIds }: Props) {
         await kuyrukCikar(satir.kuyruguId).unwrap();
       }
       if (yeniMakineId) {
+        const group = satirGruplari.find((items) => items.some((item) => item.emirOperasyonId === satir.emirOperasyonId));
+        const nextSatir = { ...satir, makineId: yeniMakineId };
         await ataOperasyon({
           emirOperasyonId: satir.emirOperasyonId,
           makineId: yeniMakineId,
-          montaj: satir.montaj,
+          montaj: group?.length === 2 && isEnjeksiyon2Satiri(nextSatir) ? true : satir.montaj,
         }).unwrap();
+        if (group?.length === 2 && isEnjeksiyon2Satiri(nextSatir)) {
+          await setExclusiveMontaj(nextSatir, group.map((item) => item.emirOperasyonId === satir.emirOperasyonId ? nextSatir : item));
+        }
         toast.success("Makine atandı.");
       } else {
         toast.success("Makine ataması kaldırıldı.");
@@ -171,15 +264,37 @@ export function MakineMontajPlanlama({ uretimEmriIds }: Props) {
   }
 
   async function handleMontajChange(satir: PlanlamaSatiri, value: string) {
-    const montaj = value === MONTAJ_EVET;
-    if (montaj === satir.montaj) return;
+    const group = satirGruplari.find((items) => items.some((item) => item.emirOperasyonId === satir.emirOperasyonId)) ?? [satir];
+    const requestedMontaj = value === MONTAJ_EVET;
+    if (group.length !== 2) {
+      if (requestedMontaj === satir.montaj) return;
+      setBusyOpId(satir.emirOperasyonId);
+      try {
+        await updateOperasyonPlanlari({
+          id: satir.uretimEmriId,
+          body: { operasyonlar: [{ id: satir.emirOperasyonId, montaj: requestedMontaj }] },
+        }).unwrap();
+        toast.success("Montaj ayarı güncellendi.");
+      } catch (error: unknown) {
+        const message =
+          typeof error === "object" && error && "data" in error
+            ? (error as { data?: { error?: { message?: string } } }).data?.error?.message
+            : undefined;
+        toast.error(message ?? "Montaj ayarı güncellenemedi.");
+      } finally {
+        setBusyOpId(null);
+      }
+      return;
+    }
+
+    const target = requestedMontaj
+      ? satir
+      : group.find((item) => item.emirOperasyonId !== satir.emirOperasyonId) ?? satir;
+    if (target.emirOperasyonId === satir.emirOperasyonId && satir.montaj && group.filter((item) => item.montaj).length === 1) return;
 
     setBusyOpId(satir.emirOperasyonId);
     try {
-      await updateOperasyonPlanlari({
-        id: satir.uretimEmriId,
-        body: { operasyonlar: [{ id: satir.emirOperasyonId, montaj }] },
-      }).unwrap();
+      await setExclusiveMontaj(target, group);
       toast.success("Montaj ayarı güncellendi.");
     } catch (error: unknown) {
       const message =

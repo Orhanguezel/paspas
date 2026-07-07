@@ -8,8 +8,8 @@
 | # | Not | Konu | Sahip | Durum |
 |---|-----|------|-------|-------|
 | A | 90020fcd | Planlama/silme yapılamıyor (kuyruk sorgusu çöküyor) | **Claude** | ✅ deploy `cb1bbf1` |
-| B | 4e29247f | Makine sırası hâlâ yanlış (is-yükler + operatör) | Codex | ⬜ CODEX-PROMPT-V13 |
-| C | 9e77dc2f | Montaj tarafı default seçimi (Enjeksiyon 2) | Codex | ⬜ CODEX-PROMPT-V13 |
+| B | 4e29247f | Makine sırası hâlâ yanlış (is-yükler + operatör) | Codex | ✅ tamamlandı |
+| C | 9e77dc2f | Montaj tarafı default seçimi (Enjeksiyon 2) | Codex | ✅ tamamlandı |
 
 ---
 
@@ -40,6 +40,8 @@
 - **Frontend doğrula:** is-yükler (`is-yukleri-client.tsx` machineList `makineler.items`'ten) ve operatör ekranı makine sekme/grup sırasını bu listeden alıyor; backend düzelince ikisi de düzelmeli. Operatör client'ta ayrıca makine bazlı gruplama sırası API sırasını korumalı (varsa ek re-sort'u kaldır).
 - **DİKKAT:** Bu değişiklik makine listesini kullanan başka ekranları (dropdown vb.) etkiler — hepsinde gosterim_sira mantıklı; ama açık `sort=ad/kod` isteyen bir ekran varsa bozulmamalı (o dallar korunur).
 
+**Durum:** ✅ `backend/src/modules/makine_havuzu/validation.ts` içinde `sort` default'u kaldırıldı; açık `sort=ad|kod|created_at` istekleri korunurken default liste `getOrderBy` fallback'iyle `gosterim_sira` sırasına düşüyor.
+
 ---
 
 ## C — Montaj tarafı default seçimi (`9e77dc2f`) — Codex
@@ -56,6 +58,10 @@
 - Default: Enjeksiyon 2'ye (900 T ARKA / gosterim_sira=2) atanmış taraf montaj=evet. Henüz makine atanmamışsa V11 kuralı (Sol) fallback.
 - Kullanıcı montaj=evet'i diğer tarafa alırsa (veya mevcut "evet"i "hayır" yaparsa) diğer taraf otomatik "evet" olur — hiçbir zaman ikisi de hayır olamaz.
 - Backend `operasyon-planlari` PATCH montaj set edebiliyor (mevcut). Gerekirse iki operasyonu tek istekte gönder (biri evet biri hayır) ki tutarlı kalsın.
+
+**Durum:** ✅ `makine-montaj-planlama.tsx` çift taraflı gruplarda montajı karşılıklı dışlayıcı yapıyor; Enjeksiyon 2 / 900 T ARKA tarafını, makine yoksa Sol tarafı default seçiyor. `operasyon-planlari` PATCH operasyon id'leri üzerinden toplu güncellenecek şekilde uyumlu hale getirildi.
+
+**Doğrulama:** ✅ backend `bun run build`, admin `bunx tsc --noEmit`, admin `bun run build`.
 
 ---
 
