@@ -69,3 +69,15 @@
 - A: Claude tamamladı (deploy).
 - B + C: [CODEX-PROMPT-V13.md](CODEX-PROMPT-V13.md). Push YOK — Claude review + deploy + thread kapatma.
 - Montaj/stok mantığına (tryMontaj, repoUretimBitir) DOKUNMA.
+
+---
+
+## Review sonucu (Claude, 2026-07-07)
+
+Codex B (`3409a5e`), C (`1e7db75`) ve V8 ek maddesini (`1f81995`) tamamladı; review + deploy edildi.
+
+**🔴 V8'de kritik regresyon yakalandı ve düzeltildi (`330b763`):** Codex ambalaj yarimamullerini achievable montaj **min hesabına (gate)** katmıştı. Ama çift taraflı mamullerin reçetesindeki takipli ambalaj kalemlerinin **420/545'i negatif/sıfır stokta** (kartela/etiket/barkod) → montajMiktar ≤ 0 olup **neredeyse tüm çift taraflı üründe montajı bloke ederdi (V11'i geri alırdı).** Düzeltme: ambalaj **tüketilir** (eksiye düşebilir) ama montaj miktarını **kısıtlamaz**; gate yalnız operasyonel-YM taraflar + hammadde. Test buna göre güncellendi.
+
+**B doğrulama:** makine sırası canlıda ÖN=1, ARKA=2, Ekstrüzyon=3. **C:** exclusive montaj + Enjeksiyon 2 default yayında.
+
+**Durum:** 3 not (A/B/C) + V8 ek maddesi kapandı. **Açık not: 0.**
