@@ -305,6 +305,10 @@ export async function repoListKuyruklar(): Promise<KuyrukGrubuDto[]> {
       montaj: uretimEmriOperasyonlari.montaj,
     })
     .from(makineKuyrugu)
+    // makineler JOIN'i ZORUNLU: ORDER BY makineler.gosterim_sira/kod bu tabloya
+    // bağlı (YN-V13). Join olmadan "Unknown column 'makineler.gosterim_sira'" hatası
+    // tüm kuyruk sorgusunu çökertiyordu → Makineden Çıkar + Montaj Planlama boş kalıyordu.
+    .innerJoin(makineler, eq(makineKuyrugu.makine_id, makineler.id))
     .innerJoin(uretimEmirleri, eq(makineKuyrugu.uretim_emri_id, uretimEmirleri.id))
     .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
     .leftJoin(uretimEmriOperasyonlari, eq(makineKuyrugu.emir_operasyon_id, uretimEmriOperasyonlari.id))
