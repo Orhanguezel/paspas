@@ -207,14 +207,17 @@ export async function tryMontajForUretimEmri(
     .innerJoin(urunler, eq(receteKalemleri.urun_id, urunler.id))
     .where(eq(receteKalemleri.recete_id, asilRecete.id));
 
-  const yariMamuller = pickOperasyonKaynakKalemler(kalemler);
+  const operasyonKaynaklari = pickOperasyonKaynakKalemler(kalemler);
+  const operasyonKaynakIds = new Set(operasyonKaynaklari.map((k) => k.urun_id));
+  const ambalajYariMamuller = kalemler.filter((k) => k.kategori === 'yarimamul' && !operasyonKaynakIds.has(k.urun_id));
+  const yariMamuller = [...operasyonKaynaklari, ...ambalajYariMamuller];
   const hammaddeler = kalemler.filter((k) => k.kategori === 'hammadde');
-  if (yariMamuller.length === 0) return null;
+  if (operasyonKaynaklari.length === 0) return null;
 
   // Achievable montaj: sipariş miktarına kilitli "hep-ya-hiç" yerine, eldeki
   // bileşenlerle yapılabilecek TAM TAKIM sayısını montajla. Kalem miktarını aşma.
-  // Kontrol edilen bileşen kümesi bugünküyle birebir aynı: operasyonel-YM taraflar
-  // (+ varsa hammadde). Ambalaj yarimamulleri bilinçli olarak hariç (ayrı revizyon).
+  // Kontrol edilen bileşen kümesi: operasyonel-YM taraflar + operasyon kaynağı
+  // olmayan ambalaj yarımamulleri + varsa hammadde.
   let montajMiktar = kalemMiktar;
   for (const ym of yariMamuller) {
     if (ym.stokTakipAktif === 0) continue;
@@ -261,7 +264,7 @@ export async function tryMontajForUretimEmri(
         referans_tipi: 'montaj',
         referans_id: uretimEmriId,
         miktar: dus.toFixed(4),
-        aciklama: 'Montaj: operasyonel YM tüketimi',
+        aciklama: operasyonKaynakIds.has(ym.urun_id) ? 'Montaj: operasyonel YM tüketimi' : 'Montaj: yarımamul tüketimi',
         created_by_user_id: operatorUserId ?? null,
       });
     }

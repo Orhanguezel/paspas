@@ -101,6 +101,8 @@ Mevcut kilitli UE-2026-0073: kod fix deploy sonrası montaj tetiklenmiyor (deplo
 | Not A | montaj_bekliyor i18n anahtarı | uretim-emirleri | Claude | ☑ deploy (d92c170) + thread kapatıldı |
 | Not B1 | Achievable montaj (sistemik) | uretim_emirleri/service | Claude | ☑ deploy (3bea1b5) + test güncellendi |
 | Not B2 | UE-2026-0073 canlı montaj (3970) | — (bun script) | Claude | ☑ gerçek kod yolu: mamul +3970, Sağ→92, Sol→0, tamamlandi |
-| Ek | Ambalaj yarimamul montaj tüketimi | uretim_emirleri/service | — | ⬜ ayrı revizyon/soru (thread notunda belirtildi) |
+| Ek | Ambalaj yarimamul montaj tüketimi | uretim_emirleri/service | Codex | ☑ tamamlandı |
 
 > **Kapanış (2026-07-01):** Her iki thread (`5d973f56`, `a6551ab6`) çözüm notuyla `resolved`. B1 achievable montaj yayında; B2 kilitli sipariş gerçek kod yolundan (`tryMontajForUretimEmri` + `refreshSiparisDurum`) montajlandı, doğrulandı. Kararı: **achievable montaj** (kullanıcı onayı).
+
+> **Ek kapanış (2026-07-07):** Montajda operasyonel YM kaynakları dışında kalan reçete `yarimamul` kalemleri de stok kontrolüne ve tüketime dahil edildi. Üretim emri oluşturma kaynak seçimi değişmedi; sadece montaj tüketim doğruluğu genişletildi.

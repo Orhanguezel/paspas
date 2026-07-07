@@ -43,10 +43,12 @@ const ids = {
   oymSag: "it-mt-oym-sag-00000000000001",
   oymSol: "it-mt-oym-sol-00000000000001",
   hammaddeAmbalaj: "it-mt-hm-ambalaj-000000000001",
+  yarimamulAmbalaj: "it-mt-ym-ambalaj-000000000001",
   receteAsil: "it-mt-rec-asil-00000000000001",
   kalemSag: "it-mt-rk-sag-000000000000001",
   kalemSol: "it-mt-rk-sol-000000000000001",
   kalemAmbalaj: "it-mt-rk-ambalaj-0000000001",
+  kalemYarimamulAmbalaj: "it-mt-rk-ym-ambalaj-0001",
   uretimSag: "it-mt-ue-sag-000000000000001",
   uretimSol: "it-mt-ue-sol-000000000000001",
   makine: "it-mt-makine-000000000000001",
@@ -74,7 +76,7 @@ async function cleanup() {
   await db.delete(satisSiparisleri).where(eq(satisSiparisleri.id, ids.siparis));
   await db.delete(receteKalemleri).where(eq(receteKalemleri.recete_id, ids.receteAsil));
   await db.delete(receteler).where(eq(receteler.id, ids.receteAsil));
-  await db.delete(urunler).where(inArray(urunler.id, [ids.asil, ids.oymSag, ids.oymSol, ids.hammaddeAmbalaj]));
+  await db.delete(urunler).where(inArray(urunler.id, [ids.asil, ids.oymSag, ids.oymSol, ids.hammaddeAmbalaj, ids.yarimamulAmbalaj]));
   await db.delete(musteriler).where(eq(musteriler.id, ids.musteri));
   await db.delete(makineler).where(eq(makineler.id, ids.makine));
 }
@@ -85,6 +87,10 @@ async function seedWithStocks(opts: {
   sagStokTakipAktif?: 0 | 1;
   solStokTakipAktif?: 0 | 1;
   ambalaj?: {
+    stok: string;
+    stokTakipAktif: 0 | 1;
+  };
+  yarimamulAmbalaj?: {
     stok: string;
     stokTakipAktif: 0 | 1;
   };
@@ -146,6 +152,18 @@ async function seedWithStocks(opts: {
       stok_takip_aktif: opts.ambalaj.stokTakipAktif,
       kdv_orani: "20.00",
     }] : []),
+    ...(opts.yarimamulAmbalaj ? [{
+      id: ids.yarimamulAmbalaj,
+      kategori: "yarimamul",
+      tedarik_tipi: "satinalma",
+      kod: "IT-MT-YM-AMB",
+      ad: "IT Montaj Yarımamul Ambalaj",
+      birim: "adet",
+      stok: opts.yarimamulAmbalaj.stok,
+      kritik_stok: "0.0000",
+      stok_takip_aktif: opts.yarimamulAmbalaj.stokTakipAktif,
+      kdv_orani: "20.00",
+    }] : []),
   ]);
 
   await db.insert(receteler).values({
@@ -162,6 +180,9 @@ async function seedWithStocks(opts: {
     { id: ids.kalemSol, recete_id: ids.receteAsil, urun_id: ids.oymSol, miktar: "2.0000", fire_orani: "0.00", sira: 2 },
     ...(opts.ambalaj ? [
       { id: ids.kalemAmbalaj, recete_id: ids.receteAsil, urun_id: ids.hammaddeAmbalaj, miktar: "3.0000", fire_orani: "0.00", sira: 3 },
+    ] : []),
+    ...(opts.yarimamulAmbalaj ? [
+      { id: ids.kalemYarimamulAmbalaj, recete_id: ids.receteAsil, urun_id: ids.yarimamulAmbalaj, miktar: "0.5000", fire_orani: "0.00", sira: 4 },
     ] : []),
   ]);
 
@@ -384,6 +405,41 @@ describeIntegration("tryMontajForUretimEmri — montaj akışı", () => {
       { urunId: ids.oymSag, hareketTipi: "cikis", miktar: 10 },
       { urunId: ids.oymSol, hareketTipi: "cikis", miktar: 20 },
     ].sort((a, b) => a.urunId.localeCompare(b.urunId)));
+  });
+
+  it("operasyonel YM disindaki ambalaj yarimamulunu montajda kontrol eder ve tuketir", async () => {
+    await seedWithStocks({
+      sagStok: "10.0000",
+      solStok: "20.0000",
+      yarimamulAmbalaj: {
+        stok: "4.0000",
+        stokTakipAktif: 1,
+      },
+    });
+
+    const sonuc = await tryMontajForUretimEmri(ids.uretimSol);
+    expect(sonuc).not.toBeNull();
+    expect(sonuc!.basarili).toBe(true);
+    expect(sonuc!.uretilenMiktar).toBe(8);
+
+    const stokRows = await db
+      .select({ id: urunler.id, stok: urunler.stok })
+      .from(urunler)
+      .where(inArray(urunler.id, [ids.asil, ids.oymSag, ids.oymSol, ids.yarimamulAmbalaj]));
+    const stokById = new Map(stokRows.map((row) => [row.id, Number(row.stok)]));
+    expect(stokById.get(ids.asil)).toBe(8);
+    expect(stokById.get(ids.oymSag)).toBe(2);
+    expect(stokById.get(ids.oymSol)).toBe(4);
+    expect(stokById.get(ids.yarimamulAmbalaj)).toBe(0);
+
+    const hareketRows = await db
+      .select({ urun_id: hareketler.urun_id, hareket_tipi: hareketler.hareket_tipi, miktar: hareketler.miktar })
+      .from(hareketler)
+      .where(eq(hareketler.referans_id, ids.uretimSol));
+
+    const ambalajCikis = hareketRows.find((row) => row.hareket_tipi === "cikis" && row.urun_id === ids.yarimamulAmbalaj);
+    expect(ambalajCikis).toBeDefined();
+    expect(Number(ambalajCikis!.miktar)).toBe(4);
   });
 
   it("vardiya analiz toplamlarından muafiyet: montaj kaydı toplam üretime karışmaz", async () => {
