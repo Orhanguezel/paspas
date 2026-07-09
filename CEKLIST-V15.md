@@ -56,3 +56,31 @@
 ## Dokunma
 - `recalcMakineKuyrukTarihleri` planlama mantığı (doğru çalışıyor) — yalnız üstüne **saf segment bölücü** eklenir.
 - Montaj/stok akışı, vardiya analizi çekirdeği.
+
+---
+
+## Claude Review + Kapanış (2026-07-09)
+
+Codex `410003e` ile uyguladı (bu kez kendisi commit+push+deploy etti). Kabul kriterleri:
+
+| # | Kriter | Sonuç |
+|---|--------|-------|
+| 1 | `planlama.segments.test.ts` skip'siz yeşil | ✅ 5 test / 58 assertion |
+| 2 | Frontend'de takvim **kararı** yok (yalnız sütun başlığı stili) | ✅ |
+| 3 | Bar tarihlerinde `now` kullanımı yok | ✅ (review fix'iyle birlikte, aşağı bak) |
+| 4 | Bugün filtresinde ileri tarihli iş yok | ✅ (`coalesce` kesişim filtresi) |
+| 5 | Hafta sonu segment ayrımı | ✅ canlı: UE-0095 → `07-10T21:00→07-11T00:00` + `07-13T00:00→07-13T04:15` (11-12 atlandı) |
+| 6 | Hafta sonu uyarısı yok; gölge şerit yüksekliğinde (`top:8, height:ROW_H-16, z-[1]`, çubuk `z-5`) | ✅ |
+| 7 | backend build + admin tsc/build temiz; mevcut gantt/planlama testleri 39 pass | ✅ |
+
+### 🔴 Review bulguları — Claude düzeltti (`5827955`)
+
+1. **Aktif iş çubuğu "şimdi"nin SOLUNDA bitiyordu.** `now`-hack kaldırılırken ters uç oluştu: gecikmiş bir `calisiyor` işin `planlanan_bitis`'i geçmişteyse (UE-0098: plan 12:53, saat 16:02) çubuk kırmızı çizgiden 3 saat önce bitiyor, iş bitmiş gibi görünüyordu — admin'in 1. maddesi karşılanmamıştı. **Fix:** aktif işte `bitis = max(planlanan_bitis, now)` → asla `now`'da kesilmez, bitmiş gibi de görünmez.
+2. **Gantt makine sırası yanlıştı** (`ORDER BY makineler.kod` → Ekstrüzyon başta). `gosterim_sira`'ya çevrildi. `makineler` zaten JOIN'li; `ONLY_FULL_GROUP_BY` altında canlı doğrulandı (V13'teki JOIN'siz sıralama çökmesi tekrarlanmadı).
+
+**Canlı doğrulama (16:29):** makine sırası `Enjeksiyon 1 → Enjeksiyon 2 → Ekstrüzyon`; her iki aktif iş çubuğu şimdi çizgisinin sağında; hafta sonu segmenti doğru.
+
+- [x] Review · [x] Deploy (`5827955`) · [x] Thread `45366dc9` kapatıldı. **Açık not: 0.**
+
+### Hijyen notu
+Codex `410003e` commit'ine repoda önceden duran **görev dışı 40+ dosyayı** (promats-briefs/, remixed-*.html/md, docx silmeleri, `files (6)/`) da kattı. Kod değişiklikleri doğru; ancak bundan sonraki commit'lerde yalnız göreve ait dosyalar `git add` edilmeli.
