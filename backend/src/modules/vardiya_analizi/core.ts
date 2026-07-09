@@ -1,5 +1,8 @@
 export type VardiyaTipi = 'gunduz' | 'gece';
 
+/** Türkiye sabit UTC+3 (2016'dan beri DST yok). Ortam TZ'sine ASLA güvenme. */
+export const VARDIYA_TZ_OFFSET_DK = 180;
+
 export type VardiyaTanimi = {
   vardiyaTipi: VardiyaTipi;
   ad: string;
@@ -37,6 +40,8 @@ export type UretimKaydi = {
   uretilenMiktar: number;
   operasyonBaslangic: Date | null;
   operasyonBitis: Date | null;
+  vardiyaKayitId: string | null;
+  vardiyaSlotOverride?: VardiyaSlot;
 };
 
 export type VardiyaSlot = {
@@ -123,6 +128,14 @@ export function parseClockToMinutes(clock: string): number {
   return (hour * 60) + minute;
 }
 
+export function toLocal(d: Date, tzOffsetDk: number): Date {
+  return new Date(d.getTime() + tzOffsetDk * 60_000);
+}
+
+export function fromLocal(d: Date, tzOffsetDk: number): Date {
+  return new Date(d.getTime() - tzOffsetDk * 60_000);
+}
+
 export function normalizeShiftName(value: string): string {
   return value
     .toLocaleLowerCase('tr-TR')
@@ -130,7 +143,7 @@ export function normalizeShiftName(value: string): string {
     .replace(/\p{Diacritic}/gu, '');
 }
 
-export function inferVardiyaTipi(ad: string, baslangicSaati: string, bitisSaati: string): VardiyaTipi {
+export function inferVardiyaTipi(ad: string, baslangicSaati: string, bitisSaati: string, _tzOffsetDk: number = VARDIYA_TZ_OFFSET_DK): VardiyaTipi {
   const normalizedName = normalizeShiftName(ad);
   if (normalizedName.includes('gece')) return 'gece';
   if (normalizedName.includes('gunduz')) return 'gunduz';
@@ -141,27 +154,44 @@ export function inferVardiyaTipi(ad: string, baslangicSaati: string, bitisSaati:
   return baslangic >= (12 * 60) ? 'gece' : 'gunduz';
 }
 
-export function createDateForClock(reference: Date, clock: string): Date {
+export function createDateForClock(reference: Date, clock: string, tzOffsetDk: number = VARDIYA_TZ_OFFSET_DK): Date {
   const [hour, minute] = clock.split(':').map(Number);
-  const date = new Date(reference);
-  date.setHours(hour, minute, 0, 0);
-  return date;
+  const local = toLocal(reference, tzOffsetDk);
+  return fromLocal(new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), hour, minute, 0, 0)), tzOffsetDk);
 }
 
-export function buildShiftWindowForTime(time: Date, tanim: VardiyaTanimi): { baslangic: Date; bitis: Date } {
+function addLocalDays(date: Date, days: number, tzOffsetDk: number): Date {
+  const local = toLocal(date, tzOffsetDk);
+  return fromLocal(new Date(Date.UTC(
+    local.getUTCFullYear(),
+    local.getUTCMonth(),
+    local.getUTCDate() + days,
+    local.getUTCHours(),
+    local.getUTCMinutes(),
+    local.getUTCSeconds(),
+    local.getUTCMilliseconds(),
+  )), tzOffsetDk);
+}
+
+function localMinutes(date: Date, tzOffsetDk: number): number {
+  const local = toLocal(date, tzOffsetDk);
+  return (local.getUTCHours() * 60) + local.getUTCMinutes();
+}
+
+export function buildShiftWindowForTime(time: Date, tanim: VardiyaTanimi, tzOffsetDk: number = VARDIYA_TZ_OFFSET_DK): { baslangic: Date; bitis: Date } {
   const baslangicMinutes = parseClockToMinutes(tanim.baslangicSaati);
   const bitisMinutes = parseClockToMinutes(tanim.bitisSaati);
-  const currentMinutes = (time.getHours() * 60) + time.getMinutes();
+  const currentMinutes = localMinutes(time, tzOffsetDk);
   const overnight = baslangicMinutes >= bitisMinutes;
 
-  const baslangic = createDateForClock(time, tanim.baslangicSaati);
-  const bitis = createDateForClock(time, tanim.bitisSaati);
+  let baslangic = createDateForClock(time, tanim.baslangicSaati, tzOffsetDk);
+  let bitis = createDateForClock(time, tanim.bitisSaati, tzOffsetDk);
 
   if (overnight) {
     if (currentMinutes >= baslangicMinutes) {
-      bitis.setDate(bitis.getDate() + 1);
+      bitis = addLocalDays(bitis, 1, tzOffsetDk);
     } else {
-      baslangic.setDate(baslangic.getDate() - 1);
+      baslangic = addLocalDays(baslangic, -1, tzOffsetDk);
     }
   }
 
@@ -174,45 +204,41 @@ export function clampDate(date: Date, min: Date, max: Date): Date {
   return date;
 }
 
-function ymdLocal(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+function ymdLocal(date: Date, tzOffsetDk: number = VARDIYA_TZ_OFFSET_DK): string {
+  const local = toLocal(date, tzOffsetDk);
+  const year = local.getUTCFullYear();
+  const month = String(local.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(local.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
 
-function slotFromWindow(tanim: VardiyaTanimi, pencere: { baslangic: Date; bitis: Date }): VardiyaSlot {
+function slotFromWindow(tanim: VardiyaTanimi, pencere: { baslangic: Date; bitis: Date }, tzOffsetDk: number = VARDIYA_TZ_OFFSET_DK): VardiyaSlot {
   return {
-    gun: ymdLocal(pencere.baslangic),
+    gun: ymdLocal(pencere.baslangic, tzOffsetDk),
     vardiyaTipi: tanim.vardiyaTipi,
     baslangic: pencere.baslangic,
     bitis: pencere.bitis,
   };
 }
 
-export function assignVardiya(kayitTarihi: Date, tanimlar: VardiyaTanimi[]): VardiyaSlot {
+export function assignVardiya(kayitTarihi: Date, tanimlar: VardiyaTanimi[], tzOffsetDk: number = VARDIYA_TZ_OFFSET_DK): VardiyaSlot {
   const gunduz = tanimlar.find((tanim) => tanim.vardiyaTipi === 'gunduz');
   const gece = tanimlar.find((tanim) => tanim.vardiyaTipi === 'gece');
 
   if (gunduz && gece) {
     const gunduzBaslangic = parseClockToMinutes(gunduz.baslangicSaati);
-    const current = (kayitTarihi.getHours() * 60) + kayitTarihi.getMinutes();
+    const current = localMinutes(kayitTarihi, tzOffsetDk);
     const hybridEnd = gunduzBaslangic + 120;
     if (current >= gunduzBaslangic && current < hybridEnd) {
-      const oncekiGeceReferans = createDateForClock(kayitTarihi, gece.baslangicSaati);
-      if (parseClockToMinutes(gece.baslangicSaati) < gunduzBaslangic) {
-        oncekiGeceReferans.setDate(oncekiGeceReferans.getDate() - 1);
-      } else {
-        oncekiGeceReferans.setDate(oncekiGeceReferans.getDate() - 1);
-      }
-      return slotFromWindow(gece, buildShiftWindowForTime(oncekiGeceReferans, gece));
+      const oncekiGeceReferans = addLocalDays(createDateForClock(kayitTarihi, gece.baslangicSaati, tzOffsetDk), -1, tzOffsetDk);
+      return slotFromWindow(gece, buildShiftWindowForTime(oncekiGeceReferans, gece, tzOffsetDk), tzOffsetDk);
     }
   }
 
   for (const tanim of tanimlar) {
-    const pencere = buildShiftWindowForTime(kayitTarihi, tanim);
+    const pencere = buildShiftWindowForTime(kayitTarihi, tanim, tzOffsetDk);
     if (kayitTarihi >= pencere.baslangic && kayitTarihi < pencere.bitis) {
-      return slotFromWindow(tanim, pencere);
+      return slotFromWindow(tanim, pencere, tzOffsetDk);
     }
   }
 
@@ -220,11 +246,11 @@ export function assignVardiya(kayitTarihi: Date, tanimlar: VardiyaTanimi[]): Var
   if (!fallback) {
     throw new Error('vardiya_tanimi_yok');
   }
-  return slotFromWindow(fallback, buildShiftWindowForTime(kayitTarihi, fallback));
+  return slotFromWindow(fallback, buildShiftWindowForTime(kayitTarihi, fallback, tzOffsetDk), tzOffsetDk);
 }
 
-export function vardiyaSlotKey(slot: VardiyaSlot): string {
-  return `${slot.vardiyaTipi}-${slot.baslangic.toISOString()}`;
+export function vardiyaSlotKey(slot: VardiyaSlot, _tzOffsetDk: number = VARDIYA_TZ_OFFSET_DK): string {
+  return `${slot.gun}-${slot.vardiyaTipi}`;
 }
 
 function operasyonKey(kayit: UretimKaydi): string {
@@ -313,11 +339,11 @@ export function reduceOzet(kayitlar: UretimKaydi[]): ReduceOzet {
   };
 }
 
-export function partitionByVardiya(kayitlar: UretimKaydi[], tanimlar: VardiyaTanimi[]): Map<string, UretimKaydi[]> {
+export function partitionByVardiya(kayitlar: UretimKaydi[], tanimlar: VardiyaTanimi[], tzOffsetDk: number = VARDIYA_TZ_OFFSET_DK): Map<string, UretimKaydi[]> {
   const map = new Map<string, UretimKaydi[]>();
   for (const kayit of kayitlar) {
-    const slot = assignVardiya(kayit.kayitTarihi, tanimlar);
-    const key = vardiyaSlotKey(slot);
+    const slot = kayit.vardiyaSlotOverride ?? assignVardiya(kayit.kayitTarihi, tanimlar, tzOffsetDk);
+    const key = vardiyaSlotKey(slot, tzOffsetDk);
     const existing = map.get(key);
     if (existing) existing.push(kayit);
     else map.set(key, [kayit]);

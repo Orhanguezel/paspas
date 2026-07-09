@@ -7,8 +7,10 @@ import {
   partitionByVardiya,
   reduceOzet,
   resolveNet,
+  VARDIYA_TZ_OFFSET_DK,
   type UretimKaydi,
   type VardiyaTanimi,
+  type VardiyaTipi,
 } from '../core';
 
 const tanimlar: VardiyaTanimi[] = [
@@ -47,7 +49,13 @@ function kayit(partial: Partial<UretimKaydi> & { id: string; kayitTarihi: string
     uretilenMiktar: partial.uretilenMiktar ?? 0,
     operasyonBaslangic: partial.operasyonBaslangic ?? null,
     operasyonBitis: partial.operasyonBitis ?? null,
+    vardiyaKayitId: partial.vardiyaKayitId ?? null,
+    vardiyaSlotOverride: partial.vardiyaSlotOverride,
   };
+}
+
+function trDate(day: number, hour: number, minute = 0): Date {
+  return new Date(Date.UTC(2026, 6, day, hour, minute, 0, 0) - VARDIYA_TZ_OFFSET_DK * 60_000);
 }
 
 describe('vardiya_analizi core', () => {
@@ -95,27 +103,44 @@ describe('vardiya_analizi core', () => {
     expect(ozet.montajNet).toBe(80);
   });
 
-  it('assigns hybrid and boundary times deterministically', () => {
-    expect(assignVardiya(new Date('2026-07-07T08:15:00'), tanimlar)).toMatchObject({
-      vardiyaTipi: 'gece',
-      gun: '2026-07-06',
-    });
-    expect(assignVardiya(new Date('2026-07-07T09:45:00'), tanimlar)).toMatchObject({
-      vardiyaTipi: 'gunduz',
-      gun: '2026-07-07',
-    });
-    expect(assignVardiya(new Date('2026-07-07T19:29:00'), tanimlar)).toMatchObject({
-      vardiyaTipi: 'gunduz',
-      gun: '2026-07-07',
-    });
-    expect(assignVardiya(new Date('2026-07-07T19:31:00'), tanimlar)).toMatchObject({
-      vardiyaTipi: 'gece',
-      gun: '2026-07-07',
-    });
-    expect(assignVardiya(new Date('2026-07-08T03:00:00'), tanimlar)).toMatchObject({
-      vardiyaTipi: 'gece',
-      gun: '2026-07-07',
-    });
+  it('assigns TR local hybrid and boundary times independently from process timezone', () => {
+    const cases: Array<{ at: Date; vardiyaTipi: VardiyaTipi; gun: string }> = [
+      { at: trDate(7, 19, 33), vardiyaTipi: 'gece', gun: '2026-07-07' },
+      { at: trDate(7, 20, 0), vardiyaTipi: 'gece', gun: '2026-07-07' },
+      { at: trDate(7, 11, 0), vardiyaTipi: 'gunduz', gun: '2026-07-07' },
+      { at: trDate(7, 8, 53), vardiyaTipi: 'gece', gun: '2026-07-06' },
+      { at: trDate(7, 7, 29), vardiyaTipi: 'gece', gun: '2026-07-06' },
+      { at: trDate(7, 9, 31), vardiyaTipi: 'gunduz', gun: '2026-07-07' },
+      { at: trDate(8, 3, 0), vardiyaTipi: 'gece', gun: '2026-07-07' },
+    ];
+
+    for (const item of cases) {
+      expect(assignVardiya(item.at, tanimlar, VARDIYA_TZ_OFFSET_DK)).toMatchObject({
+        vardiyaTipi: item.vardiyaTipi,
+        gun: item.gun,
+      });
+    }
+  });
+
+  it('uses explicit vardiya slot override before timestamp inference', () => {
+    const kayitlar = [
+      kayit({
+        id: 'bagli',
+        kayitTarihi: trDate(7, 11, 0).toISOString(),
+        net: 50,
+        vardiyaKayitId: 'vk-gece',
+        vardiyaSlotOverride: {
+          gun: '2026-07-06',
+          vardiyaTipi: 'gece',
+          baslangic: trDate(6, 19, 30),
+          bitis: trDate(7, 7, 30),
+        },
+      }),
+    ];
+
+    const partition = partitionByVardiya(kayitlar, tanimlar, VARDIYA_TZ_OFFSET_DK);
+
+    expect(Array.from(partition.keys())).toEqual(['2026-07-06-gece']);
   });
 
   it('resolves net with fallback and floors negative values', () => {
