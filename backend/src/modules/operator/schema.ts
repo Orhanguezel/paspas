@@ -7,6 +7,7 @@ export const operatorGunlukKayitlari = mysqlTable('operator_gunluk_kayitlari', {
   uretim_emri_id: char('uretim_emri_id', { length: 36 }).notNull(),
   makine_id: char('makine_id', { length: 36 }),
   emir_operasyon_id: char('emir_operasyon_id', { length: 36 }),
+  vardiya_kayit_id: char('vardiya_kayit_id', { length: 36 }),
   operator_user_id: char('operator_user_id', { length: 36 }),
   gunluk_durum: varchar('gunluk_durum', { length: 32 }).notNull().default('devam_ediyor'),
   ek_uretim_miktari: decimal('ek_uretim_miktari', { precision: 12, scale: 4 }).notNull().default('0.0000'),
@@ -122,6 +123,7 @@ export type OperatorGunlukGirisDto = {
   uretimEmriId: string;
   makineId: string | null;
   emirOperasyonId: string | null;
+  vardiyaKayitId: string | null;
   operatorUserId: string | null;
   gunlukDurum: OperatorGunlukDurum;
   ekUretimMiktari: number;
@@ -141,6 +143,7 @@ export function rowToGunlukGirisDto(row: OperatorGunlukGirisRow): OperatorGunluk
     uretimEmriId: row.uretim_emri_id,
     makineId: row.makine_id ?? null,
     emirOperasyonId: row.emir_operasyon_id ?? null,
+    vardiyaKayitId: row.vardiya_kayit_id ?? null,
     operatorUserId: row.operator_user_id ?? null,
     gunlukDurum: row.gunluk_durum as OperatorGunlukDurum,
     ekUretimMiktari: Number(row.ek_uretim_miktari ?? 0),
