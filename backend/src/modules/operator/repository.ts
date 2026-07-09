@@ -345,6 +345,53 @@ async function findShiftByIdForMachine(
   return shift ?? null;
 }
 
+async function resolveVardiyaKayitIdForProduction(
+  tx: DbTransaction,
+  {
+    makineId,
+    kayitTarihi,
+    vardiyaKayitId,
+  }: {
+    makineId: string;
+    kayitTarihi: Date;
+    vardiyaKayitId?: string | null;
+  },
+): Promise<string | null> {
+  if (vardiyaKayitId) {
+    const targetShift = await findShiftByIdForMachine(tx, vardiyaKayitId, makineId);
+    if (!targetShift) throw new Error('vardiya_kaydi_bulunamadi');
+    return targetShift.id;
+  }
+
+  const [openShift] = await tx
+    .select({ id: vardiyaKayitlari.id })
+    .from(vardiyaKayitlari)
+    .where(
+      and(
+        eq(vardiyaKayitlari.makine_id, makineId),
+        sql`${vardiyaKayitlari.bitis} IS NULL`,
+      ),
+    )
+    .orderBy(desc(vardiyaKayitlari.baslangic))
+    .limit(1);
+  if (openShift) return openShift.id;
+
+  const [coveringShift] = await tx
+    .select({ id: vardiyaKayitlari.id })
+    .from(vardiyaKayitlari)
+    .where(
+      and(
+        eq(vardiyaKayitlari.makine_id, makineId),
+        lte(vardiyaKayitlari.baslangic, kayitTarihi),
+        sql`COALESCE(${vardiyaKayitlari.bitis}, '2099-01-01 00:00:00') > ${kayitTarihi}`,
+      ),
+    )
+    .orderBy(desc(vardiyaKayitlari.baslangic))
+    .limit(1);
+
+  return coveringShift?.id ?? null;
+}
+
 async function ensureAutomaticShiftForMachine(
   tx: DbTransaction,
   {
@@ -655,6 +702,7 @@ export type MakineKuyruguDetayDto = {
   makinePlanliKapali: boolean;
   makineKapaliAciklama: string | null;
   makineKapaliBitisTarih: string | null;
+  acikVardiya: { id: string; vardiyaTipi: string; baslangic: string } | null;
 };
 
 const toStr = (v: Date | string | null | undefined): string | null => {
@@ -870,6 +918,30 @@ export async function repoListMakineKuyrugu(
           order by mka.bitis_tarih desc
           limit 1
         )`,
+        acik_vardiya_id: sql<string | null>`(
+          select vk.id
+          from vardiya_kayitlari vk
+          where vk.makine_id = ${makineler.id}
+            and vk.bitis is null
+          order by vk.baslangic desc
+          limit 1
+        )`,
+        acik_vardiya_tipi: sql<string | null>`(
+          select vk.vardiya_tipi
+          from vardiya_kayitlari vk
+          where vk.makine_id = ${makineler.id}
+            and vk.bitis is null
+          order by vk.baslangic desc
+          limit 1
+        )`,
+        acik_vardiya_baslangic: sql<Date | null>`(
+          select vk.baslangic
+          from vardiya_kayitlari vk
+          where vk.makine_id = ${makineler.id}
+            and vk.bitis is null
+          order by vk.baslangic desc
+          limit 1
+        )`,
       })
       .from(makineKuyrugu)
       .leftJoin(makineler, eq(makineKuyrugu.makine_id, makineler.id))
@@ -1011,6 +1083,13 @@ export async function repoListMakineKuyrugu(
       makinePlanliKapali: !!r.kapali_bitis_tarih,
       makineKapaliAciklama: r.kapali_aciklama ?? null,
       makineKapaliBitisTarih: r.kapali_bitis_tarih ? String(r.kapali_bitis_tarih).slice(0, 10) : null,
+      acikVardiya: r.acik_vardiya_id
+        ? {
+          id: r.acik_vardiya_id,
+          vardiyaTipi: r.acik_vardiya_tipi ?? 'gunduz',
+          baslangic: toStr(r.acik_vardiya_baslangic) ?? '',
+        }
+        : null,
     };
   });
 
@@ -1040,7 +1119,7 @@ export async function repoUretimBaslat(
     const activeClosure = await repoGetActiveForMachine(target.makine_id, now);
     if (activeClosure) throw createPlannedClosureError(activeClosure);
 
-    await ensureAutomaticShiftForMachine(tx, {
+    const activeShift = await ensureAutomaticShiftForMachine(tx, {
       makineId: target.makine_id,
       operatorUserId,
       now,
@@ -1099,6 +1178,7 @@ export async function repoUretimBaslat(
         uretim_emri_id: kqRow?.uretim_emri_id ?? '',
         makine_id: target.makine_id,
         emir_operasyon_id: kqRow?.emir_operasyon_id ?? null,
+        vardiya_kayit_id: activeShift.id,
         operator_user_id: operatorUserId,
         gunluk_durum: 'devam_ediyor',
         ek_uretim_miktari: '0.0000',
@@ -1197,11 +1277,18 @@ export async function repoUretimBitir(
     const toplamFire = oncekiFire + body.fireMiktar;
 
     // Log final günlük kayıt as one more incremental entry.
+    const vardiyaKayitId = await resolveVardiyaKayitIdForProduction(tx, {
+      makineId: kqRow.makine_id,
+      kayitTarihi: now,
+      vardiyaKayitId: body.vardiyaKayitId,
+    });
+
     await tx.insert(operatorGunlukKayitlari).values({
       id: randomUUID(),
       uretim_emri_id: kqRow.uretim_emri_id,
       makine_id: kqRow.makine_id,
       emir_operasyon_id: kqRow.emir_operasyon_id ?? null,
+      vardiya_kayit_id: vardiyaKayitId,
       operator_user_id: operatorUserId ?? null,
       gunluk_durum: 'tamamlandi',
       ek_uretim_miktari: body.uretilenMiktar.toFixed(4),
@@ -1604,6 +1691,7 @@ async function recordIncrementalProductionEntry(
     notlar,
     gunlukDurum = 'devam_ediyor',
     kayitTarihi,
+    vardiyaKayitId,
   }: {
     kqRow: {
       makine_id: string;
@@ -1617,18 +1705,26 @@ async function recordIncrementalProductionEntry(
     notlar?: string | null;
     gunlukDurum?: 'devam_ediyor' | 'yarim_kaldi' | 'tamamlandi';
     kayitTarihi?: Date;
+    vardiyaKayitId?: string | null;
   },
 ): Promise<OperatorGunlukGirisDto | null> {
   if (uretilenMiktar <= 0) return null;
 
   const netMiktar = uretilenMiktar - fireMiktar;
   const kayitId = randomUUID();
+  const kayitZamani = kayitTarihi ?? new Date();
+  const resolvedVardiyaKayitId = await resolveVardiyaKayitIdForProduction(tx, {
+    makineId: kqRow.makine_id,
+    kayitTarihi: kayitZamani,
+    vardiyaKayitId,
+  });
 
   await tx.insert(operatorGunlukKayitlari).values({
     id: kayitId,
     uretim_emri_id: kqRow.uretim_emri_id,
     makine_id: kqRow.makine_id,
     emir_operasyon_id: kqRow.emir_operasyon_id ?? null,
+    vardiya_kayit_id: resolvedVardiyaKayitId,
     operator_user_id: operatorUserId ?? null,
     gunluk_durum: gunlukDurum,
     ek_uretim_miktari: uretilenMiktar.toFixed(4),
@@ -1636,7 +1732,7 @@ async function recordIncrementalProductionEntry(
     net_miktar: netMiktar.toFixed(4),
     birim_tipi: birimTipi,
     notlar: notlar ?? null,
-    kayit_tarihi: kayitTarihi ?? new Date(),
+    kayit_tarihi: kayitZamani,
   });
 
   if (kqRow.emir_operasyon_id) {
@@ -1843,6 +1939,7 @@ export async function repoDevamEt(
         birimTipi: body.birimTipi,
         notlar: body.notlar ?? 'Duruş sonu artımlı üretim kaydı',
         gunlukDurum: 'devam_ediyor',
+        vardiyaKayitId: body.vardiyaKayitId,
       });
     }
 
@@ -1937,6 +2034,7 @@ export async function repoVardiyaSonu(
         birimTipi: body.birimTipi,
         notlar: body.notlar ?? 'Vardiya sonu günlük üretim girişi',
         gunlukDurum: 'yarim_kaldi',
+        vardiyaKayitId: body.vardiyaKayitId,
       });
     });
   }
@@ -2010,6 +2108,7 @@ export async function repoGunlukUretimGir(
       notlar: body.notlar ?? 'Vardiya sonu günlük üretim girişi',
       gunlukDurum: 'yarim_kaldi',
       kayitTarihi,
+      vardiyaKayitId: body.vardiyaKayitId,
     });
   });
 
@@ -2114,6 +2213,7 @@ export type AcikVardiyaDto = {
   acikVardiyaId: string | null;
   vardiyaTipi: string | null;
   baslangic: Date | null;
+  sonVardiyalar: Array<{ id: string; vardiyaTipi: string; baslangic: Date; bitis: Date | null }>;
 };
 
 export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
@@ -2188,6 +2288,34 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
     )
     .orderBy(asc(makineler.kod));
 
+  const machineIds = rows.map((row) => row.makineId);
+  const recentRows = machineIds.length > 0
+    ? await db
+      .select({
+        id: vardiyaKayitlari.id,
+        makineId: vardiyaKayitlari.makine_id,
+        vardiyaTipi: vardiyaKayitlari.vardiya_tipi,
+        baslangic: vardiyaKayitlari.baslangic,
+        bitis: vardiyaKayitlari.bitis,
+      })
+      .from(vardiyaKayitlari)
+      .where(inArray(vardiyaKayitlari.makine_id, machineIds))
+      .orderBy(desc(vardiyaKayitlari.baslangic))
+      .limit(machineIds.length * 4)
+    : [];
+  const recentByMachine = new Map<string, Array<{ id: string; vardiyaTipi: string; baslangic: Date; bitis: Date | null }>>();
+  for (const row of recentRows) {
+    const list = recentByMachine.get(row.makineId) ?? [];
+    if (list.length >= 2) continue;
+    list.push({
+      id: row.id,
+      vardiyaTipi: row.vardiyaTipi,
+      baslangic: row.baslangic,
+      bitis: row.bitis ?? null,
+    });
+    recentByMachine.set(row.makineId, list);
+  }
+
   return rows.map((r) => ({
     makineId: r.makineId,
     makineKod: r.makineKod,
@@ -2195,6 +2323,7 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
     acikVardiyaId: r.acikVardiyaId ?? null,
     vardiyaTipi: r.vardiyaTipi ?? null,
     baslangic: r.baslangic ?? null,
+    sonVardiyalar: recentByMachine.get(r.makineId) ?? [],
   }));
 }
 

@@ -19,6 +19,7 @@ export const uretimBaslatBodySchema = z.object({
 // -- Uretim bitir (uretilen + fire gir) --
 export const uretimBitirBodySchema = z.object({
   makineKuyrukId: z.string().min(1),
+  vardiyaKayitId: z.string().min(1).optional(),
   uretilenMiktar: z.coerce.number().min(0),
   fireMiktar: z.coerce.number().min(0).default(0),
   birimTipi: z.enum(['adet', 'takim']).default('adet'),
@@ -36,6 +37,7 @@ export const duraklatBodySchema = z.object({
 // -- Devam et --
 export const devamEtBodySchema = z.object({
   makineKuyrukId: z.string().min(1),
+  vardiyaKayitId: z.string().min(1).optional(),
   uretilenMiktar: z.coerce.number().min(0).optional(),
   fireMiktar: z.coerce.number().min(0).default(0),
   birimTipi: z.enum(['adet', 'takim']).default('adet'),
@@ -51,6 +53,7 @@ export const vardiyaBasiBodySchema = z.object({
 
 export const vardiyaSonuBodySchema = z.object({
   makineId: z.string().min(1),
+  vardiyaKayitId: z.string().min(1).optional(),
   uretilenMiktar: z.coerce.number().min(0).optional(),
   fireMiktar: z.coerce.number().min(0).default(0),
   birimTipi: z.enum(['adet', 'takim']).default('adet'),
