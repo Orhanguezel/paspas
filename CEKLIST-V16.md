@@ -96,7 +96,10 @@ Codex 5 commit (`4758f11`, `1f689f4`, `03f8f54`, `1e1ddee`, `8c91690`) — **bri
 
 **Admin'in şikayeti kapandı:** "485+490 bir vardiyada imkânsız" → artık **iki ayrı gece kartında** (07-07 ve 07-08). "Gündüz vardiyasında hiç üretim yok" → 09.07 gündüz 485 ile dolu.
 
-### 📌 Kayda geçen ikincil bulgu (V17 adayı — acil değil)
-`vardiya_kayitlari.baslangic/bitis` **yerel duvar-saati** olarak UTC-naive kolonlara yazılıyor (DB'de `19:30`, okununca `19:30Z` = 22:30 TR). Bu **V16 ile gelmedi, önceden vardı**. Sınıflandırmayı bozmuyor (karşılaştırmalar aynı frame'de) ve süreler doğru çıkıyor çünkü `service.ts:683-684` gerçek vardiya kaydı varsa `realBaslangic/realBitis` kullanıyor. Risk yalnızca: (a) vardiya sınırı bir yerde **ekranda saat olarak** gösterilirse 3 saat sapar, (b) **sentetik slot** (vardiya kaydı olmayan üretim) için süre/duruş penceresi kayar. Ayrı revizyonda ele alınmalı.
+### ❌ DÜZELTME — "ikincil bulgu" değerlendirmem YANLIŞTI (2026-07-09, aynı gün)
 
-- [x] Review · [x] Push + Deploy (`8c91690`) · [x] Canlı doğrulama · [x] Seed 209 uygulandı. **Açık not: 0.**
+Kapanışta `vardiya_kayitlari` sınırlarının duvar-saati saklanmasını "acil değil" diye geçmiştim. **Hatalıydı.** Admin aynı akşam iki semptom bildirdi (kart var/satır yok; geniş aralıkta üretim görünmüyor) ve inceleyince bunun V16'nın çözmediği asıl mimari kusur olduğu ortaya çıktı. Devamı: [CEKLIST-V17.md](CEKLIST-V17.md).
+
+V16'nın kazanımları geçerli (TZ determinizmi, slot kartları, açık vardiya bağı). Ancak **kabul kriteri 3'ün "doğruluk tablosu" dayanağı hatalıydı**: `19:33 TR → GECE` matematiksel olarak doğru, **operasyonel olarak yanlış** — o giriş biten *gündüz* vardiyasının çıktısıdır. Bunu V17 ele alıyor.
+
+- [x] Review · [x] Push + Deploy (`8c91690`) · [x] Seed 209 uygulandı · [ ] **Kapanmadı — V17'ye devredildi.**
