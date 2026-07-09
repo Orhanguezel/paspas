@@ -142,7 +142,7 @@ export async function repoList(query: ListQuery): Promise<{ items: GanttMachineD
       .leftJoin(musteriler, eq(satisSiparisleri.musteri_id, musteriler.id))
       .leftJoin(durusKayitlari, eq(durusKayitlari.makine_kuyruk_id, makineKuyrugu.id))
       .where(where)
-      .orderBy(asc(makineler.kod), asc(makineKuyrugu.sira), asc(makineKuyrugu.planlanan_baslangic))
+      .orderBy(asc(makineler.gosterim_sira), asc(makineler.kod), asc(makineKuyrugu.sira), asc(makineKuyrugu.planlanan_baslangic))
       .limit(query.limit)
       .offset(query.offset)
       .groupBy(
@@ -181,7 +181,7 @@ export async function repoList(query: ListQuery): Promise<{ items: GanttMachineD
           ? and(eq(makineler.id, query.makineId), eq(makineler.is_active, 1))
           : eq(makineler.is_active, 1),
       )
-      .orderBy(asc(makineler.kod)),
+      .orderBy(asc(makineler.gosterim_sira), asc(makineler.kod)),
   ]);
 
   const machineIds = machineRows.map((machine) => machine.id);
@@ -395,13 +395,26 @@ function rowToDto(
   };
 
   const baslangicValue = row.gercek_baslangic ?? row.planlanan_baslangic;
-  const bitisValue = row.gercek_bitis ?? row.planlanan_bitis;
+  const rawBitisValue = row.gercek_bitis ?? row.planlanan_bitis;
+
+  // Devam eden iş (calisiyor/duraklatildi) çubuğu "şimdi"nin SOLUNDA bitmemeli:
+  // planlanan bitiş geçmişte kalmışsa (iş gecikmiş) çubuk en az şimdiye kadar uzar,
+  // planlanan bitiş ileride ise onu kullanır — yani asla now'da KESİLMEZ (YN-V15 K3),
+  // ama biten gibi de görünmez. Tamamlanan işlerde gerçek bitiş aynen kullanılır.
+  const aktifIs = !row.gercek_bitis && (row.durum === 'calisiyor' || row.durum === 'duraklatildi');
+  const rawBitisDate = rawBitisValue
+    ? (rawBitisValue instanceof Date ? rawBitisValue : new Date(String(rawBitisValue)))
+    : null;
+  const bitisValue = aktifIs && rawBitisDate
+    ? new Date(Math.max(rawBitisDate.getTime(), Date.now()))
+    : rawBitisDate;
+
   const baslangicTarihi = toDateTimeString(baslangicValue);
   const bitisTarihi = toDateTimeString(bitisValue);
   const segmentler = config && baslangicValue && bitisValue
     ? splitIntoWorkingSegments(
       baslangicValue instanceof Date ? baslangicValue : new Date(String(baslangicValue)),
-      bitisValue instanceof Date ? bitisValue : new Date(String(bitisValue)),
+      bitisValue,
       config,
       holidays,
       weekendPlans,
