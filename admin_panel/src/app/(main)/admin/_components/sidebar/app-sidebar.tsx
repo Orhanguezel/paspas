@@ -7,30 +7,30 @@
 // =============================================================
 
 import Link from 'next/link';
-import { LayoutDashboard, Mail, Phone } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { resolveMediaUrl } from '@/lib/media-url';
+import { useMemo } from 'react';
+
+import { LayoutDashboard } from 'lucide-react';
+
+import { useAdminT } from '@/app/(main)/admin/_components/common/useAdminT';
+import { useAdminUiCopy } from '@/app/(main)/admin/_components/common/useAdminUiCopy';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
 } from '@/components/ui/sidebar';
-
+import type { TranslateFn } from '@/i18n';
+import { useGetMyProfileQuery, useStatusQuery } from '@/integrations/hooks';
+import { normalizeMeFromStatus } from '@/integrations/shared';
+import { resolveMediaUrl } from '@/lib/media-url';
+import { cn } from '@/lib/utils';
+import { ROLE_HOME, type PanelRole } from '@/navigation/permissions';
 import { buildAdminSidebarItems } from '@/navigation/sidebar/sidebar-items';
 import type { NavGroup } from '@/navigation/sidebar/sidebar-items';
 
-import { useAdminUiCopy } from '@/app/(main)/admin/_components/common/useAdminUiCopy';
-import { useAdminT } from '@/app/(main)/admin/_components/common/useAdminT';
-import type { TranslateFn } from '@/i18n';
-import { normalizeMeFromStatus } from '@/integrations/shared';
-import type { PanelRole } from '@/navigation/permissions';
-
-import { useMemo } from 'react';
+import { useAdminSettings } from '../admin-settings-provider';
 import { NavMain } from './nav-main';
 import { NavUser } from './nav-user';
-import { useAdminSettings } from '../admin-settings-provider';
-import { useStatusQuery, useGetMyProfileQuery } from '@/integrations/hooks';
 
 const VALID_ROLES = new Set<string>(['admin', 'operator', 'satin_almaci', 'nakliyeci']);
 const DB_TO_PANEL: Record<string, string> = { sevkiyatci: 'nakliyeci' };
@@ -170,6 +170,7 @@ export function AppSidebar({
     ? (mappedRole as PanelRole)
     : 'admin';
   const groupsForMe: NavGroup[] = buildAdminSidebarItems(copy.nav, wrappedT, resolvedRole);
+  const homeHref = ROLE_HOME[resolvedRole] ?? '/admin/dashboard';
   const panelLabel = baseName || 'ERP';
   const panelSub = companyInfo.sidebarSubtitle || 'Uretim Yonetim Sistemi';
 
@@ -181,7 +182,7 @@ export function AppSidebar({
       <SidebarHeader>
         <Link
           prefetch={false}
-          href="/admin/dashboard"
+          href={homeHref}
           className="block px-4 py-5 transition-colors hover:bg-sidebar-accent/40 group-data-[collapsible=icon]:px-2"
         >
           <SidebarBrandBlock
@@ -208,4 +209,3 @@ export function AppSidebar({
     </Sidebar>
   );
 }
-

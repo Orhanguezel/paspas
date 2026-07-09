@@ -11,7 +11,16 @@
       "Bash(mysql -h 127.0.0.1 -u app -D promats_erp -sNe ' *)",
       "Bash(curl -s http://localhost:8078/api/health)",
       "Bash(MYSQL_PWD='app' mysql -h 127.0.0.1 -u app -D promats_erp)",
-      "Bash(MYSQL_PWD='app' mysql -h 127.0.0.1 -u app -D promats_erp -sNe \"SELECT COUNT\\(*\\) FROM storage_assets\")"
+      "Bash(MYSQL_PWD='app' mysql -h 127.0.0.1 -u app -D promats_erp -sNe \"SELECT COUNT\\(*\\) FROM storage_assets\")",
+      "Bash(git rebase *)",
+      "Bash(scp -q /tmp/v3_resolve.sql vps-paspas:/tmp/v3_resolve.sql)",
+      "Bash(scp -q /tmp/apply-paspas-migrations vps-paspas:/root/bin/apply-paspas-migrations)",
+      "Bash(scp -q /tmp/patch_deploy.py vps-paspas:/tmp/patch_deploy.py)",
+      "Bash(chmod +x scripts/deploy/apply-paspas-migrations.sh)",
+      "Bash(grep -q \"Deploy tamamlandı\\\\|Deploy tamamland\" /tmp/claude-1000/-home-orhan-Documents-Projeler-paspas/a9fbdce3-f852-4d4c-bc16-b79f2d183dd6/tasks/b9tvt4v16.output)",
+      "Bash(break)",
+      "Bash(tail -5 /tmp/claude-1000/-home-orhan-Documents-Projeler-paspas/a9fbdce3-f852-4d4c-bc16-b79f2d183dd6/tasks/b9tvt4v16.output)",
+      "Bash(ssh vss *)"
     ],
     "defaultMode": "bypassPermissions"
   }

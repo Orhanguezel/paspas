@@ -35,6 +35,8 @@ export type HolidaySet = Set<string>; // 'YYYY-MM-DD' formatinda
 
 export type WeekendPlanMap = Map<string, Set<string>>; // tarih -> calisan makine id'leri
 
+export type Segment = { baslangic: Date; bitis: Date };
+
 // ── On-bellek: tatil ve hafta sonu verilerini toplu cek ──────────────
 
 async function loadHolidays(): Promise<HolidaySet> {
@@ -173,6 +175,48 @@ export function skipToNextWorkingDay(
   }
 
   return current;
+}
+
+/**
+ * [baslangic, bitis] araligini makinenin calistigi takvim dilimlerine boler.
+ * Calisma disi gunler ve mesai disi saatler segmentlere dahil edilmez.
+ */
+export function splitIntoWorkingSegments(
+  baslangic: Date,
+  bitis: Date,
+  config: MakineWorkConfig,
+  holidays: HolidaySet,
+  weekendPlans: WeekendPlanMap,
+): Segment[] {
+  if (bitis <= baslangic) return [];
+
+  const segments: Segment[] = [];
+  let cursor = new Date(baslangic.getFullYear(), baslangic.getMonth(), baslangic.getDate(), 0, 0, 0, 0);
+  const finalDay = new Date(bitis.getFullYear(), bitis.getMonth(), bitis.getDate(), 0, 0, 0, 0);
+
+  while (cursor <= finalDay) {
+    if (isWorkingDay(cursor, config.makineId, holidays, weekendPlans)) {
+      const dayStart = new Date(cursor);
+      const dayEnd = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1, 0, 0, 0, 0);
+      const workStart = config.calisir24Saat
+        ? dayStart
+        : new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), config.workStartHour, 0, 0, 0);
+      const workEnd = config.calisir24Saat
+        ? dayEnd
+        : new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), config.workEndHour, 0, 0, 0);
+
+      const segmentStart = new Date(Math.max(workStart.getTime(), baslangic.getTime()));
+      const segmentEnd = new Date(Math.min(workEnd.getTime(), bitis.getTime()));
+
+      if (segmentEnd > segmentStart) {
+        segments.push({ baslangic: segmentStart, bitis: segmentEnd });
+      }
+    }
+
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1, 0, 0, 0, 0);
+  }
+
+  return segments;
 }
 
 /**

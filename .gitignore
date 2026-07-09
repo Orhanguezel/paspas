@@ -24,3 +24,9 @@ docs/vps_*.tsv
 # Syncthing
 *.sync-conflict-*
 .syncthing.*.tmp
+
+# promats.com.tr FTP yedegi (DB/sifre icerebilir, commit edilmez)
+promats-ftp-yedek/
+
+# Promats web rewrite nested project
+promats/

@@ -14,6 +14,7 @@ export type GanttBarDto = {
   sira: number;
   baslangicTarihi: string | null;
   bitisTarihi: string | null;
+  segmentler: Array<{ baslangicTarihi: string; bitisTarihi: string }>;
   planlananBaslangicTarihi: string | null;
   planlananBitisTarihi: string | null;
   terminTarihi: string | null;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ChevronLeft, ChevronRight, RefreshCcw, Search, Wrench } from "lucide-react";
 
@@ -25,11 +25,6 @@ const PRESET_COL_W: Record<RangePreset, number> = {
   week: 140,
   month: 42,
   quarter: 14,
-};
-const BLOCK_STYLES: Record<GanttBlockDto["tip"], string> = {
-  hafta_sonu: "bg-slate-200/65",
-  tatil: "bg-rose-200/70",
-  durus: "bg-orange-300/70",
 };
 const BLOCK_LABELS: Record<GanttBlockDto["tip"], string> = {
   hafta_sonu: "Hafta Sonu / Çalışma Yok",
@@ -154,12 +149,25 @@ function blockPatternStyle(tip: GanttBlockDto["tip"]): React.CSSProperties {
     };
   }
   if (tip === "tatil") {
-    // Full-height, z-6 — renders ABOVE work bars (z-5): holiday day is always blocked
+    // Row stripe below bars; backend decides whether work segments exist.
     return { backgroundColor: "rgba(254,202,202,0.82)" };
   }
-  // hafta_sonu — full-height, z-6 — renders ABOVE work bars (z-5) when machine doesn't work weekends.
-  // Machines that work on weekends won't have a hafta_sonu block, so their bars stay visible.
+  // Row stripe below bars; machines that work weekends won't have a hafta_sonu block.
   return { backgroundColor: "rgba(203,213,225,0.82)" }; // slate-300/82
+}
+
+function getClippedRect(start: Date, end: Date, timelineStart: Date, totalDays: number, colWidth: number, minWidth: number) {
+  if (end <= start) return null;
+
+  const startOffset = preciseDayOffset(timelineStart, start);
+  const duration = preciseDayDuration(start, end);
+  const visibleStart = Math.max(0, startOffset);
+  const left = visibleStart * colWidth;
+  const visibleDuration = duration + Math.min(0, startOffset);
+  const clampedDuration = Math.min(visibleDuration, totalDays - visibleStart);
+  if (clampedDuration <= 0) return null;
+
+  return { left, width: Math.max(minWidth, clampedDuration * colWidth) };
 }
 
 function getBlockRect(block: GanttBlockDto, timelineStart: Date, totalDays: number, colWidth: number) {
@@ -167,15 +175,7 @@ function getBlockRect(block: GanttBlockDto, timelineStart: Date, totalDays: numb
   const end = toDate(block.bitisTarihi);
   if (!start || !end) return null;
 
-  const startOffset = preciseDayOffset(timelineStart, start);
-  const duration = preciseDayDuration(start, end);
-  const left = Math.max(0, startOffset) * colWidth;
-  // Clip left edge: when block starts before viewport, subtract the invisible portion
-  const visibleDuration = duration + Math.min(0, startOffset);
-  const clampedDuration = Math.min(visibleDuration, totalDays - Math.max(0, startOffset));
-  const width = Math.max(6, clampedDuration * colWidth);
-
-  return { left, width };
+  return getClippedRect(start, end, timelineStart, totalDays, colWidth, 6);
 }
 
 function progressOf(item: GanttBarDto): number {
@@ -184,7 +184,7 @@ function progressOf(item: GanttBarDto): number {
 }
 
 function hasVisiblePlan(item: GanttBarDto) {
-  return Boolean(item.baslangicTarihi && item.bitisTarihi);
+  return item.segmentler.length > 0;
 }
 
 export default function GanttClient() {
@@ -199,6 +199,7 @@ export default function GanttClient() {
   const [durumFilter, setDurumFilter] = useState("");
   const [makineIdFilter, setMakineIdFilter] = useState("");
   const [makineGosterim, setMakineGosterim] = useState<"kuyrukta" | "tamami">("kuyrukta");
+  const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
 
   const queryParams = useMemo(
     () => ({
@@ -213,7 +214,21 @@ export default function GanttClient() {
 
   const { data, isLoading, isFetching, refetch } = useListGanttAdminQuery(queryParams);
   const { data: makinelerData } = useListMakinelerAdminQuery({});
-  const colWidth = PRESET_COL_W[rangePreset];
+  const colWidth = rangePreset === "gun"
+    ? Math.max(PRESET_COL_W.gun, timelineViewportWidth)
+    : PRESET_COL_W[rangePreset];
+
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+
+    const updateWidth = () => setTimelineViewportWidth(node.clientWidth);
+    updateWidth();
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const groups = useMemo(
     () =>
@@ -543,22 +558,21 @@ function MachineTimelineRow({
 
     return sorted
       .map((item) => {
-        const start = toDate(item.baslangicTarihi);
-        const end = toDate(item.bitisTarihi);
-        if (!start || !end) return null;
+        const segments = item.segmentler
+          .map((segment) => {
+            const start = toDate(segment.baslangicTarihi);
+            const end = toDate(segment.bitisTarihi);
+            if (!start || !end) return null;
+            const rect = getClippedRect(start, end, timelineStart, totalDays, colWidth, 12);
+            return rect ? { ...rect, start, end } : null;
+          })
+          .filter((value): value is { left: number; width: number; start: Date; end: Date } => value !== null);
 
-        const startOffset = preciseDayOffset(timelineStart, start);
-        const duration = preciseDayDuration(start, end);
-        const left = Math.max(0, startOffset) * colWidth;
-        // Clip both edges: left edge (startOffset < 0) and right edge (beyond range end)
-        const visibleDuration = duration + Math.min(0, startOffset);
-        const clampedDuration = Math.min(visibleDuration, totalDays - Math.max(0, startOffset));
-        const width = Math.max(12, clampedDuration * colWidth - 4);
-
-        return { item, left, width };
+        if (segments.length === 0) return null;
+        return { item, segments };
       })
-      .filter((value): value is { item: GanttBarDto; left: number; width: number } => value !== null);
-  }, [group.items, timelineStart, totalDays]);
+      .filter((value): value is { item: GanttBarDto; segments: Array<{ left: number; width: number; start: Date; end: Date }> } => value !== null);
+  }, [group.items, timelineStart, totalDays, colWidth]);
 
   // Bugün çizgisi pozisyonu (saat bazlı)
   const now = new Date();
@@ -592,14 +606,12 @@ function MachineTimelineRow({
           Bu makinede seçili aralıkta planlı iş yok
         </div>
       ) : (
-        bars.map(({ item, left, width }) => (
-          <GanttBar key={item.kuyrukId} item={item} left={left} top={12} width={width} />
+        bars.map(({ item, segments }) => (
+          <GanttBarSegments key={item.kuyrukId} item={item} top={12} segments={segments} />
         ))
       )}
 
-      {/* Layer 6: Non-working hafta sonu + tatil blocks — full-height, z-6 (ABOVE work bars z-5).
-           Machines that work weekends won't have a hafta_sonu block, so their bars remain visible.
-           Machines that don't work weekends: this overlay covers any misplaced bars. */}
+      {/* Layer 1: Non-working hafta sonu + tatil stripes below work bars. */}
       {group.blocks
         .filter((block) => block.tip !== "durus")
         .map((block) => {
@@ -610,8 +622,8 @@ function MachineTimelineRow({
             <Tooltip key={block.id}>
               <TooltipTrigger asChild>
                 <div
-                  className="absolute inset-y-0 z-6"
-                  style={{ left: rect.left, width: rect.width, ...blockPatternStyle(block.tip) }}
+                  className="absolute z-[1] rounded-sm"
+                  style={{ left: rect.left, top: 8, height: ROW_H - 16, width: rect.width, ...blockPatternStyle(block.tip) }}
                 />
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
@@ -666,37 +678,88 @@ function MachineTimelineRow({
   );
 }
 
-function GanttBar({ item, left, top, width }: { item: GanttBarDto; left: number; top: number; width: number }) {
+function GanttBarSegments({
+  item,
+  top,
+  segments,
+}: {
+  item: GanttBarDto;
+  top: number;
+  segments: Array<{ left: number; width: number; start: Date; end: Date }>;
+}) {
+  const pct = progressOf(item);
+  const style = DURUM_STYLES[item.durum] ?? DURUM_STYLES.bekliyor;
+  const isCancelled = item.durum === "iptal";
+  const totalWidth = segments.reduce((sum, segment) => sum + segment.width, 0);
+  let remainingFillWidth = totalWidth * (pct / 100);
+
+  return (
+    <>
+      {segments.map((segment, index) => {
+        const fillWidth = Math.max(0, Math.min(segment.width, remainingFillWidth));
+        remainingFillWidth -= fillWidth;
+
+        return (
+          <GanttBarSegment
+            key={`${item.kuyrukId}-${segment.start.toISOString()}-${index}`}
+            item={item}
+            left={segment.left}
+            top={top}
+            width={segment.width}
+            segmentStart={segment.start}
+            segmentEnd={segment.end}
+            fillPct={segment.width > 0 ? (fillWidth / segment.width) * 100 : 0}
+            showLabel={index === 0}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+function GanttBarSegment({
+  item,
+  left,
+  top,
+  width,
+  segmentStart,
+  segmentEnd,
+  fillPct,
+  showLabel,
+}: {
+  item: GanttBarDto;
+  left: number;
+  top: number;
+  width: number;
+  segmentStart: Date;
+  segmentEnd: Date;
+  fillPct: number;
+  showLabel: boolean;
+}) {
   const pct = progressOf(item);
   const style = DURUM_STYLES[item.durum] ?? DURUM_STYLES.bekliyor;
   const isCancelled = item.durum === "iptal";
 
-  const bitisDate = toDate(item.bitisTarihi);
-  const isWeekendBitis = bitisDate ? bitisDate.getDay() === 0 || bitisDate.getDay() === 6 : false;
-
-  // GN-5: Pause indicator — striped overlay from pause time to now
   const pauseOverlay = useMemo(() => {
     if (item.durum !== "duraklatildi" || !item.duraklatmaZamani) return null;
-    const startMs = toDate(item.baslangicTarihi)?.getTime();
-    const endMs = toDate(item.bitisTarihi)?.getTime();
     const pauseMs = toDate(item.duraklatmaZamani)?.getTime();
     const nowMs = Date.now();
-    if (!startMs || !endMs || !pauseMs || endMs <= startMs) return null;
+    const startMs = segmentStart.getTime();
+    const endMs = segmentEnd.getTime();
+    if (!pauseMs || endMs <= startMs || nowMs <= startMs || pauseMs >= endMs) return null;
     const span = endMs - startMs;
     const pausePct = Math.min(100, Math.max(0, ((pauseMs - startMs) / span) * 100));
     const nowPct = Math.min(100, Math.max(pausePct, ((nowMs - startMs) / span) * 100));
     return { pausePct, nowPct };
-  }, [item.durum, item.duraklatmaZamani, item.baslangicTarihi, item.bitisTarihi]);
+  }, [item.durum, item.duraklatmaZamani, segmentStart, segmentEnd]);
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <div className="absolute z-5 cursor-default" style={{ left: left + 2, top, width }}>
-          <div
-            className={`relative h-8 overflow-hidden rounded-md shadow-sm ${style.track} ${isWeekendBitis ? "ring-2 ring-amber-400 ring-offset-1" : ""}`}
-          >
-            {pct > 0 && !isCancelled && (
-              <div className={`absolute inset-y-0 left-0 ${style.fill}`} style={{ width: `${pct}%` }} />
+          <div className={`relative h-8 overflow-hidden rounded-md shadow-sm ${style.track}`}>
+            {fillPct > 0 && !isCancelled && (
+              <div className={`absolute inset-y-0 left-0 ${style.fill}`} style={{ width: `${fillPct}%` }} />
             )}
             {isCancelled && <div className={`absolute inset-0 opacity-35 ${style.fill}`} />}
             {pauseOverlay && (
@@ -718,21 +781,18 @@ function GanttBar({ item, left, top, width }: { item: GanttBarDto; left: number;
                 />
               </>
             )}
-            <div className={`absolute inset-0 flex items-center gap-1 px-2 text-[10px] font-medium ${style.text}`}>
-              <span className="truncate">{item.operasyonAdi ?? item.emirNo}</span>
-              {item.musteriOzet && width > 120 && <span className="shrink-0 text-muted-foreground">· {item.musteriOzet}</span>}
-              {item.montaj && (
-                <span className="ml-auto flex items-center gap-0.5 shrink-0 text-amber-700">
-                  <Wrench className="size-3" />
-                  {width > 100 && <span className="text-[9px]">Montaj</span>}
-                </span>
-              )}
-              {isWeekendBitis && (
-                <span className="ml-auto flex size-4 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-white" title="Bitiş hafta sonuna denk geliyor">
-                  !
-                </span>
-              )}
-            </div>
+            {showLabel && (
+              <div className={`absolute inset-0 flex items-center gap-1 px-2 text-[10px] font-medium ${style.text}`}>
+                <span className="truncate">{item.operasyonAdi ?? item.emirNo}</span>
+                {item.musteriOzet && width > 120 && <span className="shrink-0 text-muted-foreground">· {item.musteriOzet}</span>}
+                {item.montaj && (
+                  <span className="ml-auto flex items-center gap-0.5 shrink-0 text-amber-700">
+                    <Wrench className="size-3" />
+                    {width > 100 && <span className="text-[9px]">Montaj</span>}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </TooltipTrigger>
@@ -747,9 +807,6 @@ function GanttBar({ item, left, top, width }: { item: GanttBarDto; left: number;
           }
           {item.duraklatmaZamani && (
             <div className="font-medium text-orange-600">⏸ Duraklatıldı: {formatDateTime(item.duraklatmaZamani)}</div>
-          )}
-          {isWeekendBitis && (
-            <div className="font-medium text-amber-600">⚠ Bitiş hafta sonuna denk geliyor</div>
           )}
           <div>
             İlerleme: {pct}% ({item.uretilenMiktar}/{item.planlananMiktar})

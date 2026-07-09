@@ -19,6 +19,7 @@ export interface GanttBarDto {
   sira: number;
   baslangicTarihi: string | null;
   bitisTarihi: string | null;
+  segmentler: Array<{ baslangicTarihi: string; bitisTarihi: string }>;
   planlananBaslangicTarihi: string | null;
   planlananBitisTarihi: string | null;
   terminTarihi: string | null;
@@ -86,6 +87,15 @@ export function normalizeGanttBar(raw: unknown): GanttBarDto {
     sira: toNum(r.sira),
     baslangicTarihi: r.baslangicTarihi != null ? toStr(r.baslangicTarihi) : null,
     bitisTarihi: r.bitisTarihi != null ? toStr(r.bitisTarihi) : null,
+    segmentler: Array.isArray(r.segmentler)
+      ? r.segmentler.map((segment) => {
+        const s = isRecord(segment) ? segment : {};
+        return {
+          baslangicTarihi: toStr(s.baslangicTarihi),
+          bitisTarihi: toStr(s.bitisTarihi),
+        };
+      }).filter((segment) => segment.baslangicTarihi && segment.bitisTarihi)
+      : [],
     planlananBaslangicTarihi: r.planlananBaslangicTarihi != null ? toStr(r.planlananBaslangicTarihi) : null,
     planlananBitisTarihi: r.planlananBitisTarihi != null ? toStr(r.planlananBitisTarihi) : null,
     terminTarihi: r.terminTarihi != null ? toStr(r.terminTarihi) : null,

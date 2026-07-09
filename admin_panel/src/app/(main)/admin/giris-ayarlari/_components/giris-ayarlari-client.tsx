@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+
 import { AlertTriangle, KeyRound, LogIn, RefreshCcw, Route, ShieldCheck, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -47,7 +48,7 @@ export default function GirisAyarlariClient() {
   const [enabledRoles, setEnabledRoles] = useState<LoginRole[]>(['admin', 'sevkiyatci', 'operator', 'satin_almaci']);
   const [redirects, setRedirects] = useState<Record<LoginRole, string>>({
     admin: '/admin/dashboard',
-    sevkiyatci: '/admin/satis-siparisleri',
+    sevkiyatci: '/admin/sevkiyat',
     operator: '/admin/operator',
     satin_almaci: '/admin/satin-alma',
   });

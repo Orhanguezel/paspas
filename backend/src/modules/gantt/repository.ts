@@ -9,6 +9,12 @@ import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/
 import { haftaSonuPlanlari, tatilMakineler, tatiller } from '@/modules/tanimlar/schema';
 import { uretimEmirleri, uretimEmriOperasyonlari, uretimEmriSiparisKalemleri } from '@/modules/uretim_emirleri/schema';
 import { urunler } from '@/modules/urunler/schema';
+import {
+  splitIntoWorkingSegments,
+  type HolidaySet,
+  type MakineWorkConfig,
+  type WeekendPlanMap,
+} from '@/modules/_shared/planlama';
 
 import type { GanttBarDto, GanttBlockDto, GanttMachineDto } from './schema';
 import type { ListQuery, PatchBody } from './validation';
@@ -18,6 +24,7 @@ type QueryRow = {
   makineId: string;
   makineKod: string;
   makineAd: string;
+  calisir24Saat?: number | boolean | null;
   uretimEmriId: string;
   emirOperasyonId: string | null;
   emir_no: string;
@@ -44,27 +51,11 @@ function buildWhere(query: ListQuery): SQL | undefined {
   const conditions: SQL[] = [];
   if (query.dateFrom) {
     const from = new Date(`${query.dateFrom}T00:00:00`);
-    conditions.push(
-      or(
-        gte(makineKuyrugu.planlanan_bitis, from),
-        gte(makineKuyrugu.gercek_bitis, from),
-        // Active/paused with no real end — always include
-        sql`${makineKuyrugu.gercek_bitis} IS NULL AND ${makineKuyrugu.durum} IN ('calisiyor', 'duraklatildi')`,
-        // Queued items with no end date yet — always include (preceding job may be delayed)
-        sql`${makineKuyrugu.durum} = 'bekliyor' AND ${makineKuyrugu.gercek_bitis} IS NULL`,
-      ) as SQL,
-    );
+    conditions.push(sql`coalesce(${makineKuyrugu.gercek_bitis}, ${makineKuyrugu.planlanan_bitis}) >= ${from}`);
   }
   if (query.dateTo) {
     const to = new Date(`${query.dateTo}T23:59:59`);
-    conditions.push(
-      or(
-        lte(makineKuyrugu.planlanan_baslangic, to),
-        lte(makineKuyrugu.gercek_baslangic, to),
-        // Queued items with no gercek_baslangic yet — include if planned start ≤ dateTo or no plan at all
-        sql`${makineKuyrugu.durum} = 'bekliyor' AND ${makineKuyrugu.gercek_baslangic} IS NULL`,
-      ) as SQL,
-    );
+    conditions.push(sql`coalesce(${makineKuyrugu.gercek_baslangic}, ${makineKuyrugu.planlanan_baslangic}) <= ${to}`);
   }
   if (query.durum) conditions.push(eq(makineKuyrugu.durum, query.durum));
   if (query.q) {
@@ -88,10 +79,30 @@ function buildWhere(query: ListQuery): SQL | undefined {
   return and(...conditions);
 }
 
+type MachineCalendarData = {
+  blocksByMachine: Map<string, GanttBlockDto[]>;
+  holidaysByMachine: Map<string, HolidaySet>;
+  weekendPlans: WeekendPlanMap;
+};
+
+function workConfigForMachine(machine: { id: string; calisir24Saat: number | boolean | null }): MakineWorkConfig {
+  const calisir24Saat = machine.calisir24Saat === 1 || machine.calisir24Saat === true;
+  return {
+    makineId: machine.id,
+    calisir24Saat,
+    workStartHour: calisir24Saat ? 0 : 8,
+    workEndHour: calisir24Saat ? 24 : 17,
+    dailyWorkMinutes: calisir24Saat ? 1440 : 540,
+  };
+}
+
 export async function repoList(query: ListQuery): Promise<{ items: GanttMachineDto[]; total: number }> {
   const where = buildWhere(query);
-  const rangeStart = new Date(`${query.dateFrom ?? new Date().toISOString().slice(0, 10)}T00:00:00`);
-  const rangeEnd = new Date(`${query.dateTo ?? new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10)}T23:59:59`);
+  const defaultRangeStart = new Date();
+  const defaultRangeEnd = new Date(defaultRangeStart);
+  defaultRangeEnd.setDate(defaultRangeEnd.getDate() + 30);
+  const rangeStart = new Date(`${query.dateFrom ?? defaultRangeStart.toISOString().slice(0, 10)}T00:00:00`);
+  const rangeEnd = new Date(`${query.dateTo ?? defaultRangeEnd.toISOString().slice(0, 10)}T23:59:59`);
   const [rows, countResult, machineRows] = await Promise.all([
     db
       .select({
@@ -174,7 +185,8 @@ export async function repoList(query: ListQuery): Promise<{ items: GanttMachineD
   ]);
 
   const machineIds = machineRows.map((machine) => machine.id);
-  const blocksByMachine = await loadMachineBlocks(machineIds, rangeStart, rangeEnd);
+  const calendarData = await loadMachineBlocks(machineIds, rangeStart, rangeEnd);
+  const machineConfigs = new Map(machineRows.map((machine) => [machine.id, workConfigForMachine(machine)]));
 
   const grouped = new Map<string, GanttMachineDto>();
   for (const machine of machineRows) {
@@ -185,7 +197,7 @@ export async function repoList(query: ListQuery): Promise<{ items: GanttMachineD
       calisir24Saat: machine.calisir24Saat === 1,
       saatlikKapasite: machine.saatlikKapasite != null ? Number(machine.saatlikKapasite) : null,
       gunlukCalismaSaati: machine.calisir24Saat === 1 ? 24 : 8,
-      blocks: blocksByMachine.get(machine.id) ?? [],
+      blocks: calendarData.blocksByMachine.get(machine.id) ?? [],
       items: [],
     });
   }
@@ -193,7 +205,7 @@ export async function repoList(query: ListQuery): Promise<{ items: GanttMachineD
   for (const row of rows) {
     const group = grouped.get(row.makineId);
     if (!group) continue;
-    group.items.push(rowToDto(row));
+    group.items.push(rowToDto(row, machineConfigs.get(row.makineId), calendarData.holidaysByMachine.get(row.makineId), calendarData.weekendPlans));
   }
 
   return {
@@ -202,9 +214,11 @@ export async function repoList(query: ListQuery): Promise<{ items: GanttMachineD
   };
 }
 
-async function loadMachineBlocks(machineIds: string[], rangeStart: Date, rangeEnd: Date): Promise<Map<string, GanttBlockDto[]>> {
+async function loadMachineBlocks(machineIds: string[], rangeStart: Date, rangeEnd: Date): Promise<MachineCalendarData> {
   const map = new Map<string, GanttBlockDto[]>();
-  if (machineIds.length === 0) return map;
+  const holidaysByMachine = new Map<string, HolidaySet>();
+  const weekendPlans: WeekendPlanMap = new Map();
+  if (machineIds.length === 0) return { blocksByMachine: map, holidaysByMachine, weekendPlans };
 
   const holidayRows = await db
     .select({
@@ -282,13 +296,21 @@ async function loadMachineBlocks(machineIds: string[], rangeStart: Date, rangeEn
       // If baseDate is already Saturday (6), use it; if Monday (1), add 5; otherwise find next Saturday
       const daysToSat = dow === 6 ? 0 : (6 - dow + 7) % 7;
       const saturday = new Date(baseDate.getTime() + daysToSat * 86_400_000);
-      workingWeekendSet.add(`${machineKey}:${toLocalDateStr(saturday)}`);
+      const dateKey = toLocalDateStr(saturday);
+      workingWeekendSet.add(`${machineKey}:${dateKey}`);
+      const targetMachineIds = row.makineId ? [row.makineId] : machineIds;
+      if (!weekendPlans.has(dateKey)) weekendPlans.set(dateKey, new Set());
+      for (const machineId of targetMachineIds) weekendPlans.get(dateKey)!.add(machineId);
     }
     if (row.pazarCalisir) {
       // If baseDate is already Sunday (0), use it; if Monday (1), add 6; otherwise find next Sunday
       const daysToSun = dow === 0 ? 0 : (7 - dow);
       const sunday = new Date(baseDate.getTime() + daysToSun * 86_400_000);
-      workingWeekendSet.add(`${machineKey}:${toLocalDateStr(sunday)}`);
+      const dateKey = toLocalDateStr(sunday);
+      workingWeekendSet.add(`${machineKey}:${dateKey}`);
+      const targetMachineIds = row.makineId ? [row.makineId] : machineIds;
+      if (!weekendPlans.has(dateKey)) weekendPlans.set(dateKey, new Set());
+      for (const machineId of targetMachineIds) weekendPlans.get(dateKey)!.add(machineId);
     }
   }
 
@@ -323,6 +345,8 @@ async function loadMachineBlocks(machineIds: string[], rangeStart: Date, rangeEn
     const startIso = `${day}T${row.baslangicSaati}:00`;
     const endIso = `${day}T${row.bitisSaati}:00`;
     for (const machineId of targetMachineIds) {
+      if (!holidaysByMachine.has(machineId)) holidaysByMachine.set(machineId, new Set());
+      holidaysByMachine.get(machineId)!.add(day);
       pushBlock(machineId, {
         id: `holiday-${row.id}-${machineId}`,
         tip: 'tatil',
@@ -344,15 +368,21 @@ async function loadMachineBlocks(machineIds: string[], rangeStart: Date, rangeEn
     });
   }
 
-  return new Map(
+  const blocksByMachine = new Map(
     Array.from(map.entries()).map(([machineId, blocks]) => [
       machineId,
       blocks.sort((a, b) => a.baslangicTarihi.localeCompare(b.baslangicTarihi)),
     ]),
   );
+  return { blocksByMachine, holidaysByMachine, weekendPlans };
 }
 
-function rowToDto(row: QueryRow): GanttBarDto {
+function rowToDto(
+  row: QueryRow,
+  config?: MakineWorkConfig,
+  holidays: HolidaySet = new Set(),
+  weekendPlans: WeekendPlanMap = new Map(),
+): GanttBarDto {
   const toDateTimeString = (value: Date | string | null | undefined): string | null => {
     if (!value) return null;
     if (value instanceof Date) return value.toISOString();
@@ -363,6 +393,23 @@ function rowToDto(row: QueryRow): GanttBarDto {
     const raw = toDateTimeString(value);
     return raw ? raw.slice(0, 10) : null;
   };
+
+  const baslangicValue = row.gercek_baslangic ?? row.planlanan_baslangic;
+  const bitisValue = row.gercek_bitis ?? row.planlanan_bitis;
+  const baslangicTarihi = toDateTimeString(baslangicValue);
+  const bitisTarihi = toDateTimeString(bitisValue);
+  const segmentler = config && baslangicValue && bitisValue
+    ? splitIntoWorkingSegments(
+      baslangicValue instanceof Date ? baslangicValue : new Date(String(baslangicValue)),
+      bitisValue instanceof Date ? bitisValue : new Date(String(bitisValue)),
+      config,
+      holidays,
+      weekendPlans,
+    ).map((segment) => ({
+      baslangicTarihi: segment.baslangic.toISOString(),
+      bitisTarihi: segment.bitis.toISOString(),
+    }))
+    : [];
 
   return {
     kuyrukId: row.kuyrukId,
@@ -378,35 +425,10 @@ function rowToDto(row: QueryRow): GanttBarDto {
     operasyonAdi: row.operasyonAdi ?? null,
     montaj: Number(row.montaj ?? 0) > 0,
     sira: Number(row.sira ?? 0),
-    ...(() => {
-      const now = new Date();
-      // Active/paused: extend bar to now (real end unknown)
-      if (!row.gercek_bitis && (row.durum === 'calisiyor' || row.durum === 'duraklatildi')) {
-        return {
-          baslangicTarihi: toDateTimeString(row.gercek_baslangic ?? row.planlanan_baslangic),
-          bitisTarihi: now.toISOString(),
-          acikDurus: true,
-        };
-      }
-      // Bekliyor: if planned start is in the past (preceding job delayed), push bar to now
-      if (row.durum === 'bekliyor' && !row.gercek_baslangic && row.planlanan_baslangic) {
-        const plannedStart = row.planlanan_baslangic instanceof Date ? row.planlanan_baslangic : new Date(String(row.planlanan_baslangic));
-        if (plannedStart < now) {
-          const plannedEnd = row.planlanan_bitis instanceof Date ? row.planlanan_bitis : (row.planlanan_bitis ? new Date(String(row.planlanan_bitis)) : null);
-          const durationMs = plannedEnd ? plannedEnd.getTime() - plannedStart.getTime() : 4 * 3_600_000; // fallback 4h
-          return {
-            baslangicTarihi: now.toISOString(),
-            bitisTarihi: new Date(now.getTime() + durationMs).toISOString(),
-            acikDurus: false,
-          };
-        }
-      }
-      return {
-        baslangicTarihi: toDateTimeString(row.gercek_baslangic ?? row.planlanan_baslangic),
-        bitisTarihi: toDateTimeString(row.gercek_bitis ?? row.planlanan_bitis),
-        acikDurus: false,
-      };
-    })(),
+    baslangicTarihi,
+    bitisTarihi,
+    segmentler,
+    acikDurus: !row.gercek_bitis && (row.durum === 'calisiyor' || row.durum === 'duraklatildi'),
     planlananBaslangicTarihi: toDateTimeString(row.planlanan_baslangic),
     planlananBitisTarihi: toDateTimeString(row.planlanan_bitis),
     terminTarihi: toDateString(row.termin_tarihi),
@@ -436,6 +458,7 @@ export async function repoGetById(id: string): Promise<GanttBarDto | null> {
       makineId: makineler.id,
       makineKod: makineler.kod,
       makineAd: makineler.ad,
+      calisir24Saat: makineler.calisir_24_saat,
       uretimEmriId: uretimEmirleri.id,
       emirOperasyonId: makineKuyrugu.emir_operasyon_id,
       emir_no: uretimEmirleri.emir_no,
@@ -471,13 +494,29 @@ export async function repoGetById(id: string): Promise<GanttBarDto | null> {
       makineler.id,
       makineler.kod,
       makineler.ad,
+      makineler.calisir_24_saat,
       makineKuyrugu.emir_operasyon_id,
       uretimEmirleri.id,
       urunler.id,
       uretimEmriOperasyonlari.id,
     )
     .limit(1) as QueryRow[];
-  return rows[0] ? rowToDto(rows[0]) : null;
+  const row = rows[0];
+  if (!row) return null;
+
+  const baslangicValue = row.gercek_baslangic ?? row.planlanan_baslangic;
+  const bitisValue = row.gercek_bitis ?? row.planlanan_bitis;
+  if (!baslangicValue || !bitisValue) return rowToDto(row);
+
+  const rangeStart = baslangicValue instanceof Date ? baslangicValue : new Date(String(baslangicValue));
+  const rangeEnd = bitisValue instanceof Date ? bitisValue : new Date(String(bitisValue));
+  const calendarData = await loadMachineBlocks([row.makineId], rangeStart, rangeEnd);
+  return rowToDto(
+    row,
+    workConfigForMachine({ id: row.makineId, calisir24Saat: row.calisir24Saat ?? false }),
+    calendarData.holidaysByMachine.get(row.makineId),
+    calendarData.weekendPlans,
+  );
 }
 
 export async function repoUpdateById(id: string, patch: PatchBody): Promise<GanttBarDto | null> {
