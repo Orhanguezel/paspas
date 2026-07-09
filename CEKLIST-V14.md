@@ -194,3 +194,21 @@ rg "montaj|montajOperasyon|montaj_operasyon" src/modules/vardiya_analizi
 - [x] Admin typecheck yeşil.
 - [x] Admin build yeşil.
 - [x] Claude canlı DB üzerinde toplam mutabakatını yapabilir.
+
+---
+
+## Claude Review + Kapanış (2026-07-09)
+
+**Kabul kriterleri:** ✅ üretim sorgusu 1 (repo) / 0 (service) · ✅ montaj-hariç SQL filtresi 0 · ✅ core.test.ts 6 test skip'siz yeşil · ✅ backend build + admin tsc/build temiz.
+
+**Review bulgusu (Claude, `3ac89f2`):** DTO'ya `makineKod` eklenmişti ama başlık yalnız `makineAd` gösteriyordu (56aadea9 madde 1 eksik) → "{kod} — {ad}" tamamlandı.
+
+**Canlı mutabakat (07-08, gerçek kod yolu vs DB SUM):**
+| Makine | Rapor | Σ vardiyalar | DB |
+|---|---|---|---|
+| Enjeksiyon 1 — 900 T (ÖN) | 975 | 975 | 975 ✓ |
+| Enjeksiyon 2 — 900 T (ARKA) | 1580 (montaj dahil — kart DOLU) | 1580 | 1580 ✓ |
+
+- [x] Claude canlı DB mutabakatı
+- [x] Deploy (`3ac89f2`)
+- [x] Thread kapatma — `d270550f`, `a9e9f63a`, `56aadea9` resolved. **Açık not: 0.**
