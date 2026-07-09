@@ -1,78 +1,196 @@
-# Yazılımcı Notu V14 — 🏗 Vardiya Analizi TEK KAYNAK mimarisi (kalıcı çözüm)
+# CEKLIST V14 — Vardiya Analizi TEK KAYNAK Refactor
 
-> **İnceleme:** 2026-07-09 — Claude canlı DB + kod + 3 görsel + mimari analiz.
-> **3 not:** `d270550f` (sayılar tutmuyor), `a9e9f63a` (900 T ARKA boş), `56aadea9` (UI + "üç defa 485").
-> **Bu bir yama turu DEĞİL — kök mimari düzeltmesi.** Amaç: bu ekrandan bir daha not gelmemesi.
-
----
-
-## Neden stabil olmuyor — kanıtlı teşhis
-
-**1. Tek doğruluk kaynağı yok.** `vardiya_analizi/service.ts` 1.412 satır; `operator_gunluk_kayitlari`'ndan **8 ayrı sorgu**, her biri farklı pencere × farklı montaj filtresi kombinasyonu. Admin'in görselindeki üç sayı üç ayrı kombinasyon:
-- Makine başlığı **1.920** = tüm aralık, montaj dahil
-- Vardiya toplamı **485** = vardiya penceresi, montaj hariç
-- Detay satırları **1.435** = tüm aralık, montaj hariç ("üç defa 485" = üç FARKLI vardiyanın kaydı tek kartta; DB'de kopya kayıt YOK — 07-07 04:38 / 07-07 16:34 / 07-08 04:58)
-
-**2. `montaj` bayrağı aşırı yüklenmiş.** Hem stok tetikleyici hem "analizden çıkar" anlamında. Ama montaj operasyonu GERÇEK üretimdir (operatör parça giriyor). V13-C montajı kalıcı Enjeksiyon 2'ye sabitleyince **900 T (ARKA)'nın tüm üretimi (07-06'dan beri 3.810 net) analizden düştü** → `a9e9f63a` doğrudan bunun sonucu.
-
-**3. Regresyonlar ancak canlıda görünüyor.** Entegrasyon testleri `RUN_DB_INTEGRATION` kapalı → hep skip. Son 3 turda build'den geçmiş 3 kritik regresyon canlı incelemede yakalandı.
-
-**4. Semptom yamaları modeli düzeltmiyor** — 5 kopya montaj filtresi, kopya pencere mantığı = her değişiklikte yeni sapma yüzeyi.
+> **Kaynak brief:** [CODEX-PROMPT-V14.md](CODEX-PROMPT-V14.md)  
+> **Durum:** Codex uygular, Claude review + canlı mutabakat + deploy + thread kapatma yapar.  
+> **Kural:** Yeni şema yok, `ALTER` yok, push yok. Bu iş yama değil; kopya üretim sorgusu ve kopya montaj filtresi kalmayacak.
 
 ---
 
-## VERİLMİŞ KARARLAR (mimari)
+## Codex Uygulama Durumu — 2026-07-09
 
-| # | Karar | Gerekçe |
-|---|-------|---------|
-| **K1** | **Net üretim toplamı = montaj DAHİL.** Referans tanım: operatör ekranı toplamı (admin "operatör ekranı doğru" dedi — `d270550f`). Montaj satırları tabloda görünür ("Montaj" rozetiyle), toplama girer. | Montaj gerçek üretim; hariç tutma ARKA'yı boşalttı. |
-| **K2** | **Verimlilik/OEE yalnız baskı (montaj=0) kayıtlarından** hesaplanır ve **yalnız vardiya + makine seviyesinde** gösterilir (satır seviyesinde değil — `56aadea9` isteğiyle uyumlu). | Montajın çevrim süresi baskıyla kıyaslanamaz; OEE bozulmasın. |
-| **K3** | **Tek kaynak (single source of truth):** ham kayıtlar TEK sorguyla çekilir; vardiya ataması + tüm toplamlar SAF (pure) fonksiyonlarla bellekte hesaplanır. Makine başlığı = Σ vardiya toplamları = Σ satırlar **tanım gereği** (aynı kümenin katmanları). | Kod tekrarı sıfır; tutarsızlık matematiksel olarak imkânsız. |
-| **K4** | Saf fonksiyonlar **DB'siz unit testlerle** korunur (skip edilemez, her build'de koşar). Invariant'lar test edilir. | Deterministiklik + regresyon kalkanı. |
+- [x] `core.ts` saf çekirdek eklendi.
+- [x] `repository.ts` tek üretim sorgusu eklendi.
+- [x] `service.ts` üretim hesapları tek sorgudan gelen kayıtlar + saf reduce akışına bağlandı.
+- [x] Montaj üretimi toplam nete dahil edildi.
+- [x] OEE/verimlilik hesapları `baskiNet` üzerinden yapılıyor.
+- [x] Detay satırları aynı slot kayıt kümesinden geliyor ve gerçek `kayitTarihi` gösteriyor.
+- [x] `getVardiyaAnaliziDetay` aynı üretim repository'sini kullanıyor.
+- [x] `getTrend` aynı `getVardiyaAnalizi` çekirdeği üzerinden ilerliyor.
+- [x] `core.test.ts` DB'siz ve skip'siz eklendi.
+- [x] Frontend makine başlığı `{kod} — {ad}` formatına hazırlandı.
+- [x] Satırdaki `Verim. (Net Çalışma)` ve `Verim. (Vardiya)` kolonları kaldırıldı.
+- [x] Verimlilik değerleri makine/vardiya başlık seviyesine taşındı.
+- [x] Tablo altındaki vardiya toplam satırı kaldırıldı.
+- [x] Montaj satırları normal listede `Montaj` rozetiyle gösteriliyor.
+- [x] `rg "from\\(operatorGunlukKayitlari\\)" service.ts repository.ts` çıktısı 1 adet.
+- [x] `bun test src/modules/vardiya_analizi/__tests__/core.test.ts` yeşil.
+- [x] Backend `bun x tsc -p tsconfig.json --noEmit` yeşil.
+- [x] Backend `bun run build` yeşil.
+- [x] Admin `bunx tsc --noEmit` yeşil.
+- [x] Admin `bun run build` yeşil.
+- [x] Push yapılmadı.
+- [ ] Claude canlı DB mutabakatı.
+- [ ] Deploy.
+- [ ] Thread kapatma.
 
 ---
 
-## Hedef mimari (Codex uygulayacak) → [CODEX-PROMPT-V14.md](CODEX-PROMPT-V14.md)
+## 0. Başlangıç Kontrolü
 
+- [x] `backend/src/modules/vardiya_analizi/service.ts` mevcut davranış ve DTO alanları okunmuş.
+- [x] `backend/src/modules/vardiya_analizi/repository.ts` mevcut sorgu patternleri okunmuş.
+- [x] `admin_panel/src/app/(main)/admin/vardiya-analizi/_components/vardiya-analizi-client.tsx` UI istekleri için okunmuş.
+- [x] İlgisiz dosyalara dokunulmayacağı doğrulanmış.
+- [x] `tryMontajForUretimEmri`, `repoUretimBitir`, `consumeRecipeMaterials` ve stok/montaj akışı kapsam dışı bırakılmış.
+
+## 1. Saf Çekirdek — `core.ts`
+
+- [x] `backend/src/modules/vardiya_analizi/core.ts` eklendi.
+- [x] `core.ts` içinde DB import yok.
+- [x] `core.ts` içinde `Date.now()` yok; tüm zaman girdileri parametrelerden geliyor.
+- [x] `UretimKaydi` tipi eklendi.
+- [x] `VardiyaSlot` tipi eklendi.
+- [x] `assignVardiya(kayitTarihi, tanimlar)` eklendi.
+- [x] Vardiya saatleri tanımlardan okunuyor; 07:30/19:30 hardcode edilmedi.
+- [x] 07:30-09:30 hibrit kuralı korundu: bu aralıktaki kayıtlar önceki gece vardiyasına düşüyor.
+- [x] Her kayıt tam bir vardiya slotuna atanıyor; boşluk/çakışma yok.
+- [x] Vardiya pencere hesabı vardiya açılış kaydına bağımlı değil.
+- [x] `reduceOzet(kayitlar)` eklendi.
+- [x] `reduceOzet.net` montaj dahil `Σ kayit.net` döndürüyor.
+- [x] `reduceOzet.baskiNet` yalnız `montaj=false` kayıtları topluyor.
+- [x] `reduceOzet.montajNet` yalnız `montaj=true` kayıtları topluyor.
+- [x] `urunKirilimi` ve `operasyonKirilimi` mevcut DTO beklentileriyle uyumlu taşındı/uyarlandı.
+- [x] `partitionByVardiya(kayitlar, tanimlar)` eklendi.
+- [x] `partitionByMakine(kayitlar)` eklendi.
+- [x] `resolveNet` saf çekirdeğe taşındı veya buradan tek kaynak olarak kullanılıyor.
+- [x] `parseClockToMinutes`, `normalizeShiftName`, `inferVardiyaTipi`, `createDateForClock`, `buildShiftWindowForTime`, `clampDate`, `diffMinutes`, `roundRatio` saf çekirdeğe taşındı veya tek kaynaklandı.
+- [x] `calculateOee` ve `calculateVerimlilik` çağrıları artık `baskiNet` ile besleniyor.
+
+## 2. Repository — Tek Üretim Sorgusu
+
+- [x] `fetchUretimKayitlari(pencere, makineIds?)` eklendi.
+- [x] Üretim kayıtları `operator_gunluk_kayitlari` üzerinden tek sorguyla çekiliyor.
+- [x] Sorguda emir, ürün, operasyon, kalıp ve operatör joinleri tamamlandı.
+- [x] Sorguda montaj hariç SQL filtresi yok.
+- [x] Montaj bilgisi satır etiketi olarak `montaj: boolean` dönüyor.
+- [x] `net` SQL tarafında mevcut `netMiktarSql` ifadesiyle normalize ediliyor.
+- [x] Pencere bitişi istenen aralığın son gece vardiyası bitişini kapsıyor.
+- [x] Duruş kayıtları ve vardiya açılış kayıtları ayrı küçük sorgular olarak kalıyor; üretim sayısı üretmiyor.
+
+## 3. Service Refactor
+
+- [x] `getVardiyaAnalizi` üretim için `fetchUretimKayitlari` çağrısını yalnız 1 kez yapıyor.
+- [x] Makine başlığı istatistikleri `reduceOzet(makinenin tüm kayıtları)` ile hesaplanıyor.
+- [x] Vardiya kartı istatistikleri `reduceOzet(o slotun kayıtları)` ile hesaplanıyor.
+- [x] Detay satırları aynı slotun kayıtlarından geliyor; ayrı üretim sorgusu yok.
+- [x] Detay satırında gerçek `kayitTarihi` gösteriliyor.
+- [x] Vardiya kartları şu birleşimden oluşuyor: kayıtlardan türeyen slotlar + `vardiya_kayitlari` açılışları.
+- [x] Kayıtsız açık vardiya boş kart olarak görünebiliyor.
+- [x] Açılış kaydı olmayan ama üretim kaydı olan slot kaybolmuyor.
+- [x] Makine başlığı toplamı = vardiya toplamları = detay satırları toplamı aynı kümeden geliyor.
+- [x] `montajUretim` DTO alan adları korunuyor.
+- [x] `montajUretim` içeriği yeni `reduceOzet.montajNet/kirilim` üzerinden doluyor.
+- [x] OEE/verimlilik hesaplarında montaj hariç üretim, yani `baskiNet`, kullanılıyor.
+- [x] `getVardiyaAnaliziDetay` aynı çekirdeği kullanıyor.
+- [x] `getTrend` aynı çekirdeği kullanıyor.
+- [x] `service.ts` içinde üretim sayan kopya sorgular kaldırıldı.
+- [x] Modülde montaj hariç SQL filtresi kalmadı.
+
+## 4. DB'siz Unit Test — `core.test.ts`
+
+- [x] `backend/src/modules/vardiya_analizi/__tests__/core.test.ts` eklendi.
+- [x] Testlerde `describe.skip`, `it.skip` veya `RUN_DB_INTEGRATION` bağımlılığı yok.
+- [x] I1: sabit seed/elle yazılmış 20 kayıt tam 1 slota düşüyor; toplam kayıt sayısı korunuyor.
+- [x] I2: `reduceOzet(hepsi).net === Σ reduceOzet(slot).net === Σ kayit.net`.
+- [x] I3: `montaj=true` kayıtlar `net` toplamına dahil, `baskiNet` toplamına dahil değil.
+- [x] I3: `montajNet` doğru hesaplanıyor.
+- [x] I5: 08:15 önceki gece slotuna düşüyor.
+- [x] I5: 09:45 gündüz slotuna düşüyor.
+- [x] I5: 19:29 gündüz slotuna düşüyor.
+- [x] I5: 19:31 gece slotuna düşüyor.
+- [x] I5: 03:00 kaydı doğru gece gününe bağlanıyor.
+- [x] `resolveNet`: `net_miktar=0` iken `ek-fire` fallback doğrulanıyor.
+- [x] `resolveNet`: negatif sonuç 0'a floor ediliyor.
+- [x] `calculateVerimlilik` montajlı karışımda yalnız `baskiNet` kullandığını kanıtlıyor.
+- [x] `calculateOee` montajlı karışımda yalnız `baskiNet` kullandığını kanıtlıyor.
+- [x] Mevcut montaj/stok akışı entegrasyon testlerine dokunulmadı; `vardiya_analizi.real.integration.test.ts` V14 montaj-dahil sözleşmesine göre güncellendi.
+
+## 5. Frontend — Vardiya Analizi UI
+
+- [x] Makine başlığı `{kod} — {ad}` formatında gösteriliyor.
+- [x] API DTO'da makine kodu eksikse backend DTO'ya eklendi.
+- [x] Satır sütunlarından `Verim. (Net Çalışma)` kaldırıldı.
+- [x] Satır sütunlarından `Verim. (Vardiya)` kaldırıldı.
+- [x] Bu iki verimlilik değeri vardiya başlık şeridine Net/Fire rozetlerinin yanına taşındı.
+- [x] Bu iki verimlilik değeri makine başlığı kutularına da eklendi.
+- [x] Tablo altındaki `Gündüz Vardiyası Toplamı` satırları kaldırıldı.
+- [x] Tablo altındaki `Gece Vardiyası Toplamı` satırları kaldırıldı.
+- [x] Montaj satırları normal listede `Montaj` rozetiyle görünüyor.
+- [x] Montaj satırları net toplama dahil görünüyor.
+- [x] Satırdaki tarih/saat gerçek `kayitTarihi` değerinden geliyor.
+
+## 6. Otomatik Kabul Komutları
+
+Bu komutlar Claude review öncesi çalıştırılacak:
+
+```bash
+cd backend
+bun test src/modules/vardiya_analizi/__tests__/core.test.ts
+bun run build
 ```
-vardiya_analizi/
-├── core.ts          # YENİ — saf çekirdek (DB'siz, deterministik)
-│   ├── assignVardiya(kayit, tanimlar, simdi)  → {gun, vardiyaTipi, pencere} | 'vardiya_disi'
-│   ├── reduceOzet(kayitlar)                    → {net, fire, kayitSayisi, baskiNet, montajNet, kirilimlar}
-│   ├── partitionByMakineVeVardiya(kayitlar)    → Map<makine, Map<vardiyaKey, kayitlar[]>>
-│   └── (mevcut saf yardımcılar buraya taşınır: resolveNet, buildShiftWindow, calculateOee/Verimlilik, clampDate…)
-├── repository.ts    # fetchUretimKayitlari(pencere, makineIds?) — TEK kayıt sorgusu (montaj SATIRDA etiket, filtre DEĞİL)
-├── service.ts       # incelir: fetch(1) → assign → partition → reduce; duruş/vardiya kayıtları ayrı küçük sorgular
-└── __tests__/core.test.ts  # YENİ — DB'siz unit + invariant testleri (skip YOK)
+
+```bash
+cd admin_panel
+bunx tsc --noEmit
+bun run build
 ```
 
-**Invariant'lar (unit test edilecek):**
-- **I1 (partition):** her kayıt tam BİR vardiyaya atanır; kaybolmaz, çift sayılmaz.
-- **I2 (toplam tutarlılığı):** makine.net = Σ vardiya.net = Σ satır.net.
-- **I3 (referans tanım):** rapordaki net = operatör ekranı tanımı (montaj dahil, resolveNet ile).
-- **I4:** verimlilik girdisi = yalnız baskiNet; montajNet OEE'ye girmez.
-- **I5 (hibrit vardiya):** 07:30–09:30 arası girişler önceki gece vardiyasına sayılır; gece penceresi gün sınırını doğru aşar.
+Grep kontrolleri:
 
-**UI istekleri (`56aadea9`) — aynı turda, çekirdek üstüne:**
-- Makine başlığı: **makine kodu + adı** (tanımlardaki şekliyle: "Enjeksiyon 1 — 900 T (ÖN)").
-- "Verim. (Net Çalışma)" ve "Verim. (Vardiya)" sütunları satırlardan KALKAR → vardiya başlığı hizasına (Net/Fire kutularının yanına) taşınır; makine başlığı kutularına da eklenir.
-- Satır altlarındaki "Gündüz/Gece Vardiyası Toplamı" satırları KALKAR (başlıkta zaten var).
-- Detay satırında gerçek `kayit_tarihi` gösterilir (bugünkü "hepsi 17:17" hatası biter).
-- Montaj satırları "Montaj" rozetiyle listelenir.
+```bash
+cd backend
+rg "from\\(operatorGunlukKayitlari\\)" src/modules/vardiya_analizi/service.ts src/modules/vardiya_analizi/repository.ts
+```
 
----
+- [x] Yukarıdaki grep çıktısında üretim sayan sorgu 1 adet.
 
-## Görev dağılımı
+```bash
+cd backend
+rg "montaj|montajOperasyon|montaj_operasyon" src/modules/vardiya_analizi
+```
 
-| İş | Sahip |
-|----|-------|
-| core.ts + repository tek sorgu + service refactor + unit/invariant testleri + UI | Codex (V14 brief) |
-| Review (özellikle toplam tutarlılığı + canlı sayı mutabakatı: operatör ekranı vs rapor) | Claude |
-| Deploy + 3 thread kapatma + hareketler-sayfası beklenti notu* | Claude |
+- [x] Çıktıda montaj hariç SQL filtresi yok.
+- [x] Montaj yalnız satır etiketi, kırılım veya `reduceOzet` içi `baskiNet/montajNet` ayrımı için kullanılıyor.
 
-\* `d270550f`'teki "hareketler sayfası da farklı" kısmı: hareketler STOK hareketi gösterir (taraf YM üretim girişleri + mamul montaj girişleri) — operatör üretim kaydından tanım olarak farklıdır. Refactor sonrası operatör=rapor eşitliği sağlanınca, hareketler farkı thread cevabında beklenti olarak netleştirilecek; ayrıca YM 'uretim' girişleri = operatör stok-etkili net toplamı mutabakatı canlıda doğrulanacak (Claude).
+## 7. Canlı Davranış Mutabakatı — Claude
 
-## Kapsam dışı / dokunma
-- Montaj/stok mantığı (tryMontaj, repoUretimBitir) — çalışıyor, DOKUNMA.
-- `montajUretim` ayrı kırılım alanı korunur (OEE-dışı bilgi olarak).
-- getTrend + getVardiyaAnaliziDetay da aynı çekirdeği kullanacak şekilde bağlanır (kopya sorgu bırakılmaz).
+- [ ] 06-07 gece vardiyasında detay satırları yalnız o slotun kayıtlarını gösteriyor.
+- [ ] Eski "üç defa 485" davranışı yok.
+- [ ] 900 T (ARKA) kartları montaj üretimiyle dolu.
+- [ ] Montaj üretimi toplam nete dahil.
+- [ ] Montaj üretimi OEE/verimlilik girdisine dahil değil.
+- [ ] Makine başlığı net toplamı vardiya kartları toplamıyla eşit.
+- [ ] Vardiya kartı net toplamı detay satırları toplamıyla eşit.
+- [ ] Operatör ekranı referans toplamı ile vardiya analizi raporu aynı üretim tanımını kullanıyor.
+- [ ] Hareketler sayfası farkı stok hareketi tanımı olarak ayrıca açıklanacak; bu refactorun bloklayıcısı değil.
+
+## 8. Commit Planı
+
+- [ ] Commit 1: `core.ts` saf çekirdek.
+- [ ] Commit 2: repository tek üretim sorgusu + service refactor.
+- [ ] Commit 3: DB'siz core unit/invariant testleri.
+- [ ] Commit 4: frontend Vardiya Analizi UI düzenlemeleri.
+- [ ] Push yapılmadı.
+
+## 9. Review'e Hazır Tanımı
+
+- [x] Yeni şema yok.
+- [x] `ALTER` yok.
+- [x] İlgisiz modüllere dokunulmadı.
+- [x] Üretim sayısı için tek sorgu var.
+- [x] Montaj hariç SQL filtresi yok.
+- [x] Unit test skip'siz yeşil.
+- [x] Backend build yeşil.
+- [x] Admin typecheck yeşil.
+- [x] Admin build yeşil.
+- [x] Claude canlı DB üzerinde toplam mutabakatını yapabilir.
