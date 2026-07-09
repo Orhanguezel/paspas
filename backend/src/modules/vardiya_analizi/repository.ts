@@ -3,15 +3,23 @@ import { and, desc, gte, inArray, lte, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { users } from '@/modules/auth/schema';
 import { makineler as makinelerTbl } from '@/modules/makine_havuzu/schema';
-import { operatorGunlukKayitlari } from '@/modules/operator/schema';
+import { operatorGunlukKayitlari, vardiyaKayitlari } from '@/modules/operator/schema';
 import { kaliplar } from '@/modules/tanimlar/schema';
 import { uretimEmirleri, uretimEmriOperasyonlari } from '@/modules/uretim_emirleri/schema';
 import { urunler } from '@/modules/urunler/schema';
 
-import type { UretimKaydi } from './core';
+import { toLocal, VARDIYA_TZ_OFFSET_DK, type UretimKaydi, type VardiyaTipi } from './core';
 
 const netMiktarSql = sql<number>`GREATEST(CASE WHEN ${operatorGunlukKayitlari.net_miktar} <> 0 THEN ${operatorGunlukKayitlari.net_miktar} ELSE (${operatorGunlukKayitlari.ek_uretim_miktari} - ${operatorGunlukKayitlari.fire_miktari}) END, 0)`;
 const hasProductionSql = sql`(${operatorGunlukKayitlari.net_miktar} <> 0 OR ${operatorGunlukKayitlari.ek_uretim_miktari} <> 0 OR ${operatorGunlukKayitlari.fire_miktari} <> 0)`;
+
+function localDateKey(date: Date): string {
+  const local = toLocal(date, VARDIYA_TZ_OFFSET_DK);
+  const year = local.getUTCFullYear();
+  const month = String(local.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(local.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 export async function fetchUretimKayitlari(
   pencere: { baslangic: Date; bitis: Date },
@@ -48,6 +56,10 @@ export async function fetchUretimKayitlari(
       uretilenMiktar: uretimEmirleri.uretilen_miktar,
       operasyonBaslangic: uretimEmriOperasyonlari.gercek_baslangic,
       operasyonBitis: uretimEmriOperasyonlari.gercek_bitis,
+      vardiyaKayitId: operatorGunlukKayitlari.vardiya_kayit_id,
+      vardiyaTipi: vardiyaKayitlari.vardiya_tipi,
+      vardiyaBaslangic: vardiyaKayitlari.baslangic,
+      vardiyaBitis: vardiyaKayitlari.bitis,
     })
     .from(operatorGunlukKayitlari)
     .innerJoin(uretimEmirleri, sql`${operatorGunlukKayitlari.uretim_emri_id} = ${uretimEmirleri.id}`)
@@ -56,6 +68,7 @@ export async function fetchUretimKayitlari(
     .leftJoin(uretimEmriOperasyonlari, sql`${operatorGunlukKayitlari.emir_operasyon_id} = ${uretimEmriOperasyonlari.id}`)
     .leftJoin(kaliplar, sql`${uretimEmriOperasyonlari.kalip_id} = ${kaliplar.id}`)
     .leftJoin(users, sql`${operatorGunlukKayitlari.operator_user_id} = ${users.id}`)
+    .leftJoin(vardiyaKayitlari, sql`${operatorGunlukKayitlari.vardiya_kayit_id} = ${vardiyaKayitlari.id}`)
     .where(
       and(
         gte(operatorGunlukKayitlari.kayit_tarihi, pencere.baslangic),
@@ -68,7 +81,10 @@ export async function fetchUretimKayitlari(
 
   return rows
     .filter((row) => row.makineId && row.makineAd)
-    .map((row) => ({
+    .map((row) => {
+      const vardiyaBaslangic = row.vardiyaBaslangic ? new Date(row.vardiyaBaslangic) : null;
+      const vardiyaBitis = row.vardiyaBitis ? new Date(row.vardiyaBitis) : null;
+      return {
       id: row.id,
       makineId: row.makineId!,
       makineKod: row.makineKod ?? null,
@@ -98,5 +114,15 @@ export async function fetchUretimKayitlari(
       uretilenMiktar: Number(row.uretilenMiktar ?? 0),
       operasyonBaslangic: row.operasyonBaslangic ? new Date(row.operasyonBaslangic) : null,
       operasyonBitis: row.operasyonBitis ? new Date(row.operasyonBitis) : null,
-    }));
+      vardiyaKayitId: row.vardiyaKayitId ?? null,
+      vardiyaSlotOverride: row.vardiyaKayitId && row.vardiyaTipi && vardiyaBaslangic
+        ? {
+          gun: localDateKey(vardiyaBaslangic),
+          vardiyaTipi: row.vardiyaTipi as VardiyaTipi,
+          baslangic: vardiyaBaslangic,
+          bitis: vardiyaBitis ?? new Date(vardiyaBaslangic.getTime() + 12 * 60 * 60_000),
+        }
+        : undefined,
+    };
+    });
 }

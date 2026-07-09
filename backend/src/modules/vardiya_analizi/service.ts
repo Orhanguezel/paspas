@@ -13,10 +13,13 @@ import {
   calculateVerimlilik,
   clampDate,
   diffMinutes,
+  fromLocal,
   inferVardiyaTipi,
   partitionByMakine,
   reduceOzet,
   resolveNet,
+  toLocal,
+  VARDIYA_TZ_OFFSET_DK,
   roundRatio,
   vardiyaSlotKey,
   type OperasyonKirilim,
@@ -250,31 +253,34 @@ type DurusOzet = {
 };
 
 function dateRange(query: ListQuery): { baslangic: Date; bitis: Date; tarihLabel: string } {
+  const dateAtLocal = (dateKey: string, clock: string): Date => {
+    const [year, month, day] = dateKey.split('-').map(Number);
+    const [hour, minute] = clock.split(':').map(Number);
+    return fromLocal(new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0)), VARDIYA_TZ_OFFSET_DK);
+  };
+
   if (query.baslangicTarih && query.bitisTarih) {
     if (query.vardiyaCifti === 'gunduz-gece') {
-      const baslangic = new Date(`${query.baslangicTarih}T00:00:00`);
-      const bitis = new Date(`${query.bitisTarih}T00:00:00`);
-      bitis.setHours(7, 30, 0, 0);
+      const baslangic = dateAtLocal(query.baslangicTarih, '00:00');
+      const bitis = dateAtLocal(query.bitisTarih, '07:30');
       return { baslangic, bitis, tarihLabel: `${query.baslangicTarih} - ${query.bitisTarih}` };
     }
     if (query.vardiyaCifti === 'gece-gunduz') {
-      const baslangic = new Date(`${query.baslangicTarih}T00:00:00`);
-      baslangic.setHours(19, 30, 0, 0);
-      const bitis = new Date(`${query.bitisTarih}T00:00:00`);
-      bitis.setHours(19, 30, 0, 0);
+      const baslangic = dateAtLocal(query.baslangicTarih, '19:30');
+      const bitis = dateAtLocal(query.bitisTarih, '19:30');
       return { baslangic, bitis, tarihLabel: `${query.baslangicTarih} - ${query.bitisTarih}` };
     }
     return {
-      baslangic: new Date(`${query.baslangicTarih}T00:00:00`),
-      bitis: new Date(`${query.bitisTarih}T23:59:59`),
+      baslangic: dateAtLocal(query.baslangicTarih, '00:00'),
+      bitis: dateAtLocal(query.bitisTarih, '23:59'),
       tarihLabel: `${query.baslangicTarih} - ${query.bitisTarih}`,
     };
   }
   const tarih = query.tarih ?? new Date().toISOString().slice(0, 10);
-  const baslangic = new Date(`${tarih}T00:00:00`);
-  const bitis = new Date(`${tarih}T00:00:00`);
-  bitis.setDate(bitis.getDate() + 1);
-  bitis.setHours(7, 30, 0, 0);
+  const baslangic = dateAtLocal(tarih, '00:00');
+  const [year, month, day] = tarih.split('-').map(Number);
+  const nextDay = new Date(Date.UTC(year, month - 1, day + 1, 0, 0, 0, 0));
+  const bitis = fromLocal(new Date(Date.UTC(nextDay.getUTCFullYear(), nextDay.getUTCMonth(), nextDay.getUTCDate(), 7, 30, 0, 0)), VARDIYA_TZ_OFFSET_DK);
   return { baslangic, bitis, tarihLabel: tarih };
 }
 
@@ -378,8 +384,8 @@ function montajFromOzet(ozet: ReturnType<typeof reduceOzet>): MontajUretim {
 }
 
 function sameSlot(slot: VardiyaSlot, kayit: CoreUretimKaydi, tanimlar: VardiyaTanimi[]) {
-  const kayitSlot = assignVardiya(kayit.kayitTarihi, tanimlar);
-  return vardiyaSlotKey(kayitSlot) === vardiyaSlotKey(slot);
+  const kayitSlot = kayit.vardiyaSlotOverride ?? assignVardiya(kayit.kayitTarihi, tanimlar, VARDIYA_TZ_OFFSET_DK);
+  return vardiyaSlotKey(kayitSlot, VARDIYA_TZ_OFFSET_DK) === vardiyaSlotKey(slot, VARDIYA_TZ_OFFSET_DK);
 }
 
 async function fetchDurusRows(query: ListQuery, baslangic: Date, bitis: Date): Promise<DurusRow[]> {
@@ -412,14 +418,7 @@ async function fetchDurusRows(query: ListQuery, baslangic: Date, bitis: Date): P
 }
 
 function slotForRealVardiya(row: VardiyaRow, tanimlar: VardiyaTanimi[]): VardiyaSlot {
-  const tanim = tanimlar.find((item) => item.vardiyaTipi === row.vardiyaTipi) ?? tanimlar[0];
-  const pencere = buildShiftWindowForTime(new Date(row.baslangic), tanim);
-  return {
-    gun: pencere.baslangic.toISOString().slice(0, 10),
-    vardiyaTipi: tanim.vardiyaTipi,
-    baslangic: pencere.baslangic,
-    bitis: pencere.bitis,
-  };
+  return assignVardiya(new Date(row.baslangic), tanimlar, VARDIYA_TZ_OFFSET_DK);
 }
 
 type SlotMeta = {
@@ -456,7 +455,7 @@ function createSlotMetas(vardiyaRows: VardiyaRow[], kayitlar: CoreUretimKaydi[],
   }
 
   for (const kayit of kayitlar) {
-    const slot = assignVardiya(kayit.kayitTarihi, tanimlar);
+    const slot = kayit.vardiyaSlotOverride ?? assignVardiya(kayit.kayitTarihi, tanimlar, VARDIYA_TZ_OFFSET_DK);
     if (selectedTipler && !selectedTipler.includes(slot.vardiyaTipi)) continue;
     const key = keyOf(kayit.makineId, slot);
     if (metas.has(key)) continue;
@@ -610,7 +609,7 @@ export async function getVardiyaAnaliziDetay(params: {
 
   const saatMap = new Map<string, number>();
   for (const k of kayitlar) {
-    const saat = k.kayitTarihi.getHours().toString().padStart(2, '0');
+    const saat = toLocal(k.kayitTarihi, VARDIYA_TZ_OFFSET_DK).getUTCHours().toString().padStart(2, '0');
     saatMap.set(saat, (saatMap.get(saat) ?? 0) + k.net);
   }
   const saatlikUretim: SaatlikUretim[] = Array.from({ length: 24 }, (_, i) => {
@@ -836,7 +835,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
   })).sort((a, b) => b.toplamUretim - a.toplamUretim);
 
   const vardiyaByRecord = (kayit: CoreUretimKaydi) => {
-    const slot = assignVardiya(kayit.kayitTarihi, vardiyaTanimlariList);
+    const slot = kayit.vardiyaSlotOverride ?? assignVardiya(kayit.kayitTarihi, vardiyaTanimlariList, VARDIYA_TZ_OFFSET_DK);
     return vardiyalar.find((v) => v.makineId === kayit.makineId && v.baslangic === slot.baslangic.toISOString()) ?? null;
   };
 
@@ -850,9 +849,9 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
       const verimlilikVardiya = kayit.montaj ? null : calculateVerimlilik({ net: kayit.net, sureDk: TAM_VARDIYA_SURE_DK, cevrimSn: kayit.cevrimSn });
       return {
         id: kayit.id,
-        vardiyaTipi: vardiya?.vardiyaTipi ?? assignVardiya(kayit.kayitTarihi, vardiyaTanimlariList).vardiyaTipi,
-        vardiyaBaslangic: vardiya?.baslangic ?? null,
-        vardiyaBitis: vardiya?.bitis ?? null,
+        vardiyaTipi: vardiya?.vardiyaTipi ?? (kayit.vardiyaSlotOverride ?? assignVardiya(kayit.kayitTarihi, vardiyaTanimlariList, VARDIYA_TZ_OFFSET_DK)).vardiyaTipi,
+        vardiyaBaslangic: vardiya?.baslangic ?? kayit.vardiyaSlotOverride?.baslangic.toISOString() ?? null,
+        vardiyaBitis: vardiya?.bitis ?? kayit.vardiyaSlotOverride?.bitis.toISOString() ?? null,
         makineId: kayit.makineId,
         makineKod: kayit.makineKod,
         makineAd: makineBaslik(kayit.makineKod, kayit.makineAd),
