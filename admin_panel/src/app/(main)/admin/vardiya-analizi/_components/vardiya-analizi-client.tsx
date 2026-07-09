@@ -862,6 +862,18 @@ function VardiyaYoneticiGorunumu({
   durusOzeti: DurusNedeniOzet[];
   onEditUretim: (kayit: UretimKaydiOzet) => void;
 }) {
+  const slotKeyFromRecord = (kayit: UretimKaydiOzet) => {
+    const day = kayit.vardiyaBaslangic ? kayit.vardiyaBaslangic.slice(0, 10) : kayit.baslangic.slice(0, 10);
+    return `${day}-${kayit.vardiyaTipi}`;
+  };
+  const slotKeyFromVardiya = (vardiya: VardiyaAnalizItem) => `${vardiya.baslangic.slice(0, 10)}-${vardiya.vardiyaTipi}`;
+  const slotTipi = (slotKey: string) => slotKey.slice(11);
+  const slotDateLabel = (slotKey: string) => {
+    const dateKey = slotKey.slice(0, 10);
+    const date = new Date(`${dateKey}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? dateKey : date.toLocaleDateString("tr-TR");
+  };
+
   const machineGroups = useMemo(() => {
     const makineMap = new Map(makineler.map((makine) => [makine.makineId, makine]));
     const ids = new Set<string>();
@@ -875,12 +887,14 @@ function VardiyaYoneticiGorunumu({
       const records = uretimKayitlari.filter((kayit) => kayit.makineId === makineId);
       const shiftKeys = new Set<string>();
       for (const vardiya of vardiyalar) {
-        if (vardiya.makineId === makineId) shiftKeys.add(vardiya.vardiyaTipi);
+        if (vardiya.makineId === makineId) shiftKeys.add(slotKeyFromVardiya(vardiya));
       }
-      for (const kayit of records) shiftKeys.add(kayit.vardiyaTipi);
+      for (const kayit of records) shiftKeys.add(slotKeyFromRecord(kayit));
       const shifts = Array.from(shiftKeys).sort((a, b) => {
         const order = { gunduz: 0, gece: 1 } as Record<string, number>;
-        return (order[a] ?? 9) - (order[b] ?? 9) || a.localeCompare(b, "tr");
+        const dateCompare = a.slice(0, 10).localeCompare(b.slice(0, 10), "tr");
+        if (dateCompare !== 0) return dateCompare;
+        return (order[slotTipi(a)] ?? 9) - (order[slotTipi(b)] ?? 9) || a.localeCompare(b, "tr");
       });
 
       return {
@@ -936,15 +950,16 @@ function VardiyaYoneticiGorunumu({
               </div>
             ) : (
               shifts.map((shift) => {
-                const shiftRows = records.filter((row) => row.vardiyaTipi === shift);
-                const vardiyaTotal = vardiyalar.find((v) => v.makineId === makineId && v.vardiyaTipi === shift);
-                const netTotal = vardiyaTotal?.uretim.netToplam ?? shiftRows.reduce((sum, row) => sum + row.netMiktar, 0);
-                const fireTotal = vardiyaTotal?.uretim.fireToplam ?? shiftRows.reduce((sum, row) => sum + row.fireMiktar, 0);
+                const shiftRows = records.filter((row) => slotKeyFromRecord(row) === shift);
+                const vardiyaTotal = vardiyalar.find((v) => v.makineId === makineId && slotKeyFromVardiya(v) === shift);
+                const netTotal = shiftRows.reduce((sum, row) => sum + row.netMiktar, 0);
+                const fireTotal = shiftRows.reduce((sum, row) => sum + row.fireMiktar, 0);
+                const shiftType = slotTipi(shift);
 
                 return (
                   <div key={`${makineId}-${shift}`} className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-semibold text-sm">{vardiyaLabel(shift)}</h3>
+                      <h3 className="font-semibold text-sm">{vardiyaLabel(shiftType)} · {slotDateLabel(shift)}</h3>
                       <Badge variant="outline" className="font-mono">
                         Net {netTotal.toLocaleString("tr-TR")} • Fire {fireTotal.toLocaleString("tr-TR")} • Verim. Net {formatPercent(vardiyaTotal?.verimlilikNet ?? null)} • Vardiya {formatPercent(vardiyaTotal?.verimlilikVardiya ?? null)}
                       </Badge>
@@ -974,7 +989,7 @@ function VardiyaYoneticiGorunumu({
                           ) : (
                             shiftRows.map((row) => (
                               <TableRow key={row.id}>
-                                <TableCell>{vardiyaLabel(row.vardiyaTipi)}</TableCell>
+                                <TableCell>{vardiyaLabel(row.vardiyaTipi)} · {slotDateLabel(slotKeyFromRecord(row))}</TableCell>
                                 <TableCell>{formatDateTimeRange(row.baslangic, row.bitis)}</TableCell>
                                 <TableCell>
                                   <div className="font-medium">{row.urunAd}</div>
@@ -1089,7 +1104,7 @@ function MontajUretimInfo({ montaj }: { montaj?: { netToplam: number; kayitSayis
   return (
     <div className="rounded-md border border-sky-200 bg-sky-50 px-2 py-1.5 text-xs text-sky-900">
       <div className="font-medium">
-        Montaj üretimi: {montaj.netToplam.toLocaleString("tr-TR")} adet — OEE'ye dahil değil
+        Montaj üretimi: {montaj.netToplam.toLocaleString("tr-TR")} adet (net üretime dahil, verimlilik hesabına dahil değil)
       </div>
       {montaj.operasyonlar.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-1">

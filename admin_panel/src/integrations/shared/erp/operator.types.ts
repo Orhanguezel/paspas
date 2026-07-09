@@ -40,6 +40,7 @@ export interface MakineKuyruguDetayDto {
   makinePlanliKapali: boolean;
   makineKapaliAciklama: string | null;
   makineKapaliBitisTarih: string | null;
+  acikVardiya: { id: string; vardiyaTipi: string; baslangic: string } | null;
 }
 
 export type KuyrukDurum = 'bekliyor' | 'calisiyor' | 'duraklatildi' | 'tamamlandi' | 'iptal';
@@ -51,6 +52,7 @@ export interface AcikVardiyaDto {
   acikVardiyaId: string | null;
   vardiyaTipi: string | null;
   baslangic: string | null;
+  sonVardiyalar: Array<{ id: string; vardiyaTipi: string; baslangic: string; bitis: string | null }>;
 }
 
 // -- Payloads --
@@ -61,6 +63,7 @@ export interface UretimBaslatPayload {
 
 export interface UretimBitirPayload {
   makineKuyrukId: string;
+  vardiyaKayitId?: string;
   uretilenMiktar: number;
   fireMiktar?: number;
   birimTipi?: 'adet' | 'takim';
@@ -76,6 +79,7 @@ export interface DuraklatPayload {
 
 export interface DevamEtPayload {
   makineKuyrukId: string;
+  vardiyaKayitId?: string;
   uretilenMiktar?: number;
   fireMiktar?: number;
   birimTipi?: 'adet' | 'takim';
@@ -90,6 +94,7 @@ export interface VardiyaBasiPayload {
 
 export interface VardiyaSonuPayload {
   makineId: string;
+  vardiyaKayitId?: string;
   uretilenMiktar?: number;
   fireMiktar?: number;
   birimTipi?: 'adet' | 'takim';
@@ -194,6 +199,7 @@ export interface OperatorGunlukGirisDto {
   uretimEmriId: string;
   makineId: string | null;
   emirOperasyonId: string | null;
+  vardiyaKayitId: string | null;
   operatorUserId: string | null;
   gunlukDurum: OperatorGunlukDurum;
   ekUretimMiktari: number;
@@ -277,6 +283,13 @@ export function normalizeMakineKuyrugu(raw: unknown): MakineKuyruguDetayDto {
     makinePlanliKapali: toBool(r.makinePlanliKapali, false),
     makineKapaliAciklama: r.makineKapaliAciklama != null ? toStr(r.makineKapaliAciklama) : null,
     makineKapaliBitisTarih: r.makineKapaliBitisTarih != null ? toStr(r.makineKapaliBitisTarih) : null,
+    acikVardiya: isRecord(r.acikVardiya)
+      ? {
+        id: toStr(r.acikVardiya.id),
+        vardiyaTipi: toStr(r.acikVardiya.vardiyaTipi),
+        baslangic: toStr(r.acikVardiya.baslangic),
+      }
+      : null,
   };
 }
 
@@ -295,6 +308,7 @@ export function normalizeGunlukGiris(raw: unknown): OperatorGunlukGirisDto {
     uretimEmriId: toStr(r.uretimEmriId),
     makineId: r.makineId != null ? toStr(r.makineId) : null,
     emirOperasyonId: r.emirOperasyonId != null ? toStr(r.emirOperasyonId) : null,
+    vardiyaKayitId: r.vardiyaKayitId != null ? toStr(r.vardiyaKayitId) : null,
     operatorUserId: r.operatorUserId != null ? toStr(r.operatorUserId) : null,
     gunlukDurum: toStr(r.gunlukDurum, 'devam_ediyor') as OperatorGunlukDurum,
     ekUretimMiktari: toNum(r.ekUretimMiktari),
