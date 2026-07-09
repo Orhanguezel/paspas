@@ -886,6 +886,7 @@ function VardiyaYoneticiGorunumu({
       return {
         makineId,
         makineAd: makine?.makineAd ?? records[0]?.makineAd ?? "Makine",
+        makineKod: makine?.makineKod ?? records[0]?.makineKod ?? null,
         makine,
         shifts,
         records,
@@ -905,12 +906,12 @@ function VardiyaYoneticiGorunumu({
 
   return (
     <div className="space-y-4">
-      {machineGroups.map(({ makineId, makineAd, makine, shifts, records }) => (
+      {machineGroups.map(({ makineId, makineAd, makineKod, makine, shifts, records }) => (
         <Card key={makineId}>
           <CardHeader className="space-y-3 pb-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <CardTitle className="text-base">{makineAd}</CardTitle>
+                <CardTitle className="text-base">{makineKod ? `${makineKod} — ${makineAd}` : makineAd}</CardTitle>
                 <p className="text-muted-foreground text-xs">
                   {records.length} üretim kaydı • {makine?.vardiyaSayisi ?? shifts.length} vardiya
                 </p>
