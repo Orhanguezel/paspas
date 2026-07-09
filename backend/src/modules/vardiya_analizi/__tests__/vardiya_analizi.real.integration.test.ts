@@ -196,16 +196,16 @@ describeIntegration("gerçek veri vardiya analizi", () => {
   afterAll(async () => {
   });
 
-  it("makine bazlı baskı adetlerini toplar ve montaj kayıtlarını analizden muaf tutar", async () => {
+  it("makine bazlı üretimi montaj dahil toplar ve OEE kırılımında baskıyı ayrı tutar", async () => {
     const analiz = await getVardiyaAnalizi({ tarih: "2031-09-01" });
 
-    expect(analiz.ozet.toplamUretim).toBe(25);
+    expect(analiz.ozet.toplamUretim).toBe(36);
     expect(analiz.ozet.aktifVardiyaSayisi).toBe(0);
 
     const baskiMakinesi = analiz.makineler.find((makine) => makine.makineId === ids.makineBaski);
     expect(baskiMakinesi).toEqual(expect.objectContaining({
       makineId: ids.makineBaski,
-      toplamUretim: 25,
+      toplamUretim: 36,
       vardiyaSayisi: 1,
     }));
     expect(baskiMakinesi?.operasyonKirilimi).toEqual([
@@ -218,23 +218,34 @@ describeIntegration("gerçek veri vardiya analizi", () => {
     expect(baskiMakinesi?.operasyonKirilimi).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ operasyonId: ids.opMontaj })]),
     );
+    expect(baskiMakinesi?.montajUretim).toEqual(expect.objectContaining({
+      netToplam: 11,
+      kayitSayisi: 1,
+    }));
+    expect(baskiMakinesi?.montajUretim.operasyonlar).toEqual([
+      expect.objectContaining({
+        operasyonId: ids.opMontaj,
+        operasyonAdi: "IT VA Montaj Operasyonu",
+        miktar: 11,
+      }),
+    ]);
 
     const vardiya = analiz.vardiyalar.find((item) => item.makineId === ids.makineBaski);
-    expect(vardiya?.uretim.netToplam).toBe(25);
-    expect(vardiya?.uretim.fireToplam).toBe(5);
+    expect(vardiya?.uretim.netToplam).toBe(36);
+    expect(vardiya?.uretim.fireToplam).toBe(6);
     expect(vardiya?.uretim.urunKirilimi).toEqual([
-      expect.objectContaining({ urunId: ids.urun, miktar: 25 }),
+      expect.objectContaining({ urunId: ids.urun, miktar: 36 }),
     ]);
   });
 
-  it("makine filtresi verildiğinde sadece seçili makinenin baskı adetlerini döndürür", async () => {
+  it("makine filtresi verildiğinde sadece seçili makinenin üretimini döndürür", async () => {
     const analiz = await getVardiyaAnalizi({ tarih: "2031-09-01", makineId: ids.makineBaski });
 
-    expect(analiz.ozet.toplamUretim).toBe(25);
+    expect(analiz.ozet.toplamUretim).toBe(36);
     expect(analiz.makineler).toHaveLength(1);
     expect(analiz.makineler[0]).toEqual(expect.objectContaining({
       makineId: ids.makineBaski,
-      toplamUretim: 25,
+      toplamUretim: 36,
     }));
   });
 });

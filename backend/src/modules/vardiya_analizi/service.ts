@@ -3,24 +3,33 @@ import { and, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { users } from '@/modules/auth/schema';
 import { makineler as makinelerTbl } from '@/modules/makine_havuzu/schema';
-import { durusKayitlari, operatorGunlukKayitlari, vardiyaKayitlari } from '@/modules/operator/schema';
+import { durusKayitlari, vardiyaKayitlari } from '@/modules/operator/schema';
 import { durusNedenleri, kaliplar, vardiyalar as vardiyaTanimlari } from '@/modules/tanimlar/schema';
-import { uretimEmirleri, uretimEmriOperasyonlari } from '@/modules/uretim_emirleri/schema';
-import { urunler } from '@/modules/urunler/schema';
 
+import {
+  assignVardiya,
+  buildShiftWindowForTime,
+  calculateOee,
+  calculateVerimlilik,
+  clampDate,
+  diffMinutes,
+  inferVardiyaTipi,
+  partitionByMakine,
+  reduceOzet,
+  resolveNet,
+  roundRatio,
+  vardiyaSlotKey,
+  type OperasyonKirilim,
+  type UretimKaydi as CoreUretimKaydi,
+  type UrunKirilim,
+  type VardiyaSlot,
+  type VardiyaTanimi,
+  type VardiyaTipi,
+} from './core';
+import { fetchUretimKayitlari } from './repository';
 import type { ListQuery, TrendQuery } from './validation';
 
-export type UrunKirilim = { urunId: string; urunAd: string; urunKod: string | null; miktar: number };
-
-export type OperasyonKirilim = {
-  operasyonId: string | null;
-  operasyonAdi: string;
-  operasyonTipi: string | null;
-  kalipId: string | null;
-  kalipKod: string | null;
-  kalipAd: string | null;
-  miktar: number;
-};
+export type { OperasyonKirilim, UrunKirilim };
 
 export type MontajUretim = {
   netToplam: number;
@@ -31,6 +40,7 @@ export type MontajUretim = {
 export type VardiyaAnalizItem = {
   id: string;
   makineId: string;
+  makineKod: string | null;
   makineAd: string;
   operatorUserId: string | null;
   operatorAd: string | null;
@@ -48,19 +58,11 @@ export type VardiyaAnalizItem = {
     urunKirilimi: UrunKirilim[];
     operasyonKirilimi: OperasyonKirilim[];
   };
-  duruslar: {
-    toplamDk: number;
-    arizaSayisi: number;
-    arizaDk: number;
-    kalipDegisimSayisi: number;
-    kalipDegisimDk: number;
-    bakimSayisi: number;
-    bakimDk: number;
-    digerSayisi: number;
-    digerDk: number;
-  };
+  duruslar: DurusOzet;
   oee: number | null;
   verimlilik: number | null;
+  verimlilikNet: number | null;
+  verimlilikVardiya: number | null;
   montajUretim: MontajUretim;
 };
 
@@ -79,6 +81,7 @@ export type VardiyaAnalizOzet = {
 
 export type MakineRollup = {
   makineId: string;
+  makineKod: string | null;
   makineAd: string;
   vardiyaSayisi: number;
   aktifVardiya: boolean;
@@ -98,6 +101,8 @@ export type MakineRollup = {
   operasyonKirilimi: OperasyonKirilim[];
   montajUretim: MontajUretim;
   oee: number | null;
+  verimlilikNet: number | null;
+  verimlilikVardiya: number | null;
 };
 
 export type UretimKaydiOzet = {
@@ -106,19 +111,19 @@ export type UretimKaydiOzet = {
   vardiyaBaslangic: string | null;
   vardiyaBitis: string | null;
   makineId: string | null;
+  makineKod: string | null;
   makineAd: string | null;
   baslangic: string;
   bitis: string | null;
   urunAd: string;
   urunKod: string | null;
   operasyonAdi: string | null;
+  montaj: boolean;
   ekUretimMiktari: number;
   netMiktar: number;
   fireMiktar: number;
   verimlilik: number | null;
-  // Net çalışma süresine göre verimlilik (operasyonun gerçek çalışma süresi bazlı)
   verimlilikNet: number | null;
-  // Tam vardiya süresine göre verimlilik (12 saatlik vardiya bazlı)
   verimlilikVardiya: number | null;
   operatorAd: string | null;
   notlar: string | null;
@@ -178,7 +183,6 @@ export function buildUretimKirilimSummary(rows: UretimKirilimAggregateRow[]) {
   let fireToplam = 0;
 
   for (const row of rows) {
-    // netMiktar burada zaten net SQL ifadesinden (net_miktar ?? ek-fire) gelir
     const miktar = Number(row.netMiktar ?? 0);
     const existing = byProduct.get(row.urunId);
     if (existing) {
@@ -207,17 +211,10 @@ const DEFAULT_VARDIYA_SAATLERI = {
   gece: { baslangic: '19:30', bitis: '07:30' },
 } as const;
 
-type VardiyaTipi = keyof typeof DEFAULT_VARDIYA_SAATLERI;
-type VardiyaTanimi = {
-  vardiyaTipi: VardiyaTipi;
-  ad: string;
-  baslangicSaati: string;
-  bitisSaati: string;
-};
-
 type VardiyaRow = {
   id: string;
   makineId: string;
+  makineKod: string | null;
   operatorUserId: string | null;
   vardiyaTipi: string;
   baslangic: Date;
@@ -226,28 +223,46 @@ type VardiyaRow = {
   operatorAd: string | null;
 };
 
+type DurusRow = {
+  id: string;
+  makineId: string;
+  makineAd: string | null;
+  baslangic: Date;
+  bitis: Date | null;
+  sureDk: number | null;
+  durusTipi: string;
+  neden: string;
+  nedenKod: string | null;
+  operatorUserId: string | null;
+  operatorAd: string | null;
+};
+
+type DurusOzet = {
+  toplamDk: number;
+  arizaSayisi: number;
+  arizaDk: number;
+  kalipDegisimSayisi: number;
+  kalipDegisimDk: number;
+  bakimSayisi: number;
+  bakimDk: number;
+  digerSayisi: number;
+  digerDk: number;
+};
+
 function dateRange(query: ListQuery): { baslangic: Date; bitis: Date; tarihLabel: string } {
   if (query.baslangicTarih && query.bitisTarih) {
     if (query.vardiyaCifti === 'gunduz-gece') {
       const baslangic = new Date(`${query.baslangicTarih}T00:00:00`);
       const bitis = new Date(`${query.bitisTarih}T00:00:00`);
       bitis.setHours(7, 30, 0, 0);
-      return {
-        baslangic,
-        bitis,
-        tarihLabel: `${query.baslangicTarih} - ${query.bitisTarih}`,
-      };
+      return { baslangic, bitis, tarihLabel: `${query.baslangicTarih} - ${query.bitisTarih}` };
     }
     if (query.vardiyaCifti === 'gece-gunduz') {
       const baslangic = new Date(`${query.baslangicTarih}T00:00:00`);
       baslangic.setHours(19, 30, 0, 0);
       const bitis = new Date(`${query.bitisTarih}T00:00:00`);
       bitis.setHours(19, 30, 0, 0);
-      return {
-        baslangic,
-        bitis,
-        tarihLabel: `${query.baslangicTarih} - ${query.bitisTarih}`,
-      };
+      return { baslangic, bitis, tarihLabel: `${query.baslangicTarih} - ${query.bitisTarih}` };
     }
     return {
       baslangic: new Date(`${query.baslangicTarih}T00:00:00`),
@@ -260,11 +275,7 @@ function dateRange(query: ListQuery): { baslangic: Date; bitis: Date; tarihLabel
   const bitis = new Date(`${tarih}T00:00:00`);
   bitis.setDate(bitis.getDate() + 1);
   bitis.setHours(7, 30, 0, 0);
-  return {
-    baslangic,
-    bitis,
-    tarihLabel: tarih,
-  };
+  return { baslangic, bitis, tarihLabel: tarih };
 }
 
 function selectedMakineIds(query: ListQuery): string[] | undefined {
@@ -283,113 +294,6 @@ function machineCondition(query: ListQuery, column: any) {
 function shiftTypeCondition(query: ListQuery, column: any) {
   const tipler = selectedVardiyaTipleri(query);
   return tipler ? inArray(column, tipler) : sql`1 = 1`;
-}
-
-function roundRatio(value: number | null): number | null {
-  if (value === null || !Number.isFinite(value)) return null;
-  return Number(value.toFixed(3));
-}
-
-function calculateOee(input: {
-  planlananSureDk: number;
-  calismaSuresiDk: number;
-  net: number;
-  fire: number;
-  idealCalismaSn: number;
-  hasCycle: boolean;
-}): number | null {
-  if (input.planlananSureDk <= 0 || input.net + input.fire <= 0) return null;
-  const availability = input.calismaSuresiDk / input.planlananSureDk;
-  const quality = input.net / (input.net + input.fire);
-  const performance = input.hasCycle && input.calismaSuresiDk > 0
-    ? input.idealCalismaSn / (input.calismaSuresiDk * 60)
-    : 1;
-  return roundRatio(Math.max(0, Math.min(1, availability * performance * quality)));
-}
-
-function calculateVerimlilik(input: { net: number; sureDk: number; cevrimSn: number | null }): number | null {
-  if (!input.cevrimSn || input.cevrimSn <= 0 || input.sureDk <= 0) return null;
-  const teorik = (input.sureDk * 60) / input.cevrimSn;
-  return teorik > 0 ? roundRatio(input.net / teorik) : null;
-}
-
-/**
- * Net üretim miktarı hesabı (JS tarafı).
- * `net_miktar` doluysa (0 değilse) onu kullan; aksi halde `ek_uretim_miktari - fire_miktari`.
- * Negatif sonuç 0'a sabitlenir.
- */
-function resolveNet(netMiktar: number | string | null, ekMiktar: number | string | null, fireMiktar: number | string | null): number {
-  const net = Number(netMiktar ?? 0);
-  if (net !== 0) return net;
-  const ek = Number(ekMiktar ?? 0);
-  const fire = Number(fireMiktar ?? 0);
-  return Math.max(0, ek - fire);
-}
-
-/**
- * Net üretim miktarı için SQL ifadesi (toplam/agregasyon sorgularında kullanılır).
- * `net_miktar` 0 değilse onu kullan; aksi halde `ek_uretim_miktari - fire_miktari` (negatif ise 0).
- */
-const netMiktarSql = sql<number>`GREATEST(CASE WHEN ${operatorGunlukKayitlari.net_miktar} <> 0 THEN ${operatorGunlukKayitlari.net_miktar} ELSE (${operatorGunlukKayitlari.ek_uretim_miktari} - ${operatorGunlukKayitlari.fire_miktari}) END, 0)`;
-
-/**
- * Bir kaydın "üretimi var mı" koşulu (net_miktar != 0 yerine kullanılır).
- * net_miktar dolu DEĞİL ama ek_uretim_miktari girilmiş kayıtları da kapsar.
- */
-const hasProductionSql = sql`(${operatorGunlukKayitlari.net_miktar} <> 0 OR ${operatorGunlukKayitlari.ek_uretim_miktari} <> 0 OR ${operatorGunlukKayitlari.fire_miktari} <> 0)`;
-
-function diffMinutes(a: Date, b: Date): number {
-  return Math.max(0, Math.floor((b.getTime() - a.getTime()) / 60000));
-}
-
-function parseClockToMinutes(clock: string): number {
-  const [hour, minute] = clock.split(':').map(Number);
-  return (hour * 60) + minute;
-}
-
-function normalizeShiftName(value: string): string {
-  return value
-    .toLocaleLowerCase('tr-TR')
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '');
-}
-
-function inferVardiyaTipi(ad: string, baslangicSaati: string, bitisSaati: string): VardiyaTipi {
-  const normalizedName = normalizeShiftName(ad);
-  if (normalizedName.includes('gece')) return 'gece';
-  if (normalizedName.includes('gunduz')) return 'gunduz';
-
-  const baslangic = parseClockToMinutes(baslangicSaati);
-  const bitis = parseClockToMinutes(bitisSaati);
-  if (baslangic > bitis) return 'gece';
-  return baslangic >= (12 * 60) ? 'gece' : 'gunduz';
-}
-
-function createDateForClock(reference: Date, clock: string): Date {
-  const [hour, minute] = clock.split(':').map(Number);
-  const date = new Date(reference);
-  date.setHours(hour, minute, 0, 0);
-  return date;
-}
-
-function buildShiftWindowForTime(time: Date, tanim: VardiyaTanimi): { baslangic: Date; bitis: Date } {
-  const baslangicMinutes = parseClockToMinutes(tanim.baslangicSaati);
-  const bitisMinutes = parseClockToMinutes(tanim.bitisSaati);
-  const currentMinutes = (time.getHours() * 60) + time.getMinutes();
-  const overnight = baslangicMinutes >= bitisMinutes;
-
-  const baslangic = createDateForClock(time, tanim.baslangicSaati);
-  const bitis = createDateForClock(time, tanim.bitisSaati);
-
-  if (overnight) {
-    if (currentMinutes >= baslangicMinutes) {
-      bitis.setDate(bitis.getDate() + 1);
-    } else {
-      baslangic.setDate(baslangic.getDate() - 1);
-    }
-  }
-
-  return { baslangic, bitis };
 }
 
 async function listActiveVardiyaTanimlari(): Promise<VardiyaTanimi[]> {
@@ -420,29 +324,156 @@ async function listActiveVardiyaTanimlari(): Promise<VardiyaTanimi[]> {
   }));
 }
 
-function clampDate(date: Date, min: Date, max: Date): Date {
-  if (date < min) return min;
-  if (date > max) return max;
-  return date;
+function makineBaslik(kod: string | null, ad: string): string {
+  return kod ? `${kod} — ${ad}` : ad;
 }
 
-function mergeOperasyonKirilimi(target: OperasyonKirilim[], source: OperasyonKirilim[]) {
-  for (const item of source) {
-    const key = `${item.operasyonId ?? 'null'}-${item.kalipId ?? 'null'}-${item.operasyonTipi ?? 'null'}`;
-    const existing = target.find((current) => `${current.operasyonId ?? 'null'}-${current.kalipId ?? 'null'}-${current.operasyonTipi ?? 'null'}` === key);
-    if (existing) {
-      existing.miktar += item.miktar;
+function emptyDurusOzet(): DurusOzet {
+  return {
+    toplamDk: 0,
+    arizaSayisi: 0,
+    arizaDk: 0,
+    kalipDegisimSayisi: 0,
+    kalipDegisimDk: 0,
+    bakimSayisi: 0,
+    bakimDk: 0,
+    digerSayisi: 0,
+    digerDk: 0,
+  };
+}
+
+function summarizeDuruslar(rows: DurusRow[]): DurusOzet {
+  const d = emptyDurusOzet();
+  for (const row of rows) {
+    const sure = row.sureDk ?? (row.bitis ? diffMinutes(new Date(row.baslangic), new Date(row.bitis)) : 0);
+    d.toplamDk += sure;
+    const kod = row.nedenKod ?? row.durusTipi?.toUpperCase() ?? '';
+    if (kod === 'ARIZ' || row.durusTipi === 'ariza') {
+      d.arizaSayisi++;
+      d.arizaDk += sure;
+    } else if (kod === 'KALIP') {
+      d.kalipDegisimSayisi++;
+      d.kalipDegisimDk += sure;
+    } else if (kod === 'BAKIM') {
+      d.bakimSayisi++;
+      d.bakimDk += sure;
     } else {
-      target.push({ ...item });
+      d.digerSayisi++;
+      d.digerDk += sure;
     }
   }
-  target.sort((a, b) => b.miktar - a.miktar || a.operasyonAdi.localeCompare(b.operasyonAdi, 'tr'));
+  return d;
 }
 
-function mergeMontajUretim(target: MontajUretim, source: MontajUretim) {
-  target.netToplam += source.netToplam;
-  target.kayitSayisi += source.kayitSayisi;
-  mergeOperasyonKirilimi(target.operasyonlar, source.operasyonlar);
+function filterDuruslarForWindow(rows: DurusRow[], makineId: string, baslangic: Date, bitis: Date) {
+  return rows.filter((row) => row.makineId === makineId && new Date(row.baslangic) >= baslangic && new Date(row.baslangic) <= bitis);
+}
+
+function montajFromOzet(ozet: ReturnType<typeof reduceOzet>): MontajUretim {
+  return {
+    netToplam: ozet.montajNet,
+    kayitSayisi: ozet.montajKayitSayisi,
+    operasyonlar: ozet.montajOperasyonKirilimi,
+  };
+}
+
+function sameSlot(slot: VardiyaSlot, kayit: CoreUretimKaydi, tanimlar: VardiyaTanimi[]) {
+  const kayitSlot = assignVardiya(kayit.kayitTarihi, tanimlar);
+  return vardiyaSlotKey(kayitSlot) === vardiyaSlotKey(slot);
+}
+
+async function fetchDurusRows(query: ListQuery, baslangic: Date, bitis: Date): Promise<DurusRow[]> {
+  return db
+    .select({
+      id: durusKayitlari.id,
+      makineId: durusKayitlari.makine_id,
+      makineAd: makinelerTbl.ad,
+      baslangic: durusKayitlari.baslangic,
+      bitis: durusKayitlari.bitis,
+      sureDk: durusKayitlari.sure_dk,
+      durusTipi: durusKayitlari.durus_tipi,
+      neden: durusKayitlari.neden,
+      nedenKod: durusNedenleri.kod,
+      operatorUserId: durusKayitlari.operator_user_id,
+      operatorAd: users.full_name,
+    })
+    .from(durusKayitlari)
+    .leftJoin(durusNedenleri, eq(durusKayitlari.durus_nedeni_id, durusNedenleri.id))
+    .leftJoin(makinelerTbl, eq(durusKayitlari.makine_id, makinelerTbl.id))
+    .leftJoin(users, eq(durusKayitlari.operator_user_id, users.id))
+    .where(
+      and(
+        gte(durusKayitlari.baslangic, baslangic),
+        lte(durusKayitlari.baslangic, bitis),
+        machineCondition(query, durusKayitlari.makine_id),
+      ),
+    )
+    .orderBy(asc(durusKayitlari.baslangic));
+}
+
+function slotForRealVardiya(row: VardiyaRow, tanimlar: VardiyaTanimi[]): VardiyaSlot {
+  const tanim = tanimlar.find((item) => item.vardiyaTipi === row.vardiyaTipi) ?? tanimlar[0];
+  const pencere = buildShiftWindowForTime(new Date(row.baslangic), tanim);
+  return {
+    gun: pencere.baslangic.toISOString().slice(0, 10),
+    vardiyaTipi: tanim.vardiyaTipi,
+    baslangic: pencere.baslangic,
+    bitis: pencere.bitis,
+  };
+}
+
+type SlotMeta = {
+  id: string;
+  makineId: string;
+  makineKod: string | null;
+  makineAd: string;
+  operatorUserId: string | null;
+  operatorAd: string | null;
+  slot: VardiyaSlot;
+  realBaslangic: Date | null;
+  realBitis: Date | null;
+};
+
+function createSlotMetas(vardiyaRows: VardiyaRow[], kayitlar: CoreUretimKaydi[], tanimlar: VardiyaTanimi[], query: ListQuery) {
+  const selectedTipler = selectedVardiyaTipleri(query);
+  const metas = new Map<string, SlotMeta>();
+  const keyOf = (makineId: string, slot: VardiyaSlot) => `${makineId}-${vardiyaSlotKey(slot)}`;
+
+  for (const row of vardiyaRows) {
+    const slot = slotForRealVardiya(row, tanimlar);
+    if (selectedTipler && !selectedTipler.includes(slot.vardiyaTipi)) continue;
+    metas.set(keyOf(row.makineId, slot), {
+      id: row.id,
+      makineId: row.makineId,
+      makineKod: row.makineKod,
+      makineAd: row.makineAd,
+      operatorUserId: row.operatorUserId ?? null,
+      operatorAd: row.operatorAd ?? null,
+      slot,
+      realBaslangic: new Date(row.baslangic),
+      realBitis: row.bitis ? new Date(row.bitis) : null,
+    });
+  }
+
+  for (const kayit of kayitlar) {
+    const slot = assignVardiya(kayit.kayitTarihi, tanimlar);
+    if (selectedTipler && !selectedTipler.includes(slot.vardiyaTipi)) continue;
+    const key = keyOf(kayit.makineId, slot);
+    if (metas.has(key)) continue;
+    metas.set(key, {
+      id: `synthetic-${key}`,
+      makineId: kayit.makineId,
+      makineKod: kayit.makineKod,
+      makineAd: kayit.makineAd,
+      operatorUserId: kayit.operatorUserId,
+      operatorAd: kayit.operatorAd,
+      slot,
+      realBaslangic: null,
+      realBitis: null,
+    });
+  }
+
+  return Array.from(metas.values()).sort((a, b) => b.slot.baslangic.getTime() - a.slot.baslangic.getTime());
 }
 
 export type DurusDetay = {
@@ -465,6 +496,7 @@ export type UretimKaydi = {
   urunKod: string | null;
   netMiktar: number;
   fireMiktar: number;
+  montaj: boolean;
   operatorAd: string | null;
   notlar: string | null;
   operasyonAdi: string | null;
@@ -501,7 +533,6 @@ export async function getVardiyaAnaliziDetay(params: {
   baslangicTarih?: string;
   bitisTarih?: string;
 }): Promise<VardiyaDetayResponse | null> {
-  // Aralık ve makine tespit et
   let makineId: string;
   let makineAd: string;
   let baslangic: Date;
@@ -526,22 +557,14 @@ export async function getVardiyaAnaliziDetay(params: {
     baslangic = new Date(rows[0].baslangic);
     bitis = rows[0].bitis ? new Date(rows[0].bitis) : new Date();
   } else if (params.makineId && params.baslangicTarih && params.bitisTarih) {
-    const rows = await db
-      .select({ ad: makinelerTbl.ad })
-      .from(makinelerTbl)
-      .where(eq(makinelerTbl.id, params.makineId))
-      .limit(1);
+    const rows = await db.select({ ad: makinelerTbl.ad }).from(makinelerTbl).where(eq(makinelerTbl.id, params.makineId)).limit(1);
     if (!rows[0]) return null;
     makineId = params.makineId;
     makineAd = rows[0].ad;
     baslangic = new Date(`${params.baslangicTarih}T00:00:00`);
     bitis = new Date(`${params.bitisTarih}T23:59:59`);
   } else if (params.makineId && params.tarih) {
-    const rows = await db
-      .select({ ad: makinelerTbl.ad })
-      .from(makinelerTbl)
-      .where(eq(makinelerTbl.id, params.makineId))
-      .limit(1);
+    const rows = await db.select({ ad: makinelerTbl.ad }).from(makinelerTbl).where(eq(makinelerTbl.id, params.makineId)).limit(1);
     if (!rows[0]) return null;
     makineId = params.makineId;
     makineAd = rows[0].ad;
@@ -551,39 +574,14 @@ export async function getVardiyaAnaliziDetay(params: {
     return null;
   }
 
-  // Duruş detayları
-  const durusRows = await db
-    .select({
-      id: durusKayitlari.id,
-      baslangic: durusKayitlari.baslangic,
-      bitis: durusKayitlari.bitis,
-      sureDk: durusKayitlari.sure_dk,
-      durusTipi: durusKayitlari.durus_tipi,
-      neden: durusKayitlari.neden,
-      nedenKod: durusNedenleri.kod,
-      operatorUserId: durusKayitlari.operator_user_id,
-      operatorAd: users.full_name,
-    })
-    .from(durusKayitlari)
-    .leftJoin(durusNedenleri, eq(durusKayitlari.durus_nedeni_id, durusNedenleri.id))
-    .leftJoin(users, eq(durusKayitlari.operator_user_id, users.id))
-    .where(
-      and(
-        eq(durusKayitlari.makine_id, makineId),
-        gte(durusKayitlari.baslangic, baslangic),
-        lte(durusKayitlari.baslangic, bitis),
-      ),
-    )
-    .orderBy(desc(durusKayitlari.baslangic));
-
+  const durusRows = await fetchDurusRows({ makineId: [makineId] }, baslangic, bitis);
   const duruslar: DurusDetay[] = durusRows.map((r) => {
     const bitisDate = r.bitis ? new Date(r.bitis) : null;
-    const sure = r.sureDk ?? (bitisDate ? diffMinutes(new Date(r.baslangic), bitisDate) : 0);
     return {
       id: r.id,
-      baslangic: r.baslangic instanceof Date ? r.baslangic.toISOString() : String(r.baslangic),
-      bitis: r.bitis ? (r.bitis instanceof Date ? r.bitis.toISOString() : String(r.bitis)) : null,
-      sureDk: sure,
+      baslangic: r.baslangic.toISOString(),
+      bitis: r.bitis ? r.bitis.toISOString() : null,
+      sureDk: r.sureDk ?? (bitisDate ? diffMinutes(new Date(r.baslangic), bitisDate) : 0),
       durusTipi: r.durusTipi,
       neden: r.neden,
       nedenKod: r.nedenKod ?? null,
@@ -592,96 +590,46 @@ export async function getVardiyaAnaliziDetay(params: {
     };
   });
 
-  // Üretim kayıtları
-  const kayitlar = await db
-    .select({
-      id: operatorGunlukKayitlari.id,
-      kayitTarihi: operatorGunlukKayitlari.kayit_tarihi,
-      urunId: urunler.id,
-      urunAd: urunler.ad,
-      urunKod: urunler.kod,
-      netMiktar: operatorGunlukKayitlari.net_miktar,
-      ekMiktar: operatorGunlukKayitlari.ek_uretim_miktari,
-      fireMiktar: operatorGunlukKayitlari.fire_miktari,
-      notlar: operatorGunlukKayitlari.notlar,
-      operatorAd: users.full_name,
-      operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
-      operasyonTipi: urunler.operasyon_tipi,
-      kalipKod: kaliplar.kod,
-      kalipAd: kaliplar.ad,
-    })
-    .from(operatorGunlukKayitlari)
-    .innerJoin(uretimEmirleri, eq(operatorGunlukKayitlari.uretim_emri_id, uretimEmirleri.id))
-    .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
-    .leftJoin(uretimEmriOperasyonlari, eq(operatorGunlukKayitlari.emir_operasyon_id, uretimEmriOperasyonlari.id))
-    .leftJoin(kaliplar, eq(uretimEmriOperasyonlari.kalip_id, kaliplar.id))
-    .leftJoin(users, eq(operatorGunlukKayitlari.operator_user_id, users.id))
-    .where(
-      and(
-        eq(operatorGunlukKayitlari.makine_id, makineId),
-        gte(operatorGunlukKayitlari.kayit_tarihi, baslangic),
-        lte(operatorGunlukKayitlari.kayit_tarihi, bitis),
-        sql`(${operatorGunlukKayitlari.emir_operasyon_id} IS NULL OR COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 0)`,
-      ),
-    )
-    .orderBy(desc(operatorGunlukKayitlari.kayit_tarihi));
-
+  const kayitlar = await fetchUretimKayitlari({ baslangic, bitis }, [makineId]);
   const uretimKayitlari: UretimKaydi[] = kayitlar.map((r) => ({
     id: r.id,
-    kayitTarihi: r.kayitTarihi instanceof Date ? r.kayitTarihi.toISOString() : String(r.kayitTarihi),
+    kayitTarihi: r.kayitTarihi.toISOString(),
     urunId: r.urunId,
     urunAd: r.urunAd,
     urunKod: r.urunKod,
-    netMiktar: resolveNet(r.netMiktar, r.ekMiktar, r.fireMiktar),
-    fireMiktar: Number(r.fireMiktar ?? 0),
-    operatorAd: r.operatorAd ?? null,
-    notlar: r.notlar ?? null,
-    operasyonAdi: r.operasyonAdi ?? null,
-    operasyonTipi: r.operasyonTipi ?? null,
-    kalipKod: r.kalipKod ?? null,
-    kalipAd: r.kalipAd ?? null,
+    netMiktar: r.net,
+    fireMiktar: r.fire,
+    montaj: r.montaj,
+    operatorAd: r.operatorAd,
+    notlar: r.notlar,
+    operasyonAdi: r.operasyonAdi,
+    operasyonTipi: r.operasyonTipi,
+    kalipKod: r.kalipKod,
+    kalipAd: r.kalipAd,
   }));
 
-  // Saatlik üretim
   const saatMap = new Map<string, number>();
-  for (const k of uretimKayitlari) {
-    const saat = new Date(k.kayitTarihi).getHours().toString().padStart(2, '0');
-    saatMap.set(saat, (saatMap.get(saat) ?? 0) + k.netMiktar);
+  for (const k of kayitlar) {
+    const saat = k.kayitTarihi.getHours().toString().padStart(2, '0');
+    saatMap.set(saat, (saatMap.get(saat) ?? 0) + k.net);
   }
   const saatlikUretim: SaatlikUretim[] = Array.from({ length: 24 }, (_, i) => {
     const saat = i.toString().padStart(2, '0');
     return { saat: `${saat}:00`, miktar: saatMap.get(saat) ?? 0 };
   });
 
-  // Bağlı üretim emirleri
-  const emirRows = await db
-    .selectDistinct({
-      emirId: uretimEmirleri.id,
-      emirNo: uretimEmirleri.emir_no,
-      urunAd: urunler.ad,
-      planlanan: uretimEmirleri.planlanan_miktar,
-      uretilen: uretimEmirleri.uretilen_miktar,
-    })
-    .from(operatorGunlukKayitlari)
-    .innerJoin(uretimEmirleri, eq(operatorGunlukKayitlari.uretim_emri_id, uretimEmirleri.id))
-    .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
-    .leftJoin(uretimEmriOperasyonlari, eq(operatorGunlukKayitlari.emir_operasyon_id, uretimEmriOperasyonlari.id))
-    .where(
-      and(
-        eq(operatorGunlukKayitlari.makine_id, makineId),
-        gte(operatorGunlukKayitlari.kayit_tarihi, baslangic),
-        lte(operatorGunlukKayitlari.kayit_tarihi, bitis),
-        sql`(${operatorGunlukKayitlari.emir_operasyon_id} IS NULL OR COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 0)`,
-      ),
-    );
-
-  const bagliEmirler: BagliEmir[] = emirRows.map((r) => ({
-    emirId: r.emirId,
-    emirNo: r.emirNo,
-    urunAd: r.urunAd,
-    planlanan: Number(r.planlanan ?? 0),
-    uretilen: Number(r.uretilen ?? 0),
-  }));
+  const emirMap = new Map<string, BagliEmir>();
+  for (const kayit of kayitlar) {
+    if (!emirMap.has(kayit.uretimEmriId)) {
+      emirMap.set(kayit.uretimEmriId, {
+        emirId: kayit.uretimEmriId,
+        emirNo: kayit.emirNo,
+        urunAd: kayit.urunAd,
+        planlanan: kayit.planlananMiktar,
+        uretilen: kayit.uretilenMiktar,
+      });
+    }
+  }
 
   return {
     makineId,
@@ -691,30 +639,30 @@ export async function getVardiyaAnaliziDetay(params: {
     duruslar,
     uretimKayitlari,
     saatlikUretim,
-    bagliEmirler,
+    bagliEmirler: Array.from(emirMap.values()),
   };
 }
 
 export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnalizResponse> {
   const { baslangic, bitis, tarihLabel } = dateRange(query);
+  const vardiyaTanimlariList = await listActiveVardiyaTanimlari();
+  const kayitlar = await fetchUretimKayitlari({ baslangic, bitis }, selectedMakineIds(query));
 
   const vardiyaConditions = [
     sql`${vardiyaKayitlari.baslangic} <= ${bitis}`,
-    // Kapalı vardiyalar: bitis >= sorgu başlangıcı
-    // Açık vardiyalar (bitis IS NULL): en fazla 2 gün öncesinden başlamış olmalı
-    // (gece vardiyaları için 1 günlük sapma tolere edilir, orphan shift'ler dışlanır)
     sql`(
       (${vardiyaKayitlari.bitis} IS NOT NULL AND ${vardiyaKayitlari.bitis} >= ${baslangic})
       OR (${vardiyaKayitlari.bitis} IS NULL AND ${vardiyaKayitlari.baslangic} >= DATE_SUB(${baslangic}, INTERVAL 2 DAY))
     )`,
+    machineCondition(query, vardiyaKayitlari.makine_id),
+    shiftTypeCondition(query, vardiyaKayitlari.vardiya_tipi),
   ];
-  vardiyaConditions.push(machineCondition(query, vardiyaKayitlari.makine_id));
-  vardiyaConditions.push(shiftTypeCondition(query, vardiyaKayitlari.vardiya_tipi));
 
   const vardiyaRows: VardiyaRow[] = await db
     .select({
       id: vardiyaKayitlari.id,
       makineId: vardiyaKayitlari.makine_id,
+      makineKod: makinelerTbl.kod,
       operatorUserId: vardiyaKayitlari.operator_user_id,
       vardiyaTipi: vardiyaKayitlari.vardiya_tipi,
       baslangic: vardiyaKayitlari.baslangic,
@@ -728,286 +676,56 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
     .where(and(...vardiyaConditions))
     .orderBy(desc(vardiyaKayitlari.baslangic));
 
-  const vardiyaTanimlari = await listActiveVardiyaTanimlari();
-  const productionRows = await db
-    .select({
-      makineId: operatorGunlukKayitlari.makine_id,
-      makineAd: makinelerTbl.ad,
-      operatorUserId: operatorGunlukKayitlari.operator_user_id,
-      operatorAd: users.full_name,
-      kayitTarihi: operatorGunlukKayitlari.kayit_tarihi,
-    })
-    .from(operatorGunlukKayitlari)
-    .innerJoin(makinelerTbl, eq(operatorGunlukKayitlari.makine_id, makinelerTbl.id))
-    .leftJoin(uretimEmriOperasyonlari, eq(operatorGunlukKayitlari.emir_operasyon_id, uretimEmriOperasyonlari.id))
-    .leftJoin(users, eq(operatorGunlukKayitlari.operator_user_id, users.id))
-    .where(
-      and(
-        gte(operatorGunlukKayitlari.kayit_tarihi, baslangic),
-        lte(operatorGunlukKayitlari.kayit_tarihi, bitis),
-        machineCondition(query, operatorGunlukKayitlari.makine_id),
-        hasProductionSql,
-      ),
-    )
-    .orderBy(desc(operatorGunlukKayitlari.kayit_tarihi));
-
-  const knownShiftKeys = new Set(vardiyaRows.map((v) => `${v.makineId}-${new Date(v.baslangic).toISOString()}`));
-  for (const kayit of productionRows) {
-    if (!kayit.makineId || !kayit.makineAd) continue;
-    const kayitTarihi = new Date(kayit.kayitTarihi);
-    const tanim = vardiyaTanimlari
-      .map((item) => ({ item, pencere: buildShiftWindowForTime(kayitTarihi, item) }))
-      .find(({ pencere }) => kayitTarihi >= pencere.baslangic && kayitTarihi < pencere.bitis);
-    if (!tanim) continue;
-
-    const syntheticKey = `${kayit.makineId}-${tanim.pencere.baslangic.toISOString()}`;
-    if (knownShiftKeys.has(syntheticKey)) continue;
-
-    const hasRealCoveringShift = vardiyaRows.some((v) => {
-      if (v.makineId !== kayit.makineId) return false;
-      const realStart = new Date(v.baslangic);
-      const realEnd = v.bitis ? new Date(v.bitis) : bitis;
-      return kayitTarihi >= realStart && kayitTarihi <= realEnd;
-    });
-    if (hasRealCoveringShift) continue;
-
-    knownShiftKeys.add(syntheticKey);
-    vardiyaRows.push({
-      id: `synthetic-${syntheticKey}`,
-      makineId: kayit.makineId,
-      operatorUserId: kayit.operatorUserId ?? null,
-      vardiyaTipi: tanim.item.vardiyaTipi,
-      baslangic: tanim.pencere.baslangic,
-      bitis: tanim.pencere.bitis,
-      makineAd: kayit.makineAd,
-      operatorAd: kayit.operatorAd ?? null,
-    });
-  }
-
+  const durusRows = await fetchDurusRows(query, baslangic, bitis);
+  const slotMetas = createSlotMetas(vardiyaRows, kayitlar, vardiyaTanimlariList, query);
   const vardiyalar: VardiyaAnalizItem[] = [];
-  for (const v of vardiyaRows) {
-    const effectiveBitis = clampDate(v.bitis ? new Date(v.bitis) : new Date(), baslangic, bitis);
-    const vBaslangic = clampDate(new Date(v.baslangic), baslangic, bitis);
+
+  for (const meta of slotMetas) {
+    const effectiveBitis = clampDate(meta.realBitis ?? meta.slot.bitis, baslangic, bitis);
+    const vBaslangic = clampDate(meta.realBaslangic ?? meta.slot.baslangic, baslangic, bitis);
+    const slotKayitlari = kayitlar.filter((kayit) => kayit.makineId === meta.makineId && sameSlot(meta.slot, kayit, vardiyaTanimlariList));
+    const ozet = reduceOzet(slotKayitlari);
+    const duruslar = summarizeDuruslar(filterDuruslarForWindow(durusRows, meta.makineId, vBaslangic, effectiveBitis));
     const planlananSureDk = diffMinutes(vBaslangic, effectiveBitis);
-
-    // Üretim kırılımı: vardiya aralığında gerçekleşen operator_gunluk_kayitlari
-    const uretimRows = await db
-      .select({
-        urunId: urunler.id,
-        urunAd: urunler.ad,
-        urunKod: urunler.kod,
-        netMiktar: sql<number>`coalesce(sum(${netMiktarSql}), 0)`,
-        fireMiktar: sql<number>`coalesce(sum(${operatorGunlukKayitlari.fire_miktari}), 0)`,
-        ekMiktar: sql<number>`coalesce(sum(${operatorGunlukKayitlari.ek_uretim_miktari}), 0)`,
-      })
-      .from(operatorGunlukKayitlari)
-      .innerJoin(uretimEmirleri, eq(operatorGunlukKayitlari.uretim_emri_id, uretimEmirleri.id))
-      .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
-      .leftJoin(uretimEmriOperasyonlari, eq(operatorGunlukKayitlari.emir_operasyon_id, uretimEmriOperasyonlari.id))
-      .where(
-        and(
-          eq(operatorGunlukKayitlari.makine_id, v.makineId),
-          gte(operatorGunlukKayitlari.kayit_tarihi, vBaslangic),
-          lte(operatorGunlukKayitlari.kayit_tarihi, effectiveBitis),
-          sql`(${operatorGunlukKayitlari.emir_operasyon_id} IS NULL OR COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 0)`,
-        ),
-      )
-      .groupBy(urunler.id, urunler.ad, urunler.kod);
-
-    const operasyonRows = await db
-      .select({
-        operasyonId: uretimEmriOperasyonlari.id,
-        operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
-        operasyonTipi: urunler.operasyon_tipi,
-        kalipId: kaliplar.id,
-        kalipKod: kaliplar.kod,
-        kalipAd: kaliplar.ad,
-        cevrimSn: uretimEmriOperasyonlari.cevrim_suresi_sn,
-        netMiktar: sql<number>`coalesce(sum(${netMiktarSql}), 0)`,
-      })
-      .from(operatorGunlukKayitlari)
-      .innerJoin(uretimEmirleri, eq(operatorGunlukKayitlari.uretim_emri_id, uretimEmirleri.id))
-      .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
-      .leftJoin(uretimEmriOperasyonlari, eq(operatorGunlukKayitlari.emir_operasyon_id, uretimEmriOperasyonlari.id))
-      .leftJoin(kaliplar, eq(uretimEmriOperasyonlari.kalip_id, kaliplar.id))
-      .where(
-        and(
-          eq(operatorGunlukKayitlari.makine_id, v.makineId),
-          gte(operatorGunlukKayitlari.kayit_tarihi, vBaslangic),
-          lte(operatorGunlukKayitlari.kayit_tarihi, effectiveBitis),
-          sql`(${operatorGunlukKayitlari.emir_operasyon_id} IS NULL OR COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 0)`,
-        ),
-      )
-      .groupBy(
-        uretimEmriOperasyonlari.id,
-        uretimEmriOperasyonlari.operasyon_adi,
-        urunler.operasyon_tipi,
-        kaliplar.id,
-        kaliplar.kod,
-        kaliplar.ad,
-        uretimEmriOperasyonlari.cevrim_suresi_sn,
-      );
-
-    const montajRows = await db
-      .select({
-        operasyonId: uretimEmriOperasyonlari.id,
-        operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
-        operasyonTipi: urunler.operasyon_tipi,
-        kalipId: kaliplar.id,
-        kalipKod: kaliplar.kod,
-        kalipAd: kaliplar.ad,
-        netMiktar: sql<number>`coalesce(sum(${netMiktarSql}), 0)`,
-        kayitSayisi: sql<number>`count(*)`,
-      })
-      .from(operatorGunlukKayitlari)
-      .innerJoin(uretimEmirleri, eq(operatorGunlukKayitlari.uretim_emri_id, uretimEmirleri.id))
-      .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
-      .innerJoin(uretimEmriOperasyonlari, eq(operatorGunlukKayitlari.emir_operasyon_id, uretimEmriOperasyonlari.id))
-      .leftJoin(kaliplar, eq(uretimEmriOperasyonlari.kalip_id, kaliplar.id))
-      .where(
-        and(
-          eq(operatorGunlukKayitlari.makine_id, v.makineId),
-          gte(operatorGunlukKayitlari.kayit_tarihi, vBaslangic),
-          lte(operatorGunlukKayitlari.kayit_tarihi, effectiveBitis),
-          sql`COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 1`,
-        ),
-      )
-      .groupBy(
-        uretimEmriOperasyonlari.id,
-        uretimEmriOperasyonlari.operasyon_adi,
-        urunler.operasyon_tipi,
-        kaliplar.id,
-        kaliplar.kod,
-        kaliplar.ad,
-      );
-
-    const { urunKirilimi, uretimToplam, fireToplam } = buildUretimKirilimSummary(uretimRows);
-    const operasyonKirilimi: OperasyonKirilim[] = operasyonRows
-      .map((r) => ({
-        operasyonId: r.operasyonId ?? null,
-        operasyonAdi: r.operasyonAdi ?? 'Baskı',
-        operasyonTipi: r.operasyonTipi ?? null,
-        kalipId: r.kalipId ?? null,
-        kalipKod: r.kalipKod ?? null,
-        kalipAd: r.kalipAd ?? null,
-        miktar: Number(r.netMiktar ?? 0),
-      }))
-      .sort((a, b) => b.miktar - a.miktar || a.operasyonAdi.localeCompare(b.operasyonAdi, 'tr'));
-    const montajUretim: MontajUretim = {
-      netToplam: montajRows.reduce((sum, row) => sum + Number(row.netMiktar ?? 0), 0),
-      kayitSayisi: montajRows.reduce((sum, row) => sum + Number(row.kayitSayisi ?? 0), 0),
-      operasyonlar: montajRows
-        .map((r) => ({
-          operasyonId: r.operasyonId ?? null,
-          operasyonAdi: r.operasyonAdi ?? 'Montaj',
-          operasyonTipi: r.operasyonTipi ?? null,
-          kalipId: r.kalipId ?? null,
-          kalipKod: r.kalipKod ?? null,
-          kalipAd: r.kalipAd ?? null,
-          miktar: Number(r.netMiktar ?? 0),
-        }))
-        .sort((a, b) => b.miktar - a.miktar || a.operasyonAdi.localeCompare(b.operasyonAdi, 'tr')),
-    };
-    let idealCalismaSn = 0;
-    let hasCycle = false;
-    for (const row of operasyonRows) {
-      const cevrimSn = Number(row.cevrimSn ?? 0);
-      const net = Number(row.netMiktar ?? 0);
-      if (cevrimSn > 0 && net > 0) {
-        idealCalismaSn += net * cevrimSn;
-        hasCycle = true;
-      }
-    }
-
-    // Duruş analizi
-    const durusRows = await db
-      .select({
-        sure_dk: durusKayitlari.sure_dk,
-        baslangic: durusKayitlari.baslangic,
-        bitis: durusKayitlari.bitis,
-        durus_tipi: durusKayitlari.durus_tipi,
-        neden: durusKayitlari.neden,
-        neden_kod: durusNedenleri.kod,
-      })
-      .from(durusKayitlari)
-      .leftJoin(durusNedenleri, eq(durusKayitlari.durus_nedeni_id, durusNedenleri.id))
-      .where(
-        and(
-          eq(durusKayitlari.makine_id, v.makineId),
-          gte(durusKayitlari.baslangic, vBaslangic),
-          lte(durusKayitlari.baslangic, effectiveBitis),
-        ),
-      );
-
-    const d = {
-      toplamDk: 0,
-      arizaSayisi: 0,
-      arizaDk: 0,
-      kalipDegisimSayisi: 0,
-      kalipDegisimDk: 0,
-      bakimSayisi: 0,
-      bakimDk: 0,
-      digerSayisi: 0,
-      digerDk: 0,
-    };
-    for (const row of durusRows) {
-      const sure = row.sure_dk ?? (row.bitis ? diffMinutes(new Date(row.baslangic), new Date(row.bitis)) : 0);
-      d.toplamDk += sure;
-      const kod = row.neden_kod ?? row.durus_tipi?.toUpperCase() ?? '';
-      if (kod === 'ARIZ' || row.durus_tipi === 'ariza') {
-        d.arizaSayisi++;
-        d.arizaDk += sure;
-      } else if (kod === 'KALIP') {
-        d.kalipDegisimSayisi++;
-        d.kalipDegisimDk += sure;
-      } else if (kod === 'BAKIM') {
-        d.bakimSayisi++;
-        d.bakimDk += sure;
-      } else {
-        d.digerSayisi++;
-        d.digerDk += sure;
-      }
-    }
-
-    const calismaSuresiDk = Math.max(0, planlananSureDk - d.toplamDk);
+    const calismaSuresiDk = Math.max(0, planlananSureDk - duruslar.toplamDk);
     const oee = calculateOee({
       planlananSureDk,
       calismaSuresiDk,
-      net: uretimToplam,
-      fire: fireToplam,
-      idealCalismaSn,
-      hasCycle,
+      net: ozet.baskiNet,
+      fire: ozet.baskiFire,
+      idealCalismaSn: ozet.idealCalismaSn,
+      hasCycle: ozet.hasCycle,
     });
-    const verimlilik = calculateVerimlilik({
-      net: uretimToplam,
-      sureDk: calismaSuresiDk,
-      cevrimSn: hasCycle && uretimToplam > 0 ? idealCalismaSn / uretimToplam : null,
-    });
+    const verimlilik = calculateVerimlilik({ net: ozet.baskiNet, sureDk: calismaSuresiDk, cevrimSn: ozet.ortCevrimSn });
+    const verimlilikVardiya = calculateVerimlilik({ net: ozet.baskiNet, sureDk: planlananSureDk, cevrimSn: ozet.ortCevrimSn });
 
     vardiyalar.push({
-      id: v.id,
-      makineId: v.makineId,
-      makineAd: v.makineAd,
-      operatorUserId: v.operatorUserId ?? null,
-      operatorAd: v.operatorAd ?? null,
-      vardiyaTipi: v.vardiyaTipi,
-      baslangic: v.baslangic instanceof Date ? v.baslangic.toISOString() : String(v.baslangic),
-      bitis: v.bitis ? (v.bitis instanceof Date ? v.bitis.toISOString() : String(v.bitis)) : null,
-      aktif: !v.bitis,
+      id: meta.id,
+      makineId: meta.makineId,
+      makineKod: meta.makineKod,
+      makineAd: makineBaslik(meta.makineKod, meta.makineAd),
+      operatorUserId: meta.operatorUserId,
+      operatorAd: meta.operatorAd,
+      vardiyaTipi: meta.slot.vardiyaTipi,
+      baslangic: meta.slot.baslangic.toISOString(),
+      bitis: meta.realBitis ? meta.realBitis.toISOString() : meta.slot.bitis.toISOString(),
+      aktif: meta.realBaslangic !== null && meta.realBitis === null,
       planlananSureDk,
       calismaSuresiDk,
-      durusToplamDk: d.toplamDk,
+      durusToplamDk: duruslar.toplamDk,
       uretim: {
-        toplamMiktar: uretimToplam,
-        netToplam: uretimToplam,
-        fireToplam,
-        urunKirilimi,
-        operasyonKirilimi,
+        toplamMiktar: ozet.net,
+        netToplam: ozet.net,
+        fireToplam: ozet.fire,
+        urunKirilimi: ozet.urunKirilimi,
+        operasyonKirilimi: ozet.operasyonKirilimi,
       },
-      duruslar: d,
+      duruslar,
       oee,
       verimlilik,
-      montajUretim,
+      verimlilikNet: verimlilik,
+      verimlilikVardiya,
+      montajUretim: montajFromOzet(ozet),
     });
   }
 
@@ -1016,9 +734,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
     toplamFire: vardiyalar.reduce((s, v) => s + v.uretim.fireToplam, 0),
     toplamCalismaDk: vardiyalar.reduce((s, v) => s + v.calismaSuresiDk, 0),
     toplamDurusDk: vardiyalar.reduce((s, v) => s + v.durusToplamDk, 0),
-    durusSayisi: vardiyalar.reduce((s, v) => (
-      s + v.duruslar.arizaSayisi + v.duruslar.kalipDegisimSayisi + v.duruslar.bakimSayisi + v.duruslar.digerSayisi
-    ), 0),
+    durusSayisi: vardiyalar.reduce((s, v) => s + v.duruslar.arizaSayisi + v.duruslar.kalipDegisimSayisi + v.duruslar.bakimSayisi + v.duruslar.digerSayisi, 0),
     durusOrani: 0,
     arizaSayisi: vardiyalar.reduce((s, v) => s + v.duruslar.arizaSayisi, 0),
     kalipDegisimSayisi: vardiyalar.reduce((s, v) => s + v.duruslar.kalipDegisimSayisi, 0),
@@ -1030,319 +746,148 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
   const oeeValues = vardiyalar.map((v) => v.oee).filter((value): value is number => value !== null);
   ozet.oee = oeeValues.length ? roundRatio(oeeValues.reduce((s, value) => s + value, 0) / oeeValues.length) : null;
 
-  // Makine bazlı rollup — vardiyaları makine_id'ye göre topla
-  const makineRollupMap = new Map<string, MakineRollup>();
-  for (const v of vardiyalar) {
-    const existing = makineRollupMap.get(v.makineId);
-    if (existing) {
-      existing.vardiyaSayisi += 1;
-      existing.aktifVardiya = existing.aktifVardiya || v.aktif;
-      existing.toplamUretim += v.uretim.toplamMiktar;
-      existing.fireToplam += v.uretim.fireToplam;
-      existing.calismaSuresiDk += v.calismaSuresiDk;
-      existing.durusToplamDk += v.durusToplamDk;
-      existing.durusSayisi += v.duruslar.arizaSayisi + v.duruslar.kalipDegisimSayisi + v.duruslar.bakimSayisi + v.duruslar.digerSayisi;
-      existing.arizaSayisi += v.duruslar.arizaSayisi;
-      existing.arizaDk += v.duruslar.arizaDk;
-      existing.kalipDegisimSayisi += v.duruslar.kalipDegisimSayisi;
-      existing.kalipDegisimDk += v.duruslar.kalipDegisimDk;
-      existing.bakimDk += v.duruslar.bakimDk;
-      mergeOperasyonKirilimi(existing.operasyonKirilimi, v.uretim.operasyonKirilimi);
-      mergeMontajUretim(existing.montajUretim, v.montajUretim);
-    } else {
-      makineRollupMap.set(v.makineId, {
-        makineId: v.makineId,
-        makineAd: v.makineAd,
-        vardiyaSayisi: 1,
-        aktifVardiya: v.aktif,
-        toplamUretim: v.uretim.toplamMiktar,
-        fireToplam: v.uretim.fireToplam,
-        calismaSuresiDk: v.calismaSuresiDk,
-        durusToplamDk: v.durusToplamDk,
-        durusSayisi: v.duruslar.arizaSayisi + v.duruslar.kalipDegisimSayisi + v.duruslar.bakimSayisi + v.duruslar.digerSayisi,
-        arizaSayisi: v.duruslar.arizaSayisi,
-        arizaDk: v.duruslar.arizaDk,
-        kalipDegisimSayisi: v.duruslar.kalipDegisimSayisi,
-        kalipDegisimDk: v.duruslar.kalipDegisimDk,
-        bakimDk: v.duruslar.bakimDk,
-        ortCevrimSaniye: null,
-        teorikHedef: null,
-        hedefGerceklesmeYuzde: null,
-        operasyonKirilimi: v.uretim.operasyonKirilimi.map((item) => ({ ...item })),
-        montajUretim: {
-          netToplam: v.montajUretim.netToplam,
-          kayitSayisi: v.montajUretim.kayitSayisi,
-          operasyonlar: v.montajUretim.operasyonlar.map((item) => ({ ...item })),
-        },
-        oee: 0,
-      });
-    }
-  }
+  const makineMap = partitionByMakine(kayitlar);
+  const makineIds = new Set<string>([...makineMap.keys(), ...vardiyalar.map((v) => v.makineId)]);
+  const makineler: MakineRollup[] = Array.from(makineIds).map((makineId) => {
+    const makineKayitlari = makineMap.get(makineId) ?? [];
+    const prod = reduceOzet(makineKayitlari);
+    const makineVardiyalari = vardiyalar.filter((v) => v.makineId === makineId);
+    const calismaSuresiDk = makineVardiyalari.reduce((sum, v) => sum + v.calismaSuresiDk, 0);
+    const durusToplamDk = makineVardiyalari.reduce((sum, v) => sum + v.durusToplamDk, 0);
+    const planlananSureDk = calismaSuresiDk + durusToplamDk;
+    const teorikHedef = prod.ortCevrimSn && calismaSuresiDk > 0 ? Math.floor((calismaSuresiDk * 60) / prod.ortCevrimSn) : null;
+    const first = makineKayitlari[0];
+    const firstVardiya = makineVardiyalari[0];
+    const makineKod = first?.makineKod ?? firstVardiya?.makineKod ?? null;
+    const makineAd = first ? first.makineAd : (firstVardiya?.makineAd ?? 'Makine').split(' — ').pop() ?? 'Makine';
+    return {
+      makineId,
+      makineKod,
+      makineAd: makineBaslik(makineKod, makineAd),
+      vardiyaSayisi: makineVardiyalari.length,
+      aktifVardiya: makineVardiyalari.some((v) => v.aktif),
+      toplamUretim: prod.net,
+      fireToplam: prod.fire,
+      calismaSuresiDk,
+      durusToplamDk,
+      durusSayisi: makineVardiyalari.reduce((s, v) => s + v.duruslar.arizaSayisi + v.duruslar.kalipDegisimSayisi + v.duruslar.bakimSayisi + v.duruslar.digerSayisi, 0),
+      arizaSayisi: makineVardiyalari.reduce((s, v) => s + v.duruslar.arizaSayisi, 0),
+      arizaDk: makineVardiyalari.reduce((s, v) => s + v.duruslar.arizaDk, 0),
+      kalipDegisimSayisi: makineVardiyalari.reduce((s, v) => s + v.duruslar.kalipDegisimSayisi, 0),
+      kalipDegisimDk: makineVardiyalari.reduce((s, v) => s + v.duruslar.kalipDegisimDk, 0),
+      bakimDk: makineVardiyalari.reduce((s, v) => s + v.duruslar.bakimDk, 0),
+      ortCevrimSaniye: prod.ortCevrimSn ? Number(prod.ortCevrimSn.toFixed(2)) : null,
+      teorikHedef,
+      hedefGerceklesmeYuzde: teorikHedef && teorikHedef > 0 ? Number(((prod.baskiNet / teorikHedef) * 100).toFixed(1)) : null,
+      operasyonKirilimi: prod.operasyonKirilimi,
+      montajUretim: montajFromOzet(prod),
+      oee: calculateOee({
+        planlananSureDk,
+        calismaSuresiDk,
+        net: prod.baskiNet,
+        fire: prod.baskiFire,
+        idealCalismaSn: prod.idealCalismaSn,
+        hasCycle: prod.hasCycle,
+      }),
+      verimlilikNet: calculateVerimlilik({ net: prod.baskiNet, sureDk: calismaSuresiDk, cevrimSn: prod.ortCevrimSn }),
+      verimlilikVardiya: calculateVerimlilik({ net: prod.baskiNet, sureDk: planlananSureDk, cevrimSn: prod.ortCevrimSn }),
+    };
+  }).sort((a, b) => a.makineAd.localeCompare(b.makineAd, 'tr'));
 
-  // Her makine için teorik hedef hesabı:
-  // O tarih aralığında o makinede çalışan üretim emri operasyonlarının
-  // ağırlıklı ortalama çevrim süresi × çalışma_dk × 60 / ortCevrim = teorikHedef
-  for (const m of makineRollupMap.values()) {
-    const cevrimRows = await db
-      .select({
-        cevrim: uretimEmriOperasyonlari.cevrim_suresi_sn,
-        planlanan: uretimEmriOperasyonlari.planlanan_miktar,
-      })
-      .from(uretimEmriOperasyonlari)
-      .innerJoin(uretimEmirleri, eq(uretimEmirleri.id, uretimEmriOperasyonlari.uretim_emri_id))
-      .where(
-        and(
-          // Makinede çalışan operasyonları bulmak için operator_gunluk_kayitlari üzerinden tur
-          sql`${uretimEmriOperasyonlari.id} IN (
-            SELECT DISTINCT ${operatorGunlukKayitlari.emir_operasyon_id}
-            FROM ${operatorGunlukKayitlari}
-            WHERE ${operatorGunlukKayitlari.makine_id} = ${m.makineId}
-              AND ${operatorGunlukKayitlari.kayit_tarihi} >= ${baslangic}
-              AND ${operatorGunlukKayitlari.kayit_tarihi} <= ${bitis}
-          )`,
-        ),
-      );
-
-    if (cevrimRows.length > 0) {
-      // Ağırlıklı ortalama (planlanan miktara göre)
-      let totalCevrimWeighted = 0;
-      let totalWeight = 0;
-      for (const row of cevrimRows) {
-        const c = Number(row.cevrim ?? 0);
-        const w = Number(row.planlanan ?? 1) || 1;
-        if (c > 0) {
-          totalCevrimWeighted += c * w;
-          totalWeight += w;
-        }
-      }
-      if (totalWeight > 0) {
-        const avgCevrim = totalCevrimWeighted / totalWeight;
-        m.ortCevrimSaniye = Number(avgCevrim.toFixed(2));
-        if (m.calismaSuresiDk > 0 && avgCevrim > 0) {
-          m.teorikHedef = Math.floor((m.calismaSuresiDk * 60) / avgCevrim);
-          m.hedefGerceklesmeYuzde = m.teorikHedef > 0
-            ? Number(((m.toplamUretim / m.teorikHedef) * 100).toFixed(1))
-            : null;
-        }
-      }
-    }
-
-    const planlananSure = m.calismaSuresiDk + m.durusToplamDk;
-    const avgCevrim = m.ortCevrimSaniye ?? null;
-    m.oee = calculateOee({
-      planlananSureDk: planlananSure,
-      calismaSuresiDk: m.calismaSuresiDk,
-      net: m.toplamUretim,
-      fire: m.fireToplam,
-      idealCalismaSn: avgCevrim ? m.toplamUretim * avgCevrim : 0,
-      hasCycle: avgCevrim !== null,
-    });
-  }
-
-  const makineler = Array.from(makineRollupMap.values()).sort((a, b) =>
-    a.makineAd.localeCompare(b.makineAd, 'tr'),
-  );
-
-  // Kalıp bazlı rollup: operator_gunluk_kayitlari → uretim_emri_operasyonlari → kaliplar
-  const kalipRows = await db
-    .select({
-      kalipId: kaliplar.id,
-      kalipKod: kaliplar.kod,
-      kalipAd: kaliplar.ad,
-      makineId: operatorGunlukKayitlari.makine_id,
-      makineAd: makinelerTbl.ad,
-      urunId: urunler.id,
-      urunAd: urunler.ad,
-      netMiktar: operatorGunlukKayitlari.net_miktar,
-      ekMiktar: operatorGunlukKayitlari.ek_uretim_miktari,
-      fireMiktar: operatorGunlukKayitlari.fire_miktari,
-      cevrimSn: uretimEmriOperasyonlari.cevrim_suresi_sn,
-    })
-    .from(operatorGunlukKayitlari)
-    .innerJoin(uretimEmriOperasyonlari, eq(operatorGunlukKayitlari.emir_operasyon_id, uretimEmriOperasyonlari.id))
-    .innerJoin(kaliplar, eq(uretimEmriOperasyonlari.kalip_id, kaliplar.id))
-    .innerJoin(uretimEmirleri, eq(uretimEmriOperasyonlari.uretim_emri_id, uretimEmirleri.id))
-    .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
-    .leftJoin(makinelerTbl, eq(operatorGunlukKayitlari.makine_id, makinelerTbl.id))
-    .where(
-      and(
-        gte(operatorGunlukKayitlari.kayit_tarihi, baslangic),
-        lte(operatorGunlukKayitlari.kayit_tarihi, bitis),
-        machineCondition(query, operatorGunlukKayitlari.makine_id),
-        eq(uretimEmriOperasyonlari.montaj, 0),
-      ),
-    );
-
+  const toplamKalipDegisim = vardiyalar.reduce((s, v) => s + v.duruslar.kalipDegisimSayisi, 0);
   const kalipMap = new Map<string, KalipRollup & { _makineSet: Set<string>; _urunSet: Set<string> }>();
-  for (const r of kalipRows) {
-    if (!r.kalipId) continue;
-    const miktar = resolveNet(r.netMiktar, r.ekMiktar, r.fireMiktar);
-    const cevrimSn = Number(r.cevrimSn ?? 0);
-    const sureDk = cevrimSn > 0 ? (miktar * cevrimSn) / 60 : 0;
-    const entry = kalipMap.get(r.kalipId);
-    if (entry) {
-      entry.toplamUretim += miktar;
-      entry.calismaDk += sureDk;
-      if (r.makineAd) entry._makineSet.add(r.makineAd);
-      if (r.urunAd) entry._urunSet.add(r.urunAd);
+  for (const kayit of kayitlar) {
+    if (kayit.montaj || !kayit.kalipId || !kayit.kalipKod || !kayit.kalipAd) continue;
+    const sureDk = kayit.cevrimSn && kayit.cevrimSn > 0 ? (kayit.net * kayit.cevrimSn) / 60 : 0;
+    const existing = kalipMap.get(kayit.kalipId);
+    if (existing) {
+      existing.toplamUretim += kayit.net;
+      existing.calismaDk += sureDk;
+      existing._makineSet.add(makineBaslik(kayit.makineKod, kayit.makineAd));
+      existing._urunSet.add(kayit.urunAd);
     } else {
-      const mSet = new Set<string>();
-      const uSet = new Set<string>();
-      if (r.makineAd) mSet.add(r.makineAd);
-      if (r.urunAd) uSet.add(r.urunAd);
-      kalipMap.set(r.kalipId, {
-        kalipId: r.kalipId,
-        kalipKod: r.kalipKod,
-        kalipAd: r.kalipAd,
-        toplamUretim: miktar,
+      kalipMap.set(kayit.kalipId, {
+        kalipId: kayit.kalipId,
+        kalipKod: kayit.kalipKod,
+        kalipAd: kayit.kalipAd,
+        toplamUretim: kayit.net,
         calismaDk: sureDk,
         makineSayisi: 0,
         makineler: [],
         urunSayisi: 0,
         urunler: [],
         kalipDegisimSayisi: 0,
-        _makineSet: mSet,
-        _urunSet: uSet,
+        _makineSet: new Set([makineBaslik(kayit.makineKod, kayit.makineAd)]),
+        _urunSet: new Set([kayit.urunAd]),
       });
     }
   }
+  const kalipListesi: KalipRollup[] = Array.from(kalipMap.values()).map((entry) => ({
+    kalipId: entry.kalipId,
+    kalipKod: entry.kalipKod,
+    kalipAd: entry.kalipAd,
+    toplamUretim: entry.toplamUretim,
+    calismaDk: Math.round(entry.calismaDk),
+    makineSayisi: entry._makineSet.size,
+    makineler: Array.from(entry._makineSet).sort((a, b) => a.localeCompare(b, 'tr')),
+    urunSayisi: entry._urunSet.size,
+    urunler: Array.from(entry._urunSet).sort((a, b) => a.localeCompare(b, 'tr')),
+    kalipDegisimSayisi: kalipMap.size > 0 ? Math.round(toplamKalipDegisim / kalipMap.size) : 0,
+  })).sort((a, b) => b.toplamUretim - a.toplamUretim);
 
-  // Makinedeki kalıp değişim sayısı toplamdan yaklaşık değer — kalıp bazlı tam bilgi yok
-  const toplamKalipDegisim = vardiyalar.reduce((s, v) => s + v.duruslar.kalipDegisimSayisi, 0);
-  const kalipListesi: KalipRollup[] = Array.from(kalipMap.values())
-    .map((e) => ({
-      kalipId: e.kalipId,
-      kalipKod: e.kalipKod,
-      kalipAd: e.kalipAd,
-      toplamUretim: e.toplamUretim,
-      calismaDk: Math.round(e.calismaDk),
-      makineSayisi: e._makineSet.size,
-      makineler: Array.from(e._makineSet).sort((a, b) => a.localeCompare(b, 'tr')),
-      urunSayisi: e._urunSet.size,
-      urunler: Array.from(e._urunSet).sort((a, b) => a.localeCompare(b, 'tr')),
-      // Toplam kalıp değişim makine bazında sayılıyor, kalıp bazına paylaştır yaklaşık
-      kalipDegisimSayisi: kalipMap.size > 0 ? Math.round(toplamKalipDegisim / kalipMap.size) : 0,
-    }))
-    .sort((a, b) => b.toplamUretim - a.toplamUretim);
-
-  const findVardiyaFor = (makineId: string | null, tarih: Date) => {
-    if (!makineId) return null;
-    return vardiyalar.find((v) => {
-      if (v.makineId !== makineId) return false;
-      const start = new Date(v.baslangic);
-      const end = v.bitis ? new Date(v.bitis) : bitis;
-      return tarih >= start && tarih <= end;
-    }) ?? null;
+  const vardiyaByRecord = (kayit: CoreUretimKaydi) => {
+    const slot = assignVardiya(kayit.kayitTarihi, vardiyaTanimlariList);
+    return vardiyalar.find((v) => v.makineId === kayit.makineId && v.baslangic === slot.baslangic.toISOString()) ?? null;
   };
 
-  const uretimDetayRows = await db
-    .select({
-      id: operatorGunlukKayitlari.id,
-      kayitTarihi: operatorGunlukKayitlari.kayit_tarihi,
-      makineId: operatorGunlukKayitlari.makine_id,
-      makineAd: makinelerTbl.ad,
-      urunAd: urunler.ad,
-      urunKod: urunler.kod,
-      operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
-      ekUretimMiktari: operatorGunlukKayitlari.ek_uretim_miktari,
-      netMiktar: operatorGunlukKayitlari.net_miktar,
-      fireMiktar: operatorGunlukKayitlari.fire_miktari,
-      operatorAd: users.full_name,
-      notlar: operatorGunlukKayitlari.notlar,
-      cevrimSn: uretimEmriOperasyonlari.cevrim_suresi_sn,
-      operasyonBaslangic: uretimEmriOperasyonlari.gercek_baslangic,
-      operasyonBitis: uretimEmriOperasyonlari.gercek_bitis,
-    })
-    .from(operatorGunlukKayitlari)
-    .innerJoin(uretimEmirleri, eq(operatorGunlukKayitlari.uretim_emri_id, uretimEmirleri.id))
-    .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
-    .leftJoin(makinelerTbl, eq(operatorGunlukKayitlari.makine_id, makinelerTbl.id))
-    .leftJoin(uretimEmriOperasyonlari, eq(operatorGunlukKayitlari.emir_operasyon_id, uretimEmriOperasyonlari.id))
-    .leftJoin(users, eq(operatorGunlukKayitlari.operator_user_id, users.id))
-    .where(
-      and(
-        gte(operatorGunlukKayitlari.kayit_tarihi, baslangic),
-        lte(operatorGunlukKayitlari.kayit_tarihi, bitis),
-        machineCondition(query, operatorGunlukKayitlari.makine_id),
-        hasProductionSql,
-        sql`(${operatorGunlukKayitlari.emir_operasyon_id} IS NULL OR COALESCE(${uretimEmriOperasyonlari.montaj}, 0) = 0)`,
-      ),
-    )
-    .orderBy(asc(operatorGunlukKayitlari.kayit_tarihi));
-
-  // Tam vardiya süresi (dakika) — 12 saatlik vardiya
   const TAM_VARDIYA_SURE_DK = 12 * 60;
-
-  const uretimKayitlari: UretimKaydiOzet[] = uretimDetayRows
-    .map((row): UretimKaydiOzet | null => {
-      const kayitTarihi = new Date(row.kayitTarihi);
-      const vardiya = findVardiyaFor(row.makineId ?? null, kayitTarihi);
+  const uretimKayitlari = kayitlar
+    .map((kayit): UretimKaydiOzet | null => {
+      const vardiya = vardiyaByRecord(kayit);
       if (selectedVardiyaTipleri(query) && (!vardiya || !selectedVardiyaTipleri(query)!.includes(vardiya.vardiyaTipi))) return null;
-      const baslangicForEfficiency = row.operasyonBaslangic ? new Date(row.operasyonBaslangic) : null;
-      const bitisForEfficiency = row.operasyonBitis ? new Date(row.operasyonBitis) : null;
-      const sureDk = baslangicForEfficiency && bitisForEfficiency ? diffMinutes(baslangicForEfficiency, bitisForEfficiency) : 0;
-      const net = resolveNet(row.netMiktar, row.ekUretimMiktari, row.fireMiktar);
-      const cevrimSn = row.cevrimSn ? Number(row.cevrimSn) : null;
-      // (1) Net çalışma süresine göre verimlilik = net / (netÇalışmaSüresi_sn / çevrim_sn)
-      const verimlilikNet = calculateVerimlilik({ net, sureDk, cevrimSn });
-      // (2) Tam vardiya süresine göre verimlilik = net / (vardiyaSüresi_sn / çevrim_sn)
-      const verimlilikVardiya = calculateVerimlilik({ net, sureDk: TAM_VARDIYA_SURE_DK, cevrimSn });
+      const sureDk = kayit.operasyonBaslangic && kayit.operasyonBitis ? diffMinutes(kayit.operasyonBaslangic, kayit.operasyonBitis) : 0;
+      const verimlilikNet = kayit.montaj ? null : calculateVerimlilik({ net: kayit.net, sureDk, cevrimSn: kayit.cevrimSn });
+      const verimlilikVardiya = kayit.montaj ? null : calculateVerimlilik({ net: kayit.net, sureDk: TAM_VARDIYA_SURE_DK, cevrimSn: kayit.cevrimSn });
       return {
-        id: row.id,
-        vardiyaTipi: vardiya?.vardiyaTipi ?? '—',
+        id: kayit.id,
+        vardiyaTipi: vardiya?.vardiyaTipi ?? assignVardiya(kayit.kayitTarihi, vardiyaTanimlariList).vardiyaTipi,
         vardiyaBaslangic: vardiya?.baslangic ?? null,
         vardiyaBitis: vardiya?.bitis ?? null,
-        makineId: row.makineId ?? null,
-        makineAd: row.makineAd ?? null,
-        baslangic: (row.operasyonBaslangic ?? row.kayitTarihi).toISOString(),
-        bitis: row.operasyonBitis ? row.operasyonBitis.toISOString() : null,
-        urunAd: row.urunAd,
-        urunKod: row.urunKod ?? null,
-        operasyonAdi: row.operasyonAdi ?? null,
-        ekUretimMiktari: Number(row.ekUretimMiktari ?? 0),
-        netMiktar: net,
-        fireMiktar: Number(row.fireMiktar ?? 0),
-        // Geriye dönük uyumluluk: verimlilik = net çalışma süresine göre oran
+        makineId: kayit.makineId,
+        makineKod: kayit.makineKod,
+        makineAd: makineBaslik(kayit.makineKod, kayit.makineAd),
+        baslangic: kayit.kayitTarihi.toISOString(),
+        bitis: null,
+        urunAd: kayit.urunAd,
+        urunKod: kayit.urunKod,
+        operasyonAdi: kayit.operasyonAdi,
+        montaj: kayit.montaj,
+        ekUretimMiktari: kayit.ek,
+        netMiktar: kayit.net,
+        fireMiktar: kayit.fire,
         verimlilik: verimlilikNet,
         verimlilikNet,
         verimlilikVardiya,
-        operatorAd: row.operatorAd ?? null,
-        notlar: row.notlar ?? null,
+        operatorAd: kayit.operatorAd,
+        notlar: kayit.notlar,
       };
     })
-    .filter((row): row is UretimKaydiOzet => row !== null);
-
-  const durusRows = await db
-    .select({
-      id: durusKayitlari.id,
-      makineId: durusKayitlari.makine_id,
-      makineAd: makinelerTbl.ad,
-      baslangic: durusKayitlari.baslangic,
-      bitis: durusKayitlari.bitis,
-      sureDk: durusKayitlari.sure_dk,
-      neden: durusKayitlari.neden,
-      operatorAd: users.full_name,
-    })
-    .from(durusKayitlari)
-    .leftJoin(makinelerTbl, eq(durusKayitlari.makine_id, makinelerTbl.id))
-    .leftJoin(users, eq(durusKayitlari.operator_user_id, users.id))
-    .where(
-      and(
-        gte(durusKayitlari.baslangic, baslangic),
-        lte(durusKayitlari.baslangic, bitis),
-        machineCondition(query, durusKayitlari.makine_id),
-      ),
-    )
-    .orderBy(asc(durusKayitlari.baslangic));
+    .filter((row): row is UretimKaydiOzet => row !== null)
+    .sort((a, b) => new Date(a.baslangic).getTime() - new Date(b.baslangic).getTime());
 
   const durusDetaylari: DurusDetayOzet[] = durusRows
     .map((row) => {
-      const vardiya = findVardiyaFor(row.makineId, new Date(row.baslangic));
-      if (selectedVardiyaTipleri(query) && (!vardiya || !selectedVardiyaTipleri(query)!.includes(vardiya.vardiyaTipi))) return null;
+      const slot = vardiyalar.find((v) => {
+        if (v.makineId !== row.makineId) return false;
+        const start = new Date(v.baslangic);
+        const end = v.bitis ? new Date(v.bitis) : bitis;
+        return row.baslangic >= start && row.baslangic <= end;
+      });
+      if (selectedVardiyaTipleri(query) && (!slot || !selectedVardiyaTipleri(query)!.includes(slot.vardiyaTipi))) return null;
       return {
         id: row.id,
         makineId: row.makineId,
-        makineAd: row.makineAd ?? null,
+        makineAd: row.makineAd ? makineBaslik(null, row.makineAd) : null,
         baslangic: row.baslangic.toISOString(),
         bitis: row.bitis ? row.bitis.toISOString() : null,
         sureDk: row.sureDk ?? (row.bitis ? diffMinutes(new Date(row.baslangic), new Date(row.bitis)) : 0),
@@ -1384,14 +929,10 @@ export type TrendResponse = {
 };
 
 export async function getTrend(query: TrendQuery): Promise<TrendResponse> {
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
   const start = new Date();
   start.setDate(start.getDate() - (query.gunSayisi - 1));
   start.setHours(0, 0, 0, 0);
 
-  // Her gün için tek tek getVardiyaAnalizi çağrısı pahalı olur; tek sorguda aggregate et
-  // Basit yaklaşım: her gün için küçük bir analiz
   const gunler: TrendGun[] = [];
   for (let i = 0; i < query.gunSayisi; i++) {
     const gun = new Date(start);
