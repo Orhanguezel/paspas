@@ -33,6 +33,7 @@ export type MontajUretim = {
 export type VardiyaAnalizItem = {
   id: string;
   makineId: string;
+  makineKod: string | null;
   makineAd: string;
   operatorUserId: string | null;
   operatorAd: string | null;
@@ -63,6 +64,8 @@ export type VardiyaAnalizItem = {
   };
   oee: number | null;
   verimlilik: number | null;
+  verimlilikNet: number | null;
+  verimlilikVardiya: number | null;
   montajUretim: MontajUretim;
 };
 
@@ -81,6 +84,7 @@ export type VardiyaAnalizOzet = {
 
 export type MakineRollup = {
   makineId: string;
+  makineKod: string | null;
   makineAd: string;
   vardiyaSayisi: number;
   aktifVardiya: boolean;
@@ -100,6 +104,8 @@ export type MakineRollup = {
   operasyonKirilimi: OperasyonKirilim[];
   montajUretim: MontajUretim;
   oee: number | null;
+  verimlilikNet: number | null;
+  verimlilikVardiya: number | null;
 };
 
 export type UretimKaydiOzet = {
@@ -108,12 +114,14 @@ export type UretimKaydiOzet = {
   vardiyaBaslangic: string | null;
   vardiyaBitis: string | null;
   makineId: string | null;
+  makineKod: string | null;
   makineAd: string | null;
   baslangic: string;
   bitis: string | null;
   urunAd: string;
   urunKod: string | null;
   operasyonAdi: string | null;
+  montaj: boolean;
   ekUretimMiktari: number;
   netMiktar: number;
   fireMiktar: number;
@@ -185,6 +193,7 @@ export type UretimKaydi = {
   urunKod: string | null;
   netMiktar: number;
   fireMiktar: number;
+  montaj: boolean;
   operatorAd: string | null;
   notlar: string | null;
   operasyonAdi: string | null;

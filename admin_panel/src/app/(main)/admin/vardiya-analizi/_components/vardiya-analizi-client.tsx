@@ -915,12 +915,14 @@ function VardiyaYoneticiGorunumu({
                   {records.length} üretim kaydı • {makine?.vardiyaSayisi ?? shifts.length} vardiya
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-6">
+              <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-8">
                 <MiniMetric label="Net Üretim" value={(makine?.toplamUretim ?? 0).toLocaleString("tr-TR")} />
                 <MiniMetric label="Fire" value={(makine?.fireToplam ?? 0).toLocaleString("tr-TR")} />
                 <MiniMetric label="Duruş Sayısı" value={`${makine?.durusSayisi ?? 0}`} />
                 <MiniMetric label="Toplam Duruş" value={formatDk(makine?.durusToplamDk ?? 0)} />
                 <MiniMetric label="Net Çalışma" value={formatDk(makine?.calismaSuresiDk ?? 0)} />
+                <MiniMetric label="Verim. Net" value={formatPercent(makine?.verimlilikNet ?? null)} />
+                <MiniMetric label="Verim. Vardiya" value={formatPercent(makine?.verimlilikVardiya ?? null)} />
                 <MiniMetric label="OEE" value={formatPercent(makine?.oee ?? null)} />
               </div>
             </div>
@@ -943,7 +945,7 @@ function VardiyaYoneticiGorunumu({
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="font-semibold text-sm">{vardiyaLabel(shift)}</h3>
                       <Badge variant="outline" className="font-mono">
-                        Net {netTotal.toLocaleString("tr-TR")} • Fire {fireTotal.toLocaleString("tr-TR")}
+                        Net {netTotal.toLocaleString("tr-TR")} • Fire {fireTotal.toLocaleString("tr-TR")} • Verim. Net {formatPercent(vardiyaTotal?.verimlilikNet ?? null)} • Vardiya {formatPercent(vardiyaTotal?.verimlilikVardiya ?? null)}
                       </Badge>
                     </div>
                     <MontajUretimInfo montaj={vardiyaTotal?.montajUretim} />
@@ -957,8 +959,6 @@ function VardiyaYoneticiGorunumu({
                             <TableHead>Operasyon</TableHead>
                             <TableHead className="text-right">Net</TableHead>
                             <TableHead className="text-right">Fire</TableHead>
-                            <TableHead className="text-right">Verim. (Net Çalışma)</TableHead>
-                            <TableHead className="text-right">Verim. (Vardiya)</TableHead>
                             <TableHead>Operatör</TableHead>
                             <TableHead className="text-right">İşlem</TableHead>
                           </TableRow>
@@ -966,7 +966,7 @@ function VardiyaYoneticiGorunumu({
                         <TableBody>
                           {shiftRows.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={10} className="py-6 text-center text-muted-foreground">
+                              <TableCell colSpan={8} className="py-6 text-center text-muted-foreground">
                                 Bu vardiyada net üretimi olan kayıt bulunmuyor.
                               </TableCell>
                             </TableRow>
@@ -979,11 +979,18 @@ function VardiyaYoneticiGorunumu({
                                   <div className="font-medium">{row.urunAd}</div>
                                   {row.urunKod && <div className="font-mono text-muted-foreground text-xs">{row.urunKod}</div>}
                                 </TableCell>
-                                <TableCell>{row.operasyonAdi ?? "—"}</TableCell>
+                                <TableCell>
+                                  <div className="flex flex-wrap items-center gap-1">
+                                    <span>{row.operasyonAdi ?? "—"}</span>
+                                    {row.montaj && (
+                                      <Badge variant="secondary" className="text-[10px]">
+                                        Montaj
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </TableCell>
                                 <TableCell className="text-right tabular-nums">{row.netMiktar.toLocaleString("tr-TR")}</TableCell>
                                 <TableCell className="text-right tabular-nums">{row.fireMiktar.toLocaleString("tr-TR")}</TableCell>
-                                <TableCell className="text-right tabular-nums">{formatPercent(row.verimlilikNet)}</TableCell>
-                                <TableCell className="text-right tabular-nums">{formatPercent(row.verimlilikVardiya)}</TableCell>
                                 <TableCell>{row.operatorAd ?? "—"}</TableCell>
                                 <TableCell className="text-right">
                                   <Button size="sm" variant="outline" onClick={() => onEditUretim(row)}>
@@ -993,12 +1000,6 @@ function VardiyaYoneticiGorunumu({
                               </TableRow>
                             ))
                           )}
-                          <TableRow className="bg-muted/50 font-semibold">
-                            <TableCell colSpan={4}>{vardiyaLabel(shift)} Toplamı</TableCell>
-                            <TableCell className="text-right tabular-nums">{netTotal.toLocaleString("tr-TR")}</TableCell>
-                            <TableCell className="text-right tabular-nums">{fireTotal.toLocaleString("tr-TR")}</TableCell>
-                            <TableCell colSpan={4} />
-                          </TableRow>
                         </TableBody>
                       </Table>
                     </div>
@@ -1420,6 +1421,14 @@ function MakineCard({ m, onOpenDetay }: { m: MakineRollup; onOpenDetay: () => vo
           <div className="rounded border bg-muted/40 p-2">
             <div className="text-muted-foreground">Duruş</div>
             <div className="font-semibold tabular-nums">{formatDk(m.durusToplamDk)}</div>
+          </div>
+          <div className="rounded border bg-muted/40 p-2">
+            <div className="text-muted-foreground">Verim. Net</div>
+            <div className="font-semibold tabular-nums">{formatPercent(m.verimlilikNet)}</div>
+          </div>
+          <div className="rounded border bg-muted/40 p-2">
+            <div className="text-muted-foreground">Verim. Vardiya</div>
+            <div className="font-semibold tabular-nums">{formatPercent(m.verimlilikVardiya)}</div>
           </div>
         </div>
 
