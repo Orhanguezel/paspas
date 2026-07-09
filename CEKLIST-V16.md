@@ -72,3 +72,31 @@ Ama sistem **gerçeği zaten biliyor**: `vardiya_kayitlari` tablosunda makine ba
 ## Dokunma
 - Sunucu/PM2 `TZ` env'i, MySQL time_zone (K2).
 - Montaj/stok akışı, Gantt.
+
+---
+
+## Claude Review + Kapanış (2026-07-09)
+
+Codex 5 commit (`4758f11`, `1f689f4`, `03f8f54`, `1e1ddee`, `8c91690`) — **brief'e uydu, push etmedi.** ✅
+
+### Kabul kriterleri
+
+| # | Kriter | Sonuç |
+|---|--------|-------|
+| 1 | `core.ts`'te yerel-zaman okuması yok | ✅ 0 eşleşme (yalnız `getUTC*`) |
+| 2 | Testler TZ'den bağımsız | ✅ **UTC / Istanbul / Berlin / New York** → 4'ünde de 7 pass 0 fail |
+| 3 | Doğruluk tablosu | ✅ 7/7 (19:33→GECE, 11:00→GÜNDÜZ, 20:00→GECE, 08:53→önceki GECE, 07:29→önceki GECE, 09:31→GÜNDÜZ, 03:00→önceki GECE) — iki TZ'de aynı |
+| 4 | Seed 209 + backfill | ✅ uygulandı; **346/351 kayıt bağlandı**, 5'i hiçbir vardiya penceresine düşmüyor → fallback çıkarım |
+| 5 | Slot kartları ayrı; kart toplamı = satırlar | ✅ 07-07 gece **485** / 07-08 gece **490** / 09 gündüz **485**; Σ = 1460 = makine neti (**I2**) |
+| 6 | Operatör vardiya seçimi + bağ | ✅ 3 insert yolunun **üçü de** `vardiya_kayit_id` yazıyor; `resolveVardiyaKayitIdForProduction` + modalde seçim |
+| 7 | Build + testler | ✅ backend build, 87 test (5 DB-skip) 0 fail, admin tsc + build |
+| 8 | Ayrı commit'ler, temiz repo | ✅ (V15 hijyen notu uygulanmış) |
+
+**Ek doğrulama (Claude):** Bağlı slot ile tahmin edilen slot **aynı `slotKey`**'i üretiyor (`2026-07-08-gece`) → aynı gece iki karta bölünmüyor. Vardiya süreleri 720dk (12sa), OEE %52.
+
+**Admin'in şikayeti kapandı:** "485+490 bir vardiyada imkânsız" → artık **iki ayrı gece kartında** (07-07 ve 07-08). "Gündüz vardiyasında hiç üretim yok" → 09.07 gündüz 485 ile dolu.
+
+### 📌 Kayda geçen ikincil bulgu (V17 adayı — acil değil)
+`vardiya_kayitlari.baslangic/bitis` **yerel duvar-saati** olarak UTC-naive kolonlara yazılıyor (DB'de `19:30`, okununca `19:30Z` = 22:30 TR). Bu **V16 ile gelmedi, önceden vardı**. Sınıflandırmayı bozmuyor (karşılaştırmalar aynı frame'de) ve süreler doğru çıkıyor çünkü `service.ts:683-684` gerçek vardiya kaydı varsa `realBaslangic/realBitis` kullanıyor. Risk yalnızca: (a) vardiya sınırı bir yerde **ekranda saat olarak** gösterilirse 3 saat sapar, (b) **sentetik slot** (vardiya kaydı olmayan üretim) için süre/duruş penceresi kayar. Ayrı revizyonda ele alınmalı.
+
+- [x] Review · [x] Push + Deploy (`8c91690`) · [x] Canlı doğrulama · [x] Seed 209 uygulandı. **Açık not: 0.**
