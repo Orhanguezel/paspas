@@ -56,6 +56,7 @@ async function seed() {
     id: ids.emir,
     emir_no: "IT-VARD-001",
     urun_id: ids.urun,
+    mamul_urun_id: ids.urun,
     planlanan_miktar: "100.0000",
     uretilen_miktar: "0.0000",
     durum: "uretimde",
@@ -113,7 +114,8 @@ describeIntegration("vardiya DB integration", () => {
       notlar: "Kapanan vardiyaya sonradan giriş",
     }, null);
 
-    expect(entry.vardiyaKayitId).toBeUndefined();
+    // V16: operatör açıkça bir vardiya seçtiğinde (kapalı olsa bile) kayıt o vardiyaya bağlanır.
+    expect(entry.vardiyaKayitId).toBe(ids.vardiya);
     expect(entry.uretimEmriId).toBe(ids.emir);
     expect(entry.makineId).toBe(ids.makine);
     expect(entry.emirOperasyonId).toBe(ids.emirOp);

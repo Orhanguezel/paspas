@@ -94,6 +94,7 @@ async function seed() {
       id: ids.emirSag,
       emir_no: "UE-IT-VA-SAG",
       urun_id: ids.urunSag,
+      mamul_urun_id: ids.urunSag,
       planlanan_miktar: "20.0000",
       uretilen_miktar: "12.0000",
       durum: "uretimde",
@@ -102,6 +103,7 @@ async function seed() {
       id: ids.emirSol,
       emir_no: "UE-IT-VA-SOL",
       urun_id: ids.urunSol,
+      mamul_urun_id: ids.urunSol,
       planlanan_miktar: "20.0000",
       uretilen_miktar: "18.0000",
       durum: "uretimde",
@@ -158,6 +160,7 @@ async function seed() {
       uretim_emri_id: ids.emirSag,
       makine_id: ids.makineSag,
       emir_operasyon_id: ids.opSag,
+      vardiya_kayit_id: ids.vardiyaSag,
       gunluk_durum: "tamamlandi",
       ek_uretim_miktari: "13.0000",
       fire_miktari: "1.0000",
@@ -169,6 +172,7 @@ async function seed() {
       uretim_emri_id: ids.emirSol,
       makine_id: ids.makineSol,
       emir_operasyon_id: ids.opSol,
+      vardiya_kayit_id: ids.vardiyaSol,
       gunluk_durum: "tamamlandi",
       ek_uretim_miktari: "20.0000",
       fire_miktari: "2.0000",
@@ -200,7 +204,7 @@ describeIntegration("vardiya analizi — makine bazlı çift taraflı baskı", (
       expect.arrayContaining([
         expect.objectContaining({
           makineId: ids.makineSag,
-          makineAd: "IT VA Sag Baski",
+          makineAd: "IT-VA-MAK-SAG — IT VA Sag Baski",
           toplamUretim: 12,
           operasyonKirilimi: [
             expect.objectContaining({ operasyonId: ids.opSag, operasyonAdi: "Sag Baski", miktar: 12 }),
@@ -208,7 +212,7 @@ describeIntegration("vardiya analizi — makine bazlı çift taraflı baskı", (
         }),
         expect.objectContaining({
           makineId: ids.makineSol,
-          makineAd: "IT VA Sol Baski",
+          makineAd: "IT-VA-MAK-SOL — IT VA Sol Baski",
           toplamUretim: 18,
           operasyonKirilimi: [
             expect.objectContaining({ operasyonId: ids.opSol, operasyonAdi: "Sol Baski", miktar: 18 }),

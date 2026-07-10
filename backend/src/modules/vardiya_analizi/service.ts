@@ -284,12 +284,19 @@ function dateRange(query: ListQuery): { baslangic: Date; bitis: Date; tarihLabel
   return { baslangic, bitis, tarihLabel: tarih };
 }
 
+/** makineId/vardiyaTipi tek değer (string) veya çoklu (string[]) gelebilir (validation union).
+ *  İki dalı da tek listeye indirger; string dalı sessizce düşmez. */
+function normalizeToList(raw: string | string[] | undefined): string[] | undefined {
+  const arr = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  return arr.length > 0 ? arr : undefined;
+}
+
 function selectedMakineIds(query: ListQuery): string[] | undefined {
-  return Array.isArray(query.makineId) && query.makineId.length > 0 ? query.makineId : undefined;
+  return normalizeToList(query.makineId);
 }
 
 function selectedVardiyaTipleri(query: ListQuery): string[] | undefined {
-  return Array.isArray(query.vardiyaTipi) && query.vardiyaTipi.length > 0 ? query.vardiyaTipi : undefined;
+  return normalizeToList(query.vardiyaTipi);
 }
 
 function machineCondition(query: ListQuery, column: any) {

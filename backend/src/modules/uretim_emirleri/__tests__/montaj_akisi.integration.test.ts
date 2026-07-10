@@ -210,6 +210,8 @@ async function seedWithStocks(opts: {
       id: ids.uretimSag,
       emir_no: "UE-IT-MT-SAG",
       urun_id: ids.oymSag,
+      mamul_urun_id: ids.asil,
+      taraf: "sag",
       planlanan_miktar: "10.0000",
       uretilen_miktar: "10.0000",
       durum: "tamamlandi",
@@ -218,6 +220,8 @@ async function seedWithStocks(opts: {
       id: ids.uretimSol,
       emir_no: "UE-IT-MT-SOL",
       urun_id: ids.oymSol,
+      mamul_urun_id: ids.asil,
+      taraf: "sol",
       planlanan_miktar: "20.0000",
       uretilen_miktar: "20.0000",
       durum: "yapiliyor", // montaj bekliyor / yapiliyor durumunda
@@ -225,8 +229,8 @@ async function seedWithStocks(opts: {
   ]);
 
   await db.insert(uretimEmriSiparisKalemleri).values([
-    { id: randomUUID(), uretim_emri_id: ids.uretimSag, siparis_kalem_id: ids.siparisKalem },
-    { id: randomUUID(), uretim_emri_id: ids.uretimSol, siparis_kalem_id: ids.siparisKalem },
+    { id: randomUUID(), uretim_emri_id: ids.uretimSag, siparis_kalem_id: ids.siparisKalem, miktar: "10.0000" },
+    { id: randomUUID(), uretim_emri_id: ids.uretimSol, siparis_kalem_id: ids.siparisKalem, miktar: "0.0000" },
   ]);
 }
 
@@ -446,7 +450,7 @@ describeIntegration("tryMontajForUretimEmri — montaj akışı", () => {
     expect(Number(ambalajCikis!.miktar)).toBe(5); // 0.5 * 10
   });
 
-  it("vardiya analiz toplamlarından muafiyet: montaj kaydı toplam üretime karışmaz", async () => {
+  it("vardiya analizinde montaj net toplama dahildir ama operasyon kırılımına/OEE'ye karışmaz", async () => {
     await seedWithStocks({ sagStok: "10.0000", solStok: "20.0000" });
     await tryMontajForUretimEmri(ids.uretimSol);
 
@@ -504,6 +508,7 @@ describeIntegration("tryMontajForUretimEmri — montaj akışı", () => {
         uretim_emri_id: ids.uretimSol,
         makine_id: ids.makine,
         emir_operasyon_id: ids.opBaski,
+        vardiya_kayit_id: ids.vardiya,
         gunluk_durum: "tamamlandi",
         ek_uretim_miktari: "8.0000",
         fire_miktari: "1.0000",
@@ -515,6 +520,7 @@ describeIntegration("tryMontajForUretimEmri — montaj akışı", () => {
         uretim_emri_id: ids.uretimSol,
         makine_id: ids.makine,
         emir_operasyon_id: ids.opMontaj,
+        vardiya_kayit_id: ids.vardiya,
         gunluk_durum: "tamamlandi",
         ek_uretim_miktari: "99.0000",
         fire_miktari: "0.0000",
@@ -525,11 +531,14 @@ describeIntegration("tryMontajForUretimEmri — montaj akışı", () => {
 
     const analiz = await getVardiyaAnalizi({ tarih: "2026-04-30", makineId: ids.makine });
 
-    expect(analiz.ozet.toplamUretim).toBe(7);
+    // V14: montaj net üretime DAHİL (7 baskı + 99 montaj = 106), ancak
+    // verimlilik/OEE ve operasyon kırılımı montajı ayrı tutar.
+    expect(analiz.ozet.toplamUretim).toBe(106);
     expect(analiz.vardiyalar).toHaveLength(1);
-    expect(analiz.vardiyalar[0].uretim.toplamMiktar).toBe(7);
+    expect(analiz.vardiyalar[0].uretim.toplamMiktar).toBe(106);
     expect(analiz.vardiyalar[0].uretim.fireToplam).toBe(1);
-    expect(analiz.makineler[0].toplamUretim).toBe(7);
+    expect(analiz.makineler[0].toplamUretim).toBe(106);
+    // Montaj net toplama dahil olsa da operasyon kırılımına (baskı OEE) karışmaz.
     expect(analiz.vardiyalar[0].uretim.operasyonKirilimi).toEqual([
       expect.objectContaining({ operasyonId: ids.opBaski, operasyonAdi: "Baski", miktar: 7 }),
     ]);
