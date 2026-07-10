@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { char, date, datetime, decimal, int, mysqlTable, tinyint, varchar } from 'drizzle-orm/mysql-core';
 
+export type Taraf = 'sag' | 'sol' | 'parca';
+
 const toDateString = (value: Date | string | null | undefined): string | null => {
   if (!value) return null;
   if (value instanceof Date) return value.toISOString().slice(0, 10);
@@ -20,6 +22,8 @@ export const uretimEmirleri = mysqlTable('uretim_emirleri', {
   siparis_id: char('siparis_id', { length: 36 }),
   siparis_kalem_id: char('siparis_kalem_id', { length: 36 }),
   urun_id: char('urun_id', { length: 36 }).notNull(),
+  mamul_urun_id: char('mamul_urun_id', { length: 36 }).notNull(),
+  taraf: varchar('taraf', { length: 8 }).$type<Taraf>(),
   recete_id: char('recete_id', { length: 36 }),
   musteri_ozet: varchar('musteri_ozet', { length: 255 }),
   musteri_detay: varchar('musteri_detay', { length: 1000 }),
@@ -56,9 +60,14 @@ export type UretimEmriDto = {
   siparisUrunAd: string | null;
   siparisUrunGorsel: string | null;
   urunId: string;
+  mamulUrunId: string;
+  taraf: Taraf | null;
   urunKod: string | null;
   urunAd: string | null;
   urunGorsel: string | null;
+  mamulKod: string | null;
+  mamulAd: string | null;
+  mamulGorsel: string | null;
   receteId: string | null;
   receteAd: string | null;
   planlananMiktar: number;
@@ -91,6 +100,9 @@ type UretimEmriDtoRow = UretimEmriRow & {
   urunKod?: string | null;
   urunAd?: string | null;
   urunGorsel?: string | null;
+  mamulKod?: string | null;
+  mamulAd?: string | null;
+  mamulGorsel?: string | null;
   receteAd?: string | null;
   etkinTerminTarihi?: Date | string | null;
   planlanan_bitis_tarihi?: Date | string | null;
@@ -118,9 +130,14 @@ export function rowToDto(row: UretimEmriDtoRow): UretimEmriDto {
     siparisUrunAd: row.siparisUrunAd ?? null,
     siparisUrunGorsel: row.siparisUrunGorsel ?? null,
     urunId: row.urun_id,
+    mamulUrunId: row.mamul_urun_id,
+    taraf: row.taraf ?? null,
     urunKod: row.urunKod ?? null,
     urunAd: row.urunAd ?? null,
     urunGorsel: row.urunGorsel ?? null,
+    mamulKod: row.mamulKod ?? null,
+    mamulAd: row.mamulAd ?? null,
+    mamulGorsel: row.mamulGorsel ?? null,
     receteId: row.recete_id ?? null,
     receteAd: row.receteAd ?? null,
     planlananMiktar: Number(row.planlanan_miktar ?? 0),
@@ -153,6 +170,8 @@ export type UretimEmriAdayDto = {
   receteId: string | null;
   musteriAd: string;
   miktar: number;
+  aktarilanMiktar: number;
+  kalanMiktar: number;
   terminTarihi: string | null;
 };
 
@@ -161,6 +180,7 @@ export const uretimEmriSiparisKalemleri = mysqlTable('uretim_emri_siparis_kaleml
   id: char('id', { length: 36 }).primaryKey().notNull(),
   uretim_emri_id: char('uretim_emri_id', { length: 36 }).notNull(),
   siparis_kalem_id: char('siparis_kalem_id', { length: 36 }).notNull(),
+  miktar: decimal('miktar', { precision: 12, scale: 4 }).notNull().default('0.0000'),
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

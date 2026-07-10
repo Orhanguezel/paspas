@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 
 import { and, asc, desc, eq, getTableColumns, inArray, like, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
+import type { MySql2Database } from 'drizzle-orm/mysql2';
+import { alias } from 'drizzle-orm/mysql-core';
 
 import { db } from '@/db/client';
 import { makineler, makineKuyrugu } from '@/modules/makine_havuzu/schema';
@@ -26,6 +28,8 @@ import {
 import { iptalRezervasyon, rezerveHammaddeler, type HammaddeUyari } from './hammadde_service';
 import type { CreateBody, ListQuery, PatchBody } from './validation';
 
+const mamulUrunler = alias(urunler, 'mamul_urunler');
+
 type ListResult = {
   items: EnrichedUretimEmriRow[];
   total: number;
@@ -49,6 +53,9 @@ type EnrichedUretimEmriRow = UretimEmriRow & {
   siparisUrunGorsel: string | null;
   urunKod: string | null;
   urunAd: string | null;
+  mamulKod: string | null;
+  mamulAd: string | null;
+  mamulGorsel: string | null;
   receteAd: string | null;
   etkinTerminTarihi: Date | string | null;
   musteriAd: string | null;
@@ -212,6 +219,8 @@ function mapCreateInput(data: CreateBody): typeof uretimEmirleri.$inferInsert {
     emir_no: data.emirNo,
     parti_no: data.partiNo,
     urun_id: data.urunId,
+    mamul_urun_id: data.mamulUrunId ?? data.urunId,
+    taraf: data.taraf ?? null,
     recete_id: data.receteId,
     musteri_ozet: data.musteriOzet,
     musteri_detay: data.musteriDetay,
@@ -228,12 +237,10 @@ function mapCreateInput(data: CreateBody): typeof uretimEmirleri.$inferInsert {
 function mapPatchInput(data: PatchBody): Partial<typeof uretimEmirleri.$inferInsert> {
   const payload: Partial<typeof uretimEmirleri.$inferInsert> = {};
   if (data.emirNo !== undefined) payload.emir_no = data.emirNo;
-  if (data.partiNo !== undefined) payload.parti_no = data.partiNo;
   if (data.urunId !== undefined) payload.urun_id = data.urunId;
   if (data.receteId !== undefined) payload.recete_id = data.receteId;
   if (data.musteriOzet !== undefined) payload.musteri_ozet = data.musteriOzet;
   if (data.musteriDetay !== undefined) payload.musteri_detay = data.musteriDetay;
-  if (data.planlananMiktar !== undefined) payload.planlanan_miktar = data.planlananMiktar.toFixed(4);
   if (data.uretilenMiktar !== undefined) payload.uretilen_miktar = data.uretilenMiktar.toFixed(4);
   if (data.baslangicTarihi !== undefined) payload.baslangic_tarihi = data.baslangicTarihi ? new Date(data.baslangicTarihi) : null;
   if (data.bitisTarihi !== undefined) payload.bitis_tarihi = data.bitisTarihi ? new Date(data.bitisTarihi) : null;
@@ -243,31 +250,57 @@ function mapPatchInput(data: PatchBody): Partial<typeof uretimEmirleri.$inferIns
   return payload;
 }
 
-async function syncJunctionRows(uretimEmriId: string, kalemIds: string[], expectedUrunId?: string): Promise<void> {
-  await db.delete(uretimEmriSiparisKalemleri).where(eq(uretimEmriSiparisKalemleri.uretim_emri_id, uretimEmriId));
-  if (kalemIds.length === 0) return;
+type TxOrDb = MySql2Database<any> | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-  // Validate all kalemleri belong to the same product as the emir
-  if (expectedUrunId) {
-    const kalemleri = await db
+async function syncJunctionRows(
+  conn: TxOrDb,
+  uretimEmriId: string,
+  tahsisler: Array<{ siparisKalemId: string; miktar: number }>,
+  expectedMamulUrunId: string,
+): Promise<void> {
+  const kalemIds = tahsisler.map((tahsis) => tahsis.siparisKalemId);
+  // Once dogrula; yikici islemler ancak tum kalemler uyumluysa baslar.
+  if (kalemIds.length > 0) {
+    const kalemleri = await conn
       .select({ id: siparisKalemleri.id, urunId: siparisKalemleri.urun_id })
       .from(siparisKalemleri)
       .where(inArray(siparisKalemleri.id, kalemIds));
 
-    const mismatch = kalemleri.find((k) => k.urunId !== expectedUrunId);
+    const mismatch = kalemleri.length !== new Set(kalemIds).size || kalemleri.some((k) => k.urunId !== expectedMamulUrunId);
     if (mismatch) {
       throw Object.assign(new Error('urun_uyumsuzlugu'), {
-        detail: 'Siparis kalemleri ile uretim emrinin urunu ayni olmali.',
+        detail: 'Siparis kalemlerinin urunu ile uretim emrinin mamulu ayni olmali.',
       });
+    }
+
+
+    for (const tahsis of tahsisler) {
+      const [limit] = await conn
+        .select({
+          siparisMiktari: siparisKalemleri.miktar,
+          mevcutTahsis: sql<number>`COALESCE(SUM(CASE WHEN ${uretimEmirleri.durum} <> 'iptal' AND ${uretimEmriSiparisKalemleri.uretim_emri_id} <> ${uretimEmriId} THEN ${uretimEmriSiparisKalemleri.miktar} ELSE 0 END), 0)`,
+        })
+        .from(siparisKalemleri)
+        .leftJoin(uretimEmriSiparisKalemleri, eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemleri.id))
+        .leftJoin(uretimEmirleri, eq(uretimEmirleri.id, uretimEmriSiparisKalemleri.uretim_emri_id))
+        .where(eq(siparisKalemleri.id, tahsis.siparisKalemId))
+        .groupBy(siparisKalemleri.id, siparisKalemleri.miktar);
+      if (!limit || Number(limit.mevcutTahsis) + tahsis.miktar > Number(limit.siparisMiktari) + 1e-9) {
+        throw new Error('asiri_aktarim');
+      }
     }
   }
 
-  const rows = kalemIds.map((kalemId) => ({
+  await conn.delete(uretimEmriSiparisKalemleri).where(eq(uretimEmriSiparisKalemleri.uretim_emri_id, uretimEmriId));
+  if (kalemIds.length === 0) return;
+
+  const rows = tahsisler.map((tahsis) => ({
     id: randomUUID(),
     uretim_emri_id: uretimEmriId,
-    siparis_kalem_id: kalemId,
+    siparis_kalem_id: tahsis.siparisKalemId,
+    miktar: tahsis.miktar.toFixed(4),
   }));
-  await db.insert(uretimEmriSiparisKalemleri).values(rows);
+  await conn.insert(uretimEmriSiparisKalemleri).values(rows);
 }
 
 /** Urun operasyonlarindan emir operasyonlarini otomatik olusturur */
@@ -470,6 +503,9 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
       siparisUrunGorsel: j?.siparisUrunGorsel ?? null,
       urunKod: (row as EnrichedUretimEmriRow).urunKod ?? null,
       urunAd: (row as EnrichedUretimEmriRow).urunAd ?? null,
+      mamulKod: (row as EnrichedUretimEmriRow).mamulKod ?? null,
+      mamulAd: (row as EnrichedUretimEmriRow).mamulAd ?? null,
+      mamulGorsel: (row as EnrichedUretimEmriRow).mamulGorsel ?? null,
       receteAd: (row as EnrichedUretimEmriRow).receteAd ?? null,
       etkinTerminTarihi: etkinTermin,
       musteriAd: j?.musteriAd ?? row.musteri_ozet ?? null,
@@ -496,10 +532,14 @@ export async function repoList(query: ListQuery): Promise<ListResult> {
         urunKod: urunler.kod,
         urunAd: urunler.ad,
         urunGorsel: urunler.image_url,
+        mamulKod: mamulUrunler.kod,
+        mamulAd: mamulUrunler.ad,
+        mamulGorsel: mamulUrunler.image_url,
         receteAd: receteler.ad,
       })
       .from(uretimEmirleri)
       .leftJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+      .leftJoin(mamulUrunler, eq(uretimEmirleri.mamul_urun_id, mamulUrunler.id))
       .leftJoin(receteler, eq(uretimEmirleri.recete_id, receteler.id))
       .where(where)
       .orderBy(orderBy)
@@ -517,10 +557,14 @@ export async function repoGetById(id: string): Promise<EnrichedUretimEmriRow | n
       urunKod: urunler.kod,
       urunAd: urunler.ad,
       urunGorsel: urunler.image_url,
+      mamulKod: mamulUrunler.kod,
+      mamulAd: mamulUrunler.ad,
+      mamulGorsel: mamulUrunler.image_url,
       receteAd: receteler.ad,
     })
     .from(uretimEmirleri)
     .leftJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+    .leftJoin(mamulUrunler, eq(uretimEmirleri.mamul_urun_id, mamulUrunler.id))
     .leftJoin(receteler, eq(uretimEmirleri.recete_id, receteler.id))
     .where(eq(uretimEmirleri.id, id))
     .limit(1);
@@ -533,9 +577,8 @@ export type CreateResult = {
   hammaddeUyarilari: HammaddeUyari[];
 };
 
-export type CreateOpts = { skipKalemUrunCheck?: boolean };
-
-export async function repoCreate(data: CreateBody, opts: CreateOpts = {}): Promise<CreateResult> {
+export async function repoCreate(data: CreateBody): Promise<CreateResult> {
+  const partiNo = data.partiNo ?? await repoGetNextPartiNo();
   // receteId verilmemisse urunun aktif recetesini otomatik bul
   let effectiveReceteId = data.receteId;
   if (!effectiveReceteId) {
@@ -546,13 +589,16 @@ export async function repoCreate(data: CreateBody, opts: CreateOpts = {}): Promi
       .limit(1);
     effectiveReceteId = aktifRecete?.id;
   }
-  const payload = mapCreateInput({ ...data, receteId: effectiveReceteId });
+  const payload = mapCreateInput({ ...data, partiNo, receteId: effectiveReceteId });
   await db.insert(uretimEmirleri).values(payload);
-  if (data.siparisKalemIds && data.siparisKalemIds.length > 0) {
-    // Yeni mimari: sipariş kalemi asıl ürüne, emir yarı mamule bağlı olabilir — uyum kontrolünü atla
-    await syncJunctionRows(payload.id, data.siparisKalemIds, opts.skipKalemUrunCheck ? undefined : data.urunId);
+  const createTahsisleri = data.siparisTahsisleri ?? (data.siparisKalemIds ?? []).map((siparisKalemId) => ({
+    siparisKalemId,
+    miktar: data.planlananMiktar,
+  }));
+  if (createTahsisleri.length > 0) {
+    await syncJunctionRows(db, payload.id, createTahsisleri, data.mamulUrunId ?? data.urunId);
     // Siparis kalemlerinin durumunu uretime_aktarildi yap
-    await transitionMultipleKalemDurum(data.siparisKalemIds, 'uretime_aktarildi');
+    await transitionMultipleKalemDurum(createTahsisleri.map((tahsis) => tahsis.siparisKalemId), 'uretime_aktarildi');
   }
   // Urun operasyonlarindan emir operasyonlarini otomatik olustur
   await autoPopulateOperasyonlar(payload.id, data.urunId, data.planlananMiktar.toFixed(4));
@@ -567,80 +613,41 @@ export async function repoCreate(data: CreateBody, opts: CreateOpts = {}): Promi
 }
 
 export async function repoUpdate(id: string, patch: PatchBody): Promise<EnrichedUretimEmriRow | null> {
-  // Tamamlanmış üretim emri düzenlenemez
-  const existing = await repoGetById(id);
-  if (!existing) return null;
-  if (existing.durum === 'tamamlandi') {
-    const err = new Error('uretim_emri_tamamlandi');
-    (err as any).detail = 'Tamamlanmış üretim emri düzenlenemez.';
-    throw err;
-  }
-
-  const payload = mapPatchInput(patch);
-  if (Object.keys(payload).length > 0) {
-    await db.update(uretimEmirleri).set(payload).where(eq(uretimEmirleri.id, id));
-  }
-  if (patch.siparisKalemIds !== undefined) {
-    // Resolve urunId: from patch or from existing row
-    const urunId = patch.urunId ?? (await repoGetById(id))?.urun_id;
-    await syncJunctionRows(id, patch.siparisKalemIds ?? [], urunId ?? undefined);
-  }
-
-  // Miktar degistiyse operasyonlarin planlanan_miktar'ini, hammadde rezervasyonlarini ve kuyruk surelerini guncelle
-  if (patch.planlananMiktar !== undefined) {
-    const miktarStr = patch.planlananMiktar.toFixed(4);
-    // Operasyonlarin planlanan miktarini guncelle
-    await db
-      .update(uretimEmriOperasyonlari)
-      .set({ planlanan_miktar: miktarStr })
-      .where(eq(uretimEmriOperasyonlari.uretim_emri_id, id));
-
-    // Hammadde rezervasyonunu yeni miktara senkronla:
-    // mevcut rezervasyon iptal edilir (rezerve_stok düşer), yeni miktarla yeniden açılır.
-    // Reçete bağlı değilse rezervasyon işlemi atlanır (rezerveHammaddeler erken döner).
-    await iptalRezervasyon(id);
-    let receteId: string | undefined = existing.recete_id ?? undefined;
-    if (!receteId) {
-      const [aktifRecete] = await db
-        .select({ id: receteler.id })
-        .from(receteler)
-        .where(and(eq(receteler.urun_id, existing.urun_id), eq(receteler.is_active, 1)))
-        .limit(1);
-      receteId = aktifRecete?.id;
+  const found = await db.transaction(async (tx) => {
+    const [existing] = await tx.select().from(uretimEmirleri).where(eq(uretimEmirleri.id, id)).limit(1);
+    if (!existing) return false;
+    if (existing.durum === 'tamamlandi') {
+      const err = new Error('uretim_emri_tamamlandi');
+      (err as Error & { detail?: string }).detail = 'Tamamlanmış üretim emri düzenlenemez.';
+      throw err;
     }
-    await rezerveHammaddeler(id, receteId, patch.planlananMiktar);
 
-    // Kuyruk surelerini yeniden hesapla (cevrim_suresi * yeni miktar)
-    const kuyrukRows = await db
-      .select({
-        kuyrukId: makineKuyrugu.id,
-        makineId: makineKuyrugu.makine_id,
-        emirOpId: makineKuyrugu.emir_operasyon_id,
-      })
-      .from(makineKuyrugu)
-      .where(eq(makineKuyrugu.uretim_emri_id, id));
-
-    const affectedMachines = new Set<string>();
-    for (const kRow of kuyrukRows) {
-      if (!kRow.emirOpId) continue;
-      // Operasyondan cevrim suresini al
-      const [op] = await db
-        .select({ cevrimSuresiSn: uretimEmriOperasyonlari.cevrim_suresi_sn, hazirlikSuresiDk: uretimEmriOperasyonlari.hazirlik_suresi_dk })
-        .from(uretimEmriOperasyonlari)
-        .where(eq(uretimEmriOperasyonlari.id, kRow.emirOpId))
-        .limit(1);
-      if (op) {
-        const planlananSureDk = Math.ceil((Number(op.cevrimSuresiSn ?? 0) * patch.planlananMiktar) / 60);
-        await db.update(makineKuyrugu).set({ planlanan_sure_dk: planlananSureDk }).where(eq(makineKuyrugu.id, kRow.kuyrukId));
+    const payload = mapPatchInput(patch);
+    if (Object.keys(payload).length > 0) {
+      await tx.update(uretimEmirleri).set(payload).where(eq(uretimEmirleri.id, id));
+    }
+    if (patch.siparisKalemIds !== undefined || patch.siparisTahsisleri !== undefined) {
+      let tahsisler = patch.siparisTahsisleri;
+      if (!tahsisler) {
+        const mevcut = await tx
+          .select({
+            siparisKalemId: uretimEmriSiparisKalemleri.siparis_kalem_id,
+            miktar: uretimEmriSiparisKalemleri.miktar,
+          })
+          .from(uretimEmriSiparisKalemleri)
+          .where(eq(uretimEmriSiparisKalemleri.uretim_emri_id, id));
+        const mevcutMap = new Map(mevcut.map((row) => [row.siparisKalemId, Number(row.miktar)]));
+        tahsisler = (patch.siparisKalemIds ?? []).map((siparisKalemId) => ({
+          siparisKalemId,
+          miktar: mevcutMap.get(siparisKalemId) ?? 0,
+        }));
       }
-      affectedMachines.add(kRow.makineId);
+      await syncJunctionRows(tx, id, tahsisler, existing.mamul_urun_id);
     }
+    return true;
+  });
 
-    // Etkilenen makinelerin kuyruklarini recalc et
-    for (const makineId of affectedMachines) {
-      await recalcMakineKuyrukTarihleri(makineId);
-    }
-  }
+  if (!found) return null;
 
   return repoGetById(id);
 }
@@ -717,26 +724,29 @@ export async function repoListAdaylar(): Promise<UretimEmriAdayDto[]> {
       )`,
       musteriAd: musteriler.ad,
       miktar: siparisKalemleri.miktar,
+      aktarilanMiktar: sql<string>`COALESCE((
+        SELECT SUM(uesk2.miktar)
+        FROM uretim_emri_siparis_kalemleri uesk2
+        JOIN uretim_emirleri ue2 ON ue2.id = uesk2.uretim_emri_id
+        WHERE uesk2.siparis_kalem_id = ${siparisKalemleri.id}
+          AND ue2.durum <> 'iptal'
+      ), 0)`,
       terminTarihi: satisSiparisleri.termin_tarihi,
     })
     .from(siparisKalemleri)
     .innerJoin(satisSiparisleri, eq(siparisKalemleri.siparis_id, satisSiparisleri.id))
     .innerJoin(musteriler, eq(satisSiparisleri.musteri_id, musteriler.id))
     .innerJoin(urunler, eq(siparisKalemleri.urun_id, urunler.id))
-    .leftJoin(
-      uretimEmriSiparisKalemleri,
-      and(
-        eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemleri.id),
-        sql`${uretimEmriSiparisKalemleri.uretim_emri_id} IN (
-          SELECT ue.id FROM uretim_emirleri ue
-          WHERE ue.is_active = 1 AND ue.durum != 'iptal'
-        )`,
-      ),
-    )
     .where(and(
       eq(satisSiparisleri.is_active, 1),
       eq(urunler.is_active, 1),
-      sql`${uretimEmriSiparisKalemleri.id} IS NULL`,
+      sql`COALESCE((
+        SELECT SUM(uesk3.miktar)
+        FROM uretim_emri_siparis_kalemleri uesk3
+        JOIN uretim_emirleri ue3 ON ue3.id = uesk3.uretim_emri_id
+        WHERE uesk3.siparis_kalem_id = ${siparisKalemleri.id}
+          AND ue3.durum <> 'iptal'
+      ), 0) < ${siparisKalemleri.miktar}`,
     ))
     .orderBy(asc(satisSiparisleri.termin_tarihi), asc(urunler.ad), asc(musteriler.ad));
 
@@ -749,6 +759,8 @@ export async function repoListAdaylar(): Promise<UretimEmriAdayDto[]> {
     receteId: row.receteId ?? null,
     musteriAd: row.musteriAd,
     miktar: Number(row.miktar ?? 0),
+    aktarilanMiktar: Number(row.aktarilanMiktar ?? 0),
+    kalanMiktar: Math.max(0, Number(row.miktar ?? 0) - Number(row.aktarilanMiktar ?? 0)),
     terminTarihi: row.terminTarihi
       ? (row.terminTarihi instanceof Date
         ? row.terminTarihi.toISOString().slice(0, 10)

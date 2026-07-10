@@ -111,6 +111,9 @@ export interface AtanmamisOperasyonDto {
   emirNo: string;
   urunKod: string;
   urunAd: string;
+  mamulKod: string;
+  mamulAd: string;
+  taraf: string | null;
   urunStok: number;
   operasyonAdi: string;
   sira: number;
@@ -128,6 +131,9 @@ export interface AtanmamisEmirDto {
   emirNo: string;
   urunKod: string;
   urunAd: string;
+  mamulKod: string;
+  mamulAd: string;
+  taraf: string | null;
   planlananMiktar: number;
   terminTarihi: string | null;
   operasyonlar: AtanmamisOperasyonDto[];
@@ -141,6 +147,9 @@ export interface KuyrukItemDto {
   emirNo: string;
   urunKod: string;
   urunAd: string;
+  mamulKod: string;
+  mamulAd: string;
+  taraf: string | null;
   urunStok: number;
   operasyonAdi: string;
   sira: number;
@@ -187,6 +196,9 @@ export function normalizeAtanmamisOperasyon(raw: unknown): AtanmamisOperasyonDto
     emirNo: toStr(r.emirNo),
     urunKod: toStr(r.urunKod),
     urunAd: toStr(r.urunAd),
+    mamulKod: toStr(r.mamulKod),
+    mamulAd: toStr(r.mamulAd),
+    taraf: r.taraf != null ? toStr(r.taraf) : null,
     urunStok: toNum(r.urunStok),
     operasyonAdi: toStr(r.operasyonAdi),
     sira: toNum(r.sira, 1),
@@ -210,6 +222,9 @@ export function groupByEmirId(ops: AtanmamisOperasyonDto[]): AtanmamisEmirDto[] 
         emirNo: op.emirNo,
         urunKod: op.urunKod,
         urunAd: op.urunAd,
+        mamulKod: op.mamulKod,
+        mamulAd: op.mamulAd,
+        taraf: op.taraf,
         planlananMiktar: op.planlananMiktar,
         terminTarihi: op.terminTarihi,
         operasyonlar: [],
@@ -231,6 +246,9 @@ function normalizeKuyrukItem(raw: unknown): KuyrukItemDto {
     emirNo: toStr(r.emirNo),
     urunKod: toStr(r.urunKod),
     urunAd: toStr(r.urunAd),
+    mamulKod: toStr(r.mamulKod),
+    mamulAd: toStr(r.mamulAd),
+    taraf: r.taraf != null ? toStr(r.taraf) : null,
     urunStok: toNum(r.urunStok),
     operasyonAdi: toStr(r.operasyonAdi),
     sira: toNum(r.sira),

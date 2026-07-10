@@ -272,6 +272,7 @@ describeIntegration("gerçek veri üretim tanımları", () => {
       id: ids.kuyrukEmir,
       emir_no: "UE-IT-REAL-MAK-BAGLI",
       urun_id: ids.kuyrukUrun,
+      mamul_urun_id: ids.kuyrukUrun,
       planlanan_miktar: "10.0000",
       durum: "makineye_atandi",
     });

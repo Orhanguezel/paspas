@@ -16,6 +16,7 @@ import {
   repoUpdate,
 } from "../repository";
 import { uretimEmirleri, uretimEmriOperasyonlari, uretimEmriSiparisKalemleri } from "../schema";
+import { updateMamulEmri } from "../service";
 
 const runIntegration = process.env.RUN_DB_INTEGRATION === "1";
 const describeIntegration = runIntegration ? describe : describe.skip;
@@ -249,9 +250,9 @@ describeIntegration("gerçek veri üretim emirleri", () => {
     expect(Number(row?.planlanan_miktar)).toBe(5);
     expect((await getMaterialStock()).rezerveStok).toBe(10);
 
+    await updateMamulEmri(created.row.parti_no!, created.row.mamul_urun_id, { planlananMiktar: 6 });
     row = await repoUpdate(created.row.id, {
       emirNo: codes.emirGuncel,
-      planlananMiktar: 6,
       bitisTarihi: "2031-07-06",
       musteriOzet: "Manuel test müşterisi güncel",
     });
@@ -282,7 +283,7 @@ describeIntegration("gerçek veri üretim emirleri", () => {
 
     expect((await getMaterialStock()).rezerveStok).toBe(10);
 
-    await repoUpdate(created.row.id, { planlananMiktar: 8 });
+    await updateMamulEmri(created.row.parti_no!, created.row.mamul_urun_id, { planlananMiktar: 8 });
 
     const stock = await getMaterialStock();
     expect(stock.rezerveStok).toBe(16);
@@ -301,7 +302,35 @@ describeIntegration("gerçek veri üretim emirleri", () => {
     expect(Number(rezervasyon?.miktar)).toBe(16);
 
     // Miktar düşünce de senkron olmalı.
-    await repoUpdate(created.row.id, { planlananMiktar: 3 });
+    await updateMamulEmri(created.row.parti_no!, created.row.mamul_urun_id, { planlananMiktar: 3 });
     expect((await getMaterialStock()).rezerveStok).toBe(6);
+  });
+
+  it("repoUpdate doğrulama hatasında ana satırı ve köprüleri rollback eder", async () => {
+    const created = await repoCreate({
+      emirNo: codes.manuelEmir,
+      urunId: ids.urun,
+      planlananMiktar: 5,
+      uretilenMiktar: 0,
+      durum: "atanmamis",
+    });
+    const uyumsuzKalemId = "55555555-5555-4555-8555-555555555509";
+    await db.insert(siparisKalemleri).values({
+      id: uyumsuzKalemId,
+      siparis_id: ids.siparis,
+      urun_id: ids.hammadde,
+      miktar: "1.0000",
+      birim_fiyat: "1.00",
+      sira: 2,
+    });
+
+    await expect(repoUpdate(created.row.id, {
+      emirNo: `${codes.manuelEmir}-BOZUK`,
+      siparisKalemIds: [uyumsuzKalemId],
+    })).rejects.toThrow("urun_uyumsuzlugu");
+
+    const after = await repoGetById(created.row.id);
+    expect(after?.emir_no).toBe(codes.manuelEmir);
+    expect(after?.siparisKalemIds).toEqual([]);
   });
 });

@@ -160,6 +160,8 @@ async function seed() {
       id: ids.uretimSag,
       emir_no: "UE-IT-CS-SAG",
       urun_id: ids.oymSag,
+      mamul_urun_id: ids.asil,
+      taraf: "sag",
       planlanan_miktar: "10.0000",
       uretilen_miktar: "10.0000", // 10 adet sağ baskı yapıldı
       durum: "tamamlandi",
@@ -168,6 +170,8 @@ async function seed() {
       id: ids.uretimSol,
       emir_no: "UE-IT-CS-SOL",
       urun_id: ids.oymSol,
+      mamul_urun_id: ids.asil,
+      taraf: "sol",
       planlanan_miktar: "20.0000",
       uretilen_miktar: "20.0000", // 20 adet sol baskı yapıldı (her asıl ürün için 2)
       durum: "tamamlandi",
@@ -176,8 +180,8 @@ async function seed() {
 
   // Her iki emir aynı sipariş kalemine bağlı
   await db.insert(uretimEmriSiparisKalemleri).values([
-    { id: randomUUID(), uretim_emri_id: ids.uretimSag, siparis_kalem_id: ids.siparisKalem },
-    { id: randomUUID(), uretim_emri_id: ids.uretimSol, siparis_kalem_id: ids.siparisKalem },
+    { id: randomUUID(), uretim_emri_id: ids.uretimSag, siparis_kalem_id: ids.siparisKalem, miktar: "10.0000" },
+    { id: randomUUID(), uretim_emri_id: ids.uretimSol, siparis_kalem_id: ids.siparisKalem, miktar: "0.0000" },
   ]);
 
   // Montaj sonucu — asıl ürün için 10 adet GIRIS hareketi

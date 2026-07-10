@@ -159,7 +159,7 @@ describeIntegration("stok ve hareket DB integration", () => {
   afterAll(async () => {
   });
 
-  it("reserves, consumes and returns stock while recording movements for stock tracking disabled materials", async () => {
+  it("makine ataması ve kuyruktan çıkarma sırasında stok rezervasyonlarını ve hareketleri değiştirmez", async () => {
     const created = await repoCreate({
       emirNo,
       urunId: ids.urun,
@@ -196,8 +196,8 @@ describeIntegration("stok ve hareket DB integration", () => {
     await repoAtaOperasyon({ emirOperasyonId: emirOperasyon.id, makineId: ids.makine });
 
     stockRows = await getStockRows();
-    expect(Number(stockRows.get(ids.hammaddeAktif)?.stok)).toBe(80);
-    expect(Number(stockRows.get(ids.hammaddeAktif)?.rezerveStok)).toBe(0);
+    expect(Number(stockRows.get(ids.hammaddeAktif)?.stok)).toBe(100);
+    expect(Number(stockRows.get(ids.hammaddeAktif)?.rezerveStok)).toBe(20);
     expect(Number(stockRows.get(ids.hammaddeKapali)?.stok)).toBe(5);
     expect(Number(stockRows.get(ids.hammaddeKapali)?.rezerveStok)).toBe(0);
 
@@ -205,17 +205,10 @@ describeIntegration("stok ve hareket DB integration", () => {
       .select()
       .from(hammaddeRezervasyonlari)
       .where(eq(hammaddeRezervasyonlari.uretim_emri_id, emirId));
-    expect(new Set(rezervasyonlar.map((row) => row.durum))).toEqual(new Set(["tamamlandi"]));
+    expect(new Set(rezervasyonlar.map((row) => row.durum))).toEqual(new Set(["rezerve"]));
 
     let hareketRows = await db.select().from(hareketler).where(eq(hareketler.referans_id, emirId));
-    expect(hareketRows.map((row) => ({
-      urunId: row.urun_id,
-      hareketTipi: row.hareket_tipi,
-      miktar: Number(row.miktar),
-    })).sort((a, b) => `${a.urunId}-${a.miktar}`.localeCompare(`${b.urunId}-${b.miktar}`))).toEqual([
-      { urunId: ids.hammaddeAktif, hareketTipi: "cikis", miktar: -20 },
-      { urunId: ids.hammaddeKapali, hareketTipi: "cikis", miktar: -30 },
-    ].sort((a, b) => `${a.urunId}-${a.miktar}`.localeCompare(`${b.urunId}-${b.miktar}`)));
+    expect(hareketRows).toHaveLength(0);
 
     const [queueRow] = await db
       .select()
@@ -237,16 +230,7 @@ describeIntegration("stok ve hareket DB integration", () => {
     expect(new Set(rezervasyonlar.map((row) => row.durum))).toEqual(new Set(["rezerve"]));
 
     hareketRows = await db.select().from(hareketler).where(eq(hareketler.referans_id, emirId));
-    expect(hareketRows.map((row) => ({
-      urunId: row.urun_id,
-      hareketTipi: row.hareket_tipi,
-      miktar: Number(row.miktar),
-    })).sort((a, b) => `${a.urunId}-${a.miktar}`.localeCompare(`${b.urunId}-${b.miktar}`))).toEqual([
-      { urunId: ids.hammaddeAktif, hareketTipi: "cikis", miktar: -20 },
-      { urunId: ids.hammaddeAktif, hareketTipi: "giris", miktar: 20 },
-      { urunId: ids.hammaddeKapali, hareketTipi: "cikis", miktar: -30 },
-      { urunId: ids.hammaddeKapali, hareketTipi: "giris", miktar: 30 },
-    ].sort((a, b) => `${a.urunId}-${a.miktar}`.localeCompare(`${b.urunId}-${b.miktar}`)));
+    expect(hareketRows).toHaveLength(0);
   });
 
   it("cancels active reservations and restores order state when a deletable production order is deleted", async () => {

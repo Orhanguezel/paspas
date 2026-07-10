@@ -28,7 +28,8 @@ export type SiparisOzet = {
   kalemSayisi: number;
   toplamMiktar: number;
   toplamFiyat: number;
-  uretimeAktarilanKalemSayisi: number;
+  aktarilanMiktar: number;
+  kalanMiktar: number;
   uretimPlanlananMiktar: number;
   uretimTamamlananMiktar: number;
   sevkEdilenMiktar: number;
@@ -116,7 +117,7 @@ export async function repoGetSiparisOzetleri(siparisIds: string[]): Promise<Map<
     db
       .select({
         siparisId: siparisKalemleri.siparis_id,
-        uretimeAktarilanKalemSayisi: sql<number>`count(distinct ${uretimEmriSiparisKalemleri.siparis_kalem_id})`,
+        aktarilanMiktar: sql<string>`coalesce(sum(${uretimEmriSiparisKalemleri.miktar}), 0)`,
       })
       .from(uretimEmriSiparisKalemleri)
       .innerJoin(siparisKalemleri, eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemleri.id))
@@ -146,7 +147,8 @@ export async function repoGetSiparisOzetleri(siparisIds: string[]): Promise<Map<
         kalemSayisi: 0,
         toplamMiktar: 0,
         toplamFiyat: 0,
-        uretimeAktarilanKalemSayisi: 0,
+        aktarilanMiktar: 0,
+        kalanMiktar: 0,
         uretimPlanlananMiktar: 0,
         uretimTamamlananMiktar: 0,
         sevkEdilenMiktar: 0,
@@ -181,7 +183,8 @@ export async function repoGetSiparisOzetleri(siparisIds: string[]): Promise<Map<
         kalemSayisi: 0,
         toplamMiktar: 0,
         toplamFiyat: 0,
-        uretimeAktarilanKalemSayisi: 0,
+        aktarilanMiktar: 0,
+        kalanMiktar: 0,
         uretimPlanlananMiktar: 0,
         uretimTamamlananMiktar: 0,
         sevkEdilenMiktar: 0,
@@ -189,6 +192,7 @@ export async function repoGetSiparisOzetleri(siparisIds: string[]): Promise<Map<
       }),
       kalemSayisi: Number(row.kalemSayisi ?? 0),
       toplamMiktar: Number(row.toplamMiktar ?? 0),
+      kalanMiktar: Math.max(0, Number(row.toplamMiktar ?? 0) - (empty.get(row.siparisId)?.aktarilanMiktar ?? 0)),
       toplamFiyat: genelToplam,
     });
   }
@@ -214,7 +218,8 @@ export async function repoGetSiparisOzetleri(siparisIds: string[]): Promise<Map<
     const items = kalemMap.get(row.siparisId) ?? [];
     empty.set(row.siparisId, {
       ...current,
-      uretimeAktarilanKalemSayisi: Number(row.uretimeAktarilanKalemSayisi ?? 0),
+      aktarilanMiktar: Number(row.aktarilanMiktar ?? 0),
+      kalanMiktar: Math.max(0, current.toplamMiktar - Number(row.aktarilanMiktar ?? 0)),
       // Rev4: Kalem bazli kilitleme. canEditSiparis uretim_durumu'nu kontrol eder.
       kilitli: !canEditSiparis(items as any),
     });
@@ -351,6 +356,13 @@ export async function repoGetById(id: string): Promise<DetailResult | null> {
       urun_ad: urunler.ad,
       urun_kod: urunler.kod,
       kdv_orani: urunler.kdv_orani,
+      aktarilan_miktar: sql<string>`(
+        SELECT COALESCE(SUM(uesk.miktar), 0)
+        FROM uretim_emri_siparis_kalemleri uesk
+        JOIN uretim_emirleri ue ON ue.id = uesk.uretim_emri_id
+        WHERE uesk.siparis_kalem_id = ${siparisKalemleri.id}
+          AND ue.durum <> 'iptal'
+      )`,
     })
     .from(siparisKalemleri)
     .leftJoin(urunler, eq(urunler.id, siparisKalemleri.urun_id))
@@ -468,7 +480,7 @@ export async function refreshSiparisDurum(siparisId: string): Promise<void> {
     yeniDurum = 'kismen_sevk';
   } else if (activeUretimCount > 0) {
     yeniDurum = 'uretimde';
-  } else if (o.uretimeAktarilanKalemSayisi > 0) {
+  } else if (o.aktarilanMiktar > 0) {
     yeniDurum = 'planlandi';
   } else {
     // Hiç üretim emri bağlı değil (silindi veya hiç oluşturulmadı) → onaylandi'ya geri dön
@@ -519,6 +531,8 @@ export interface SiparisIslemSatiri {
   urunStok: number;
   urunBirim: string;
   miktar: number;
+  aktarilanMiktar: number;
+  kalanMiktar: number;
   uretilenMiktar: number;
   uretimKalanMiktar: number;
   birimFiyat: number;
@@ -575,6 +589,14 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
     WHERE uesk_u.siparis_kalem_id = ${siparisKalemleri.id}
   ), 0)`;
 
+  const aktarilanSubquery = sql<string>`COALESCE((
+    SELECT SUM(uesk_a.miktar)
+    FROM uretim_emri_siparis_kalemleri uesk_a
+    INNER JOIN uretim_emirleri ue_a ON ue_a.id = uesk_a.uretim_emri_id
+    WHERE uesk_a.siparis_kalem_id = ${siparisKalemleri.id}
+      AND ue_a.durum <> 'iptal'
+  ), 0)`;
+
   // UE id subquery
   const ueIdSubquery = sql<string>`(
     SELECT uesk.uretim_emri_id FROM uretim_emri_siparis_kalemleri uesk
@@ -605,6 +627,7 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
       urunStok: urunler.stok,
       urunBirim: urunler.birim,
       miktar: siparisKalemleri.miktar,
+      aktarilanMiktar: aktarilanSubquery,
       uretilenMiktar: uretilenSubquery,
       birimFiyat: siparisKalemleri.birim_fiyat,
       uretimDurumu: siparisKalemleri.uretim_durumu,
@@ -636,6 +659,7 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
   return {
     items: rows.map((r) => {
       const miktar = Number(r.miktar);
+      const aktarilanMiktar = Number(r.aktarilanMiktar ?? 0);
       const uretilenMiktar = Number(r.uretilenMiktar ?? 0);
       const sevkEdilenMiktar = Number(r.sevkEdilenMiktar ?? 0);
       return {
@@ -651,6 +675,8 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
       urunStok: Number(r.urunStok ?? 0),
       urunBirim: r.urunBirim ?? '',
       miktar,
+      aktarilanMiktar,
+      kalanMiktar: Math.max(miktar - aktarilanMiktar, 0),
       uretilenMiktar,
       uretimKalanMiktar: Math.max(miktar - uretilenMiktar, 0),
       birimFiyat: Number(r.birimFiyat),

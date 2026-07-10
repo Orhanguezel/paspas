@@ -5,6 +5,16 @@
 
 export type UretimEmriDurum = "atanmamis" | "planlandi" | "uretimde" | "montaj_bekliyor" | "tamamlandi" | "iptal";
 
+export function mamulGrupKey(emir: Pick<UretimEmriDto, "partiNo" | "mamulUrunId">): string {
+  return `${emir.partiNo ?? "partisiz"}::${emir.mamulUrunId}`;
+}
+
+export function grupPlanlanan(emirler: UretimEmriDto[]): number {
+  const miktarlar = new Set(emirler.map((emir) => emir.planlananMiktar));
+  if (miktarlar.size !== 1) throw new Error("asimetrik_planlanan_miktar");
+  return emirler[0]?.planlananMiktar ?? 0;
+}
+
 export interface UretimEmriOperasyonOzet {
   operasyonAdi: string;
   makineAd: string | null;
@@ -25,8 +35,13 @@ export interface UretimEmriDto {
   siparisUrunAd: string | null;
   siparisUrunGorsel: string | null;
   urunId: string;
+  mamulUrunId: string;
+  taraf: "sag" | "sol" | "parca" | null;
   urunKod: string | null;
   urunAd: string | null;
+  mamulKod: string | null;
+  mamulAd: string | null;
+  mamulGorsel: string | null;
   receteId: string | null;
   receteAd: string | null;
   planlananMiktar: number;
@@ -127,6 +142,8 @@ export interface UretimEmriAdayDto {
   receteId: string | null;
   musteriAd: string;
   miktar: number;
+  aktarilanMiktar: number;
+  kalanMiktar: number;
   terminTarihi: string | null;
 }
 
@@ -194,8 +211,13 @@ export function normalizeUretimEmri(raw: unknown): UretimEmriDto {
     siparisUrunAd: r.siparisUrunAd != null ? toStr(r.siparisUrunAd) : null,
     siparisUrunGorsel: r.siparisUrunGorsel != null ? toStr(r.siparisUrunGorsel) : null,
     urunId: toStr(r.urunId),
+    mamulUrunId: toStr(r.mamulUrunId),
+    taraf: r.taraf === "sag" || r.taraf === "sol" || r.taraf === "parca" ? r.taraf : null,
     urunKod: r.urunKod != null ? toStr(r.urunKod) : null,
     urunAd: r.urunAd != null ? toStr(r.urunAd) : null,
+    mamulKod: r.mamulKod != null ? toStr(r.mamulKod) : null,
+    mamulAd: r.mamulAd != null ? toStr(r.mamulAd) : null,
+    mamulGorsel: r.mamulGorsel != null ? toStr(r.mamulGorsel) : null,
     receteId: r.receteId != null ? toStr(r.receteId) : null,
     receteAd: r.receteAd != null ? toStr(r.receteAd) : null,
     planlananMiktar: toNum(r.planlananMiktar),
@@ -251,6 +273,8 @@ export function normalizeUretimEmriAday(raw: unknown): UretimEmriAdayDto {
     receteId: r.receteId != null ? toStr(r.receteId) : null,
     musteriAd: toStr(r.musteriAd),
     miktar: toNum(r.miktar),
+    aktarilanMiktar: toNum(r.aktarilanMiktar),
+    kalanMiktar: toNum(r.kalanMiktar),
     terminTarihi: r.terminTarihi != null ? toStr(r.terminTarihi) : null,
   };
 }

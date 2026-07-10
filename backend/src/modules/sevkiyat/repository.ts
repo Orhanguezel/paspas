@@ -584,6 +584,10 @@ export async function repoPatchSevkEmri(id: string, patch: SevkEmriPatch, operat
   const existing = await repoGetSevkEmriById(id);
   if (!existing) return null;
 
+  if (existing.durum === 'sevk_edildi') {
+    throw new Error('sevk_emri_kilitli');
+  }
+
   const nextMiktar = patch.miktar ?? existing.miktar;
   const isShip = patch.durum === 'sevk_edildi' && existing.durum !== 'sevk_edildi';
 

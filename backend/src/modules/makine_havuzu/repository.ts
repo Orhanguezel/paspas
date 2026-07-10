@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { and, asc, desc, eq, inArray, isNull, like, ne, or, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/mysql-core';
 
 import { db } from '@/db/client';
 import { kalipUyumluMakineler, kaliplar, tatiller } from '@/modules/tanimlar/schema';
@@ -16,6 +17,8 @@ import { siparisKalemleri } from '@/modules/satis_siparisleri/schema';
 
 import { makineler, makineKuyrugu, type MakineRow } from './schema';
 import type { AtaBody, CreateBody, KuyrukSiralaBody, ListQuery, PatchBody } from './validation';
+
+const mamulUrunler = alias(urunler, 'mamul_urunler');
 
 type ListResult = {
   items: MakineRow[];
@@ -181,6 +184,9 @@ export type AtanmamisOperasyonDto = {
   emirNo: string;
   urunKod: string;
   urunAd: string;
+  mamulKod: string;
+  mamulAd: string;
+  taraf: string | null;
   urunStok: number;
   operasyonAdi: string;
   sira: number;
@@ -201,6 +207,9 @@ export async function repoListAtanmamis(): Promise<AtanmamisOperasyonDto[]> {
       emirNo: uretimEmirleri.emir_no,
       urunKod: urunler.kod,
       urunAd: urunler.ad,
+      mamulKod: mamulUrunler.kod,
+      mamulAd: mamulUrunler.ad,
+      taraf: uretimEmirleri.taraf,
       urunStok: urunler.stok,
       operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
       sira: uretimEmriOperasyonlari.sira,
@@ -214,6 +223,7 @@ export async function repoListAtanmamis(): Promise<AtanmamisOperasyonDto[]> {
     .from(uretimEmriOperasyonlari)
     .innerJoin(uretimEmirleri, eq(uretimEmriOperasyonlari.uretim_emri_id, uretimEmirleri.id))
     .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+    .innerJoin(mamulUrunler, eq(uretimEmirleri.mamul_urun_id, mamulUrunler.id))
     .where(
       and(
         isNull(uretimEmriOperasyonlari.makine_id),
@@ -229,6 +239,9 @@ export async function repoListAtanmamis(): Promise<AtanmamisOperasyonDto[]> {
     emirNo: r.emirNo,
     urunKod: r.urunKod,
     urunAd: r.urunAd,
+    mamulKod: r.mamulKod,
+    mamulAd: r.mamulAd,
+    taraf: r.taraf ?? null,
     urunStok: Number(r.urunStok ?? 0),
     operasyonAdi: r.operasyonAdi,
     sira: r.sira,
@@ -249,6 +262,9 @@ export type KuyrukItemDto = {
   emirNo: string;
   urunKod: string;
   urunAd: string;
+  mamulKod: string;
+  mamulAd: string;
+  taraf: string | null;
   urunStok: number;
   operasyonAdi: string;
   sira: number;
@@ -296,6 +312,9 @@ export async function repoListKuyruklar(): Promise<KuyrukGrubuDto[]> {
       musteriOzet: uretimEmirleri.musteri_ozet,
       urunKod: urunler.kod,
       urunAd: urunler.ad,
+      mamulKod: mamulUrunler.kod,
+      mamulAd: mamulUrunler.ad,
+      taraf: uretimEmirleri.taraf,
       urunStok: urunler.stok,
       operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
       planlananMiktar: uretimEmriOperasyonlari.planlanan_miktar,
@@ -311,6 +330,7 @@ export async function repoListKuyruklar(): Promise<KuyrukGrubuDto[]> {
     .innerJoin(makineler, eq(makineKuyrugu.makine_id, makineler.id))
     .innerJoin(uretimEmirleri, eq(makineKuyrugu.uretim_emri_id, uretimEmirleri.id))
     .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+    .innerJoin(mamulUrunler, eq(uretimEmirleri.mamul_urun_id, mamulUrunler.id))
     .leftJoin(uretimEmriOperasyonlari, eq(makineKuyrugu.emir_operasyon_id, uretimEmriOperasyonlari.id))
     .where(inArray(makineKuyrugu.durum, ['bekliyor', 'calisiyor', 'duraklatildi']))
     .orderBy(asc(makineler.gosterim_sira), asc(makineler.kod), asc(makineKuyrugu.sira));
@@ -343,6 +363,9 @@ export async function repoListKuyruklar(): Promise<KuyrukGrubuDto[]> {
       emirNo: r.emirNo,
       urunKod: r.urunKod,
       urunAd: r.urunAd,
+      mamulKod: r.mamulKod,
+      mamulAd: r.mamulAd,
+      taraf: r.taraf ?? null,
       urunStok: Number(r.urunStok ?? 0),
       operasyonAdi: r.operasyonAdi ?? '',
       sira: r.sira,

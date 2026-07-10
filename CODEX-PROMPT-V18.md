@@ -27,14 +27,14 @@ Bu yüzden her ekran bağlamı kendi yöntemiyle uyduruyor ve her düzeltme bir 
    - `mamul_urun_id char(36) NULL` (şimdilik NULL; NOT NULL adım 4'ten sonra)
    - `taraf varchar(8) NULL`  — `sag` | `sol` | `parca` | NULL
    - index: `idx_uretim_emri_mamul (parti_no, mamul_urun_id)`
-2. **Backfill, bu sırayla** (her adım yalnız `mamul_urun_id IS NULL` satırlara):
-   1. **Ürün emri:** `urunler.kategori = 'urun'` ise → `mamul_urun_id = urun_id`, `taraf = NULL`
-   2. **Sipariş bağından:** `uretim_emri_siparis_kalemleri → siparis_kalemleri.urun_id` **tek anlamlıysa** (o emre bağlı tüm kalemler aynı ürün) → o ürün
-   3. **Parti ikizinden:** aynı `parti_no` içinde mamulü çözülmüş bir emir varsa ve bu emrin `urun_id`'si o mamulün reçetesinde geçiyorsa → o mamul. *(`UE-2026-0100` bu adımda çözülür.)*
-   4. **Ters reçete, yalnız tek adaylıysa:** `urun_id` tam **bir** reçetede geçiyorsa → o reçetenin ürünü
+2. **Backfill, çeklistteki sırayla** (her adım yalnız `mamul_urun_id IS NULL` satırlara):
+   1. **Sipariş bağından:** `uretim_emri_siparis_kalemleri → siparis_kalemleri.urun_id` **tek anlamlıysa** (o emre bağlı tüm kalemler aynı ürün) → o ürün
+   2. **Parti ikizinden:** aynı `parti_no` içinde mamulü çözülmüş bir emir varsa ve bu emrin `urun_id`'si o mamulün reçetesinde geçiyorsa → o mamul. *(`UE-2026-0100` bu adımda çözülür.)*
+   3. **Ürün emri:** `urunler.kategori = 'urun'` ise → `mamul_urun_id = urun_id`, `taraf = NULL`
+   4. **Kalanlar:** tahmin yürütme ve ters reçeteden mamul atama yapma; NULL kalanları raporla.
 3. `taraf` backfill: `urunler.kod` sonekinden — `-R` → `sag`, `-L` → `sol`, `-X` → `parca`, aksi halde NULL.
    > Sonek **yalnız backfill için** kullanılır. Yeni emirlerde `taraf` yazılır, sonekten çıkarılmaz.
-4. **Rapor:** `SELECT emir_no, urun_id FROM uretim_emirleri WHERE mamul_urun_id IS NULL AND durum NOT IN ('tamamlandi','iptal')`.
+4. **Rapor:** `SELECT emir_no, urun_id, durum FROM uretim_emirleri WHERE mamul_urun_id IS NULL`.
    - Boşsa → `mamul_urun_id` **NOT NULL** yapılır (aynı guard deseniyle).
    - Boş değilse → **NOT NULL yapma**, raporu çıktıya bas. Claude karar verir.
 5. İdempotent: kolon varsa eklenmez; backfill yalnız NULL satırlara; iki kez çalışınca sonuç değişmez.
@@ -50,12 +50,13 @@ export interface MamulEmri { id: string; partiNo: string; mamulUrunId: string; u
 
 export function mamulGrupKey(e: MamulEmri): string      // `${partiNo}::${mamulUrunId}`
 export function groupByMamul(emirler: MamulEmri[]): MamulGrup[]
+export function taraflar(g: MamulGrup): MamulEmri[]
 export function grupPlanlanan(g: MamulGrup): number     // K4: tüm taraflar eşit -> tek değer; eşit değilse throw
-export function grupUretilen(g: MamulGrup): number      // min(taraflar) — en yavaş taraf
 ```
 
 - DB import **yok**, `Date.now()` **yok**, ortam okuma **yok**. Tamamen saf.
 - `grupPlanlanan` eşitsizlikte **fırlatır** — K4 invariantı kodda yaşar, yorumda değil.
+- `grupUretilen = min(taraflar)` gibi bir sezgi eklenmez; K4'e göre taraf miktarları eşit tutulur.
 - **DB'siz unit test** (`__tests__/mamul.test.ts`, skip'siz):
   - Aynı üründen iki emir farklı mamullere aitse **farklı gruba** düşer (`UE-0099` / `UE-0101` senaryosu).
   - Aynı parti + aynı mamul → tek grup, sipariş bağı olsun olmasın.
@@ -121,7 +122,7 @@ export function grupUretilen(g: MamulGrup): number      // min(taraflar) — en 
 
 ## Kabul kriterleri (Claude review edecek — invariant)
 
-1. Aktif hiçbir emirde `mamul_urun_id` NULL değil; `NOT NULL` kısıtı konmuş.
+1. Hiçbir emirde `mamul_urun_id` NULL değil; `NOT NULL` kısıtı konmuş.
 2. Canlı tarama: aynı `(parti_no, mamul_urun_id)` grubunda `planlanan_miktar` farkı olan grup **yok**.
 3. Canlı tarama: `emir.planlanan_miktar ≠ operasyon.planlanan_miktar` olan aktif emir **yok**.
 4. Transaction testi: `repoUpdate` ortasında hata → hiçbir satır değişmemiş.
@@ -129,11 +130,10 @@ export function grupUretilen(g: MamulGrup): number      // min(taraflar) — en 
 6. Kısmen aktarılmış kalem kalanı kadar tekrar seçilebiliyor.
 7. Regresyon testi: sipariş bağı silinmiş emir **gruptan kopmuyor** (`a155bf5c` senaryosu).
 8. `is-yukler` ve `uretim-emirleri` aynı emir için aynı mamul adını gösteriyor.
-9. `grep -rn "skipKalemUrunCheck"` → **0**.
-10. `mamul.ts`'te DB importu / `Date.now()` yok; testler skip'siz yeşil.
-11. Seed 211 ve 212 **iki kez** çalıştırılınca sonuç değişmiyor.
-12. backend `bun run build` + tüm testler; admin `bunx tsc --noEmit` + `bun run build` temiz.
-13. Her madde (A–G) **ayrı commit**; yalnız göreve ait dosyalar `git add` (V15 hijyen notu).
+9. Düzenleme sonrası `parti_no` değişmiyor; başka parti etkilenmiyor.
+10. `grep -rn "skipKalemUrunCheck"` → **0**.
+11. backend `bun run build` + tüm testler; admin `bunx tsc --noEmit` + `bun run build` temiz.
+12. **Push yok** — Claude review + canlı doğrulama + deploy.
 
 ## Dokunma
 - Montaj/stok akışı: `tryMontajForUretimEmri`, `repoUretimBitir`, `consumeRecipeMaterials`.

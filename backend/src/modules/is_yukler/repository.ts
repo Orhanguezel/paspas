@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/mysql-core';
 
 import { db } from '@/db/client';
 import { makineKuyrugu, makineler } from '@/modules/makine_havuzu/schema';
@@ -12,6 +13,8 @@ import { recalcMakineKuyrukTarihleri } from '@/modules/_shared/planlama';
 import type { IsYukuDto } from './schema';
 import type { CreateBody, ListQuery, PatchBody } from './validation';
 
+const mamulUrunler = alias(urunler, 'mamul_urunler');
+
 type QueueJoinRow = {
   kuyrukId: string;
   makineId: string;
@@ -21,6 +24,9 @@ type QueueJoinRow = {
   emirNo: string;
   urunKod: string | null;
   urunAd: string | null;
+  mamulKod: string | null;
+  mamulAd: string | null;
+  taraf: string | null;
   operasyonAdi: string | null;
   musteriAd: string | null;
   sira: number;
@@ -65,6 +71,9 @@ function toDto(row: QueueJoinRow): IsYukuDto {
     emirNo: row.emirNo,
     urunKod: row.urunKod,
     urunAd: row.urunAd,
+    mamulKod: row.mamulKod,
+    mamulAd: row.mamulAd,
+    taraf: row.taraf,
     operasyonAdi: row.operasyonAdi,
     musteriAd: row.musteriAd,
     sira: Number(row.sira),
@@ -95,6 +104,9 @@ function selectQueue(where?: SQL) {
       emirNo: uretimEmirleri.emir_no,
       urunKod: urunler.kod,
       urunAd: urunler.ad,
+      mamulKod: mamulUrunler.kod,
+      mamulAd: mamulUrunler.ad,
+      taraf: uretimEmirleri.taraf,
       operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
       musteriAd: uretimEmirleri.musteri_ozet,
       sira: makineKuyrugu.sira,
@@ -117,6 +129,7 @@ function selectQueue(where?: SQL) {
     .innerJoin(makineler, eq(makineKuyrugu.makine_id, makineler.id))
     .innerJoin(uretimEmirleri, eq(makineKuyrugu.uretim_emri_id, uretimEmirleri.id))
     .leftJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+    .leftJoin(mamulUrunler, eq(uretimEmirleri.mamul_urun_id, mamulUrunler.id))
     .leftJoin(uretimEmriOperasyonlari, eq(makineKuyrugu.emir_operasyon_id, uretimEmriOperasyonlari.id))
     .where(where)
     .orderBy(asc(makineler.gosterim_sira), asc(makineler.kod), asc(makineKuyrugu.sira))

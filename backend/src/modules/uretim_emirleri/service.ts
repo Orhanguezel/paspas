@@ -3,13 +3,16 @@ import { randomUUID } from 'node:crypto';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
+import { recalcMakineKuyrukTarihleri } from '@/modules/_shared/planlama';
 import { hareketler } from '@/modules/hareketler/schema';
+import { makineKuyrugu } from '@/modules/makine_havuzu/schema';
 import { receteKalemleri, receteler } from '@/modules/receteler/schema';
 import { siparisKalemleri, type KalemUretimDurumu } from '@/modules/satis_siparisleri/schema';
-import { canTransitionKalem } from '@/modules/satis_siparisleri/kalem-durum.service';
+import { canTransitionKalem, transitionMultipleKalemDurum } from '@/modules/satis_siparisleri/kalem-durum.service';
 import { urunler } from '@/modules/urunler/schema';
 
 import { uretimEmirleri, uretimEmriOperasyonlari, uretimEmriSiparisKalemleri } from './schema';
+import { iptalRezervasyon, rezerveHammaddeler } from './hammadde_service';
 import { repoCreate, repoGetNextEmirNo, type CreateResult } from './repository';
 
 type Opts = {
@@ -41,6 +44,137 @@ export class SiparisUretimEmirHatasi extends Error {
   }
 }
 
+export async function updateMamulEmri(
+  partiNo: string,
+  mamulUrunId: string,
+  patch: {
+    planlananMiktar: number;
+    siparisTahsisleri?: Array<{ siparisKalemId: string; miktar: number }>;
+  },
+): Promise<{ emirIds: string[]; planlananMiktar: number }> {
+  return db.transaction(async (tx) => {
+    const emirler = await tx
+      .select({
+        id: uretimEmirleri.id,
+        urunId: uretimEmirleri.urun_id,
+        receteId: uretimEmirleri.recete_id,
+        durum: uretimEmirleri.durum,
+        taraf: uretimEmirleri.taraf,
+      })
+      .from(uretimEmirleri)
+      .where(and(
+        eq(uretimEmirleri.parti_no, partiNo),
+        eq(uretimEmirleri.mamul_urun_id, mamulUrunId),
+      ));
+
+    if (emirler.length === 0) throw new Error('mamul_emri_bulunamadi');
+    if (emirler.some((emir) => emir.durum === 'tamamlandi')) {
+      throw new Error('uretim_emri_tamamlandi');
+    }
+
+    const emirIds = emirler.map((emir) => emir.id);
+
+    if (patch.siparisTahsisleri !== undefined) {
+      const kalemIds = patch.siparisTahsisleri.map((tahsis) => tahsis.siparisKalemId);
+      const kalemler = kalemIds.length > 0
+        ? await tx.select({
+          id: siparisKalemleri.id,
+          urunId: siparisKalemleri.urun_id,
+          miktar: siparisKalemleri.miktar,
+          uretimDurumu: siparisKalemleri.uretim_durumu,
+        }).from(siparisKalemleri).where(inArray(siparisKalemleri.id, kalemIds))
+        : [];
+      if (kalemler.length !== new Set(kalemIds).size || kalemler.some((kalem) => kalem.urunId !== mamulUrunId)) {
+        throw new Error('urun_uyumsuzlugu');
+      }
+      for (const tahsis of patch.siparisTahsisleri) {
+        const kalem = kalemler.find((row) => row.id === tahsis.siparisKalemId)!;
+        const [diger] = await tx
+          .select({ toplam: sql<string>`COALESCE(SUM(${uretimEmriSiparisKalemleri.miktar}), 0)` })
+          .from(uretimEmriSiparisKalemleri)
+          .innerJoin(uretimEmirleri, eq(uretimEmirleri.id, uretimEmriSiparisKalemleri.uretim_emri_id))
+          .where(and(
+            eq(uretimEmriSiparisKalemleri.siparis_kalem_id, tahsis.siparisKalemId),
+            sql`${uretimEmriSiparisKalemleri.uretim_emri_id} NOT IN (${sql.join(emirIds.map((id) => sql`${id}`), sql`, `)})`,
+            sql`${uretimEmirleri.durum} <> 'iptal'`,
+          ));
+        if (Number(diger?.toplam ?? 0) + tahsis.miktar > Number(kalem.miktar) + 1e-9) {
+          throw new Error('asiri_aktarim');
+        }
+      }
+
+      await tx.delete(uretimEmriSiparisKalemleri).where(inArray(uretimEmriSiparisKalemleri.uretim_emri_id, emirIds));
+      if (patch.siparisTahsisleri.length > 0) {
+        const tasiyiciId = [...emirler].sort((a, b) => {
+          const sira = { sag: 0, sol: 1, parca: 2 } as Record<string, number>;
+          return (sira[a.taraf ?? ''] ?? 3) - (sira[b.taraf ?? ''] ?? 3) || a.id.localeCompare(b.id);
+        })[0]!.id;
+        await tx.insert(uretimEmriSiparisKalemleri).values(
+          emirler.flatMap((emir) => patch.siparisTahsisleri!.map((tahsis) => ({
+            id: randomUUID(),
+            uretim_emri_id: emir.id,
+            siparis_kalem_id: tahsis.siparisKalemId,
+            miktar: (emir.id === tasiyiciId ? tahsis.miktar : 0).toFixed(4),
+          }))),
+        );
+        const gecisKalemleri = kalemler
+          .filter((kalem) => kalem.uretimDurumu === 'beklemede')
+          .map((kalem) => kalem.id);
+        await transitionMultipleKalemDurum(gecisKalemleri, 'uretime_aktarildi', tx);
+      }
+    }
+
+    const miktar = patch.planlananMiktar.toFixed(4);
+    await tx
+      .update(uretimEmirleri)
+      .set({ planlanan_miktar: miktar })
+      .where(inArray(uretimEmirleri.id, emirIds));
+    await tx
+      .update(uretimEmriOperasyonlari)
+      .set({ planlanan_miktar: miktar })
+      .where(inArray(uretimEmriOperasyonlari.uretim_emri_id, emirIds));
+
+    for (const emir of emirler) {
+      await iptalRezervasyon(emir.id, tx);
+      let receteId = emir.receteId ?? undefined;
+      if (!receteId) {
+        const [aktifRecete] = await tx
+          .select({ id: receteler.id })
+          .from(receteler)
+          .where(and(eq(receteler.urun_id, emir.urunId), eq(receteler.is_active, 1)))
+          .limit(1);
+        receteId = aktifRecete?.id;
+      }
+      await rezerveHammaddeler(emir.id, receteId, patch.planlananMiktar, tx);
+    }
+
+    const kuyrukRows = await tx
+      .select({
+        kuyrukId: makineKuyrugu.id,
+        makineId: makineKuyrugu.makine_id,
+        cevrimSuresiSn: uretimEmriOperasyonlari.cevrim_suresi_sn,
+      })
+      .from(makineKuyrugu)
+      .leftJoin(uretimEmriOperasyonlari, eq(uretimEmriOperasyonlari.id, makineKuyrugu.emir_operasyon_id))
+      .where(inArray(makineKuyrugu.uretim_emri_id, emirIds));
+
+    const affectedMachines = new Set<string>();
+    for (const row of kuyrukRows) {
+      const planlananSureDk = Math.ceil((Number(row.cevrimSuresiSn ?? 0) * patch.planlananMiktar) / 60);
+      await tx
+        .update(makineKuyrugu)
+        .set({ planlanan_sure_dk: planlananSureDk })
+        .where(eq(makineKuyrugu.id, row.kuyrukId));
+      affectedMachines.add(row.makineId);
+    }
+    for (const makineId of affectedMachines) {
+      await recalcMakineKuyrukTarihleri(makineId, tx);
+    }
+
+    return { emirIds, planlananMiktar: patch.planlananMiktar };
+  });
+}
+
 /**
  * Bir satış siparişi kaleminden, asıl ürünün reçetesindeki operasyonel YM'ler için
  * ayrı ayrı üretim emri oluşturur.
@@ -63,22 +197,6 @@ export async function createUretimEmirleriFromSiparisKalemi(
     throw new SiparisUretimEmirHatasi(`gecersiz_gecis:${mevcutDurum}_to_uretime_aktarildi`);
   }
 
-  const aktifBagRows = await db
-    .select({ id: uretimEmriSiparisKalemleri.id })
-    .from(uretimEmriSiparisKalemleri)
-    .innerJoin(uretimEmirleri, eq(uretimEmirleri.id, uretimEmriSiparisKalemleri.uretim_emri_id))
-    .where(
-      and(
-        eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemId),
-        eq(uretimEmirleri.is_active, 1),
-        sql`${uretimEmirleri.durum} != 'iptal'`,
-      ),
-    )
-    .limit(1);
-  if (aktifBagRows.length > 0) {
-    throw new SiparisUretimEmirHatasi('siparis_kalemi_zaten_uretime_aktarildi');
-  }
-
   const urunRows = await db.select().from(urunler).where(eq(urunler.id, kalem.urun_id)).limit(1);
   const urun = urunRows[0];
   if (!urun) throw new SiparisUretimEmirHatasi('urun_bulunamadi');
@@ -98,6 +216,7 @@ export async function createUretimEmirleriFromSiparisKalemi(
     .select({
       urun_id: receteKalemleri.urun_id,
       miktar: receteKalemleri.miktar,
+      sira: receteKalemleri.sira,
       kategori: urunler.kategori,
       kod: urunler.kod,
       ad: urunler.ad,
@@ -109,7 +228,8 @@ export async function createUretimEmirleriFromSiparisKalemi(
         eq(receteKalemleri.recete_id, asilRecete.id),
         inArray(urunler.kategori, OPERASYON_KAYNAGI_KATEGORILERI as unknown as string[]),
       ),
-    );
+    )
+    .orderBy(receteKalemleri.sira);
 
   const yariMamulKalemler = pickOperasyonKaynakKalemler(operasyonKaynakKalemleri);
 
@@ -120,23 +240,27 @@ export async function createUretimEmirleriFromSiparisKalemi(
   const kalemMiktar = opts.miktarOverride && opts.miktarOverride > 0 ? opts.miktarOverride : Number(kalem.miktar);
   const results: CreateResult[] = [];
 
-  for (const k of yariMamulKalemler) {
-    const planlananMiktar = calculateOperasyonKaynakPlanlananMiktar(k.miktar, kalemMiktar);
+  for (const [index, k] of yariMamulKalemler.entries()) {
+    const planlananMiktar = yariMamulKalemler.length > 1
+      ? kalemMiktar
+      : calculateOperasyonKaynakPlanlananMiktar(k.miktar, kalemMiktar);
     const emirNo = await repoGetNextEmirNo();
     const created = await repoCreate(
       {
         emirNo,
         partiNo: opts.partiNo,
         urunId: k.urun_id,
+        mamulUrunId: urun.id,
+        taraf: yariMamulKalemler.length === 1 ? 'parca' : index === 0 ? 'sag' : 'sol',
         planlananMiktar,
         uretilenMiktar: 0,
         siparisKalemIds: [kalem.id],
+        siparisTahsisleri: [{ siparisKalemId: kalem.id, miktar: index === 0 ? kalemMiktar : 0 }],
         durum: 'atanmamis',
         baslangicTarihi: opts.baslangicTarihi,
         bitisTarihi: opts.bitisTarihi,
         terminTarihi: opts.terminTarihi,
       },
-      { skipKalemUrunCheck: true },
     );
     // V7 Not 1d: Otomatik makine ataması kaldırıldı. Yeni emirler temiz "Atanmamış"
     // doğar; atama "Makine ve Montaj Planlama" bloğundan repoAtaOperasyon ile yapılır.

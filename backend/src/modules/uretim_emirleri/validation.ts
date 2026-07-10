@@ -3,6 +3,7 @@ import { z } from 'zod';
 const sortEnum = z.enum(['emir_no', 'baslangic_tarihi', 'bitis_tarihi', 'created_at']);
 const orderEnum = z.enum(['asc', 'desc']);
 const durumEnum = z.enum(['atanmamis', 'planlandi', 'uretimde', 'montaj_bekliyor', 'tamamlandi', 'iptal']);
+const tarafEnum = z.enum(['sag', 'sol', 'parca']);
 // char(36) — seed data may use non-standard UUID-like IDs (e.g. u0000001-...)
 const uuidSchema = z.string().trim().min(8).max(36);
 
@@ -28,6 +29,11 @@ const optionalUuidArraySchema = z.preprocess(
   z.array(uuidSchema).optional(),
 );
 
+const tahsisSchema = z.object({
+  siparisKalemId: uuidSchema,
+  miktar: z.coerce.number().min(0),
+});
+
 const isActiveQuerySchema = z.preprocess((value) => {
   if (value === 'true' || value === '1') return true;
   if (value === 'false' || value === '0') return false;
@@ -51,7 +57,10 @@ export const createSchema = z.object({
   emirNo: z.string().trim().min(1).max(64),
   partiNo: z.string().trim().max(32).optional(),
   siparisKalemIds: optionalUuidArraySchema,
+  siparisTahsisleri: z.array(tahsisSchema).optional(),
   urunId: uuidSchema,
+  mamulUrunId: uuidSchema.optional(),
+  taraf: tarafEnum.nullable().optional(),
   receteId: optionalUuidSchema,
   musteriOzet: z.string().trim().max(255).optional(),
   musteriDetay: z.string().trim().max(1000).optional(),
@@ -65,7 +74,7 @@ export const createSchema = z.object({
 });
 
 export const patchSchema = createSchema
-  .omit({ durum: true, uretilenMiktar: true })
+  .omit({ durum: true, uretilenMiktar: true, planlananMiktar: true, partiNo: true, mamulUrunId: true, taraf: true })
   .partial()
   .extend({
     durum: durumEnum.optional(),

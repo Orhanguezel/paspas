@@ -202,6 +202,7 @@ describeIntegration("gerçek veri satış siparişleri", () => {
       siparis_id: created.siparis.id,
       siparis_kalem_id: kalemId,
       urun_id: ids.urunA,
+      mamul_urun_id: ids.urunA,
       planlanan_miktar: "8.0000",
       durum: "atanmamis",
       is_active: 1,
@@ -210,6 +211,7 @@ describeIntegration("gerçek veri satış siparişleri", () => {
       id: ids.bag,
       uretim_emri_id: ids.emir,
       siparis_kalem_id: kalemId,
+      miktar: "8.0000",
     });
     await db
       .update(siparisKalemleri)
@@ -217,7 +219,8 @@ describeIntegration("gerçek veri satış siparişleri", () => {
       .where(eq(siparisKalemleri.id, kalemId));
 
     const ozet = (await repoGetSiparisOzetleri([created.siparis.id])).get(created.siparis.id);
-    expect(ozet?.uretimeAktarilanKalemSayisi).toBe(1);
+    expect(ozet?.aktarilanMiktar).toBe(8);
+    expect(ozet?.kalanMiktar).toBe(0);
     expect(ozet?.kilitli).toBe(true);
 
     await expect(

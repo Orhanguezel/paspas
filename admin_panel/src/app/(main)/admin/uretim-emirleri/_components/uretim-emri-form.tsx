@@ -31,6 +31,7 @@ import {
   useGetNextEmirNoAdminQuery,
   useListUretimEmriAdaylariAdminQuery,
   useUpdateUretimEmriAdminMutation,
+  useUpdateMamulUretimEmriAdminMutation,
 } from '@/integrations/endpoints/admin/erp/uretim_emirleri_admin.endpoints';
 import { useGetUrunReceteAdminQuery, useListUrunlerAdminQuery } from '@/integrations/endpoints/admin/erp/urunler_admin.endpoints';
 import type { UretimEmriAdayDto, UretimEmriDto } from '@/integrations/shared/erp/uretim_emirleri.types';
@@ -74,7 +75,8 @@ export default function UretimEmriForm({ open, onClose, emri, initialKaynak = 's
   const [selectedKalemIds, setSelectedKalemIds] = useState<Set<string>>(new Set());
   const [create, createState] = useCreateUretimEmriAdminMutation();
   const [update, updateState] = useUpdateUretimEmriAdminMutation();
-  const loading = createState.isLoading || updateState.isLoading;
+  const [updateMamul, updateMamulState] = useUpdateMamulUretimEmriAdminMutation();
+  const loading = createState.isLoading || updateState.isLoading || updateMamulState.isLoading;
 
   const { data: urunlerData } = useListUrunlerAdminQuery({ limit: 500, kategori: 'urun' });
   const { data: adaylar = [] } = useListUretimEmriAdaylariAdminQuery();
@@ -229,7 +231,22 @@ export default function UretimEmriForm({ open, onClose, emri, initialKaynak = 's
     }
     try {
       if (isEdit && emri) {
-        await update({ id: emri.id, body: payload }).unwrap();
+        if (!emri.partiNo) throw new Error('parti_no_zorunlu');
+        await updateMamul({
+          partiNo: emri.partiNo,
+          mamulUrunId: emri.mamulUrunId,
+          planlananMiktar: values.planlananMiktar,
+        }).unwrap();
+        await update({
+          id: emri.id,
+          body: {
+            emirNo: values.emirNo,
+            siparisKalemIds: payload.siparisKalemIds,
+            musteriOzet: payload.musteriOzet,
+            musteriDetay: payload.musteriDetay,
+            terminTarihi: payload.terminTarihi,
+          },
+        }).unwrap();
         toast.success(t('admin.erp.common.updated', { item: t('admin.erp.uretimEmirleri.singular') }));
       } else {
         const result = await create(payload).unwrap();

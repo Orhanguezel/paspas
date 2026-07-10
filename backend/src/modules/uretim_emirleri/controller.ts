@@ -3,7 +3,7 @@ import type { FastifyReply, RouteHandler } from 'fastify';
 import { rowToDto } from './schema';
 import { repoCreate, repoDelete, repoGetById, repoGetHammaddeYeterlilik, repoGetNextEmirNo, repoGetOperasyonlar, repoGetUretimKarsilastirma, repoList, repoListAdaylar, repoUpdate } from './repository';
 import { checkHammaddeYeterlilik } from './hammadde_service';
-import { createUretimEmirleriFromSiparisKalemi, SiparisUretimEmirHatasi } from './service';
+import { createUretimEmirleriFromSiparisKalemi, SiparisUretimEmirHatasi, updateMamulEmri } from './service';
 import { createSchema, listQuerySchema, patchSchema } from './validation';
 import { z } from 'zod';
 import { getSiparisIdsByUretimEmriId, refreshSiparisDurum } from '@/modules/satis_siparisleri/repository';
@@ -78,6 +78,7 @@ export const createUretimEmri: RouteHandler = async (req, reply) => {
     const err = error as { code?: string; message?: string; detail?: string };
     if (err.code === 'ER_DUP_ENTRY') return reply.code(409).send({ error: { message: 'emir_no_zaten_var' } });
     if (err.message === 'urun_uyumsuzlugu') return reply.code(400).send({ error: { message: err.message, detail: err.detail } });
+    if (err.message === 'asiri_aktarim') return reply.code(400).send({ error: { message: err.message } });
     return sendInternalError(reply);
   }
 };
@@ -108,7 +109,10 @@ export const createUretimEmirleriFromSiparis: RouteHandler = async (req, reply) 
     if (error instanceof SiparisUretimEmirHatasi) {
       return reply.code(400).send({ error: { message: error.code, detay: error.detay } });
     }
-    const err = error as { code?: string };
+    const err = error as { code?: string; message?: string };
+    if (err.message === 'asiri_aktarim') {
+      return reply.code(400).send({ error: { message: err.message } });
+    }
     if (err.code === 'ER_DUP_ENTRY') {
       return reply.code(409).send({ error: { message: 'emir_no_zaten_var' } });
     }
@@ -133,7 +137,38 @@ export const updateUretimEmri: RouteHandler = async (req, reply) => {
     const err = error as { code?: string; message?: string; detail?: string };
     if (err.code === 'ER_DUP_ENTRY') return reply.code(409).send({ error: { message: 'emir_no_zaten_var' } });
     if (err.message === 'urun_uyumsuzlugu') return reply.code(400).send({ error: { message: err.message, detail: err.detail } });
+    if (err.message === 'asiri_aktarim') return reply.code(400).send({ error: { message: err.message } });
     if (err.message === 'uretim_emri_tamamlandi') return reply.code(409).send({ error: { message: err.message, detail: err.detail } });
+    return sendInternalError(reply);
+  }
+};
+
+const mamulMiktarPatchSchema = z.object({
+  partiNo: z.string().trim().min(1).max(32),
+  mamulUrunId: z.string().trim().min(8).max(36),
+  planlananMiktar: z.coerce.number().positive(),
+  siparisTahsisleri: z.array(z.object({
+    siparisKalemId: z.string().trim().min(8).max(36),
+    miktar: z.coerce.number().min(0),
+  })).optional(),
+});
+
+export const updateMamulUretimEmri: RouteHandler = async (req, reply) => {
+  try {
+    const parsed = mamulMiktarPatchSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
+    }
+    return reply.send(await updateMamulEmri(parsed.data.partiNo, parsed.data.mamulUrunId, {
+      planlananMiktar: parsed.data.planlananMiktar,
+      siparisTahsisleri: parsed.data.siparisTahsisleri,
+    }));
+  } catch (error: unknown) {
+    req.log.error({ error }, 'update_mamul_uretim_emri_failed');
+    const message = (error as Error).message;
+    if (message === 'mamul_emri_bulunamadi') return reply.code(404).send({ error: { message } });
+    if (message === 'uretim_emri_tamamlandi') return reply.code(409).send({ error: { message } });
+    if (message === 'urun_uyumsuzlugu' || message === 'asiri_aktarim') return reply.code(400).send({ error: { message } });
     return sendInternalError(reply);
   }
 };

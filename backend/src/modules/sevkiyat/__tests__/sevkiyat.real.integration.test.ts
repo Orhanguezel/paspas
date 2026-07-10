@@ -212,7 +212,7 @@ describeIntegration("gerçek veri sevkiyat", () => {
     expect(await getStock()).toEqual({ stok: 2, rezerveStok: 0 });
 
     satisDetail = await repoGetSatis(siparisId);
-    expect(satisDetail?.siparis.durum).toBe("tamamlandi");
+    expect(satisDetail?.siparis.durum).toBe("kapali");
     ozet = (await repoGetSiparisOzetleri([siparisId])).get(siparisId);
     expect(ozet?.sevkEdilenMiktar).toBe(10);
 

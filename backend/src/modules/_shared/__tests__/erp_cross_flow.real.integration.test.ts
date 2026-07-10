@@ -338,7 +338,7 @@ describeIntegration("gerçek veri çapraz ERP akışı", () => {
     });
 
     satisDetail = await repoGetSatis(siparis.siparis.id);
-    expect(satisDetail?.siparis.durum).toBe("tamamlandi");
+    expect(satisDetail?.siparis.durum).toBe("kapali");
     const ozet = (await repoGetSiparisOzetleri([siparis.siparis.id])).get(siparis.siparis.id);
     expect(ozet?.uretimTamamlananMiktar).toBe(10);
     expect(ozet?.sevkEdilenMiktar).toBe(10);

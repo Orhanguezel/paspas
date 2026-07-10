@@ -141,11 +141,11 @@ function ListRow({
       {/* Orta: Ürün adı + Operasyon adı — boşluğu dolduran alan */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 min-w-0">
-          {item.urunKod && (
-            <span className="hidden sm:inline shrink-0 font-mono text-xs text-muted-foreground">{item.urunKod}</span>
+          {item.mamulKod && (
+            <span className="hidden sm:inline shrink-0 font-mono text-xs text-muted-foreground">{item.mamulKod}</span>
           )}
           <span className="min-w-0 truncate font-bold uppercase text-xs">
-            {item.urunAd ?? item.operasyonAdi ?? '—'}
+            {item.mamulAd ?? item.urunAd ?? '—'}
           </span>
           {item.montaj && (
             <Badge variant="secondary" className="shrink-0 px-1.5 py-0 text-[10px] gap-0.5 bg-amber-100 text-amber-800 border-amber-300">
@@ -154,9 +154,9 @@ function ListRow({
             </Badge>
           )}
         </div>
-        {item.operasyonAdi && (
+        {(item.taraf || item.operasyonAdi) && (
           <div className="truncate text-xs text-muted-foreground leading-tight mt-0.5">
-            {item.operasyonAdi}
+            {item.taraf ? `${item.taraf.toLocaleUpperCase('tr-TR')} · ` : ''}{item.operasyonAdi}
           </div>
         )}
       </div>

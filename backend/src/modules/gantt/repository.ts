@@ -1,5 +1,6 @@
 import { and, asc, eq, gt, gte, inArray, like, lt, lte, ne, or, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/mysql-core';
 
 import { db } from '@/db/client';
 import { makineKuyrugu, makineler } from '@/modules/makine_havuzu/schema';
@@ -18,6 +19,8 @@ import {
 
 import type { GanttBarDto, GanttBlockDto, GanttMachineDto } from './schema';
 import type { ListQuery, PatchBody } from './validation';
+
+const mamulUrunler = alias(urunler, 'mamul_urunler');
 
 type QueryRow = {
   kuyrukId: string;
@@ -41,6 +44,9 @@ type QueryRow = {
   durum: string;
   urunKod: string | null;
   urunAd: string | null;
+  mamulKod: string | null;
+  mamulAd: string | null;
+  taraf: string | null;
   montaj: number | boolean | null;
   operasyonAdi: string | null;
   sira: number;
@@ -126,6 +132,9 @@ export async function repoList(query: ListQuery): Promise<{ items: GanttMachineD
         durum: makineKuyrugu.durum,
         urunKod: urunler.kod,
         urunAd: urunler.ad,
+        mamulKod: mamulUrunler.kod,
+        mamulAd: mamulUrunler.ad,
+        taraf: uretimEmirleri.taraf,
         montaj: uretimEmriOperasyonlari.montaj,
         operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
         sira: makineKuyrugu.sira,
@@ -135,6 +144,7 @@ export async function repoList(query: ListQuery): Promise<{ items: GanttMachineD
       .innerJoin(makineler, eq(makineKuyrugu.makine_id, makineler.id))
       .innerJoin(uretimEmirleri, eq(makineKuyrugu.uretim_emri_id, uretimEmirleri.id))
       .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+      .innerJoin(mamulUrunler, eq(uretimEmirleri.mamul_urun_id, mamulUrunler.id))
       .leftJoin(uretimEmriOperasyonlari, eq(makineKuyrugu.emir_operasyon_id, uretimEmriOperasyonlari.id))
       .leftJoin(uretimEmriSiparisKalemleri, eq(uretimEmirleri.id, uretimEmriSiparisKalemleri.uretim_emri_id))
       .leftJoin(siparisKalemleri, eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemleri.id))
@@ -153,6 +163,7 @@ export async function repoList(query: ListQuery): Promise<{ items: GanttMachineD
         makineKuyrugu.emir_operasyon_id,
         uretimEmirleri.id,
         urunler.id,
+        mamulUrunler.id,
         uretimEmriOperasyonlari.id,
       ),
     db
@@ -434,6 +445,9 @@ function rowToDto(
     urunId: row.urun_id,
     urunKod: row.urunKod ?? null,
     urunAd: row.urunAd ?? null,
+    mamulKod: row.mamulKod ?? null,
+    mamulAd: row.mamulAd ?? null,
+    taraf: row.taraf ?? null,
     musteriOzet: row.musteri_ozet ?? null,
     operasyonAdi: row.operasyonAdi ?? null,
     montaj: Number(row.montaj ?? 0) > 0,
@@ -488,6 +502,9 @@ export async function repoGetById(id: string): Promise<GanttBarDto | null> {
       durum: makineKuyrugu.durum,
       urunKod: urunler.kod,
       urunAd: urunler.ad,
+      mamulKod: mamulUrunler.kod,
+      mamulAd: mamulUrunler.ad,
+      taraf: uretimEmirleri.taraf,
       montaj: uretimEmriOperasyonlari.montaj,
       operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
       sira: makineKuyrugu.sira,
@@ -496,6 +513,7 @@ export async function repoGetById(id: string): Promise<GanttBarDto | null> {
     .innerJoin(makineler, eq(makineKuyrugu.makine_id, makineler.id))
     .innerJoin(uretimEmirleri, eq(makineKuyrugu.uretim_emri_id, uretimEmirleri.id))
     .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+    .innerJoin(mamulUrunler, eq(uretimEmirleri.mamul_urun_id, mamulUrunler.id))
     .leftJoin(uretimEmriOperasyonlari, eq(makineKuyrugu.emir_operasyon_id, uretimEmriOperasyonlari.id))
     .leftJoin(uretimEmriSiparisKalemleri, eq(uretimEmirleri.id, uretimEmriSiparisKalemleri.uretim_emri_id))
     .leftJoin(siparisKalemleri, eq(uretimEmriSiparisKalemleri.siparis_kalem_id, siparisKalemleri.id))
@@ -511,6 +529,7 @@ export async function repoGetById(id: string): Promise<GanttBarDto | null> {
       makineKuyrugu.emir_operasyon_id,
       uretimEmirleri.id,
       urunler.id,
+      mamulUrunler.id,
       uretimEmriOperasyonlari.id,
     )
     .limit(1) as QueryRow[];

@@ -9,7 +9,7 @@ import { urunler, urunOperasyonlari, hammaddeRezervasyonlari } from "@/modules/u
 
 import { uretimEmirleri, uretimEmriOperasyonlari, uretimEmriSiparisKalemleri } from "../schema";
 import { repoGetHammaddeYeterlilik } from "../repository";
-import { createUretimEmirleriFromSiparisKalemi, SiparisUretimEmirHatasi } from "../service";
+import { createUretimEmirleriFromSiparisKalemi, SiparisUretimEmirHatasi, updateMamulEmri } from "../service";
 
 const runIntegration = process.env.RUN_DB_INTEGRATION === "1";
 const describeIntegration = runIntegration ? describe : describe.skip;
@@ -247,7 +247,7 @@ describeIntegration("siparisten uretime DB integration", () => {
 
     const byProduct = new Map(results.map((result) => [result.row.urun_id, result.row]));
     expect(Number(byProduct.get(ids.oymSag)?.planlanan_miktar)).toBe(10);
-    expect(Number(byProduct.get(ids.oymSol)?.planlanan_miktar)).toBe(20);
+    expect(Number(byProduct.get(ids.oymSol)?.planlanan_miktar)).toBe(10);
 
     for (const row of byProduct.values()) {
       expect(row.siparisKalemIds).toEqual([ids.siparisKalem]);
@@ -270,7 +270,7 @@ describeIntegration("siparisten uretime DB integration", () => {
       operasyonAdi: row.operasyon_adi,
     })).sort((a, b) => a.operasyonAdi.localeCompare(b.operasyonAdi))).toEqual([
       { urunOperasyonId: ids.opSag, planlananMiktar: 10, operasyonAdi: "IT Sağ Baskı" },
-      { urunOperasyonId: ids.opSol, planlananMiktar: 20, operasyonAdi: "IT Sol Baskı" },
+      { urunOperasyonId: ids.opSol, planlananMiktar: 10, operasyonAdi: "IT Sol Baskı" },
     ].sort((a, b) => a.operasyonAdi.localeCompare(b.operasyonAdi)));
 
     const rezervasyonRows = await db
@@ -288,7 +288,7 @@ describeIntegration("siparisten uretime DB integration", () => {
       durum: row.durum,
     })).sort((a, b) => a.urunId.localeCompare(b.urunId))).toEqual([
       { urunId: ids.hammaddeSag, miktar: 40, durum: "rezerve" },
-      { urunId: ids.hammaddeSol, miktar: 100, durum: "rezerve" },
+      { urunId: ids.hammaddeSol, miktar: 50, durum: "rezerve" },
     ].sort((a, b) => a.urunId.localeCompare(b.urunId)));
 
     const stokRows = await db
@@ -300,7 +300,7 @@ describeIntegration("siparisten uretime DB integration", () => {
     expect(Number(stokById.get(ids.hammaddeSag)?.stok)).toBe(100);
     expect(Number(stokById.get(ids.hammaddeSag)?.rezerveStok)).toBe(40);
     expect(Number(stokById.get(ids.hammaddeSol)?.stok)).toBe(100);
-    expect(Number(stokById.get(ids.hammaddeSol)?.rezerveStok)).toBe(100);
+    expect(Number(stokById.get(ids.hammaddeSol)?.rezerveStok)).toBe(50);
 
     const [updatedKalem] = await db
       .select({ uretimDurumu: siparisKalemleri.uretim_durumu })
@@ -337,16 +337,52 @@ describeIntegration("siparisten uretime DB integration", () => {
     );
   });
 
-  it("rejects duplicate transfer for the same sales order line", async () => {
+  it("updates both sides and their operations with one mamul quantity change", async () => {
+    const results = await createUretimEmirleriFromSiparisKalemi(ids.siparisKalem, {
+      partiNo: "UP-IT-GRUP-001",
+    });
+
+    await updateMamulEmri("UP-IT-GRUP-001", ids.asil, { planlananMiktar: 12 });
+
+    const emirIds = results.map((result) => result.row.id);
+    const [emirRows, operasyonRows] = await Promise.all([
+      db.select({ miktar: uretimEmirleri.planlanan_miktar })
+        .from(uretimEmirleri).where(inArray(uretimEmirleri.id, emirIds)),
+      db.select({ miktar: uretimEmriOperasyonlari.planlanan_miktar })
+        .from(uretimEmriOperasyonlari).where(inArray(uretimEmriOperasyonlari.uretim_emri_id, emirIds)),
+    ]);
+    expect(emirRows.map((row) => Number(row.miktar))).toEqual([12, 12]);
+    expect(operasyonRows.map((row) => Number(row.miktar)).sort()).toEqual([12, 12]);
+  });
+
+  it("allows partial allocation again up to the remaining quantity", async () => {
+    await createUretimEmirleriFromSiparisKalemi(ids.siparisKalem, {
+      miktarOverride: 4,
+      partiNo: "UP-IT-KISMI-001",
+    });
+    await createUretimEmirleriFromSiparisKalemi(ids.siparisKalem, {
+      miktarOverride: 6,
+      partiNo: "UP-IT-KISMI-002",
+    });
+
+    const [allocation] = await db
+      .select({ toplam: sql<string>`SUM(${uretimEmriSiparisKalemleri.miktar})` })
+      .from(uretimEmriSiparisKalemleri)
+      .where(eq(uretimEmriSiparisKalemleri.siparis_kalem_id, ids.siparisKalem));
+    expect(Number(allocation?.toplam)).toBe(10);
+    await expect(createUretimEmirleriFromSiparisKalemi(ids.siparisKalem, {
+      miktarOverride: 1,
+      partiNo: "UP-IT-KISMI-003",
+    })).rejects.toThrow("asiri_aktarim");
+  });
+
+  it("rejects allocation beyond the remaining sales order quantity", async () => {
     await createUretimEmirleriFromSiparisKalemi(ids.siparisKalem, {
       baslangicTarihi: "2026-04-30",
       bitisTarihi: "2026-05-02",
     });
 
-    await expect(createUretimEmirleriFromSiparisKalemi(ids.siparisKalem)).rejects.toMatchObject({
-      name: "SiparisUretimEmirHatasi",
-      code: "siparis_kalemi_zaten_uretime_aktarildi",
-    } satisfies Partial<SiparisUretimEmirHatasi>);
+    await expect(createUretimEmirleriFromSiparisKalemi(ids.siparisKalem)).rejects.toThrow("asiri_aktarim");
 
     const linkedRows = await db
       .select({ uretimEmriId: uretimEmriSiparisKalemleri.uretim_emri_id })

@@ -49,6 +49,7 @@ export type EnrichedSiparisKalemRow = SiparisKalemRow & {
   urun_kod?: string | null;
   kdv_orani?: string | null;
   uretim_durumu?: string;
+  aktarilan_miktar?: number | string | null;
 };
 
 export type SiparisKalemDto = {
@@ -58,6 +59,8 @@ export type SiparisKalemDto = {
   urunKod: string | null;
   kdvOrani: number;
   miktar: number;
+  aktarilanMiktar: number;
+  kalanMiktar: number;
   birimFiyat: number;
   sevkEdilenMiktar: number;
   sira: number;
@@ -83,7 +86,8 @@ export type SatisSiparisDto = {
   kalemSayisi: number;
   toplamMiktar: number;
   toplamFiyat: number;
-  uretimeAktarilanKalemSayisi: number;
+  aktarilanMiktar: number;
+  kalanMiktar: number;
   uretimPlanlananMiktar: number;
   uretimTamamlananMiktar: number;
   sevkEdilenMiktar: number;
@@ -93,8 +97,8 @@ export type SatisSiparisDto = {
   items?: SiparisKalemDto[];
 };
 
-export function computeUretimDurumu(o: { uretimeAktarilanKalemSayisi: number; uretimPlanlananMiktar: number; uretimTamamlananMiktar: number }): UretimDurumu {
-  if (o.uretimeAktarilanKalemSayisi === 0) return 'beklemede';
+export function computeUretimDurumu(o: { aktarilanMiktar: number; uretimPlanlananMiktar: number; uretimTamamlananMiktar: number }): UretimDurumu {
+  if (o.aktarilanMiktar <= 0) return 'beklemede';
   if (o.uretimPlanlananMiktar > 0 && o.uretimTamamlananMiktar >= o.uretimPlanlananMiktar) return 'tamamlandi';
   if (o.uretimTamamlananMiktar > 0) return 'uretimde';
   return 'planlandi';
@@ -128,7 +132,8 @@ export function siparisRowToDto(row: EnrichedSatisSiparisRow): SatisSiparisDto {
     isActive: row.is_active === 1,
     kalemSayisi: 0,
     toplamMiktar: 0,
-    uretimeAktarilanKalemSayisi: 0,
+    aktarilanMiktar: 0,
+    kalanMiktar: 0,
     uretimPlanlananMiktar: 0,
     uretimTamamlananMiktar: 0,
     sevkEdilenMiktar: 0,
@@ -140,13 +145,17 @@ export function siparisRowToDto(row: EnrichedSatisSiparisRow): SatisSiparisDto {
 }
 
 export function siparisKalemRowToDto(row: EnrichedSiparisKalemRow): SiparisKalemDto {
+  const miktar = Number(row.miktar ?? 0);
+  const aktarilanMiktar = Number(row.aktarilan_miktar ?? 0);
   return {
     id: row.id,
     urunId: row.urun_id,
     urunAd: row.urun_ad ?? null,
     urunKod: row.urun_kod ?? null,
     kdvOrani: Number(row.kdv_orani ?? 20),
-    miktar: Number(row.miktar ?? 0),
+    miktar,
+    aktarilanMiktar,
+    kalanMiktar: Math.max(0, miktar - aktarilanMiktar),
     birimFiyat: Number(row.birim_fiyat ?? 0),
     sevkEdilenMiktar: 0,
     sira: row.sira,

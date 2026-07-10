@@ -7,6 +7,9 @@ export type IsYukuDto = {
   emirNo: string;
   urunKod: string | null;
   urunAd: string | null;
+  mamulKod: string | null;
+  mamulAd: string | null;
+  taraf: string | null;
   operasyonAdi: string | null;
   musteriAd: string | null;
   sira: number;

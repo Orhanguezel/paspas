@@ -12,6 +12,9 @@ export interface IsYukuDto {
   emirNo: string;
   urunKod: string | null;
   urunAd: string | null;
+  mamulKod: string | null;
+  mamulAd: string | null;
+  taraf: string | null;
   operasyonAdi: string | null;
   musteriAd: string | null;
   sira: number;
@@ -76,6 +79,9 @@ export function normalizeIsYuku(raw: unknown): IsYukuDto {
     emirNo: toStr(r.emirNo),
     urunKod: r.urunKod != null ? toStr(r.urunKod) : null,
     urunAd: r.urunAd != null ? toStr(r.urunAd) : null,
+    mamulKod: r.mamulKod != null ? toStr(r.mamulKod) : null,
+    mamulAd: r.mamulAd != null ? toStr(r.mamulAd) : null,
+    taraf: r.taraf != null ? toStr(r.taraf) : null,
     operasyonAdi: r.operasyonAdi != null ? toStr(r.operasyonAdi) : null,
     musteriAd: r.musteriAd != null ? toStr(r.musteriAd) : null,
     sira: toNum(r.sira),

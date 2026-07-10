@@ -15,6 +15,8 @@ export interface SiparisKalemDto {
   urunKod: string | null;
   kdvOrani: number;
   miktar: number;
+  aktarilanMiktar: number;
+  kalanMiktar: number;
   birimFiyat: number;
   uretilenMiktar: number;
   sevkEdilenMiktar: number;
@@ -35,6 +37,8 @@ export interface SiparisIslemSatiri {
   urunStok: number;
   urunBirim: string;
   miktar: number;
+  aktarilanMiktar: number;
+  kalanMiktar: number;
   uretilenMiktar: number;
   uretimKalanMiktar: number;
   birimFiyat: number;
@@ -63,7 +67,8 @@ export interface SatisSiparisDto {
   kalemSayisi: number;
   toplamMiktar: number;
   toplamFiyat: number;
-  uretimeAktarilanKalemSayisi: number;
+  aktarilanMiktar: number;
+  kalanMiktar: number;
   uretimPlanlananMiktar: number;
   uretimTamamlananMiktar: number;
   sevkEdilenMiktar: number;
@@ -196,6 +201,8 @@ export function normalizeSiparisKalem(raw: unknown): SiparisKalemDto {
     urunKod:    r.urunKod != null ? toStr(r.urunKod) : null,
     kdvOrani:   toNum(r.kdvOrani, 20),
     miktar:     toNum(r.miktar),
+    aktarilanMiktar: toNum(r.aktarilanMiktar),
+    kalanMiktar: toNum(r.kalanMiktar),
     birimFiyat: toNum(r.birimFiyat),
     uretilenMiktar: toNum(r.uretilenMiktar),
     sevkEdilenMiktar: toNum(r.sevkEdilenMiktar),
@@ -223,7 +230,8 @@ export function normalizeSatisSiparis(raw: unknown): SatisSiparisDto {
     kalemSayisi:   toNum(r.kalemSayisi),
     toplamMiktar:  toNum(r.toplamMiktar),
     toplamFiyat:   toNum(r.toplamFiyat),
-    uretimeAktarilanKalemSayisi: toNum(r.uretimeAktarilanKalemSayisi),
+    aktarilanMiktar: toNum(r.aktarilanMiktar),
+    kalanMiktar: toNum(r.kalanMiktar),
     uretimPlanlananMiktar: toNum(r.uretimPlanlananMiktar),
     uretimTamamlananMiktar: toNum(r.uretimTamamlananMiktar),
     sevkEdilenMiktar: toNum(r.sevkEdilenMiktar),

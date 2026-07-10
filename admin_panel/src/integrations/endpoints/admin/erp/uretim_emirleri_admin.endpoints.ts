@@ -80,6 +80,23 @@ export const uretimEmirleriAdminApi = baseApi.injectEndpoints({
       ],
     }),
 
+    updateMamulUretimEmriAdmin: b.mutation<
+      { emirIds: string[]; planlananMiktar: number },
+      {
+        partiNo: string;
+        mamulUrunId: string;
+        planlananMiktar: number;
+        siparisTahsisleri?: Array<{ siparisKalemId: string; miktar: number }>;
+      }
+    >({
+      query: (body) => ({ url: `${BASE}/mamul`, method: 'PATCH', body }),
+      invalidatesTags: [
+        { type: 'UretimEmirleri', id: 'LIST' },
+        { type: 'MakineKuyrugu', id: 'ATANMAMIS' },
+        { type: 'MakineKuyrugu', id: 'KUYRUKLAR' },
+      ],
+    }),
+
     checkHammaddeAdmin: b.query<HammaddeKontrolResponse, string>({
       query: (id) => ({ url: `${BASE}/${id}/hammadde-kontrol` }),
     }),
@@ -129,6 +146,7 @@ export const {
   useGetNextEmirNoAdminQuery,
   useCreateUretimEmriAdminMutation,
   useUpdateUretimEmriAdminMutation,
+  useUpdateMamulUretimEmriAdminMutation,
   useDeleteUretimEmriAdminMutation,
   useLazyCheckHammaddeAdminQuery,
   useLazyGetUretimKarsilastirmaAdminQuery,

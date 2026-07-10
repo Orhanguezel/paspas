@@ -7,9 +7,12 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
+import type { MySql2Database } from 'drizzle-orm/mysql2';
 import { makineKuyrugu, makineler } from '@/modules/makine_havuzu/schema';
 import { uretimEmriOperasyonlari } from '@/modules/uretim_emirleri/schema';
 import { tatiller, haftaSonuPlanlari } from '@/modules/tanimlar/schema';
+
+type TxOrDb = MySql2Database<any> | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 // ── Sabitler ──────────────────────────────────────────────────────────
 
@@ -39,8 +42,8 @@ export type Segment = { baslangic: Date; bitis: Date };
 
 // ── On-bellek: tatil ve hafta sonu verilerini toplu cek ──────────────
 
-async function loadHolidays(): Promise<HolidaySet> {
-  const rows = await db
+async function loadHolidays(conn: TxOrDb = db): Promise<HolidaySet> {
+  const rows = await conn
     .select({ tarih: tatiller.tarih })
     .from(tatiller);
   const set = new Set<string>();
@@ -55,8 +58,8 @@ async function loadHolidays(): Promise<HolidaySet> {
   return set;
 }
 
-async function loadWeekendPlans(): Promise<WeekendPlanMap> {
-  const rows = await db
+async function loadWeekendPlans(conn: TxOrDb = db): Promise<WeekendPlanMap> {
+  const rows = await conn
     .select({
       haftaBaslangic: haftaSonuPlanlari.hafta_baslangic,
       makineId: haftaSonuPlanlari.makine_id,
@@ -334,9 +337,9 @@ export async function isMakineWorkingDay(makineId: string, date: Date): Promise<
  * - Sira numarasi (kuyruk sirasi)
  * - Calisan isin gercek baslangici
  */
-export async function recalcMakineKuyrukTarihleri(makineId: string): Promise<void> {
+export async function recalcMakineKuyrukTarihleri(makineId: string, conn: TxOrDb = db): Promise<void> {
   // 1. Makine bilgisini al
-  const [makine] = await db
+  const [makine] = await conn
     .select({
       calisir24Saat: makineler.calisir_24_saat,
     })
@@ -353,7 +356,7 @@ export async function recalcMakineKuyrukTarihleri(makineId: string): Promise<voi
   };
 
   // 2. Kuyruktaki aktif isleri al
-  const items = await db
+  const items = await conn
     .select({
       id: makineKuyrugu.id,
       sira: makineKuyrugu.sira,
@@ -378,8 +381,8 @@ export async function recalcMakineKuyrukTarihleri(makineId: string): Promise<voi
   if (items.length === 0) return;
 
   // 3. Tatil ve hafta sonu verilerini toplu cek (N+1 sorgu onlemi)
-  const holidays = await loadHolidays();
-  const weekendPlans = await loadWeekendPlans();
+  const holidays = await loadHolidays(conn);
+  const weekendPlans = await loadWeekendPlans(conn);
 
   // 4. Cursor: simdiki zaman, is basina ayarla
   let cursor = skipToNextWorkingDay(new Date(), makineId, config, holidays, weekendPlans);
@@ -406,7 +409,7 @@ export async function recalcMakineKuyrukTarihleri(makineId: string): Promise<voi
     }
 
     // Kuyruk kaydini guncelle
-    await db
+    await conn
       .update(makineKuyrugu)
       .set({
         planlanan_baslangic: baslangic,
@@ -416,7 +419,7 @@ export async function recalcMakineKuyrukTarihleri(makineId: string): Promise<voi
 
     // Emir operasyonunu da guncelle
     if (item.emirOperasyonId) {
-      await db
+      await conn
         .update(uretimEmriOperasyonlari)
         .set({
           planlanan_baslangic: baslangic,

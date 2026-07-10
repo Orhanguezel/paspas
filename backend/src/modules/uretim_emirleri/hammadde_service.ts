@@ -3,9 +3,12 @@ import { randomUUID } from 'node:crypto';
 import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
+import type { MySql2Database } from 'drizzle-orm/mysql2';
 import { hareketler } from '@/modules/hareketler/schema';
 import { receteler, receteKalemleri } from '@/modules/receteler/schema';
 import { urunler, hammaddeRezervasyonlari } from '@/modules/urunler/schema';
+
+type TxOrDb = MySql2Database<any> | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 type RezervasyonKalem = {
   urunId: string;
@@ -83,8 +86,9 @@ export function previewStokGeriAlSonrasi(state: StokAkisState, miktar: number): 
 async function getReceteIhtiyaclari(
   receteId: string,
   planlananMiktar: number,
+  conn: TxOrDb = db,
 ): Promise<RezervasyonKalem[]> {
-  const [recete] = await db
+  const [recete] = await conn
     .select({ hedefMiktar: receteler.hedef_miktar })
     .from(receteler)
     .where(eq(receteler.id, receteId))
@@ -94,7 +98,7 @@ async function getReceteIhtiyaclari(
 
   const hedefMiktar = Number(recete.hedefMiktar ?? 1);
 
-  const kalemRows = await db
+  const kalemRows = await conn
     .select({
       urunId: receteKalemleri.urun_id,
       miktar: receteKalemleri.miktar,
@@ -117,15 +121,17 @@ export async function rezerveHammaddeler(
   uretimEmriId: string,
   receteId: string | undefined,
   planlananMiktar: number,
+  conn?: TxOrDb,
 ): Promise<HammaddeUyari[]> {
   if (!receteId) return [];
 
-  const ihtiyaclar = await getReceteIhtiyaclari(receteId, planlananMiktar);
+  const activeConn = conn ?? db;
+  const ihtiyaclar = await getReceteIhtiyaclari(receteId, planlananMiktar, activeConn);
   if (ihtiyaclar.length === 0) return [];
 
   // Stok bilgilerini çek — uyarı üretmek için
   const urunIds = ihtiyaclar.map((k) => k.urunId);
-  const stokRows = await db
+  const stokRows = await activeConn
     .select({
       id: urunler.id,
       ad: urunler.ad,
@@ -141,7 +147,7 @@ export async function rezerveHammaddeler(
 
   const uyarilar: HammaddeUyari[] = [];
 
-  await db.transaction(async (tx) => {
+  const write = async (tx: TxOrDb) => {
     for (const kalem of ihtiyaclar) {
       const info = stokMap.get(kalem.urunId);
       const stokTakipAktif = info?.stokTakipAktif !== 0;
@@ -180,7 +186,9 @@ export async function rezerveHammaddeler(
         }
       }
     }
-  });
+  };
+  if (conn) await write(conn);
+  else await db.transaction(write);
 
   return uyarilar;
 }
@@ -190,8 +198,9 @@ export async function rezerveHammaddeler(
  * - urunler.rezerve_stok azaltılır
  * - hammadde_rezervasyonlari durumu 'iptal' yapılır
  */
-export async function iptalRezervasyon(uretimEmriId: string): Promise<void> {
-  const rezervasyonlar = await db
+export async function iptalRezervasyon(uretimEmriId: string, conn?: TxOrDb): Promise<void> {
+  const activeConn = conn ?? db;
+  const rezervasyonlar = await activeConn
     .select()
     .from(hammaddeRezervasyonlari)
     .where(
@@ -203,7 +212,7 @@ export async function iptalRezervasyon(uretimEmriId: string): Promise<void> {
 
   if (rezervasyonlar.length === 0) return;
 
-  await db.transaction(async (tx) => {
+  const write = async (tx: TxOrDb) => {
     for (const rez of rezervasyonlar) {
       const [urun] = await tx
         .select({ stokTakipAktif: urunler.stok_takip_aktif })
@@ -231,7 +240,9 @@ export async function iptalRezervasyon(uretimEmriId: string): Promise<void> {
           eq(hammaddeRezervasyonlari.durum, 'rezerve'),
         ),
       );
-  });
+  };
+  if (conn) await write(conn);
+  else await db.transaction(write);
 }
 
 /**

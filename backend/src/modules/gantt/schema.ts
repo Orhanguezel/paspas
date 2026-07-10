@@ -8,6 +8,9 @@ export type GanttBarDto = {
   urunId: string;
   urunKod: string | null;
   urunAd: string | null;
+  mamulKod: string | null;
+  mamulAd: string | null;
+  taraf: string | null;
   musteriOzet: string | null;
   operasyonAdi: string | null;
   montaj: boolean;

@@ -140,6 +140,7 @@ export function ReceteDetayModal({ emirId, onOpenChange }: Props) {
                                   <div className="flex items-center gap-5 py-1">
                                     <button
                                       type="button"
+                                      aria-label={`${kalem.malzemeAd ?? "Malzeme"} görselini büyüt`}
                                       className="size-16 shrink-0 overflow-hidden rounded-xl border bg-white transition-all group-hover:border-primary/40 hover:border-primary shadow-sm relative group/btn"
                                       onClick={() => kalem.malzemeGorselUrl && setPreviewUrl(kalem.malzemeGorselUrl)}
                                       disabled={!kalem.malzemeGorselUrl}
@@ -209,6 +210,9 @@ export function ReceteDetayModal({ emirId, onOpenChange }: Props) {
       </DialogContent>
       <Dialog open={!!previewUrl} onOpenChange={(open) => !open && setPreviewUrl(null)}>
         <DialogContent className="max-w-5xl bg-black/90 border-none shadow-2xl p-0 overflow-hidden">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Malzeme Görseli</DialogTitle>
+          </DialogHeader>
           {previewUrl && (
             <div className="relative flex items-center justify-center min-h-[50vh]">
               <img 

@@ -82,6 +82,11 @@ describe("uretim_emirleri validation", () => {
       expect(invalid.error.issues.some((issue) => issue.message === "manuel_durum_guncelleme_desteklenmiyor")).toBe(true);
     }
   });
+
+  it("rejects single-order planned quantity updates", () => {
+    const parsed = patchSchema.safeParse({ planlananMiktar: 2250 });
+    expect(parsed.success).toBe(false);
+  });
 });
 
 describe("uretim_emirleri controller", () => {

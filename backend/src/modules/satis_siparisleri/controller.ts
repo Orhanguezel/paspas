@@ -42,7 +42,8 @@ export const listSatisSiparisleri: RouteHandler = async (req, reply) => {
         kalemSayisi: 0,
         toplamMiktar: 0,
         toplamFiyat: 0,
-        uretimeAktarilanKalemSayisi: 0,
+        aktarilanMiktar: 0,
+        kalanMiktar: 0,
         uretimPlanlananMiktar: 0,
         uretimTamamlananMiktar: 0,
         sevkEdilenMiktar: 0,
@@ -68,7 +69,7 @@ export const getSatisSiparisi: RouteHandler = async (req, reply) => {
     if (!detail) return reply.code(404).send({ error: { message: 'satis_siparisi_bulunamadi' } });
     const dto = siparisRowToDto(detail.siparis);
     const ozet = (await repoGetSiparisOzetleri([id])).get(id) ?? {
-      kalemSayisi: 0, toplamMiktar: 0, uretimeAktarilanKalemSayisi: 0,
+      kalemSayisi: 0, toplamMiktar: 0, aktarilanMiktar: 0, kalanMiktar: 0,
       uretimPlanlananMiktar: 0, uretimTamamlananMiktar: 0, sevkEdilenMiktar: 0, kilitli: false,
     };
     Object.assign(dto, ozet, {
@@ -110,7 +111,7 @@ export const createSatisSiparisi: RouteHandler = async (req, reply) => {
     const detail = await repoCreate(parsed.data);
     const dto = siparisRowToDto(detail.siparis);
     const ozet = (await repoGetSiparisOzetleri([dto.id])).get(dto.id) ?? {
-      kalemSayisi: 0, toplamMiktar: 0, uretimeAktarilanKalemSayisi: 0,
+      kalemSayisi: 0, toplamMiktar: 0, aktarilanMiktar: 0, kalanMiktar: 0,
       uretimPlanlananMiktar: 0, uretimTamamlananMiktar: 0, sevkEdilenMiktar: 0, kilitli: false,
     };
     Object.assign(dto, ozet, {
@@ -139,7 +140,7 @@ export const updateSatisSiparisi: RouteHandler = async (req, reply) => {
     if (!detail) return reply.code(404).send({ error: { message: 'satis_siparisi_bulunamadi' } });
     const dto = siparisRowToDto(detail.siparis);
     const ozet = (await repoGetSiparisOzetleri([dto.id])).get(dto.id) ?? {
-      kalemSayisi: 0, toplamMiktar: 0, uretimeAktarilanKalemSayisi: 0,
+      kalemSayisi: 0, toplamMiktar: 0, aktarilanMiktar: 0, kalanMiktar: 0,
       uretimPlanlananMiktar: 0, uretimTamamlananMiktar: 0, sevkEdilenMiktar: 0, kilitli: false,
     };
     Object.assign(dto, ozet, {
@@ -222,7 +223,7 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
       ? await db
         .select({
           kalemId: uretimEmriSiparisKalemleri.siparis_kalem_id,
-          count: sql<number>`count(distinct ${uretimEmirleri.id})`,
+          aktarilanMiktar: sql<string>`coalesce(sum(${uretimEmriSiparisKalemleri.miktar}), 0)`,
         })
         .from(uretimEmriSiparisKalemleri)
         .innerJoin(uretimEmirleri, eq(uretimEmriSiparisKalemleri.uretim_emri_id, uretimEmirleri.id))
@@ -235,12 +236,16 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
         )
         .groupBy(uretimEmriSiparisKalemleri.siparis_kalem_id)
       : [];
-    const activeKalemIds = new Set(activeLinks.map((row) => row.kalemId));
+    const aktarilanMap = new Map(activeLinks.map((row) => [row.kalemId, Number(row.aktarilanMiktar ?? 0)]));
 
-    // Sadece beklemede olan ve aktif üretim emri bulunmayanlar aktarilir; digerleri sessizce atlanir.
     const aktarilacaklar = kalemRows
-      .filter((k) => k.uretimDurumu === 'beklemede' && !activeKalemIds.has(k.id))
-      .map((k) => ({ ...k, aktarilacakMiktar: Math.min(Number(k.miktar), kalemMiktarMap.get(k.id) ?? Number(k.miktar)) }));
+      .map((k) => {
+        const kalanMiktar = Math.max(0, Number(k.miktar) - (aktarilanMap.get(k.id) ?? 0));
+        const aktarilacakMiktar = kalemMiktarMap.get(k.id) ?? kalanMiktar;
+        if (aktarilacakMiktar > kalanMiktar + 1e-9) throw new Error('asiri_aktarim');
+        return { ...k, aktarilacakMiktar, kalanMiktar };
+      })
+      .filter((k) => k.aktarilacakMiktar > 0 && k.kalanMiktar > 0);
     let atlananSayisi = kalemRows.length - aktarilacaklar.length;
 
     if (aktarilacaklar.length === 0 && (parsed.data.manuelEmirler?.length ?? 0) === 0) {
@@ -283,6 +288,7 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
           uretilenMiktar: 0,
           durum: 'atanmamis',
           siparisKalemIds: [k.id],
+          siparisTahsisleri: [{ siparisKalemId: k.id, miktar: k.aktarilacakMiktar }],
           musteriOzet: k.musteriAd,
         });
         olusturulanEmirler.push(result.row.emir_no);
@@ -315,6 +321,9 @@ export const uretimeAktar: RouteHandler = async (req, reply) => {
     });
   } catch (error) {
     req.log.error({ error }, 'uretime_aktar_failed');
+    if ((error as Error).message === 'asiri_aktarim') {
+      return reply.code(400).send({ error: { message: 'asiri_aktarim' } });
+    }
     return sendInternalError(reply);
   }
 };

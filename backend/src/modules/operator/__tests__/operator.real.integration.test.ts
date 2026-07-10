@@ -165,6 +165,7 @@ async function seed() {
     id: ids.emir,
     emir_no: codes.emir,
     urun_id: ids.urun,
+    mamul_urun_id: ids.urun,
     recete_id: ids.recete,
     planlanan_miktar: "20.0000",
     uretilen_miktar: "0.0000",
