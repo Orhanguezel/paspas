@@ -37,6 +37,7 @@ SET @stmt := IF(
   @coklu_kalemli_emir_sayisi = 0,
   'UPDATE `uretim_emri_siparis_kalemleri` uesk
    JOIN `uretim_emirleri` ue ON ue.`id` = uesk.`uretim_emri_id`
+   JOIN `siparis_kalemleri` sk ON sk.`id` = uesk.`siparis_kalem_id`
    JOIN (
      SELECT uesk2.`siparis_kalem_id`, ue2.`parti_no`, ue2.`mamul_urun_id`, MIN(ue2.`id`) AS `tasiyici_emir_id`
      FROM `uretim_emri_siparis_kalemleri` uesk2
@@ -46,7 +47,7 @@ SET @stmt := IF(
      ON tasiyici.`siparis_kalem_id` = uesk.`siparis_kalem_id`
     AND tasiyici.`parti_no` <=> ue.`parti_no`
     AND tasiyici.`mamul_urun_id` = ue.`mamul_urun_id`
-   SET uesk.`miktar` = IF(ue.`id` = tasiyici.`tasiyici_emir_id`, ue.`planlanan_miktar`, 0)
+   SET uesk.`miktar` = IF(ue.`id` = tasiyici.`tasiyici_emir_id`, LEAST(ue.`planlanan_miktar`, sk.`miktar`), 0)
    WHERE uesk.`miktar` = 0',
   'SELECT 1'
 );
