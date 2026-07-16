@@ -38,6 +38,7 @@ export const durusKayitlari = mysqlTable('durus_kayitlari', {
   id: char('id', { length: 36 }).primaryKey().notNull(),
   makine_id: char('makine_id', { length: 36 }).notNull(),
   makine_kuyruk_id: char('makine_kuyruk_id', { length: 36 }),
+  vardiya_kayit_id: char('vardiya_kayit_id', { length: 36 }),
   operator_user_id: char('operator_user_id', { length: 36 }),
   durus_nedeni_id: char('durus_nedeni_id', { length: 36 }),
   durus_tipi: varchar('durus_tipi', { length: 32 }).notNull().default('ariza'),
