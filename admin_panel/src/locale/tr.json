@@ -5617,6 +5617,8 @@
         "shiftType": "Vardiya Tipi",
         "dayShift": "Gündüz Vardiyası",
         "nightShift": "Gece Vardiyası",
+        "shiftQuestion": "Bu üretim hangi vardiyaya ait?",
+        "selectShift": "Vardiya seç",
         "dayShiftHours": "07:30 - 19:30",
         "nightShiftHours": "19:30 - 07:30",
         "startShift": "Vardiya Başlat",

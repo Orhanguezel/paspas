@@ -29,6 +29,7 @@ export const uretimBitirBodySchema = z.object({
 // -- Duraklat --
 export const duraklatBodySchema = z.object({
   makineKuyrukId: z.string().min(1),
+  vardiyaKayitId: z.string().min(1).optional(),
   durusNedeniId: z.string().min(1),
   neden: z.string().trim().min(1).max(255),
   anlikUretimMiktari: z.coerce.number().min(0).optional(),

@@ -1863,6 +1863,7 @@ export async function repoDuraklat(
       id: randomUUID(),
       makine_id: kqRow?.makine_id ?? '',
       makine_kuyruk_id: body.makineKuyrukId,
+      vardiya_kayit_id: body.vardiyaKayitId ?? null,
       operator_user_id: operatorUserId ?? null,
       durus_nedeni_id: body.durusNedeniId,
       durus_tipi: 'durus',

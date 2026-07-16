@@ -35,6 +35,7 @@ import {
 import { useListDurusNedenleriAdminQuery } from "@/integrations/endpoints/admin/erp/tanimlar_admin.endpoints";
 import type { MakineKuyruguDetayDto } from "@/integrations/shared/erp/operator.types";
 import { ReceteDetayModal } from "../../uretim-emirleri/_components/recete-detay-modal";
+import { VardiyaSecici, type VardiyaOption } from "./vardiya-secici";
 
 const DURUM_BADGE: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   bekliyor: "outline",
@@ -43,13 +44,6 @@ const DURUM_BADGE: Record<string, "default" | "secondary" | "destructive" | "out
   tamamlandi: "default",
   iptal: "destructive",
 };
-
-function getHybridShift(): "gunduz" | "gece" {
-  const now = new Date();
-  const minutes = now.getHours() * 60 + now.getMinutes();
-  if (minutes >= 7 * 60 + 30 && minutes < 9 * 60 + 30) return "gece";
-  return minutes >= 19 * 60 + 30 || minutes < 7 * 60 + 30 ? "gece" : "gunduz";
-}
 
 const DURUM_LABEL: Record<string, string> = {
   bekliyor: "Bekliyor",
@@ -102,57 +96,6 @@ function PreviousTotalsCard({ job, hint }: { job: MakineKuyruguDetayDto; hint?: 
         </div>
       </div>
       {hint ? <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{hint}</p> : null}
-    </div>
-  );
-}
-
-function formatShiftLabel(value: string | null): string {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("tr-TR", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function VardiyaKayitSelect({
-  job,
-  value,
-  onChange,
-  vardiyaByMakine,
-}: {
-  job: MakineKuyruguDetayDto | null;
-  value: string;
-  onChange: (value: string) => void;
-  vardiyaByMakine: Map<string, { acikVardiyaId: string | null; sonVardiyalar?: Array<{ id: string; vardiyaTipi: string; baslangic: string; bitis: string | null }> }>;
-}) {
-  if (!job) return null;
-  const machineVardiya = vardiyaByMakine.get(job.makineId);
-  const options = machineVardiya?.sonVardiyalar?.length
-    ? machineVardiya.sonVardiyalar
-    : job.acikVardiya
-      ? [{ id: job.acikVardiya.id, vardiyaTipi: job.acikVardiya.vardiyaTipi, baslangic: job.acikVardiya.baslangic, bitis: null }]
-      : [];
-
-  return (
-    <div className="space-y-2 rounded-xl border bg-muted/20 p-3">
-      <Label>Bu üretim hangi vardiyaya ait?</Label>
-      <Select value={value || "_auto"} onValueChange={(next) => onChange(next === "_auto" ? "" : next)}>
-        <SelectTrigger className="h-14 rounded-xl text-base">
-          <SelectValue placeholder="Vardiya seç" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="_auto">Otomatik eşleştir</SelectItem>
-          {options.map((option) => (
-            <SelectItem key={option.id} value={option.id}>
-              {(option.vardiyaTipi === "gece" ? "Gece" : "Gündüz")} Vardiyası · {formatShiftLabel(option.baslangic)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
     </div>
   );
 }
@@ -225,24 +168,24 @@ function MakineKuyruguTab() {
   const [uretilenMiktar, setUretilenMiktar] = useState("");
   const [fireMiktar, setFireMiktar] = useState("0");
   const [notlar, setNotlar] = useState("");
-  const [finishVardiyaKayitId, setFinishVardiyaKayitId] = useState("");
+  const [finishVardiya, setFinishVardiya] = useState<{ vardiyaId: string } | null>(null);
 
   const [dailyEntry, setDailyEntry] = useState<MakineKuyruguDetayDto | null>(null);
   const [dailyUretilenMiktar, setDailyUretilenMiktar] = useState("");
   const [dailyFireMiktar, setDailyFireMiktar] = useState("0");
   const [dailyNotlar, setDailyNotlar] = useState("");
-  const [dailyVardiyaTipi, setDailyVardiyaTipi] = useState<"gunduz" | "gece">("gunduz");
-  const [dailyVardiyaKayitId, setDailyVardiyaKayitId] = useState("");
+  const [dailyVardiya, setDailyVardiya] = useState<{ vardiyaId: string } | null>(null);
   const [receteDetayEmirId, setReceteDetayEmirId] = useState<string | null>(null);
 
   const [resuming, setResuming] = useState<MakineKuyruguDetayDto | null>(null);
   const [resumeNotlar, setResumeNotlar] = useState("");
-  const [resumeVardiyaKayitId, setResumeVardiyaKayitId] = useState("");
+  const [resumeVardiya, setResumeVardiya] = useState<{ vardiyaId: string } | null>(null);
 
   const [pausing, setPausing] = useState<MakineKuyruguDetayDto | null>(null);
   const [pauseNedenId, setPauseNedenId] = useState("");
   const [pauseNeden, setPauseNeden] = useState("");
   const [pauseUretimMiktari, setPauseUretimMiktari] = useState("");
+  const [pauseVardiya, setPauseVardiya] = useState<{ vardiyaId: string } | null>(null);
 
   const { data: durusNedenleriData } = useListDurusNedenleriAdminQuery();
   const durusNedenleri = (durusNedenleriData?.items ?? []).filter((d) => d.isActive);
@@ -250,6 +193,15 @@ function MakineKuyruguTab() {
   const items = data?.items ?? [];
   const vardiyaByMakine = new Map((vardiyaData ?? []).map((item) => [item.makineId, item]));
   const aktifKalipByMakine = new Map((aktifKalipDegisimleri ?? []).map((item) => [item.makineId, item]));
+
+  function getVardiyaOptions(job: MakineKuyruguDetayDto | null): VardiyaOption[] {
+    if (!job) return [];
+    const machineVardiya = vardiyaByMakine.get(job.makineId);
+    if (machineVardiya?.sonVardiyalar.length) return machineVardiya.sonVardiyalar;
+    return job.acikVardiya
+      ? [{ ...job.acikVardiya, bitis: null }]
+      : [];
+  }
 
   // Group by machine — exclude completed jobs (tamamlandi görünmemeli)
   const grouped = new Map<string, MakineKuyruguDetayDto[]>();
@@ -322,7 +274,7 @@ function MakineKuyruguTab() {
 
   function openResume(item: MakineKuyruguDetayDto) {
     setResumeNotlar("");
-    setResumeVardiyaKayitId(vardiyaByMakine.get(item.makineId)?.acikVardiyaId ?? item.acikVardiya?.id ?? "");
+    setResumeVardiya(null);
     setResuming(item);
   }
 
@@ -331,7 +283,7 @@ function MakineKuyruguTab() {
     try {
       await devamEt({
         makineKuyrukId: resuming.id,
-        vardiyaKayitId: resumeVardiyaKayitId || undefined,
+        vardiyaKayitId: resumeVardiya?.vardiyaId,
         notlar: resumeNotlar.trim() || undefined,
       }).unwrap();
       toast.success(t("admin.erp.operator.resumed"));
@@ -346,7 +298,7 @@ function MakineKuyruguTab() {
     setUretilenMiktar(String(item.planlananMiktar));
     setFireMiktar("0");
     setNotlar("");
-    setFinishVardiyaKayitId(vardiyaByMakine.get(item.makineId)?.acikVardiyaId ?? item.acikVardiya?.id ?? "");
+    setFinishVardiya(null);
     setFinishing(item);
   }
 
@@ -361,7 +313,7 @@ function MakineKuyruguTab() {
     try {
       const result = await bitir({
         makineKuyrukId: finishing.id,
-        vardiyaKayitId: finishVardiyaKayitId || undefined,
+        vardiyaKayitId: finishVardiya?.vardiyaId,
         uretilenMiktar: u,
         fireMiktar: f,
         birimTipi: finishing.montaj ? "takim" : "adet",
@@ -384,8 +336,7 @@ function MakineKuyruguTab() {
     setDailyUretilenMiktar("");
     setDailyFireMiktar("0");
     setDailyNotlar("");
-    setDailyVardiyaTipi(getHybridShift());
-    setDailyVardiyaKayitId(vardiyaByMakine.get(item.makineId)?.acikVardiyaId ?? item.acikVardiya?.id ?? "");
+    setDailyVardiya(null);
     setDailyEntry(item);
   }
 
@@ -400,10 +351,9 @@ function MakineKuyruguTab() {
     try {
       await gunlukUretimGir({
         makineId: dailyEntry.makineId,
-        vardiyaKayitId: dailyVardiyaKayitId || undefined,
+        vardiyaKayitId: dailyVardiya?.vardiyaId,
         uretilenMiktar: u,
         fireMiktar: f,
-        vardiyaTipi: dailyVardiyaTipi,
         birimTipi: dailyEntry.montaj ? "takim" : "adet",
         notlar: dailyNotlar.trim() || undefined,
       }).unwrap();
@@ -428,6 +378,7 @@ function MakineKuyruguTab() {
     setPauseNedenId("");
     setPauseNeden("");
     setPauseUretimMiktari(String(item.uretilenMiktar));
+    setPauseVardiya(null);
     setPausing(item);
   }
 
@@ -443,6 +394,7 @@ function MakineKuyruguTab() {
         durusNedeniId: pauseNedenId,
         neden: pauseNeden.trim() || durusNedenleri.find((d) => d.id === pauseNedenId)?.ad || "",
         anlikUretimMiktari: uretim > 0 ? uretim : undefined,
+        vardiyaKayitId: pauseVardiya?.vardiyaId,
       }).unwrap();
       toast.success(t("admin.erp.operator.paused"));
       setPausing(null);
@@ -725,7 +677,12 @@ function MakineKuyruguTab() {
               <strong className="font-mono">{finishing?.emirNo}</strong> — {finishing ? getJobTitle(finishing) : ""}
             </p>
             {finishing && <PreviousTotalsCard job={finishing} hint={t("admin.erp.operator.finishTotalHint")} />}
-            <VardiyaKayitSelect job={finishing} value={finishVardiyaKayitId} onChange={setFinishVardiyaKayitId} vardiyaByMakine={vardiyaByMakine} />
+            <VardiyaSecici
+              value={finishVardiya}
+              onChange={setFinishVardiya}
+              options={getVardiyaOptions(finishing)}
+              acikVardiyaId={finishing ? vardiyaByMakine.get(finishing.makineId)?.acikVardiyaId : null}
+            />
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label>
@@ -769,19 +726,15 @@ function MakineKuyruguTab() {
               <strong className="font-mono">{dailyEntry?.emirNo}</strong> — {dailyEntry ? getJobTitle(dailyEntry) : ""}
             </p>
             {dailyEntry && <PreviousTotalsCard job={dailyEntry} />}
-            <VardiyaKayitSelect job={dailyEntry} value={dailyVardiyaKayitId} onChange={setDailyVardiyaKayitId} vardiyaByMakine={vardiyaByMakine} />
+            <VardiyaSecici
+              value={dailyVardiya}
+              onChange={setDailyVardiya}
+              options={getVardiyaOptions(dailyEntry)}
+              acikVardiyaId={dailyEntry ? vardiyaByMakine.get(dailyEntry.makineId)?.acikVardiyaId : null}
+            />
             <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span>Bu alana toplam iş miktarını değil, yalnız bu vardiyada üretilen ek miktarı girin.</span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-10 rounded-xl px-4 text-sm font-semibold sm:h-8 sm:rounded-full sm:text-xs"
-                  onClick={() => setDailyVardiyaTipi((current) => (current === "gunduz" ? "gece" : "gunduz"))}
-                >
-                  {dailyVardiyaTipi === "gunduz" ? "Gündüz" : "Gece"} Vardiyası
-                </Button>
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -836,6 +789,12 @@ function MakineKuyruguTab() {
               <strong className="font-mono">{pausing?.emirNo}</strong> — {pausing ? getJobTitle(pausing) : ""}
             </p>
             {pausing && <PreviousTotalsCard job={pausing} />}
+            <VardiyaSecici
+              value={pauseVardiya}
+              onChange={setPauseVardiya}
+              options={getVardiyaOptions(pausing)}
+              acikVardiyaId={pausing ? vardiyaByMakine.get(pausing.makineId)?.acikVardiyaId : null}
+            />
             <div className="space-y-1">
               <Label>{t("admin.erp.operator.pauseReason")} *</Label>
               <Select value={pauseNedenId || "none"} onValueChange={(v) => {
@@ -885,7 +844,12 @@ function MakineKuyruguTab() {
             <p className="text-sm text-muted-foreground">
               <strong className="font-mono">{resuming?.emirNo}</strong> — {resuming ? getJobTitle(resuming) : ""}
             </p>
-            <VardiyaKayitSelect job={resuming} value={resumeVardiyaKayitId} onChange={setResumeVardiyaKayitId} vardiyaByMakine={vardiyaByMakine} />
+            <VardiyaSecici
+              value={resumeVardiya}
+              onChange={setResumeVardiya}
+              options={getVardiyaOptions(resuming)}
+              acikVardiyaId={resuming ? vardiyaByMakine.get(resuming.makineId)?.acikVardiyaId : null}
+            />
             <div className="space-y-1">
               <Label>{t("admin.erp.operator.notes")}</Label>
               <Textarea rows={2} value={resumeNotlar} onChange={(e) => setResumeNotlar(e.target.value)} />

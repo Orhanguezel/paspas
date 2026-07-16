@@ -72,6 +72,7 @@ export interface UretimBitirPayload {
 
 export interface DuraklatPayload {
   makineKuyrukId: string;
+  vardiyaKayitId?: string;
   durusNedeniId: string;
   neden: string;
   anlikUretimMiktari?: number;
