@@ -21,6 +21,7 @@ import {
   toLocal,
   VARDIYA_TZ_OFFSET_DK,
   roundRatio,
+  sonIkiCalisilanSlot,
   vardiyaSlotKey,
   type OperasyonKirilim,
   type UretimKaydi as CoreUretimKaydi,
@@ -252,7 +253,7 @@ type DurusOzet = {
   digerDk: number;
 };
 
-function dateRange(query: ListQuery): { baslangic: Date; bitis: Date; tarihLabel: string } {
+function dateRange(query: ListQuery, now: Date): { baslangic: Date; bitis: Date; tarihLabel: string } {
   const dateAtLocal = (dateKey: string, clock: string): Date => {
     const [year, month, day] = dateKey.split('-').map(Number);
     const [hour, minute] = clock.split(':').map(Number);
@@ -260,15 +261,14 @@ function dateRange(query: ListQuery): { baslangic: Date; bitis: Date; tarihLabel
   };
 
   if (query.baslangicTarih && query.bitisTarih) {
-    if (query.vardiyaCifti === 'gunduz-gece') {
-      const baslangic = dateAtLocal(query.baslangicTarih, '00:00');
-      const bitis = dateAtLocal(query.bitisTarih, '07:30');
-      return { baslangic, bitis, tarihLabel: `${query.baslangicTarih} - ${query.bitisTarih}` };
-    }
-    if (query.vardiyaCifti === 'gece-gunduz') {
-      const baslangic = dateAtLocal(query.baslangicTarih, '19:30');
-      const bitis = dateAtLocal(query.bitisTarih, '19:30');
-      return { baslangic, bitis, tarihLabel: `${query.baslangicTarih} - ${query.bitisTarih}` };
+    if (query.vardiyaCifti) {
+      // Çalışılmayan hafta sonu/tatil aralıklarını aşabilmek için aday çalışma
+      // slotlarını geniş bir üretim penceresinden al; aşağıda saf fonksiyon ikiye indirir.
+      return {
+        baslangic: new Date(now.getTime() - 31 * 24 * 60 * 60_000),
+        bitis: now,
+        tarihLabel: `${query.baslangicTarih} - ${query.bitisTarih}`,
+      };
     }
     return {
       baslangic: dateAtLocal(query.baslangicTarih, '00:00'),
@@ -650,9 +650,10 @@ export async function getVardiyaAnaliziDetay(params: {
 }
 
 export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnalizResponse> {
-  const { baslangic, bitis, tarihLabel } = dateRange(query);
+  const now = new Date();
+  const { baslangic, bitis, tarihLabel } = dateRange(query, now);
   const vardiyaTanimlariList = await listActiveVardiyaTanimlari();
-  const kayitlar = await fetchUretimKayitlari({ baslangic, bitis }, selectedMakineIds(query));
+  let kayitlar = await fetchUretimKayitlari({ baslangic, bitis }, selectedMakineIds(query));
 
   const vardiyaConditions = [
     sql`${vardiyaKayitlari.baslangic} <= ${bitis}`,
@@ -683,7 +684,22 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
     .orderBy(desc(vardiyaKayitlari.baslangic));
 
   const durusRows = await fetchDurusRows(query, baslangic, bitis);
-  const slotMetas = createSlotMetas(vardiyaRows, kayitlar, vardiyaTanimlariList, query);
+  let slotMetas = createSlotMetas(vardiyaRows, kayitlar, vardiyaTanimlariList, query);
+  if (query.vardiyaCifti) {
+    const allowed = new Set<string>();
+    const makineIds = new Set(slotMetas.map((meta) => meta.makineId));
+    for (const makineId of makineIds) {
+      const makineMetas = slotMetas.filter((meta) => meta.makineId === makineId);
+      for (const slot of sonIkiCalisilanSlot({ now, slotlar: makineMetas.map((meta) => meta.slot) })) {
+        allowed.add(`${makineId}-${vardiyaSlotKey(slot)}`);
+      }
+    }
+    slotMetas = slotMetas.filter((meta) => allowed.has(`${meta.makineId}-${vardiyaSlotKey(meta.slot)}`));
+    kayitlar = kayitlar.filter((kayit) => {
+      const slot = kayit.vardiyaSlotOverride ?? assignVardiya(kayit.kayitTarihi, vardiyaTanimlariList, VARDIYA_TZ_OFFSET_DK);
+      return allowed.has(`${kayit.makineId}-${vardiyaSlotKey(slot)}`);
+    });
+  }
   const vardiyalar: VardiyaAnalizItem[] = [];
 
   for (const meta of slotMetas) {
@@ -850,6 +866,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
   const uretimKayitlari = kayitlar
     .map((kayit): UretimKaydiOzet | null => {
       const vardiya = vardiyaByRecord(kayit);
+      if (query.vardiyaCifti && !vardiya) return null;
       if (selectedVardiyaTipleri(query) && (!vardiya || !selectedVardiyaTipleri(query)!.includes(vardiya.vardiyaTipi))) return null;
       const sureDk = kayit.operasyonBaslangic && kayit.operasyonBitis ? diffMinutes(kayit.operasyonBaslangic, kayit.operasyonBitis) : 0;
       const verimlilikNet = kayit.montaj ? null : calculateVerimlilik({ net: kayit.net, sureDk, cevrimSn: kayit.cevrimSn });
@@ -889,6 +906,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         const end = v.bitis ? new Date(v.bitis) : bitis;
         return row.baslangic >= start && row.baslangic <= end;
       });
+      if (query.vardiyaCifti && !slot) return null;
       if (selectedVardiyaTipleri(query) && (!slot || !selectedVardiyaTipleri(query)!.includes(slot.vardiyaTipi))) return null;
       return {
         id: row.id,

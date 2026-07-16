@@ -7,10 +7,12 @@ import {
   partitionByVardiya,
   reduceOzet,
   resolveNet,
+  sonIkiCalisilanSlot,
   VARDIYA_TZ_OFFSET_DK,
   type UretimKaydi,
   type VardiyaTanimi,
   type VardiyaTipi,
+  type VardiyaSlot,
 } from '../core';
 
 const tanimlar: VardiyaTanimi[] = [
@@ -59,6 +61,36 @@ function trDate(day: number, hour: number, minute = 0): Date {
 }
 
 describe('vardiya_analizi core', () => {
+  const slot = (gun: number, vardiyaTipi: VardiyaTipi): VardiyaSlot => ({
+    gun: `2026-07-${String(gun).padStart(2, '0')}`,
+    vardiyaTipi,
+    baslangic: trDate(gun, vardiyaTipi === 'gunduz' ? 7 : 19, 30),
+    bitis: vardiyaTipi === 'gunduz' ? trDate(gun, 19, 30) : trDate(gun + 1, 7, 30),
+  });
+
+  const expectPair = (now: Date, slotlar: VardiyaSlot[], expected: Array<[number, VardiyaTipi]>) => {
+    const result = sonIkiCalisilanSlot({ now, slotlar });
+    expect(result).toHaveLength(2);
+    expect(result.map((item) => [Number(item.gun.slice(-2)), item.vardiyaTipi])).toEqual(expected);
+    expect(result[0].baslangic.getTime()).toBeLessThan(result[1].baslangic.getTime());
+  };
+
+  it('cuma gündüz içinde önceki perşembe gündüz ve gece slotunu seçer', () => {
+    expectPair(trDate(17, 10), [slot(16, 'gunduz'), slot(16, 'gece'), slot(17, 'gunduz')], [[16, 'gunduz'], [16, 'gece']]);
+  });
+
+  it('çalışılmayan hafta sonunu atlayıp cuma çiftini seçer', () => {
+    expectPair(trDate(13, 10), [slot(10, 'gunduz'), slot(10, 'gece'), slot(13, 'gunduz')], [[10, 'gunduz'], [10, 'gece']]);
+  });
+
+  it('hafta sonu planı varsa pazar çiftini seçer', () => {
+    expectPair(trDate(13, 10), [slot(12, 'gunduz'), slot(12, 'gece'), slot(13, 'gunduz')], [[12, 'gunduz'], [12, 'gece']]);
+  });
+
+  it('gece vardiyası içinde önceki gece ve gündüzü kronolojik seçer', () => {
+    expectPair(trDate(14, 2), [slot(12, 'gece'), slot(13, 'gunduz'), slot(13, 'gece')], [[12, 'gece'], [13, 'gunduz']]);
+  });
+
   it('partitions every record into exactly one shift slot', () => {
     const kayitlar = Array.from({ length: 20 }, (_, index) => {
       const hour = (index * 3) % 24;

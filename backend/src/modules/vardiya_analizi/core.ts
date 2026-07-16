@@ -51,6 +51,15 @@ export type VardiyaSlot = {
   bitis: Date;
 };
 
+/** İçinde bulunulan slotu dışarıda bırakıp önceki son iki çalışılan slotu döndürür. */
+export function sonIkiCalisilanSlot(input: { now: Date; slotlar: VardiyaSlot[] }): VardiyaSlot[] {
+  return input.slotlar
+    .filter((slot) => !(input.now >= slot.baslangic && input.now < slot.bitis))
+    .filter((slot) => slot.baslangic < input.now)
+    .sort((a, b) => a.baslangic.getTime() - b.baslangic.getTime())
+    .slice(-2);
+}
+
 export type UrunKirilim = { urunId: string; urunAd: string; urunKod: string | null; miktar: number };
 
 export type OperasyonKirilim = {
