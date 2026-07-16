@@ -564,10 +564,15 @@ export async function repoKuyrukCikar(kuyruguId: string): Promise<void> {
     }
     // Kuyruk kaydini sil
     await tx.delete(makineKuyrugu).where(eq(makineKuyrugu.id, kuyruguId));
-    await tx
-      .update(makineKuyrugu)
-      .set({ sira: sql`${makineKuyrugu.sira} - 1` })
-      .where(and(eq(makineKuyrugu.makine_id, affectedMakineId), sql`${makineKuyrugu.sira} > ${row.sira}`));
+    // UNIQUE (makine_id, sira) nedeniyle satırlar artan sırada taşınmalı:
+    // her satır, bir önceki satırın boşalttığı sıraya iner.
+    await tx.execute(sql`
+      UPDATE ${makineKuyrugu}
+      SET ${makineKuyrugu.sira} = ${makineKuyrugu.sira} - 1
+      WHERE ${makineKuyrugu.makine_id} = ${affectedMakineId}
+        AND ${makineKuyrugu.sira} > ${row.sira}
+      ORDER BY ${makineKuyrugu.sira} ASC
+    `);
 
     // Auto-derive: planlandi → atanmamis (if no remaining kuyruk entries)
     if (affectedEmriId) {

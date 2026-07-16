@@ -48,6 +48,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useLocaleContext } from "@/i18n/LocaleProvider";
+import { getApiErrorMessage } from "@/integrations/api-error";
 import {
   useKuyrukCikarAdminMutation,
   useListKuyrukAdminQuery,
@@ -624,8 +625,8 @@ export default function UretimEmirleriClient() {
         await kuyrukCikar(item.id).unwrap();
       }
       toast.success(`${cikarilacaklar.length} operasyon makineden çıkarıldı.`);
-    } catch {
-      toast.error("Makineden çıkarma sırasında hata oluştu.");
+    } catch (err) {
+      toast.error(getApiErrorMessage(err) ?? "Makineden çıkarma sırasında hata oluştu.");
     } finally {
       setCikarTarget(null);
     }

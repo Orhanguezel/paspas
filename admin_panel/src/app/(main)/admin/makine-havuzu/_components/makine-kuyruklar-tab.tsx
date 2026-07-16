@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
+import { getApiErrorMessage } from '@/integrations/api-error';
 
 import {
   DndContext,
@@ -288,8 +289,8 @@ export default function MakineKuyrukTab({ t }: MakineKuyrukTabProps) {
     try {
       await cikar(kuyruguId).unwrap();
       toast.success(t('kuyrukYonetimi.kuyruklar.cikarildi'));
-    } catch {
-      toast.error(t('kuyrukYonetimi.kuyruklar.cikarmaHatasi'));
+    } catch (err) {
+      toast.error(getApiErrorMessage(err) ?? t('kuyrukYonetimi.kuyruklar.cikarmaHatasi'));
     }
   }
 

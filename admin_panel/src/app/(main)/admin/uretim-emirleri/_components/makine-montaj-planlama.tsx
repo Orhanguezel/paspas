@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getApiErrorMessage } from "@/integrations/api-error";
 import {
   useAtaOperasyonAdminMutation,
   useKuyrukCikarAdminMutation,
@@ -252,12 +253,7 @@ export function MakineMontajPlanlama({ uretimEmriIds }: Props) {
         toast.success("Makine ataması kaldırıldı.");
       }
     } catch (error: unknown) {
-      const message =
-        typeof error === "object" && error && "data" in error
-          ? ((error as { data?: { error?: { detail?: string; message?: string } } }).data?.error?.detail ??
-            (error as { data?: { error?: { detail?: string; message?: string } } }).data?.error?.message)
-          : undefined;
-      toast.error(message ?? "Makine ataması güncellenemedi.");
+      toast.error(getApiErrorMessage(error) ?? "Makine ataması güncellenemedi.");
     } finally {
       setBusyOpId(null);
     }
