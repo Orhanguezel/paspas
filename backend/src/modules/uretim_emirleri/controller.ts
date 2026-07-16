@@ -151,6 +151,13 @@ const mamulMiktarPatchSchema = z.object({
     siparisKalemId: z.string().trim().min(8).max(36),
     miktar: z.coerce.number().min(0),
   })).optional(),
+  // Düzelt ekranından eklenen, siparişe bağlı olmayan üretim satırları.
+  // Mevcut partiye ayrı emir olarak eklenir; yeni parti açılmaz.
+  manuelEmirler: z.array(z.object({
+    urunId: z.string().min(1),
+    miktar: z.coerce.number().positive(),
+    musteriOzet: z.string().trim().max(255).optional(),
+  })).optional(),
 });
 
 export const updateMamulUretimEmri: RouteHandler = async (req, reply) => {
@@ -159,10 +166,31 @@ export const updateMamulUretimEmri: RouteHandler = async (req, reply) => {
     if (!parsed.success) {
       return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
     }
-    return reply.send(await updateMamulEmri(parsed.data.partiNo, parsed.data.mamulUrunId, {
+    const sonuc = await updateMamulEmri(parsed.data.partiNo, parsed.data.mamulUrunId, {
       planlananMiktar: parsed.data.planlananMiktar,
       siparisTahsisleri: parsed.data.siparisTahsisleri,
-    }));
+    });
+
+    // Manuel satırlar mevcut parti altında ayrı emir olarak açılır. Üretime aktarma
+    // akışıyla (satis_siparisleri/controller.ts) bilerek aynı desen: repoCreate kendi
+    // içinde operasyon/rezervasyon üretiyor ve transaction almıyor, o yüzden mamul
+    // güncellemesi commit olduktan sonra çalıştırılır.
+    const manuelEmirNolar: string[] = [];
+    for (const manuel of parsed.data.manuelEmirler ?? []) {
+      const emirNo = await repoGetNextEmirNo();
+      const { row } = await repoCreate({
+        emirNo,
+        partiNo: parsed.data.partiNo,
+        urunId: manuel.urunId,
+        planlananMiktar: manuel.miktar,
+        uretilenMiktar: 0,
+        durum: 'atanmamis',
+        musteriOzet: manuel.musteriOzet ?? 'Manuel üretim',
+      });
+      manuelEmirNolar.push(row.emir_no);
+    }
+
+    return reply.send({ ...sonuc, manuelEmirNolar });
   } catch (error: unknown) {
     req.log.error({ error }, 'update_mamul_uretim_emri_failed');
     const message = (error as Error).message;

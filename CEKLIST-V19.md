@@ -151,9 +151,77 @@ Ancak müşteri notu V18 deploy'undan sonra da açık. Önce **doğrula**, sonra
 
 ### R4 görevleri
 
-- [ ] Canlıda Düzelt akışı müşteri tarifiyle madde madde karşılaştırıldı (hangi maddeler V18'le karşılanıyor, hangileri eksik — tablo halinde bu dosyaya işlenecek)
-- [ ] Eksik maddeler V19 kapsamında implement edildi **veya** ayrı V20 çeklistine taşındı (kapsam büyürse)
+- [x] Canlıda Düzelt akışı müşteri tarifiyle madde madde karşılaştırıldı — tablo aşağıda
+- [x] Eksik maddeler V19 kapsamında implement edildi (R4-a/b/c; V20'ye taşınan yok)
 - [ ] Müşteri doğrulaması sonrası `3536f365` kapatılacak
+
+## Kapsam doğrulaması — müşteri tarifi ↔ mevcut kod
+
+Kaynak: `page_feedback_threads` `3536f365-bf8c-4091-85ef-d5652ea229c6` (2026-07-10 12:55, `status=open`),
+müşterinin kendi metni. Düzelt ekranı ayrı dosya değil: **`UretimOlusturGrid`** (`uretim-emirleri-client.tsx:116-438`)
+`mod="duzenle"` ile açılıyor (buton `:1101-1110`, dialog `:1171-1187`). Yani "oluştur ekranındaki gibi olsun"
+isteği zaten **aynı bileşen** kullanılarak karşılanmış.
+
+| # | Müşteri maddesi | Durum | Kanıt |
+|---|---|---|---|
+| 1 | Düzelt → emrin ürün grubu açılmalı | ✅ Karşılanıyor | Grup `Select` `:258-280`; prefill `emri.mamulUrunId`→`altGrup` `:156-167` |
+| 2 | Oluştur ekranındaki gibi grubun siparişleri listelenmeli | ✅ Karşılanıyor | Aynı bileşen; `filteredRows` `:169-172`, tablo `:291-367` |
+| 3 | Daha önce ne kadar aktarıldığı görünmeli | ✅ Karşılanıyor | "Aktarılan" kolonu `:300`, `row.aktarilanMiktar` `:343-345`; backend `SUM(uesk.miktar)` `satis_siparisleri/repository.ts:592-598` |
+| 4 | Kalandan istenen kadar aktarılabilmeli (2000→1000 aktarılmış→kalan 1000) | ✅ Karşılanıyor | `kalan()` düzelt modunda `kalanMiktar + aktarilanMiktar` `:179-184` (kendi tahsisini geri ekler) |
+| 5 | Manuel üretim ekle butonu aktif olmalı | ⚠️ Buton var, **işlevsiz** | Buton `:375-385`; `manuelEmirler` `:207-209` hesaplanıyor ama `updateMamul` payload'ında **yok** `:225-230` |
+| 6 | Mevcut partiyi güncellemeli, yeni parti açmamalı, başkasını etkilememeli | ✅ Karşılanıyor | `updateMamulEmri` `service.ts:47-176`; `parti_no + mamul_urun_id` ile mevcut emri bulur `:64-68`, yoksa 404; tümü transaction `:55` |
+| 7 | Siparişteki kalem (hiç aktarılmamış olsa bile) eklenebilmeli | ✅ Karşılanıyor | `filteredRows` gruptaki tüm `kalan>0` satırları listeler, `emri.siparisKalemIds` ile sınırlı değil `:169-172`; V18'de `uretimDurumu:"beklemede"` filtresi kaldırıldı `:129-134` |
+| 8 | Siparişte olmayan manuel eklenebilmeli/düzeltilebilmeli | ❌ **Eksik** | Madde 5'in sonucu — manuel satır partiye emir olarak eklenmiyor |
+| 9 | Yeni sipariş kalemleri partiye eklenebilmeli | ✅ Karşılanıyor | Madde 7 ile aynı yol; `siparisTahsisleri` yeniden yazılıyor `service.ts:106-119` |
+| 10 | Görseldeki ekrana benzesin, ama mevcut parti üzerinde düzeltsin | ⚠️ Kısmen | Aynı bileşen olduğu için düzen aynı; ancak başlık `<h2>` düzelt modunda da **"Yeni Üretim Oluştur"** yazıyor `:254` (dialog başlığı doğru: "Üretimi Düzelt") |
+
+### Sonuç: 7/10 karşılanıyor, 1 eksik + 2 kusur
+
+V18 altyapısı müşterinin istediğinin büyük kısmını getirmiş. Notun hâlâ açık olmasının somut sebebi
+**madde 5+8**: manuel üretim ekleme düzelt modunda sessizce çalışmıyor.
+
+**R4-a — Manuel üretim düzelt modunda çalışmıyor (asıl kusur)**
+`handleAktar` düzelt dalında manuel satırların miktarını `planlananMiktar`'a ekliyor (`:219`, `:224`) ama
+satırların kendisini göndermiyor. Sonuç: kullanıcı manuel ürün ekler, "güncellendi" toast'ı görür, ama
+o ürün için emir açılmaz — sadece mevcut mamulün planlanan miktarı şişer. **Sessiz veri hatası**, hata mesajı yok.
+Backend de kabul etmiyor: `mamulMiktarPatchSchema` `controller.ts:146-154` `manuelEmirler` alanı içermiyor.
+→ Düzeltme: şemaya `manuelEmirler` eklenmeli, `updateMamulEmri` bunları mevcut `parti_no` altında emir olarak
+açmalı (yeni parti **açmadan** — madde 6 korunmalı).
+
+**R4-b — Düzelt modunda başlık yanlış**
+`:254` `<h2>` sabit "Yeni Üretim Oluştur". Kullanıcı düzeltme yaptığını ekranın içinde göremiyor. Tek satır.
+
+**R4-c — Düzeltme sonrası sipariş listesi cache'i tazelenmiyor**
+`updateMamulUretimEmriAdmin` `invalidatesTags`'inde `SatisSiparisleri`/`ISLEMLER` yok
+(`uretim_emirleri_admin.endpoints.ts:94-98`). Düzeltmeden sonra "Aktarılan" kolonu eski değeri gösterir.
+Müşteri bunu "düzeltmem kaydedilmedi" diye algılayabilir.
+
+> **Kapsam kararı:** R4-a gerçek bir veri hatası, R4-b/R4-c tek satırlık. Üçü de V19 kapsamında kalır,
+> V20'ye taşınmaz. R4-a'nın `updateMamulEmri`'ye dokunması gerekiyor — şema değişikliği **gerekmiyor**,
+> mevcut `uretim_emirleri` + `uretim_emri_siparis_kalemleri` yapısı yeterli.
+
+### R4 çözümü (uygulandı)
+
+- **R4-a** — `mamulMiktarPatchSchema`'ya `manuelEmirler` eklendi (`uretim_emirleri/controller.ts`);
+  `updateMamulEmri` commit olduktan sonra her manuel satır `repoCreate` ile **mevcut `partiNo` altında**
+  emir olarak açılıyor (yeni parti yok → madde 6 korunuyor). Frontend `manuelEmirler`'i gönderiyor ve
+  **`planlananMiktar`'a artık eklemiyor** — ayrı emir olarak açıldıkları için eklenirse çift sayım olurdu.
+  Toast eklenen manuel emir sayısını söylüyor.
+- **R4-b** — `<h2>` başlığı `mod`'a göre "Üretimi Düzelt" / "Yeni Üretim Oluştur".
+- **R4-c** — `updateMamulUretimEmriAdmin` `invalidatesTags` üretime aktarma ile aynı 7 tag'e hizalandı.
+
+**Atomiklik notu (bilinçli karar):** manuel emirler `updateMamulEmri` transaction'ının **dışında**,
+commit sonrası açılıyor. Sebep: `repoCreate` global `db` kullanıyor ve çağırdığı
+`autoPopulateOperasyonlar` / `rezerveHammaddeler` / `refreshSiparisDurum` transaction parametresi almıyor.
+Tam atomiklik bu ortak fonksiyonların refactor'ünü gerektirirdi — üretime aktarma yolunu da etkilerdi.
+Üretime aktarma akışı zaten manuel emirleri aynı şekilde (transaction'sız, sıralı `repoCreate`) açıyor
+(`satis_siparisleri/controller.ts:298-310`), yani risk profili değişmedi, iki yol artık **aynı desende**.
+Bu refactor gerekirse V20 konusudur; R4'ü bloke etmiyor.
+
+**Doğrulama:** backend `tsc --noEmit` exit 0; admin_panel `next build` exit 0 (47/47 sayfa);
+`bun test` 434 pass / 13 fail — 13 fail temel commit `432349b` ile birebir aynı (DB kimlik bilgisi
+eksikliğinden, V19 ile ilgisiz). Canlıda müşteri senaryosuyla test **edilmedi** — üretim verisine
+gerçek emir yazacağı için müşteri onayına bırakıldı.
 
 ---
 

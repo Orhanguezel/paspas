@@ -81,19 +81,26 @@ export const uretimEmirleriAdminApi = baseApi.injectEndpoints({
     }),
 
     updateMamulUretimEmriAdmin: b.mutation<
-      { emirIds: string[]; planlananMiktar: number },
+      { emirIds: string[]; planlananMiktar: number; manuelEmirNolar: string[] },
       {
         partiNo: string;
         mamulUrunId: string;
         planlananMiktar: number;
         siparisTahsisleri?: Array<{ siparisKalemId: string; miktar: number }>;
+        manuelEmirler?: Array<{ urunId: string; miktar: number; musteriOzet?: string }>;
       }
     >({
       query: (body) => ({ url: `${BASE}/mamul`, method: 'PATCH', body }),
+      // Üretime aktarma ile aynı küme: düzeltme de tahsisleri, emirleri, kuyruğu ve
+      // rezervasyonları değiştiriyor. Eksik olursa "Aktarılan" kolonu eski değerde kalır.
       invalidatesTags: [
+        { type: 'SatisSiparisleri', id: 'LIST' },
+        { type: 'SatisSiparisleri', id: 'ISLEMLER' },
         { type: 'UretimEmirleri', id: 'LIST' },
+        { type: 'UretimEmirleri', id: 'ADAYLAR' },
         { type: 'MakineKuyrugu', id: 'ATANMAMIS' },
         { type: 'MakineKuyrugu', id: 'KUYRUKLAR' },
+        { type: 'Stoklar', id: 'LIST' },
       ],
     }),
 

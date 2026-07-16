@@ -216,19 +216,25 @@ function UretimOlusturGrid({
     try {
       if (mod === "duzenle" && emri) {
         if (!emri.partiNo) throw new Error("parti_no_zorunlu");
-        const manuelMiktar = manuelEmirler.reduce((sum, row) => sum + row.miktar, 0);
         const mevcutTahsis = rows
           .filter((row) => emri.siparisKalemIds.includes(row.kalemId))
           .reduce((sum, row) => sum + row.aktarilanMiktar, 0);
         const uretimCarpani = mevcutTahsis > 0 ? emri.planlananMiktar / mevcutTahsis : 1;
-        const planlananMiktar = kalemler.reduce((sum, row) => sum + row.miktar, 0) * uretimCarpani + manuelMiktar;
+        // Manuel satırlar mamulün planlanan miktarına eklenmez; partiye ayrı emir olarak
+        // açılırlar (backend). Eklenirse aynı miktar iki kez sayılır.
+        const planlananMiktar = kalemler.reduce((sum, row) => sum + row.miktar, 0) * uretimCarpani;
         await updateMamul({
           partiNo: emri.partiNo,
           mamulUrunId: emri.mamulUrunId,
           planlananMiktar,
           siparisTahsisleri: kalemler.map((row) => ({ siparisKalemId: row.kalemId, miktar: row.miktar })),
+          manuelEmirler,
         }).unwrap();
-        toast.success("Mamul üretim grubu güncellendi.");
+        toast.success(
+          manuelEmirler.length > 0
+            ? `Mamul üretim grubu güncellendi. ${manuelEmirler.length} manuel emir partiye eklendi.`
+            : "Mamul üretim grubu güncellendi.",
+        );
       } else {
         const result = await uretimeAktar({ kalemler, manuelEmirler, birlestir: false }).unwrap();
         toast.success(`${result.message} Parti: ${result.partiNo}`);
@@ -251,7 +257,9 @@ function UretimOlusturGrid({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-semibold text-sm">Yeni Üretim Oluştur</h2>
+          <h2 className="font-semibold text-sm">
+            {mod === "duzenle" ? "Üretimi Düzelt" : "Yeni Üretim Oluştur"}
+          </h2>
           <p className="text-muted-foreground text-xs">Sipariş kalemlerini ürün grubuna göre üretime aktar.</p>
         </div>
         <div className="flex items-center gap-2">
