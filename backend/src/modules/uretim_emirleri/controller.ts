@@ -3,7 +3,7 @@ import type { FastifyReply, RouteHandler } from 'fastify';
 import { rowToDto } from './schema';
 import { repoCreate, repoDelete, repoGetById, repoGetHammaddeYeterlilik, repoGetNextEmirNo, repoGetOperasyonlar, repoGetUretimKarsilastirma, repoList, repoListAdaylar, repoUpdate } from './repository';
 import { checkHammaddeYeterlilik } from './hammadde_service';
-import { createUretimEmirleriFromSiparisKalemi, SiparisUretimEmirHatasi, updateMamulEmri } from './service';
+import { createUretimEmirleriFromSiparisKalemi, SiparisUretimEmirHatasi, updateMamulEmri, getKalanOperasyonelYarimamuller, sifirlaOperasyonelYarimamuller } from './service';
 import { createSchema, listQuerySchema, patchSchema } from './validation';
 import { z } from 'zod';
 import { getSiparisIdsByUretimEmriId, refreshSiparisDurum } from '@/modules/satis_siparisleri/repository';
@@ -390,6 +390,40 @@ export const atamaGeriAl: RouteHandler = async (req, reply) => {
     return reply.send({ message: 'Atama geri alındı.', kuyruktanCikarilan: kuyrukRows.length });
   } catch (error) {
     req.log.error({ error }, 'atama_geri_al_failed');
+    return sendInternalError(reply);
+  }
+};
+
+// V20/R5 — kalan operasyonel yarımamuller
+const sifirlaSchema = z.object({
+  urunIds: z.array(z.string().trim().min(8).max(36)).min(1),
+});
+
+/** GET /admin/uretim-emirleri/:id/kalan-yarimamuller */
+export const getKalanYarimamuller: RouteHandler = async (req, reply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const items = await getKalanOperasyonelYarimamuller(id);
+    return reply.send({ items });
+  } catch (error: unknown) {
+    req.log.error({ error }, 'get_kalan_yarimamuller_failed');
+    return sendInternalError(reply);
+  }
+};
+
+/** POST /admin/uretim-emirleri/:id/kalan-yarimamuller/sifirla */
+export const sifirlaKalanYarimamuller: RouteHandler = async (req, reply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const parsed = sifirlaSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
+    }
+    const userId = (req.user as { id?: string } | undefined)?.id ?? null;
+    const sonuc = await sifirlaOperasyonelYarimamuller(id, parsed.data.urunIds, userId);
+    return reply.send(sonuc);
+  } catch (error: unknown) {
+    req.log.error({ error }, 'sifirla_kalan_yarimamuller_failed');
     return sendInternalError(reply);
   }
 };

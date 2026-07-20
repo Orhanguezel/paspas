@@ -334,10 +334,10 @@ Kullanıcının kendi cümlesi:
 
 ### R5 görevleri
 
-- [ ] Emir tamamlandığında kalan operasyonel_ym miktarlarını dönen endpoint
-- [ ] Üretim emri detayında "Elde kalan yarımamuller" kartı + seçmeli sıfırlama
-- [ ] Sıfırlama `repoAdjustStock` ile, `aciklama` alanında emir no referansı
-- [ ] Test: 700/1000 senaryosu → kalan 300 listeleniyor, onaysız sıfırlanmıyor
+- [x] Emir tamamlandığında kalan operasyonel_ym miktarlarını dönen endpoint (`GET :id/kalan-yarimamuller`)
+- [x] Üretim emri detayında "Elde kalan yarımamuller" kartı + seçmeli sıfırlama
+- [x] Sıfırlama hareket iziyle (`hareket_tipi=duzeltme`, `referans_id=emir`), yalnız o emrin reçetesindeki operasyonel_ym'e izinli
+- [ ] Test: 700/1000 senaryosu (DB entegrasyon testi — yerel DB erişimi yok, canlı doğrulamaya bırakıldı)
 
 ---
 

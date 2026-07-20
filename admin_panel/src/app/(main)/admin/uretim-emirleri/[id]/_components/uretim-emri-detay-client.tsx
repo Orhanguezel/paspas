@@ -11,16 +11,19 @@ import Link from "next/link";
 
 import { AlertTriangle, ArrowLeft, Pencil, RefreshCcw } from "lucide-react";
 
+import { toast } from "sonner";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useListIsYukleriAdminQuery } from "@/integrations/endpoints/admin/erp/is_yukler_admin.endpoints";
 import { useCheckYeterlilikAdminQuery } from "@/integrations/endpoints/admin/erp/stoklar_admin.endpoints";
-import { useGetUretimEmriAdminQuery, useLazyGetUretimKarsilastirmaAdminQuery } from "@/integrations/endpoints/admin/erp/uretim_emirleri_admin.endpoints";
+import { useGetUretimEmriAdminQuery, useLazyGetUretimKarsilastirmaAdminQuery, useGetKalanYarimamullerAdminQuery, useSifirlaKalanYarimamullerAdminMutation } from "@/integrations/endpoints/admin/erp/uretim_emirleri_admin.endpoints";
 import type { UretimKarsilastirma } from "@/integrations/shared/erp/uretim_emirleri.types";
 import { IS_YUKU_DURUM_BADGE, IS_YUKU_DURUM_LABELS } from "@/integrations/shared/erp/is_yukler.types";
 import { EMIR_DURUM_BADGE, EMIR_DURUM_LABELS } from "@/integrations/shared/erp/uretim_emirleri.types";
@@ -479,7 +482,89 @@ export default function UretimEmriDetayClient({ id }: Props) {
         </Card>
       )}
 
+      {emri.durum === "tamamlandi" && <KalanYarimamulKarti emirId={id} />}
+
       <UretimEmriForm open={formOpen} onClose={() => setFormOpen(false)} emri={emri} />
     </div>
+  );
+}
+
+// V20/R5 — Üretim tamamlandığında elde kalan operasyonel yarımamuller.
+// Admin isterse sıfırlar; sessiz değişim yok, onayla ve hareket iziyle.
+function KalanYarimamulKarti({ emirId }: { emirId: string }) {
+  const { data, isLoading } = useGetKalanYarimamullerAdminQuery(emirId);
+  const [sifirla, { isLoading: sifirlaniyor }] = useSifirlaKalanYarimamullerAdminMutation();
+  const [secili, setSecili] = useState<Set<string>>(new Set());
+
+  const items = data?.items ?? [];
+  useEffect(() => {
+    // Varsayılan: hepsi seçili gelir (kullanıcı genelde sıfırlamak ister).
+    setSecili(new Set(items.map((i) => i.urunId)));
+  }, [data]);
+
+  if (isLoading || items.length === 0) return null;
+
+  const toggle = (urunId: string) => {
+    setSecili((prev) => {
+      const next = new Set(prev);
+      if (next.has(urunId)) next.delete(urunId);
+      else next.add(urunId);
+      return next;
+    });
+  };
+
+  const handleSifirla = async () => {
+    const urunIds = Array.from(secili);
+    if (urunIds.length === 0) return;
+    try {
+      const res = await sifirla({ id: emirId, urunIds }).unwrap();
+      toast.success(`${res.sifirlanan.length} yarımamul sıfırlandı.`);
+    } catch {
+      toast.error("Sıfırlama başarısız.");
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Elde Kalan Yarımamuller</CardTitle>
+        <CardDescription>
+          Üretim tamamlandı ancak bu operasyonel yarımamullerden stokta bakiye kaldı.
+          Fiziksel olarak elde kalmadıysa seçip sıfırlayabilirsiniz. (Yalnız operasyonel yarımamuller.)
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {items.map((item) => (
+          <label
+            key={item.urunId}
+            className="flex items-center justify-between gap-3 rounded-lg border bg-muted/30 p-3"
+          >
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={secili.has(item.urunId)}
+                onCheckedChange={() => toggle(item.urunId)}
+              />
+              <div>
+                <div className="font-medium text-sm">{item.urunAd}</div>
+                <div className="text-muted-foreground text-xs">{item.urunKod}</div>
+              </div>
+            </div>
+            <span className="font-semibold text-sm tabular-nums">
+              {item.stok.toLocaleString("tr-TR")}
+            </span>
+          </label>
+        ))}
+        <div className="flex justify-end pt-1">
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={secili.size === 0 || sifirlaniyor}
+            onClick={handleSifirla}
+          >
+            Seçilenleri Sıfırla
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

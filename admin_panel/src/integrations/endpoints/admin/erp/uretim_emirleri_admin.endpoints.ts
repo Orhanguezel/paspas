@@ -115,6 +115,29 @@ export const uretimEmirleriAdminApi = baseApi.injectEndpoints({
       query: (id) => ({ url: `${BASE}/${id}/hammadde-yeterlilik` }),
     }),
 
+    // V20/R5 — üretim bitince elde kalan operasyonel yarımamuller
+    getKalanYarimamullerAdmin: b.query<
+      { items: Array<{ urunId: string; urunKod: string; urunAd: string; stok: number }> },
+      string
+    >({
+      query: (id) => ({ url: `${BASE}/${id}/kalan-yarimamuller` }),
+      providesTags: [{ type: 'UretimEmirleri', id: 'KALAN_YM' }],
+    }),
+    sifirlaKalanYarimamullerAdmin: b.mutation<
+      { sifirlanan: Array<{ urunId: string; urunKod: string; urunAd: string; stok: number }> },
+      { id: string; urunIds: string[] }
+    >({
+      query: ({ id, urunIds }) => ({
+        url: `${BASE}/${id}/kalan-yarimamuller/sifirla`,
+        method: 'POST',
+        body: { urunIds },
+      }),
+      invalidatesTags: [
+        { type: 'UretimEmirleri', id: 'KALAN_YM' },
+        { type: 'Stoklar', id: 'LIST' },
+      ],
+    }),
+
     updateUretimEmriOperasyonPlanlariAdmin: b.mutation<
       { items: unknown[] },
       { id: string; body: { operasyonlar: Array<{ id: string; makineId?: string | null; montaj?: boolean }> } }
@@ -160,4 +183,6 @@ export const {
   useGetHammaddeYeterlilikAdminQuery,
   useLazyGetHammaddeYeterlilikAdminQuery,
   useUpdateUretimEmriOperasyonPlanlariAdminMutation,
+  useGetKalanYarimamullerAdminQuery,
+  useSifirlaKalanYarimamullerAdminMutation,
 } = uretimEmirleriAdminApi;

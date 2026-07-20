@@ -501,3 +501,92 @@ export async function tryPendingMontajlarAfterStokArtis(
   }
   return results;
 }
+
+// ============================================================
+// V20/R5 — Üretim erken bitince elde kalan operasyonel yarımamuller
+// ============================================================
+// Kullanıcı: üretim 1000 yerine 700'de bitirilirse elde 300 yarımamul kalır.
+// Kural: her üretim bittiğinde admine kalan operasyonel_ym miktarları gösterilir,
+// admin isterse sıfırlar (repoAdjustStock ile — hareket izi kalır, sessiz değişim yok).
+// Yalnız operasyonel_ym; diğer yarımamullere dokunulmaz.
+
+export type KalanYarimamul = {
+  urunId: string;
+  urunKod: string;
+  urunAd: string;
+  stok: number;
+};
+
+/** Bir üretim emrinin reçetesindeki operasyonel_ym parçalarının GÜNCEL stoğunu döner. */
+export async function getKalanOperasyonelYarimamuller(emirId: string): Promise<KalanYarimamul[]> {
+  const [emir] = await db
+    .select({ receteId: uretimEmirleri.recete_id })
+    .from(uretimEmirleri)
+    .where(eq(uretimEmirleri.id, emirId))
+    .limit(1);
+
+  if (!emir?.receteId) return [];
+
+  const parcalar = await db
+    .select({
+      urunId: urunler.id,
+      urunKod: urunler.kod,
+      urunAd: urunler.ad,
+      stok: urunler.stok,
+    })
+    .from(receteKalemleri)
+    .innerJoin(urunler, eq(receteKalemleri.urun_id, urunler.id))
+    .where(and(eq(receteKalemleri.recete_id, emir.receteId), eq(urunler.kategori, 'operasyonel_ym')));
+
+  // Yalnız stoğu SIFIRDAN farklı olanları göster (sıfır zaten "kalan yok" demek).
+  return parcalar
+    .map((p) => ({
+      urunId: p.urunId,
+      urunKod: p.urunKod,
+      urunAd: p.urunAd,
+      stok: Number(p.stok ?? 0),
+    }))
+    .filter((p) => Math.abs(p.stok) >= 0.0001);
+}
+
+/**
+ * Seçili operasyonel_ym parçalarının stoğunu sıfırlar (admin onayıyla).
+ * Yalnız o emrin reçetesindeki operasyonel_ym kalemlerine izin verir — başka ürün sıfırlanamaz.
+ */
+export async function sifirlaOperasyonelYarimamuller(
+  emirId: string,
+  urunIds: string[],
+  userId: string | null,
+): Promise<{ sifirlanan: KalanYarimamul[] }> {
+  const kalanlar = await getKalanOperasyonelYarimamuller(emirId);
+  const izinliMap = new Map(kalanlar.map((k) => [k.urunId, k]));
+  const hedefler = urunIds.filter((id) => izinliMap.has(id));
+
+  if (hedefler.length === 0) return { sifirlanan: [] };
+
+  const sifirlanan: KalanYarimamul[] = [];
+  await db.transaction(async (tx) => {
+    for (const urunId of hedefler) {
+      const kalan = izinliMap.get(urunId)!;
+      if (Math.abs(kalan.stok) < 0.0001) continue;
+      // Ters işaretli düzeltme ile sıfıra çek.
+      await tx
+        .update(urunler)
+        .set({ stok: '0.0000' })
+        .where(eq(urunler.id, urunId));
+      await tx.insert(hareketler).values({
+        id: randomUUID(),
+        urun_id: urunId,
+        hareket_tipi: 'duzeltme',
+        referans_tipi: 'stok_duzeltme',
+        referans_id: emirId,
+        miktar: Math.abs(kalan.stok).toFixed(4),
+        aciklama: `Üretim bitişi — kalan yarımamul sıfırlandı (emir tamamlandı)`,
+        created_by_user_id: userId ?? null,
+      });
+      sifirlanan.push(kalan);
+    }
+  });
+
+  return { sifirlanan };
+}
