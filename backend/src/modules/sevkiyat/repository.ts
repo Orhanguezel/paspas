@@ -642,7 +642,8 @@ export async function repoPatchSevkEmri(id: string, patch: SevkEmriPatch, operat
         hareket_tipi: 'cikis',
         referans_tipi: 'sevkiyat',
         referans_id: sevkiyatId,
-        miktar: String(-Math.abs(Number(sevkMiktar))),
+        // V20/R4: cikis hareketinde miktar daima pozitif; yön hareket_tipi'nde taşınır.
+        miktar: Math.abs(Number(sevkMiktar)).toFixed(4),
         aciklama: `Sevkiyat: ${sevkNo}`,
         created_by_user_id: operatorUserId,
       });

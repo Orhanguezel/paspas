@@ -12,6 +12,28 @@ import type { CreateBody, ListQuery } from './validation';
 
 type ListResult = { items: HareketRow[]; total: number; summary: HareketOzetDto };
 
+/**
+ * V20/R4 — Bir hareket için (kaydedilecek miktar, stok deltası) çiftini üretir.
+ *
+ * Kural:
+ * - `giris` / `cikis`: kaydedilen `miktar` DAİMA pozitif; yön `hareket_tipi`'nde taşınır.
+ *   Stok deltası signed'dır (cikis stoğu azaltır).
+ * - `duzeltme`: yön işaretle taşınır (repoAdjustStock deseni). Hem kayıt hem delta korunur.
+ */
+export function hareketMiktarNormalize(
+  hareketTipi: 'giris' | 'cikis' | 'duzeltme',
+  miktar: number,
+): { kayitMiktar: number; stokDelta: number } {
+  if (hareketTipi === 'duzeltme') {
+    return { kayitMiktar: miktar, stokDelta: miktar };
+  }
+  const abs = Math.abs(miktar);
+  return {
+    kayitMiktar: abs,
+    stokDelta: hareketTipi === 'cikis' ? -abs : abs,
+  };
+}
+
 function getDateRange(query: ListQuery): { start: Date; end: Date } | null {
   const now = new Date();
 
@@ -181,9 +203,10 @@ export async function repoCreate(body: CreateBody, createdByUserId: string | nul
   const id = randomUUID();
 
   await db.transaction(async (tx) => {
-    const signedAmount = body.hareketTipi === 'cikis'
-      ? -Math.abs(body.miktar)
-      : Math.abs(body.miktar);
+    const { kayitMiktar, stokDelta: signedDelta } = hareketMiktarNormalize(
+      body.hareketTipi,
+      body.miktar,
+    );
 
     await tx.insert(hareketler).values({
       id,
@@ -191,15 +214,14 @@ export async function repoCreate(body: CreateBody, createdByUserId: string | nul
       hareket_tipi: body.hareketTipi,
       referans_tipi: body.referansTipi,
       referans_id: body.referansId,
-      miktar: signedAmount.toFixed(4),
+      miktar: kayitMiktar.toFixed(4),
       aciklama: body.aciklama,
       created_by_user_id: createdByUserId,
     });
 
     const urun = await tx.select().from(urunler).where(eq(urunler.id, body.urunId)).limit(1);
     const currentStock = Number(urun[0]?.stok ?? 0);
-    const delta = signedAmount;
-    const nextStock = currentStock + delta;
+    const nextStock = currentStock + signedDelta;
 
     if (!urun[0]) throw new Error('urun_bulunamadi');
     if (urun[0].stok_takip_aktif === 1 && nextStock < 0) throw new Error('negative_stock_not_allowed');

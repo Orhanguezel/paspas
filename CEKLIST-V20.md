@@ -284,23 +284,29 @@ Aynı tabloya üç farklı işaret kuralıyla yazılıyor:
 Yön bilgisi `hareket_tipi` (`giris`/`cikis`) kolonunda da var. Aynı yönü iki farklı yerde
 kodlamak, `SUM(miktar)` alan her rapora tuzak kuruyor.
 
-## VERİLMİŞ KARAR — R4
+## VERİLMİŞ KARAR — R4 (uygulandı)
 
-| Konu | Karar |
-|---|---|
-| Kural | `miktar` **daima pozitif** (mutlak değer); yön **yalnız** `hareket_tipi` ile taşınır |
-| Aykırılar | `sevkiyat/repository.ts:645` ve `hammadde_service.ts:287` pozitife çevrilir |
-| Manuel API | `hareketler/repository.ts` girdiyi `Math.abs` ile normalize eder, `hareket_tipi` zorunlu |
-| Geçmiş veri | Negatif yazılmış satırlar tek seferlik düzeltme seed'i ile pozitife çevrilir (`hareket_tipi` korunur) |
-| Ölü kod | `hammadde_service.ts` `stokDus`/`stokGeriAl` — **çağıranı yok**, silinir |
+> **Düzeltme:** İlk kararım "miktar daima pozitif, yön yalnız hareket_tipi'nde" idi. Ama
+> `repoAdjustStock` `hareket_tipi='duzeltme'` yazıyor ve yönü **miktar işaretinde** taşıyor
+> (pozitif=artış, negatif=azalış). Tek `duzeltme` tipi var, +/- ayrımı yapmıyor. Kural bu yüzden
+> **yalnız `giris`/`cikis` için** geçerli; `duzeltme` işaretini korur.
+
+| Konu | Karar | Gerekçe |
+|---|---|---|
+| Kural | `giris`/`cikis`'te `miktar` daima pozitif; yön `hareket_tipi`'nde | Aynı yönü iki yerde kodlamak SUM tuzağı kurar |
+| `duzeltme` | İşaret **korunur** (yön oradan geliyor) | Tek `duzeltme` tipi +/- ayrımı yapmıyor; pozitife zorlarsak azalış/artış ayrımı kaybolur |
+| Kod | `sevkiyat/repository.ts` cikis'i pozitif; `hareketler/repoCreate` giris/cikis pozitif, duzeltme korunur | — |
+| Ölü kod | `hammadde_service` `stokDus`/`stokGeriAl` **silindi** (çağıranı yorum satırıydı) | — |
+| Geçmiş veri | Seed 215: yalnız `cikis` + `miktar<0` → `ABS`. `duzeltme`'ye dokunmaz | Canlıda 135 cikis satırı (uretim_emri 74 + sevkiyat 61); 48 duzeltme korunur |
+| Güvenlik | `SUM(hareketler.miktar)` yapan tek gerçek rapor (`satis_siparisleri:297`) `giris` filtreli — cikis'e bakmaz; çıkış raporları zaten `ABS()` | İşaret düzeltmesi hiçbir raporu değiştirmez |
 
 ### R4 görevleri
 
-- [ ] `sevkiyat/repository.ts:645` + `hammadde_service.ts:287` pozitif yazacak şekilde düzeltildi
-- [ ] `hareketler/repoCreate` `Math.abs` normalizasyonu + `hareket_tipi` zorunluluğu
-- [ ] Geçmiş negatif `miktar` satırları için düzeltme seed'i
-- [ ] `stokDus`/`stokGeriAl` ölü kodu silindi
-- [ ] `SUM(miktar)` kullanan raporlar gözden geçirildi (`satis_siparisleri/repository.ts:289-307,588`)
+- [x] `sevkiyat/repository.ts` cikis pozitif yazıyor
+- [x] `hareketler/repoCreate` giris/cikis pozitif, duzeltme işaret korur; stok deltası ayrı signed
+- [x] Geçmiş için seed 215 (`cikis` + `miktar<0` → `ABS`, idempotent)
+- [x] `stokDus`/`stokGeriAl` ölü kodu silindi
+- [x] `SUM(miktar)` raporları incelendi — `satis_siparisleri:297` giris filtreli, güvenli
 
 ---
 

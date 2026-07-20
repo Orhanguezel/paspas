@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import { listHareketler, createHareket } from "../controller";
+import { hareketMiktarNormalize } from "../repository";
 import { listQuerySchema, createSchema } from "../validation";
 
 type FakeReply = {
@@ -137,5 +138,28 @@ describe("hareketler controller", () => {
     await createHareket(req, reply);
     expect(reply.statusCode).toBe(400);
     expect(reply.payload).toMatchObject({ error: { message: "gecersiz_istek_govdesi" } });
+  });
+});
+
+/* ================================================================
+   V20/R4 — Hareket miktar işaret normalizasyonu
+   ================================================================ */
+
+describe("hareketMiktarNormalize (V20/R4)", () => {
+  it("giris: kayıt pozitif, delta pozitif", () => {
+    expect(hareketMiktarNormalize("giris", 100)).toEqual({ kayitMiktar: 100, stokDelta: 100 });
+    // negatif girse bile kayıt pozitif olur (yön hareket_tipi'nde)
+    expect(hareketMiktarNormalize("giris", -100)).toEqual({ kayitMiktar: 100, stokDelta: 100 });
+  });
+
+  it("cikis: kayıt pozitif, delta negatif", () => {
+    expect(hareketMiktarNormalize("cikis", 100)).toEqual({ kayitMiktar: 100, stokDelta: -100 });
+    // negatif girdi de pozitif kayda normalize edilir — eski negatif-yazma bug'ı
+    expect(hareketMiktarNormalize("cikis", -100)).toEqual({ kayitMiktar: 100, stokDelta: -100 });
+  });
+
+  it("duzeltme: işaret KORUNUR (yön işarette taşınır)", () => {
+    expect(hareketMiktarNormalize("duzeltme", 50)).toEqual({ kayitMiktar: 50, stokDelta: 50 });
+    expect(hareketMiktarNormalize("duzeltme", -50)).toEqual({ kayitMiktar: -50, stokDelta: -50 });
   });
 });
