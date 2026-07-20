@@ -319,6 +319,8 @@ async function autoPopulateOperasyonlar(emirId: string, urunId: string, planlana
     urun_operasyon_id: op.id,
     sira: op.sira,
     operasyon_adi: op.operasyon_adi,
+    // Urun kartindaki parca bagini emre snapshot'la (V20/R1)
+    uretilen_urun_id: op.uretilen_urun_id,
     kalip_id: op.kalip_id,
     hazirlik_suresi_dk: op.hazirlik_suresi_dk,
     cevrim_suresi_sn: String(op.cevrim_suresi_sn),

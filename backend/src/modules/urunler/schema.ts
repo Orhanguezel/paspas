@@ -92,6 +92,9 @@ export const urunOperasyonlari = mysqlTable('urun_operasyonlari', {
   urun_id: char('urun_id', { length: 36 }).notNull(),
   sira: tinyint('sira', { unsigned: true }).notNull().default(1),
   operasyon_adi: varchar('operasyon_adi', { length: 255 }).notNull(),
+  // Bu operasyonun urettigi operasyonel_ym parcasi (inline cift tarafli uretim).
+  // NULL ise parca stogu yazilmaz ve receteden de dusulmez - bkz V20/R1.
+  uretilen_urun_id: char('uretilen_urun_id', { length: 36 }),
   kalip_id: char('kalip_id', { length: 36 }),
   hazirlik_suresi_dk: int('hazirlik_suresi_dk', { unsigned: true }).notNull().default(60),
   cevrim_suresi_sn: decimal('cevrim_suresi_sn', { precision: 10, scale: 2 }).notNull().default('45.00'),

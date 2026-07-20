@@ -841,6 +841,125 @@ async function applyUretimStockDelta(
   await consumeRecipeMaterials(tx, uretimEmriId, stokDelta, operatorUserId, opts);
 }
 
+/**
+ * V20/R1 — Inline modelde bir operasyonun ürettiği operasyonel_ym parçasını stoğa yazar.
+ *
+ * `uretilen_urun_id` NULL ise hiçbir şey yapmaz: bağ tanımlanmamış bir üründe sessizce
+ * tahmin yürütmek yerine stok hiç oynatılmaz (negatif stok üretmesi imkânsız olsun diye).
+ */
+async function applyParcaStockDelta(
+  tx: DbTransaction,
+  uretilenUrunId: string | null,
+  stokDelta: number,
+  uretimEmriId: string,
+  operatorUserId: string | null,
+  aciklama: string,
+): Promise<void> {
+  if (!uretilenUrunId || Math.abs(stokDelta) < 0.0001) return;
+
+  const [parca] = await tx
+    .select({ id: urunler.id, stokTakipAktif: urunler.stok_takip_aktif })
+    .from(urunler)
+    .where(eq(urunler.id, uretilenUrunId))
+    .limit(1);
+
+  if (!parca?.id) return;
+
+  if (parca.stokTakipAktif === 1) {
+    await tx
+      .update(urunler)
+      .set({ stok: sql`${urunler.stok} + ${stokDelta.toFixed(4)}` })
+      .where(eq(urunler.id, parca.id));
+  }
+
+  await tx.insert(hareketler).values({
+    id: randomUUID(),
+    urun_id: parca.id,
+    hareket_tipi: stokDelta > 0 ? 'giris' : 'cikis',
+    referans_tipi: 'uretim',
+    referans_id: uretimEmriId,
+    miktar: Math.abs(stokDelta).toFixed(4),
+    aciklama,
+    created_by_user_id: operatorUserId ?? null,
+  });
+}
+
+/**
+ * V20/R1 — Inline modelde montaj tüketimi.
+ *
+ * Kullanıcının tarifi: montaj=1 işaretli operasyon, baskı ile *eşzamanlı* elde montaj
+ * yapıldığını ifade eder. Bu operasyondan çıkan her adet, reçetedeki operasyonel_ym
+ * parçalarından birer adet tüketir.
+ *
+ * Miktar `min(istenen, en kısıtlı parça stoğu)` ile sınırlanır — parça stoğu negatife
+ * düşemez. Eksik kalırsa çağıran tarafta uyarı loglanır.
+ */
+async function consumeInlineMontajParcalari(
+  tx: DbTransaction,
+  uretimEmriId: string,
+  montajMiktar: number,
+  operatorUserId: string | null,
+): Promise<{ tuketilen: number; eksik: boolean }> {
+  if (montajMiktar < 0.0001) return { tuketilen: 0, eksik: false };
+
+  const [emirRow] = await tx
+    .select({ receteId: uretimEmirleri.recete_id })
+    .from(uretimEmirleri)
+    .where(eq(uretimEmirleri.id, uretimEmriId))
+    .limit(1);
+
+  if (!emirRow?.receteId) return { tuketilen: 0, eksik: false };
+
+  const parcalar = await tx
+    .select({
+      urunId: urunler.id,
+      stok: urunler.stok,
+      stokTakipAktif: urunler.stok_takip_aktif,
+      birimMiktar: receteKalemleri.miktar,
+    })
+    .from(receteKalemleri)
+    .innerJoin(urunler, eq(receteKalemleri.urun_id, urunler.id))
+    .where(and(eq(receteKalemleri.recete_id, emirRow.receteId), eq(urunler.kategori, 'operasyonel_ym')));
+
+  if (parcalar.length === 0) return { tuketilen: 0, eksik: false };
+
+  // Stok takibi açık olan parçalar montaj adedini sınırlar.
+  let uygulanabilir = montajMiktar;
+  for (const parca of parcalar) {
+    if (parca.stokTakipAktif !== 1) continue;
+    const birim = Number(parca.birimMiktar ?? 1) || 1;
+    const mevcut = Number(parca.stok ?? 0);
+    uygulanabilir = Math.min(uygulanabilir, mevcut / birim);
+  }
+  uygulanabilir = Math.max(0, uygulanabilir);
+  if (uygulanabilir < 0.0001) return { tuketilen: 0, eksik: true };
+
+  for (const parca of parcalar) {
+    const dusulecek = uygulanabilir * (Number(parca.birimMiktar ?? 1) || 1);
+    if (dusulecek < 0.0001) continue;
+
+    if (parca.stokTakipAktif === 1) {
+      await tx
+        .update(urunler)
+        .set({ stok: sql`${urunler.stok} - ${dusulecek.toFixed(4)}` })
+        .where(eq(urunler.id, parca.urunId));
+    }
+
+    await tx.insert(hareketler).values({
+      id: randomUUID(),
+      urun_id: parca.urunId,
+      hareket_tipi: 'cikis',
+      referans_tipi: 'montaj',
+      referans_id: uretimEmriId,
+      miktar: dusulecek.toFixed(4),
+      aciklama: 'Inline montaj — parça tüketimi',
+      created_by_user_id: operatorUserId ?? null,
+    });
+  }
+
+  return { tuketilen: uygulanabilir, eksik: uygulanabilir < montajMiktar - 0.0001 };
+}
+
 // ============================================================
 // 1) Makine Kuyrugu Listeleme
 // ============================================================
@@ -1303,11 +1422,18 @@ export async function repoUretimBitir(
     // Multi-op, no-montaj "tek emir mamul" products affect finished stock once all ops are complete.
     let hasImmediateStockImpact = true;
     let isMultiOpWithoutMontaj = false;
+    // V20/R1 — inline (çift taraflı) model: operasyonlar `uretilen_urun_id` ile bir
+    // operasyonel_ym parçasına bağlıysa, her operasyon kendi parçasını üretir ve
+    // montaj=1 olan operasyon aynı anda montajı da yapar (eşzamanlı akış).
+    let isInlineModel = false;
+    let currentOpUretilenUrunId: string | null = null;
+    let currentOpIsMontajOp = false;
     if (kqRow.emir_operasyon_id && kqRow.uretim_emri_id) {
       const opRows = await tx
         .select({
           id: uretimEmriOperasyonlari.id,
           montaj: uretimEmriOperasyonlari.montaj,
+          uretilenUrunId: uretimEmriOperasyonlari.uretilen_urun_id,
         })
         .from(uretimEmriOperasyonlari)
         .where(eq(uretimEmriOperasyonlari.uretim_emri_id, kqRow.uretim_emri_id));
@@ -1317,6 +1443,11 @@ export async function repoUretimBitir(
       const currentOpIsMontaj = opRows.some((op) => op.id === kqRow.emir_operasyon_id && Number(op.montaj ?? 0) === 1);
       hasImmediateStockImpact = isSingleOperation || currentOpIsMontaj;
       isMultiOpWithoutMontaj = opRows.length > 1 && !hasMontajOperation;
+
+      isInlineModel = opRows.some((op) => op.uretilenUrunId != null);
+      currentOpIsMontajOp = currentOpIsMontaj;
+      currentOpUretilenUrunId =
+        opRows.find((op) => op.id === kqRow.emir_operasyon_id)?.uretilenUrunId ?? null;
     }
 
     if (kqRow.uretim_emri_id) {
@@ -1377,6 +1508,34 @@ export async function repoUretimBitir(
 
       if (remaining <= 0) { emirUpdate.durum = 'tamamlandi'; emirUpdate.bitis_tarihi = now; }
 
+      // V20/R1 — inline model: bu operasyonun ürettiği parça stoğa girer.
+      // Sıra önemli: önce giriş, sonra montaj tüketimi. montaj=1 olan operasyon
+      // kendi bastığı parçayı da tükettiği için net etkisi 0 olur (stok tutmaz).
+      if (isInlineModel && Math.abs(sonEkNet) >= 0.0001) {
+        await applyParcaStockDelta(
+          tx,
+          currentOpUretilenUrunId,
+          sonEkNet,
+          kqRow.uretim_emri_id,
+          operatorUserId,
+          'Üretim tamamlandı — parça girişi',
+        );
+      }
+
+      if (isInlineModel && currentOpIsMontajOp && sonEkNet >= 0.0001) {
+        const montajSonuc = await consumeInlineMontajParcalari(
+          tx,
+          kqRow.uretim_emri_id,
+          sonEkNet,
+          operatorUserId,
+        );
+        if (montajSonuc.eksik) {
+          console.warn(
+            `[inline-montaj] Parça stoğu yetersiz — emir=${kqRow.uretim_emri_id} istenen=${sonEkNet} tüketilen=${montajSonuc.tuketilen}`,
+          );
+        }
+      }
+
       if (Math.abs(stokFarki) >= 0.0001 && tamamlananHasStockImpact) {
         await applyUretimStockDelta(
           tx,
@@ -1388,7 +1547,8 @@ export async function repoUretimBitir(
             : `Üretim tamamlandı — stok düzeltme (fark: ${stokFarki.toFixed(0)})`,
           // Çok-op mamul modelinde reçetedeki operasyonel_ym Sağ/Sol = operasyonların
           // kendisi; ayrı stok olarak tüketme (eksiye çekilmesin / çift sayım olmasın).
-          { skipOperasyonelYm: isMultiOpWithoutMontaj },
+          // Inline modelde de atlanır: parça tüketimi montaj adımında yapıldı.
+          { skipOperasyonelYm: isMultiOpWithoutMontaj || isInlineModel },
         );
       }
 
@@ -1680,6 +1840,35 @@ async function hasIncrementalStockImpact(
   return true;
 }
 
+/**
+ * V20/R1 — Bir kuyruk satırının inline model bağlamını çıkarır.
+ * `isInline`: emrin herhangi bir operasyonunda `uretilen_urun_id` tanımlı mı.
+ */
+async function getInlineOpContext(
+  tx: DbTransaction,
+  kqRow: { emir_operasyon_id: string | null; uretim_emri_id: string },
+): Promise<{ isInline: boolean; uretilenUrunId: string | null; isMontajOp: boolean }> {
+  const opRows = await tx
+    .select({
+      id: uretimEmriOperasyonlari.id,
+      montaj: uretimEmriOperasyonlari.montaj,
+      uretilenUrunId: uretimEmriOperasyonlari.uretilen_urun_id,
+    })
+    .from(uretimEmriOperasyonlari)
+    .where(eq(uretimEmriOperasyonlari.uretim_emri_id, kqRow.uretim_emri_id));
+
+  const isInline = opRows.some((op) => op.uretilenUrunId != null);
+  const current = kqRow.emir_operasyon_id
+    ? opRows.find((op) => op.id === kqRow.emir_operasyon_id)
+    : undefined;
+
+  return {
+    isInline,
+    uretilenUrunId: current?.uretilenUrunId ?? null,
+    isMontajOp: Number(current?.montaj ?? 0) === 1,
+  };
+}
+
 async function recordIncrementalProductionEntry(
   tx: DbTransaction,
   {
@@ -1755,6 +1944,34 @@ async function recordIncrementalProductionEntry(
       .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id));
   }
 
+  // V20/R1 — inline model: ara girişlerde de parça stoğu gerçek zamanlı işlenir,
+  // yoksa tampon stok ancak emir bitince görünürdü.
+  const inlineCtx = await getInlineOpContext(tx, kqRow);
+  if (inlineCtx.isInline && netMiktar > 0) {
+    await applyParcaStockDelta(
+      tx,
+      inlineCtx.uretilenUrunId,
+      netMiktar,
+      kqRow.uretim_emri_id,
+      operatorUserId,
+      gunlukDurum === 'yarim_kaldi' ? 'Günlük üretim girişi — parça' : 'Artımlı üretim — parça',
+    );
+
+    if (inlineCtx.isMontajOp) {
+      const montajSonuc = await consumeInlineMontajParcalari(
+        tx,
+        kqRow.uretim_emri_id,
+        netMiktar,
+        operatorUserId,
+      );
+      if (montajSonuc.eksik) {
+        console.warn(
+          `[inline-montaj] Parça stoğu yetersiz — emir=${kqRow.uretim_emri_id} istenen=${netMiktar} tüketilen=${montajSonuc.tuketilen}`,
+        );
+      }
+    }
+  }
+
   if (netMiktar > 0 && hasStockImpact) {
     const [emirRow] = await tx
       .select({
@@ -1787,7 +2004,11 @@ async function recordIncrementalProductionEntry(
         created_by_user_id: operatorUserId ?? null,
       });
 
-      await consumeRecipeMaterials(tx, kqRow.uretim_emri_id, netMiktar, operatorUserId);
+      // Inline modelde operasyonel_ym parçaları montaj adımında tüketildi;
+      // reçeteden ikinci kez düşülmemeli (negatif stok kök nedeni — V20/R1).
+      await consumeRecipeMaterials(tx, kqRow.uretim_emri_id, netMiktar, operatorUserId, {
+        skipOperasyonelYm: inlineCtx.isInline,
+      });
     }
   }
 

@@ -1,5 +1,24 @@
 # Yazılımcı Notu V20 — 🔴 Inline (çift taraflı) üretim: parçalar tüketiliyor ama hiç üretilmiyor
 
+> **GÜNCELLEME 2026-07-20 — kullanıcı cevapları alındı (`Inline üretim cevaplar.docx`).**
+> Aşağıdaki üç varsayımım **yanlış çıktı**, kararlar düzeltildi. Bu blok, eski kararların
+> neden geçersiz olduğunu kayda geçirmek için duruyor:
+>
+> 1. ❌ *"`montaj=1` yanlış işaretlenmiş, düzeltilmeli"* → **Kasıtlı bir tasarım.** Kullanıcı montajı
+>    ayrı operasyon olarak tanımlamak yerine, **hangi baskı operasyonuyla eşzamanlı yürüdüğünü**
+>    işaretliyor. `montaj=1` = "bu makinedeki baskı ile elde yapılan montaj aynı anda yürüyor",
+>    dolayısıyla o operasyonun süresi = montaj süresi. **Veri düzeltilmeyecek.**
+> 2. ❌ *"R2: vardiya analizinde toplam montaj hariç olsun"* → **Tam tersi.** Kullanıcı: *"net rakam
+>    baskı adedini göstermeli, bitmiş ürünü değil"*. `montaj=1` olan operasyon **da baskı yapıyor**,
+>    üretimi sayılmalı. Asıl hata: o operasyonun `baskiNet`'e girmemesi (verimlilik/OEE bozuluyor).
+> 3. ❌ *"Backfill yapılmayacak, veriden çıkarılamaz"* → **Çıkarılabilir.** Kullanıcı: *"operasyon adı
+>    = üretilen parça adı"*. Ölçüldü: 280 operasyonun **240'ı tam eşleşiyor, çoklu eşleşme 0**.
+>    Kalan 40'ı elle doldurulacak.
+>
+> **Yeni gereksinim (kullanıcıdan):** üretim erken bitirilirse (1000 yerine 700 takım) elde kalan
+> operasyonel yarımamuller görünmeli; operatör "bitir" dediğinde sistem **admine kalan miktarları
+> gösterip sıfırlamak isteyip istemediğini sormalı**. Yalnız operasyonel yarımamuller için. → R5
+
 Kaynak not: `66c593f3-5c04-4e49-a4c3-1fbe771779a7` — **"Inline (çift taraflı) Üretim Senaryosu"**
 (`/admin/vardiya-analizi`, 2026-07-20 08:42, `status=open`). Müşteri ekli görselle birlikte tam bir
 akış tarif etmiş: `uploads/admin/vardiya-analizi/Inline_cift_tarfli_Uretim_Senayosu.png`
@@ -100,37 +119,62 @@ En büyükler: −5967, −5850, −5040, −4129, −4064, −3093, −3093.
 
 | Konu | Karar | Gerekçe |
 |---|---|---|
-| Model adı | **Inline modeli** (Megane/Tuna'nın yanına üçüncü model) | Müşterinin kendi terimi |
-| Tanıma kuralı | `urun_id.kategori = 'urun'` **AND** op sayısı > 1 **AND** montaj operasyonu var **AND** reçetede `operasyonel_ym` kalemi var | Megane (`urun_id`=operasyonel_ym) ve Tuna (montaj yok) ile çakışmaz |
-| Parça üretimi | Montaj **olmayan** her operasyonun `uretilen_miktar`'ı, o operasyonun ürettiği operasyonel_ym parçasının stoğunu **artırır** (`giris`/`uretim`) | Müşteri tampon stoğu görmek istiyor; stok 0'da tutulursa "300 adet tampon" görünmez |
-| Parça tüketimi | Montaj operasyonu, reçetedeki operasyonel_ym kalemlerini montaj adedi kadar **tüketir** (`cikis`/`montaj`) | Müşterinin akışı: montaj A+B'yi tüketip bitmiş ürün üretir |
-| Mamul kredisi | Montaj operasyonunun `uretilen_miktar`'ı kadar mamul stoğu artar | Bugünkü davranış korunur |
-| Tampon stok | **Hesaplanmaz, türetilir.** Parça girişi − montaj çıkışı farkı doğal olarak tampon stoktur | Müşteri "otomatik hesaplanmalıdır" dedi; sabit sayı yok |
+| Model adı | **Inline modeli** (Megane/Tuna'nın yanına üçüncü model) | Kullanıcının kendi terimi |
+| Tanıma kuralı | `urun_id.kategori = 'urun'` **AND** op sayısı > 1 **AND** reçetede `operasyonel_ym` kalemi var | Megane (`urun_id`=operasyonel_ym) ve Tuna (reçetede operasyonel_ym yok) ile çakışmaz |
+| **`montaj=1`'in anlamı** | **"Bu baskı operasyonu ile elde yapılan montaj eşzamanlı yürüyor."** Operasyon **hem parça basar hem monte eder** | Kullanıcı: *"Makine 2 B parçasından 1 adet ürettiği anda, daha önce üretilmiş A parçalarından biri ile birleştiriliyor"* |
+| Parça üretimi | **Her** operasyon (montaj bayrağından bağımsız), `uretilen_urun_id` parçasının stoğunu `uretilen_miktar` kadar **artırır** (`giris`/`uretim`) | `montaj=1` olan operasyon da baskı yapıyor — üretimi kaybedilmemeli |
+| Montaj tüketimi | `montaj=1` operasyonun ürettiği miktar kadar, reçetedeki **tüm** operasyonel_ym kalemleri **tüketilir** (`cikis`/`montaj`) | 1 B üretimi = 1 montaj = 1 A + 1 B tüketimi |
+| Mamul kredisi | `montaj=1` operasyonun `uretilen_miktar`'ı kadar mamul stoğu artar (`giris`/`montaj`) | Montaj eşzamanlı olduğu için baskı adedi = montaj adedi |
+| Net etki | Montajlı parça: `+üretim −montaj = 0` (stok tutmaz). Diğer parça: `−montaj` (tampondan düşer) | Kullanıcının senaryosuyla birebir: *"Diğer parçada (B) stok tutulmaz, üretildiği anda montaja gider"* |
+| Tampon stok | **Hesaplanmaz, türetilir.** Erken başlayan makinenin girişi − montaj çıkışı | Kullanıcı: *"otomatik hesaplanmalıdır"*; sabit sayı yok |
+| Montaj > mevcut parça stoğu | Montaj `min(operasyon üretimi, en kısıtlı parça stoğu)` ile sınırlanır; fark `log.warn` | Savunmacı sınır — parça stoğu negatife **düşemez** |
+
+**Doğrulama — `UE-2026-0098` (41 LT BASIC SİYAH) bu kurallarla:**
+
+```
+OP2 (Alt Gövde, montaj=0) üretim 3668 → Alt stok +3668
+OP1 (Üst Gövde, montaj=1) üretim 3652 → Üst stok +3652
+                                       → montaj 3652: Alt −3652, Üst −3652, Mamul +3652
+────────────────────────────────────────────────────────────────
+Alt Gövde : 3668 − 3652 = 16   (tampon — erken başlayan makinenin fazlası)
+Üst Gövde : 3652 − 3652 = 0    (stok tutmaz, anında montaja gider)
+Mamul     : 3652               (satılabilir takım)
+```
+
+Bugünkü sonuç: Alt −3093, Üst −3093, tampon görünmüyor. Yeni model kullanıcının tablosuyla uyuşuyor.
 
 **Kritik engel — şema eksiği:** "Hangi operasyon hangi parçayı üretiyor" bilgisi **şemada yok**.
 `urun_operasyonlari` (`urunler/schema.ts:90-102`) yalnızca `operasyon_adi`, `kalip_id`, `montaj`
-tutuyor; ürettiği operasyonel_ym ürününe bağ yok. Sıra numarasıyla eşleştirme (`sira=2` → reçetenin
-2. operasyonel_ym kalemi) **kırılgandır, yapılmayacak**.
+tutuyor. Kullanıcının kendi ifadesiyle: *"Biz bir adımı atlamışız ve operasyon adı ile üretilen
+parçanın adını eşitlemişiz."* Sıra numarasıyla eşleştirme kırılgandır, **yapılmayacak**.
 
-| Konu | Karar |
-|---|---|
-| Şema | `urun_operasyonlari.uretilen_urun_id` char(36) NULL (operasyonel_ym ürüne FK) + `uretim_emri_operasyonlari.uretilen_urun_id` (emir anındaki snapshot) |
-| Migration | Seed dosyası `214_operasyon_uretilen_urun.sql`, **209/213 ile aynı idempotent kalıp** (INFORMATION_SCHEMA kontrolü). `ALTER` doğrudan çalıştırılmaz |
-| Backfill | Otomatik backfill **yapılmayacak** — hangi operasyonun hangi parçayı ürettiği veriden güvenle çıkarılamaz. Kolon NULL kalır; NULL ise parça stoğu yazılmaz (bugünkü davranış), uyarı loglanır |
-| UI | Ürün operasyon formuna "Bu operasyon hangi parçayı üretir?" seçimi (yalnız montaj=0 operasyonlarda, seçenekler ürünün reçetesindeki operasyonel_ym kalemleri) |
+Kullanıcı iki seçenek sundu (elle tanımlama / isimden çıkarma) ve *"hangisi daha sağlıklı ve
+sorunsuz olacaksa"* diyerek kararı bıraktı. **İkisi birleştirildi** — çünkü isimden runtime'da
+çıkarmak deterministik değildir (isim değişince bağ sessizce kopar):
+
+| Konu | Karar | Gerekçe |
+|---|---|---|
+| Şema | `urun_operasyonlari.uretilen_urun_id` char(36) NULL + `uretim_emri_operasyonlari.uretilen_urun_id` (emir anı snapshot) | Bağ **veriye yazılır**, her çalışmada string eşleşmesiyle yeniden tahmin edilmez |
+| Migration | Seed `214_operasyon_uretilen_urun.sql`, 209/213 idempotent kalıbı | `ALTER` doğrudan çalıştırılmaz |
+| Backfill | **Yapılacak** — yalnız **TAM** isim eşleşmesinde (`TRIM(ad) = TRIM(operasyon_adi)`), yalnız aktif reçetenin operasyonel_ym kalemleri arasında | Ölçüldü: 280 op → **240 tam eşleşme, 0 çoklu eşleşme**. Belirsizlik yok |
+| Eşleşmeyen 40 op | NULL kalır → admin UI'dan doldurulur | Tahmin yürütmek yerine boş bırakmak güvenli |
+| NULL davranışı | Parça stoğu yazılmaz **ve** reçeteden de düşülmez (`skipOperasyonelYm`) + `log.warn` | Bugünkü negatif-stok üretme davranışı **tekrarlanmaz**; eksik veri sessiz veri bozulmasına yol açmaz |
+| UI | Ürün operasyon formunda "Üretilen yarımamul" seçimi; seçenekler ürünün aktif reçetesindeki operasyonel_ym kalemleri | Kullanıcının tarif ettiği tablo yapısı (Operasyon / Üretilen Aramamul / Kalıp) |
 
 ### R1 görevleri
 
-- [ ] Seed `214_operasyon_uretilen_urun.sql` — iki tabloya `uretilen_urun_id`, idempotent, index dahil
+- [ ] Seed `214_operasyon_uretilen_urun.sql` — iki tabloya `uretilen_urun_id`, idempotent, index + **TAM isim eşleşmesiyle backfill**
 - [ ] Drizzle şemaları güncellendi (`urunler/schema.ts`, `uretim_emirleri/schema.ts`)
 - [ ] Emir oluşturulurken `urun_operasyonlari.uretilen_urun_id` → `uretim_emri_operasyonlari`'na kopyalanıyor (`autoPopulateOperasyonlar`)
-- [ ] `isInlineModel(...)` ayrım fonksiyonu yazıldı ve `repoUretimBitir` + `recordIncrementalProductionEntry` bu modeli tanıyor
-- [ ] Montaj olmayan operasyon üretimi → `uretilen_urun_id` stoğuna `giris`/`uretim` (NULL ise no-op + `log.warn`)
-- [ ] Montaj operasyonu → operasyonel_ym kalemlerini `cikis`/`montaj` ile tüketiyor, mamulü kreditliyor
-- [ ] `consumeRecipeMaterials` inline modelde `skipOperasyonelYm: true` ile çağrılıyor (çift düşme yok)
-- [ ] Ürün operasyon formunda parça seçimi (UI)
-- [ ] Test: inline emir → parça girişi + montaj tüketimi + mamul kredisi; süreç sonunda parça stoğu **0**
-- [ ] Test: `uretilen_urun_id` NULL iken hiçbir stok hareketi oluşmuyor (regresyon güvenliği)
+- [ ] `isInlineModel(...)` ayrım fonksiyonu yazıldı; `repoUretimBitir` + `recordIncrementalProductionEntry` bu modeli tanıyor
+- [ ] **Her** operasyon üretimi → `uretilen_urun_id` stoğuna `giris`/`uretim` (NULL ise no-op + `log.warn`)
+- [ ] `montaj=1` operasyon → reçetedeki operasyonel_ym kalemlerini `cikis`/`montaj` ile tüketir, mamulü kreditler
+- [ ] Montaj miktarı `min(operasyon üretimi, en kısıtlı parça stoğu)` ile sınırlı — parça stoğu negatife düşemez
+- [ ] `consumeRecipeMaterials` inline modelde `skipOperasyonelYm: true` (çift düşme yok)
+- [ ] Ürün operasyon formunda "Üretilen yarımamul" seçimi (UI) — eşleşmeyen 40 op buradan doldurulacak
+- [ ] Test: `UE-2026-0098` senaryosu → Alt 16 (tampon), Üst 0, Mamul 3652
+- [ ] Test: `uretilen_urun_id` NULL iken hiçbir stok hareketi oluşmuyor (negatif stok imkansız)
+- [ ] **Regresyon:** Megane ve Tuna modelleri davranış değiştirmiyor
 
 ---
 
@@ -176,23 +220,30 @@ montaj adedi gösteriyor.
 
 ## VERİLMİŞ KARAR — R2
 
+> **DÜZELTME:** İlk kararım "toplam montaj hariç olsun" idi — **yanlış**. Kullanıcı: *"Vardiya
+> analizinde net rakam baskı adedini göstermeli, bitmiş ürünü değil. Buradaki amacımız hangi
+> vardiyada hangi parçadan kaç adet üretildiğini ve buna bağlı üretim istatistiklerini,
+> verimliliği, duruşları görmek."* `montaj=1` olan operasyon **da baskı yapıyor** (R1'e bakınız),
+> dolayısıyla üretimi toplamdan çıkarılamaz. Gerçek hata başka yerde.
+
 | Konu | Karar | Gerekçe |
 |---|---|---|
-| `ozet.toplamUretim` | Montaj **hariç** (`baskiNet`) | Müşteri "kaç parça bastık" bilmek istiyor; montaj ayrı satırda zaten var |
-| Montaj görünürlüğü | `ozet.montajUretim` ayrı alan olarak kalır (bugün var) | Bilgi kaybı olmasın |
-| Makine rollup | `toplamUretim` da `baskiNet`'e çevrilir | `hedefGerceklesmeYuzde` zaten `baskiNet` — aynı tabana gelsin |
-| Çift taraf (Megane) | **Bu çeklistte normalize edilmeyecek** | Makine bazlı kırılımda parça sayısı **doğru olan**; "takım" sayısı montaj satırından okunur. Toplamı takıma çevirmek makine kırılımını bozar |
-| Frontend etiket | Montaj dahil olmayan kolonlar "Baskı Adedi" kalır; toplam kartı "Net Üretim (montaj hariç)" | Etiket ile içerik uyuşsun |
-| Testler | `core.test.ts:125` ve `:184` mevcut yanlış davranışı sabitliyor → **güncellenecek** | Test doğruyu korumalı |
+| `ozet.toplamUretim` | **Değişmiyor** — tüm baskı adedi (bugünkü 7.320 doğru) | Kullanıcı baskı adedi istiyor; `41 LT BASIC` için 3668+3652 gerçekten basılan parça sayısı |
+| **Asıl hata** | `montaj=1` operasyonun üretimi `baskiNet`'e **girmiyor** (`core.ts:317` yalnız `montajNet`'e yazıyor) → OEE/verimlilik/hedef yüzdesi o makineyi **sıfır üretim** sayıyor | O operasyon fiziksel olarak kalıpla baskı yapıyor; verimliliği hesaplanmalı |
+| Düzeltme | Kalıbı olan (`kalip_id IS NOT NULL`) montaj operasyonu **hem** `baskiNet`'e **hem** `montajNet`'e yazılır | Baskı = üretim istatistiği, montaj = ayrı bilgi etiketi. İkisi farklı sorular |
+| Kalıpsız montaj (10 op) | Yalnız `montajNet` — bugünkü davranış | Gerçek montaj, baskı yapmıyor, verimlilik tabanına girmemeli |
+| Kalıp rollup | Kalıbı olan montaj operasyonu artık kalıp kırılımına **dahil** (`service.ts:822` guard'ı gevşetilir) | Kalıp kullanıyorsa kalıp performansına sayılmalı |
+| Ürün kırılımı | Parça adı + ait olduğu ürün gösterimi **korunur** | Kullanıcı: *"bu yapı korunabilir, zararı yok"* |
+| Testler | `core.test.ts:125,184` mevcut davranışı sabitliyor → **güncellenecek** | Test doğruyu korumalı |
 
 ### R2 görevleri
 
-- [ ] `reduceOzet` montaj netini genel `net`'e eklemiyor (`core.ts:301`)
-- [ ] `MakineRollup.toplamUretim` `baskiNet` tabanına çevrildi (`service.ts:791`)
+- [ ] `reduceOzet` kayıtlara `kalipId` bilgisini taşıyor (bugün `montaj` bayrağı var, kalıp yok)
+- [ ] Kalıbı olan montaj operasyonu `baskiNet`'e de ekleniyor (`core.ts:317` çevresi)
+- [ ] Kalıp rollup guard'ı `if (kayit.montaj || !kayit.kalipId)` → `if (!kayit.kalipId)` (`service.ts:822`)
 - [ ] `core.test.ts:125,184` yeni davranışa göre güncellendi
-- [ ] `makine_bazli_baski.integration.test.ts`'e **montajlı** senaryo eklendi (üçüncü sayım regresyonu)
-- [ ] Frontend toplam kartı "Net Üretim (montaj hariç)" olarak etiketlendi
-- [ ] Export (`lib/erp/vardiya-analizi-export.ts`) aynı tabanı kullanıyor
+- [ ] `makine_bazli_baski.integration.test.ts`'e kalıplı-montaj senaryosu eklendi
+- [ ] Frontend "Montaj üretimi: X (net üretime dahil, verimlilik hesabına dahil değil)" uyarısı düzeltildi — artık kalıplı montaj verimliliğe dahil
 
 ---
 
@@ -250,6 +301,43 @@ kodlamak, `SUM(miktar)` alan her rapora tuzak kuruyor.
 - [ ] Geçmiş negatif `miktar` satırları için düzeltme seed'i
 - [ ] `stokDus`/`stokGeriAl` ölü kodu silindi
 - [ ] `SUM(miktar)` kullanan raporlar gözden geçirildi (`satis_siparisleri/repository.ts:289-307,588`)
+
+---
+
+---
+
+# 🟠 R5 — Üretim erken bitirilince elde kalan yarımamuller (yeni gereksinim)
+
+Kullanıcının kendi cümlesi:
+
+> Bazı istisnai durumlarda elimizdeki tampon stok bitmeden üretimin kullanıcı tarafından bitirildiği
+> olur. Benim verdiğim 1000 adetlik üretim tamamlanmadan, örneğin 700 takım bitmiş ürün
+> tamamlandığında bitirilseydi, elimizde 300 adet yarımamul kalacaktı. Bu durumda stoktaki
+> yarımamulleri görmek gerekir. Fakat gene kural, üretim bittiğinde o üretime ait iki operasyonel
+> yarımamulin de bitmiş olmasıdır.
+>
+> Her üretim bittiğinde (operatör "üretimi bitir" butonuna bastığında) sistem admine operasyonel
+> yarımamullerden elde kalan sayıları göstersin ve bunları sıfırlamak isteyip istemediğini sorsun.
+> Admin sıfırlama talimatı verirse bunların stok miktarında düzeltme yapılarak sıfırlansın. Fakat bu
+> durum diğer yarımamuller için değil, **sadece operasyonel yarımamuller** için geçerli.
+
+## VERİLMİŞ KARAR — R5
+
+| Konu | Karar | Gerekçe |
+|---|---|---|
+| Tetikleyici | Emir `tamamlandi` olduğunda (operatör "bitir") | Kullanıcının tarifi |
+| Kim görür | **Admin**, operatör değil | Kullanıcı açıkça "admine göstersin" dedi; operatör ekranı sade kalmalı |
+| Sunum | Otomatik sıfırlama **yok**. Emir tamamlandığında kalan operasyonel_ym miktarları listelenir, admin tek tek/toplu onaylar | Kullanıcı "sormalı" dedi; sessiz stok değişimi güven kırar |
+| Kapsam | Yalnız `kategori='operasyonel_ym'` **ve** o emrin reçetesinde geçen parçalar | Kullanıcı: *"diğer yarımamuller için değil"* |
+| Uygulama | Sıfırlama `repoAdjustStock` üzerinden (`hareket_tipi='duzeltme'`) | Hareket izi kalsın, doğrudan `UPDATE` yok |
+| Nerede | Üretim emri detay ekranında uyarı kartı + toplu "Sıfırla" aksiyonu | Admin zaten emri orada inceliyor |
+
+### R5 görevleri
+
+- [ ] Emir tamamlandığında kalan operasyonel_ym miktarlarını dönen endpoint
+- [ ] Üretim emri detayında "Elde kalan yarımamuller" kartı + seçmeli sıfırlama
+- [ ] Sıfırlama `repoAdjustStock` ile, `aciklama` alanında emir no referansı
+- [ ] Test: 700/1000 senaryosu → kalan 300 listeleniyor, onaysız sıfırlanmıyor
 
 ---
 

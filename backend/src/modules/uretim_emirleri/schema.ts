@@ -193,6 +193,8 @@ export const uretimEmriOperasyonlari = mysqlTable('uretim_emri_operasyonlari', {
   urun_operasyon_id: char('urun_operasyon_id', { length: 36 }),
   sira: tinyint('sira', { unsigned: true }).notNull().default(1),
   operasyon_adi: varchar('operasyon_adi', { length: 255 }).notNull(),
+  // Emir anindaki snapshot: urun karti sonradan degisse bile gecmis emir bozulmaz.
+  uretilen_urun_id: char('uretilen_urun_id', { length: 36 }),
   kalip_id: char('kalip_id', { length: 36 }),
   makine_id: char('makine_id', { length: 36 }),
   hazirlik_suresi_dk: int('hazirlik_suresi_dk', { unsigned: true }).notNull().default(60),
