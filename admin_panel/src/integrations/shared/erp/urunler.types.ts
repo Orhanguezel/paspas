@@ -19,6 +19,7 @@ export interface UrunOperasyonDto {
   urunId: string;
   sira: number;
   operasyonAdi: string;
+  uretilenUrunId: string | null;
   kalipId: string | null;
   hazirlikSuresiDk: number;
   cevrimSuresiSn: number;
@@ -79,6 +80,7 @@ export interface OperasyonMakinePayload {
 export interface OperasyonPayload {
   operasyonAdi: string;
   sira: number;
+  uretilenUrunId?: string | null;
   kalipId?: string;
   hazirlikSuresiDk: number;
   cevrimSuresiSn: number;
@@ -151,6 +153,7 @@ export function normalizeOperasyon(raw: unknown): UrunOperasyonDto {
     urunId: toStr(r.urunId),
     sira: toNum(r.sira, 1),
     operasyonAdi: toStr(r.operasyonAdi),
+    uretilenUrunId: r.uretilenUrunId != null ? toStr(r.uretilenUrunId) : null,
     kalipId: r.kalipId != null ? toStr(r.kalipId) : null,
     hazirlikSuresiDk: toNum(r.hazirlikSuresiDk, 60),
     cevrimSuresiSn: toNum(r.cevrimSuresiSn, 45),

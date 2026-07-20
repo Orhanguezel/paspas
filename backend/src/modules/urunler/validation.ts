@@ -33,6 +33,8 @@ const operasyonMakineSchema = z.object({
 const operasyonItemSchema = z.object({
   operasyonAdi: z.string().trim().min(1).max(255),
   sira: z.coerce.number().int().min(1).default(1),
+  // Bu operasyonun urettigi operasyonel_ym parcasi (inline cift tarafli uretim, V20/R1)
+  uretilenUrunId: z.string().trim().max(36).nullable().optional(),
   kalipId: z.string().trim().max(36).optional(),
   hazirlikSuresiDk: z.coerce.number().int().min(0).default(60),
   cevrimSuresiSn: z.coerce.number().min(0).default(45),
@@ -93,6 +95,7 @@ export const patchSchema = createSchema.partial().refine(
 export const operasyonPatchSchema = z.object({
   operasyonAdi: z.string().trim().min(1).max(255).optional(),
   sira: z.coerce.number().int().min(1).optional(),
+  uretilenUrunId: z.string().trim().max(36).nullable().optional(),
   kalipId: z.string().trim().max(36).nullable().optional(),
   hazirlikSuresiDk: z.coerce.number().int().min(0).optional(),
   cevrimSuresiSn: z.coerce.number().min(0).optional(),

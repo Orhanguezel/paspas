@@ -111,6 +111,7 @@ export type UrunOperasyonDto = {
   urunId: string;
   sira: number;
   operasyonAdi: string;
+  uretilenUrunId: string | null;
   kalipId: string | null;
   hazirlikSuresiDk: number;
   cevrimSuresiSn: number;
@@ -125,6 +126,7 @@ export function operasyonRowToDto(row: UrunOperasyonRow, makineler: UrunOperasyo
     urunId: row.urun_id,
     sira: row.sira,
     operasyonAdi: row.operasyon_adi,
+    uretilenUrunId: row.uretilen_urun_id ?? null,
     kalipId: row.kalip_id ?? null,
     hazirlikSuresiDk: row.hazirlik_suresi_dk,
     cevrimSuresiSn: Number(row.cevrim_suresi_sn),

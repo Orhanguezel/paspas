@@ -67,6 +67,7 @@ import type {
 const operasyonSchema = z.object({
   operasyonAdi: z.string().min(1, "required"),
   sira: z.coerce.number().int().min(1).default(1),
+  uretilenUrunId: z.string().nullable().optional(),
   kalipId: z.string().optional(),
   hazirlikSuresiDk: z.coerce.number().int().min(0).default(60),
   cevrimSuresiSn: z.coerce.number().min(0).default(45),
@@ -157,6 +158,12 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   const { data: kalipData } = useListKaliplarAdminQuery({});
   const { data: categoryData } = useListCategoriesAdminQuery({ limit: 50, sort: "display_order", order: "asc" });
   const { data: birimlerData } = useListBirimlerAdminQuery();
+  // V20/R1 — operasyonun "Üretilen yarımamul" seçenekleri: ürünün aktif reçetesindeki
+  // operasyonel_ym kalemleri. Yalnız düzenleme modunda (ürünün id'si varsa) çekilir.
+  const { data: receteForOps } = useGetUrunReceteAdminQuery(urun?.id ?? "", { skip: !urun?.id });
+  const operasyonelYmSecenekleri = (receteForOps?.items ?? [])
+    .filter((k) => k.malzemeKategori === "operasyonel_ym" && k.urunId)
+    .map((k) => ({ id: k.urunId, ad: k.malzemeAd ?? k.malzemeKod ?? k.urunId }));
   const kaliplar = kalipData?.items ?? [];
   const categories = (categoryData ?? []) as CategoryDto[];
   const birimler = birimlerData?.items ?? [];
@@ -435,6 +442,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
           urun.operasyonlar?.map((op) => ({
             operasyonAdi: op.operasyonAdi,
             sira: op.sira,
+            uretilenUrunId: op.uretilenUrunId ?? null,
             kalipId: op.kalipId ?? undefined,
             hazirlikSuresiDk: op.hazirlikSuresiDk,
             cevrimSuresiSn: op.cevrimSuresiSn,
@@ -482,6 +490,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
       operasyonlar: values.operasyonlar?.map((op) => ({
         ...op,
         kalipId: op.kalipId === "none" ? undefined : op.kalipId,
+        uretilenUrunId: op.uretilenUrunId === "none" ? null : (op.uretilenUrunId ?? null),
       })),
     };
 
@@ -997,6 +1006,38 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                             </Select>
                           </div>
                         </div>
+                        {/* V20/R1 — Üretilen yarımamul: bu operasyon hangi parçayı basar? */}
+                        {operasyonelYmSecenekleri.length > 0 && (
+                          <div className="space-y-1">
+                            <Label className="text-xs">{tForm("uretilenYarimamul")}</Label>
+                            <Select
+                              value={form.watch(`operasyonlar.${idx}.uretilenUrunId`) || "none"}
+                              disabled={isRecipeDrivenFinalProduct}
+                              onValueChange={(v) =>
+                                form.setValue(
+                                  `operasyonlar.${idx}.uretilenUrunId`,
+                                  v === "none" ? null : v,
+                                  { shouldDirty: true },
+                                )
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={tForm("uretilenYarimamulSec")} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">—</SelectItem>
+                                {operasyonelYmSecenekleri.map((p) => (
+                                  <SelectItem key={p.id} value={p.id}>
+                                    {p.ad}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-[11px] text-muted-foreground">
+                              {tForm("uretilenYarimamulNot")}
+                            </p>
+                          </div>
+                        )}
                         <div className="grid grid-cols-3 gap-3">
                           <div className="space-y-1">
                             <Label className="text-xs">{tForm("hazirlikSuresi")}</Label>

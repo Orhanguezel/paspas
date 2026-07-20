@@ -393,6 +393,7 @@ async function insertOperasyonlar(urunId: string, items: OperasyonItem[]): Promi
     urun_id: urunId,
     sira: item.sira,
     operasyon_adi: item.operasyonAdi,
+    uretilen_urun_id: item.uretilenUrunId ?? null,
     kalip_id: item.kalipId ?? null,
     hazirlik_suresi_dk: item.hazirlikSuresiDk,
     cevrim_suresi_sn: item.cevrimSuresiSn.toFixed(2),
@@ -437,6 +438,7 @@ export async function repoPatchOperasyon(
   const payload: Partial<typeof urunOperasyonlari.$inferInsert> = {};
   if (data.operasyonAdi !== undefined) payload.operasyon_adi = data.operasyonAdi;
   if (data.sira !== undefined) payload.sira = data.sira;
+  if (data.uretilenUrunId !== undefined) payload.uretilen_urun_id = data.uretilenUrunId;
   if (data.kalipId !== undefined) payload.kalip_id = data.kalipId;
   if (data.hazirlikSuresiDk !== undefined) payload.hazirlik_suresi_dk = data.hazirlikSuresiDk;
   if (data.cevrimSuresiSn !== undefined) payload.cevrim_suresi_sn = data.cevrimSuresiSn.toFixed(2);
