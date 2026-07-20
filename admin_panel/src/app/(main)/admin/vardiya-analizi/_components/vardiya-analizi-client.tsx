@@ -1104,7 +1104,8 @@ function MontajUretimInfo({ montaj }: { montaj?: { netToplam: number; kayitSayis
   return (
     <div className="rounded-md border border-sky-200 bg-sky-50 px-2 py-1.5 text-xs text-sky-900">
       <div className="font-medium">
-        Montaj üretimi: {montaj.netToplam.toLocaleString("tr-TR")} adet (net üretime dahil, verimlilik hesabına dahil değil)
+        Montaj üretimi: {montaj.netToplam.toLocaleString("tr-TR")} adet (net üretime dahil; kalıplı
+        montaj operasyonları baskı sayıldığı için verimliliğe de girer)
       </div>
       {montaj.operasyonlar.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-1">

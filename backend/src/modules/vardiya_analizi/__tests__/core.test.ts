@@ -37,9 +37,11 @@ function kayit(partial: Partial<UretimKaydi> & { id: string; kayitTarihi: string
     operasyonId: partial.operasyonId ?? 'op-1',
     operasyonAdi: partial.operasyonAdi ?? (partial.montaj ? 'Montaj' : 'Baskı'),
     operasyonTipi: partial.operasyonTipi ?? 'tek_tarafli',
-    kalipId: partial.kalipId ?? 'kalip-1',
-    kalipKod: partial.kalipKod ?? 'K-1',
-    kalipAd: partial.kalipAd ?? 'Kalıp 1',
+    // `in` kontrolü: açıkça null geçilebilsin (kalıpsız = gerçek montaj adımı).
+    // `??` kullanılırsa null da varsayılana düşer ve kalıpsız senaryo test edilemez.
+    kalipId: 'kalipId' in partial ? partial.kalipId! : 'kalip-1',
+    kalipKod: 'kalipKod' in partial ? partial.kalipKod! : 'K-1',
+    kalipAd: 'kalipAd' in partial ? partial.kalipAd! : 'Kalıp 1',
     cevrimSn: partial.cevrimSn ?? 30,
     operatorUserId: partial.operatorUserId ?? 'user-1',
     operatorAd: partial.operatorAd ?? 'Operatör',
@@ -122,7 +124,10 @@ describe('vardiya_analizi core', () => {
     expect(slotNet).toBe(1000);
   });
 
-  it('includes assembly in net but excludes it from baskiNet', () => {
+  // V20/R2 — inline modelde `montaj` bayrağı "bu baskı ile elde montaj eşzamanlı
+  // yürüyor" demek. Kalıbı olan montaj kaydı fiziksel olarak baskı da yaptığı için
+  // baskı istatistiğine girer; kalıpsız montaj (gerçek birleştirme) girmez.
+  it('counts mold-bearing assembly records as printing too (inline model)', () => {
     const ozet = reduceOzet([
       kayit({ id: 'baski-1', kayitTarihi: '2026-07-06T10:00:00', net: 120, fire: 5 }),
       kayit({ id: 'montaj-1', kayitTarihi: '2026-07-06T11:00:00', net: 80, fire: 2, montaj: true }),
@@ -130,6 +135,29 @@ describe('vardiya_analizi core', () => {
 
     expect(ozet.net).toBe(200);
     expect(ozet.fire).toBe(7);
+    // montaj kaydının kalıbı var → baskıya da sayılır
+    expect(ozet.baskiNet).toBe(200);
+    expect(ozet.baskiFire).toBe(7);
+    // montaj bilgisi ayrıca korunur
+    expect(ozet.montajNet).toBe(80);
+  });
+
+  it('excludes mold-less assembly from baskiNet (real assembly step)', () => {
+    const ozet = reduceOzet([
+      kayit({ id: 'baski-1', kayitTarihi: '2026-07-06T10:00:00', net: 120, fire: 5 }),
+      kayit({
+        id: 'montaj-1',
+        kayitTarihi: '2026-07-06T11:00:00',
+        net: 80,
+        fire: 2,
+        montaj: true,
+        kalipId: null,
+        kalipKod: null,
+        kalipAd: null,
+      }),
+    ]);
+
+    expect(ozet.net).toBe(200);
     expect(ozet.baskiNet).toBe(120);
     expect(ozet.baskiFire).toBe(5);
     expect(ozet.montajNet).toBe(80);
@@ -181,10 +209,22 @@ describe('vardiya_analizi core', () => {
     expect(resolveNet(0, 3, 8)).toBe(0);
   });
 
+  // Kalıpsız montaj = gerçek birleştirme adımı; baskı yapmadığı için verimlilik ve
+  // OEE tabanına girmez. (Kalıplı montaj için ayrı test var — V20/R2.)
   it('uses only baskiNet for efficiency and OEE inputs in mixed assembly reductions', () => {
     const ozet = reduceOzet([
       kayit({ id: 'baski-1', kayitTarihi: '2026-07-06T10:00:00', net: 120, fire: 0, cevrimSn: 30 }),
-      kayit({ id: 'montaj-1', kayitTarihi: '2026-07-06T11:00:00', net: 120, fire: 0, cevrimSn: 30, montaj: true }),
+      kayit({
+        id: 'montaj-1',
+        kayitTarihi: '2026-07-06T11:00:00',
+        net: 120,
+        fire: 0,
+        cevrimSn: 30,
+        montaj: true,
+        kalipId: null,
+        kalipKod: null,
+        kalipAd: null,
+      }),
     ]);
 
     expect(calculateVerimlilik({ net: ozet.baskiNet, sureDk: 60, cevrimSn: ozet.ortCevrimSn })).toBe(1);

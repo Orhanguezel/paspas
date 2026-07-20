@@ -819,7 +819,9 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
   const toplamKalipDegisim = vardiyalar.reduce((s, v) => s + v.duruslar.kalipDegisimSayisi, 0);
   const kalipMap = new Map<string, KalipRollup & { _makineSet: Set<string>; _urunSet: Set<string> }>();
   for (const kayit of kayitlar) {
-    if (kayit.montaj || !kayit.kalipId || !kayit.kalipKod || !kayit.kalipAd) continue;
+    // V20/R2 — kalıbı olan montaj kaydı fiziksel olarak baskı yapıyor, kalıp
+    // istatistiğine dahil edilir. Kalıpsız montaj zaten bu koşulda eleniyor.
+    if (!kayit.kalipId || !kayit.kalipKod || !kayit.kalipAd) continue;
     const sureDk = kayit.cevrimSn && kayit.cevrimSn > 0 ? (kayit.net * kayit.cevrimSn) / 60 : 0;
     const existing = kalipMap.get(kayit.kalipId);
     if (existing) {

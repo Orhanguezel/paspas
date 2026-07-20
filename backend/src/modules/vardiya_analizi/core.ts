@@ -313,11 +313,21 @@ export function reduceOzet(kayitlar: UretimKaydi[]): ReduceOzet {
       });
     }
 
-    if (kayit.montaj) {
+    // V20/R2 — Inline modelde `montaj` bayrağı "bu baskı ile elde montaj eşzamanlı
+    // yürüyor" demektir; operasyon hem kalıpla basar hem monte eder. Kalıbı olan bir
+    // montaj kaydı bu yüzden baskı istatistiğine de girer, yoksa o makine verimlilik
+    // ve hedef hesabında sıfır üretim yapmış sayılıyordu.
+    // Kalıpsız montaj (gerçek birleştirme adımı) yalnızca montaj tarafında kalır.
+    const montajKaydi = Boolean(kayit.montaj);
+    const baskiYapiyor = !montajKaydi || Boolean(kayit.kalipId);
+
+    if (montajKaydi) {
       montajNet += kayit.net;
       montajKayitSayisi += 1;
       addOperasyon(montajOperasyonMap, kayit);
-    } else {
+    }
+
+    if (baskiYapiyor) {
       baskiNet += kayit.net;
       baskiFire += kayit.fire;
       addOperasyon(operasyonMap, kayit);
