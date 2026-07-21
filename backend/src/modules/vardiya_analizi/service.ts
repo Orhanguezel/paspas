@@ -859,9 +859,20 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
     kalipDegisimSayisi: kalipMap.size > 0 ? Math.round(toplamKalipDegisim / kalipMap.size) : 0,
   })).sort((a, b) => b.toplamUretim - a.toplamUretim);
 
+  // V20/R6 — Kaydı vardiyasına slot-key ile eşleştir (makineId + gün + vardiyaTipi).
+  // Eskiden `v.baslangic === slot.baslangic.toISOString()` ile ISO-string tam eşleşmesi
+  // yapılıyordu; ama `vardiyaSlotOverride` gerçek vardiya açılış zamanını taşırken
+  // `v.baslangic` teorik slot başlangıcını taşıyor → ISO eşleşmiyor → vardiya çifti
+  // modunda TÜM kayıtlar eleniyor (uretimKayitlari boş → ekran boş). Sistemin geri
+  // kalanı (kayıt filtresi, slotMeta üretimi) zaten vardiyaSlotKey kullanıyor.
+  const vardiyaByKey = new Map<string, VardiyaAnalizItem>();
+  for (const meta of slotMetas) {
+    const v = vardiyalar.find((item) => item.id === meta.id);
+    if (v) vardiyaByKey.set(`${meta.makineId}-${vardiyaSlotKey(meta.slot)}`, v);
+  }
   const vardiyaByRecord = (kayit: CoreUretimKaydi) => {
     const slot = kayit.vardiyaSlotOverride ?? assignVardiya(kayit.kayitTarihi, vardiyaTanimlariList, VARDIYA_TZ_OFFSET_DK);
-    return vardiyalar.find((v) => v.makineId === kayit.makineId && v.baslangic === slot.baslangic.toISOString()) ?? null;
+    return vardiyaByKey.get(`${kayit.makineId}-${vardiyaSlotKey(slot)}`) ?? null;
   };
 
   const TAM_VARDIYA_SURE_DK = 12 * 60;
