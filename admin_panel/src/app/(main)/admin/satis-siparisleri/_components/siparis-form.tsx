@@ -36,7 +36,7 @@ const durumValues = ["taslak", "planlandi", "onaylandi", "uretimde", "kismen_sev
 const durumManualValues = ["kapali", "iptal"] as const;
 
 const kalemSchema = z.object({
-  urunId: z.string().min(1, "Ürün seçiniz"),
+  urunId: z.string().uuid("Geçerli bir ürün seçiniz"),
   // DB: miktar decimal(12,4) → maks 99.999.999 · birim_fiyat decimal(12,2)
   miktar: z.coerce.number().positive("Pozitif olmalı").max(99_999_999.9999, "Miktar çok büyük (en fazla 99.999.999)"),
   birimFiyat: z.coerce.number().min(0).max(9_999_999_999.99, "Birim fiyat çok büyük").default(0),
@@ -45,7 +45,7 @@ const kalemSchema = z.object({
 
 const schema = z.object({
   siparisNo: z.string().min(1, "Sipariş no zorunlu"),
-  musteriId: z.string().min(1, "Müşteri seçiniz"),
+  musteriId: z.string().uuid("Geçerli bir müşteri seçiniz"),
   siparisTarihi: z.string().min(1, "Tarih zorunlu"),
   terminTarihi: z.string().optional(),
   durum: z.enum(durumValues).default("taslak"),
@@ -81,7 +81,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
     sort: "kod",
     order: "asc",
   });
-  const { data: nextNoData } = useGetNextSiparisNoAdminQuery(undefined, { skip: isEdit });
+  const { data: nextNoData, refetch: refetchNextNo } = useGetNextSiparisNoAdminQuery(undefined, { skip: isEdit });
 
   const musteriler = musterilerData?.items ?? [];
   const urunler = urunlerData?.items ?? [];
@@ -155,6 +155,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
         siparisTarihi: today,
         terminTarihi: "",
         durum: "taslak",
+        ekstraIndirimOrani: 0,
         aciklama: "",
         items: [{ urunId: "", miktar: 1, birimFiyat: 0, sira: 0 }],
       });
@@ -217,21 +218,26 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
       }
       onClose();
     } catch (err: unknown) {
+      const errorData =
+        typeof err === "object" && err !== null && "data" in err && typeof err.data === "object" && err.data !== null
+          ? (err.data as { error?: { message?: string; nextSiparisNo?: string } })
+          : undefined;
       const message =
-        typeof err === "object" &&
-        err !== null &&
-        "data" in err &&
-        typeof err.data === "object" &&
-        err.data !== null &&
-        "error" in err.data &&
-        typeof err.data.error === "object" &&
-        err.data.error !== null &&
-        "message" in err.data.error &&
-        typeof err.data.error.message === "string"
-          ? err.data.error.message
+        typeof errorData?.error?.message === "string"
+          ? errorData.error.message
           : t("admin.erp.common.operationFailed");
+      if (message === "siparis_no_zaten_var" && !isEdit) {
+        const refreshed = errorData?.error?.nextSiparisNo ?? (await refetchNextNo()).data?.siparisNo;
+        if (refreshed) form.setValue("siparisNo", refreshed, { shouldValidate: true });
+        toast.error("Bu sipariş numarası kullanılmış. Yeni numara otomatik getirildi; tekrar kaydedebilirsiniz.");
+        return;
+      }
       toast.error(message === "siparis_kilitli" ? t("admin.erp.satisSiparisleri.form.kilitliBilgi") : message);
     }
+  }
+
+  function onInvalid() {
+    toast.error("Formda eksik veya hatalı alanlar var. Lütfen işaretli alanları kontrol edin.");
   }
 
   return (
@@ -243,7 +249,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
           </SheetTitle>
         </SheetHeader>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           {/* Üst alanlar */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
@@ -310,6 +316,9 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
             <div className="space-y-1">
               <Label>{t("admin.erp.satisSiparisleri.form.siparisTarihi")} *</Label>
               <Input type="date" {...form.register("siparisTarihi")} disabled={isLocked} />
+              {form.formState.errors.siparisTarihi && (
+                <p className="text-xs text-destructive">{form.formState.errors.siparisTarihi.message}</p>
+              )}
             </div>
             <div className="space-y-1">
               <Label>{t("admin.erp.satisSiparisleri.form.terminTarihi")}</Label>
@@ -364,6 +373,9 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
                     {...form.register(`items.${idx}.miktar`)}
                     disabled={isLocked}
                   />
+                  {form.formState.errors.items?.[idx]?.miktar && (
+                    <p className="text-xs text-destructive">{form.formState.errors.items[idx]?.miktar?.message}</p>
+                  )}
                 </div>
                 {/* Fiyat */}
                 <div className="space-y-1">
@@ -376,6 +388,9 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
                     {...form.register(`items.${idx}.birimFiyat`)}
                     disabled={isLocked}
                   />
+                  {form.formState.errors.items?.[idx]?.birimFiyat && (
+                    <p className="text-xs text-destructive">{form.formState.errors.items[idx]?.birimFiyat?.message}</p>
+                  )}
                 </div>
                 {/* Sil */}
                 <div className="justify-self-end sm:justify-self-auto">
@@ -407,6 +422,9 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
                 {...form.register("ekstraIndirimOrani")}
                 disabled={isLocked}
               />
+              {form.formState.errors.ekstraIndirimOrani && (
+                <p className="text-xs text-destructive">{form.formState.errors.ekstraIndirimOrani.message}</p>
+              )}
             </div>
             <div className="space-y-1">
               <Label>{t("admin.erp.satisSiparisleri.form.aciklama")}</Label>

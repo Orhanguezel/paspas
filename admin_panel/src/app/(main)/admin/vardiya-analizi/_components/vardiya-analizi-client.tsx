@@ -941,7 +941,6 @@ function VardiyaYoneticiGorunumu({
                 <MiniMetric label="OEE" value={formatPercent(makine?.oee ?? null)} />
               </div>
             </div>
-            <MontajUretimInfo montaj={makine?.montajUretim} />
           </CardHeader>
           <CardContent className="space-y-3 pt-0">
             {shifts.length === 0 ? (
@@ -964,7 +963,6 @@ function VardiyaYoneticiGorunumu({
                         Net {netTotal.toLocaleString("tr-TR")} • Fire {fireTotal.toLocaleString("tr-TR")} • Verim. Net {formatPercent(vardiyaTotal?.verimlilikNet ?? null)} • Vardiya {formatPercent(vardiyaTotal?.verimlilikVardiya ?? null)}
                       </Badge>
                     </div>
-                    <MontajUretimInfo montaj={vardiyaTotal?.montajUretim} />
                     <div className="overflow-auto rounded-md border">
                       <Table>
                         <TableHeader>
@@ -1094,33 +1092,6 @@ function MiniMetric({ label, value }: { label: string; value: string }) {
     <div className="min-w-24 rounded-md border bg-muted/40 px-2 py-1.5">
       <div className="text-muted-foreground">{label}</div>
       <div className="font-semibold tabular-nums">{value}</div>
-    </div>
-  );
-}
-
-function MontajUretimInfo({ montaj }: { montaj?: { netToplam: number; kayitSayisi: number; operasyonlar: Array<{ operasyonId: string | null; operasyonAdi: string; kalipId: string | null; kalipKod: string | null; miktar: number }> } }) {
-  if (!montaj || montaj.netToplam <= 0) return null;
-
-  return (
-    <div className="rounded-md border border-sky-200 bg-sky-50 px-2 py-1.5 text-xs text-sky-900">
-      <div className="font-medium">
-        Montaj üretimi: {montaj.netToplam.toLocaleString("tr-TR")} adet (net üretime dahil; kalıplı
-        montaj operasyonları baskı sayıldığı için verimliliğe de girer)
-      </div>
-      {montaj.operasyonlar.length > 0 && (
-        <div className="mt-1 flex flex-wrap gap-1">
-          {montaj.operasyonlar.slice(0, 4).map((op) => (
-            <Badge
-              key={`${op.operasyonId ?? op.operasyonAdi}-${op.kalipId ?? "kalipsiz"}`}
-              variant="outline"
-              className="border-sky-300 bg-white/70 text-[10px] text-sky-900"
-            >
-              {op.operasyonAdi} · {op.miktar.toLocaleString("tr-TR")}
-              {op.kalipKod ? ` · ${op.kalipKod}` : ""}
-            </Badge>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -1402,7 +1373,6 @@ function MakineCard({ m, onOpenDetay }: { m: MakineRollup; onOpenDetay: () => vo
           </div>
         )}
 
-        <MontajUretimInfo montaj={m.montajUretim} />
 
         {m.operasyonKirilimi.length > 0 && (
           <div className="space-y-1 text-xs">
@@ -1540,8 +1510,6 @@ function VardiyaCard({ v, onOpenDetay }: { v: VardiyaAnalizItem; onOpenDetay: ()
           )}
         </div>
 
-        <MontajUretimInfo montaj={v.montajUretim} />
-
         {v.uretim.operasyonKirilimi.length > 0 && (
           <div className="space-y-1 text-xs">
             <div className="text-muted-foreground">Operasyon / Kalıp</div>
@@ -1578,7 +1546,6 @@ function VardiyaCard({ v, onOpenDetay }: { v: VardiyaAnalizItem; onOpenDetay: ()
             <div className="font-semibold tabular-nums">{formatDk(v.durusToplamDk)}</div>
           </div>
         </div>
-
         {/* Duruş Detay */}
         {(v.duruslar.arizaSayisi > 0 ||
           v.duruslar.kalipDegisimSayisi > 0 ||

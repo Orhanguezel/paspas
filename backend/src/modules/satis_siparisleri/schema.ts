@@ -76,6 +76,7 @@ export type SatisSiparisDto = {
   musteriId: string;
   musteriAd: string | null;
   musteriIskonto: number;
+  ekstraIndirimOrani: number;
   siparisTarihi: string;
   terminTarihi: string | null;
   durum: string;
@@ -123,6 +124,7 @@ export function siparisRowToDto(row: EnrichedSatisSiparisRow): SatisSiparisDto {
     musteriId: row.musteri_id,
     musteriAd: row.musteri_ad ?? null,
     musteriIskonto: Number(row.musteri_iskonto ?? 0),
+    ekstraIndirimOrani: Number(row.ekstra_indirim_orani ?? 0),
     siparisTarihi: toDateString(row.siparis_tarihi) ?? '',
     terminTarihi: toDateString(row.termin_tarihi),
     durum: row.durum,

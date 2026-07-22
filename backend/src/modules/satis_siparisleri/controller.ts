@@ -28,6 +28,13 @@ function sendInternalError(reply: FastifyReply) {
   return reply.code(500).send({ error: { message: 'sunucu_hatasi' } });
 }
 
+type DatabaseError = { code?: string; sqlMessage?: string; cause?: DatabaseError };
+
+function getDatabaseError(error: unknown): DatabaseError {
+  const outer = typeof error === 'object' && error !== null ? error as DatabaseError : {};
+  return { code: outer.code ?? outer.cause?.code, sqlMessage: outer.sqlMessage ?? outer.cause?.sqlMessage };
+}
+
 export const listSatisSiparisleri: RouteHandler = async (req, reply) => {
   try {
     const parsed = listQuerySchema.safeParse(req.query);
@@ -121,10 +128,13 @@ export const createSatisSiparisi: RouteHandler = async (req, reply) => {
     dto.items = detail.items.map((item) => ({ ...siparisKalemRowToDto(item), sevkEdilenMiktar: 0 }));
     return reply.code(201).send(dto);
   } catch (error: unknown) {
-    req.log.error({ error }, 'create_satis_siparisi_failed');
-    const err = error as { code?: string };
-    if (err.code === 'ER_DUP_ENTRY') return reply.code(409).send({ error: { message: 'siparis_no_zaten_var' } });
-    if (err.code === 'ER_WARN_DATA_OUT_OF_RANGE') return reply.code(400).send({ error: { message: 'Girilen miktar veya fiyat çok büyük.' } });
+    const dbError = getDatabaseError(error);
+    req.log.error({ error, dbCode: dbError.code, sqlMessage: dbError.sqlMessage }, 'create_satis_siparisi_failed');
+    if (dbError.code === 'ER_DUP_ENTRY') {
+      const nextSiparisNo = await repoGetNextSiparisNo();
+      return reply.code(409).send({ error: { message: 'siparis_no_zaten_var', nextSiparisNo } });
+    }
+    if (dbError.code === 'ER_WARN_DATA_OUT_OF_RANGE') return reply.code(400).send({ error: { message: 'Girilen miktar veya fiyat çok büyük.' } });
     return sendInternalError(reply);
   }
 };
@@ -154,10 +164,11 @@ export const updateSatisSiparisi: RouteHandler = async (req, reply) => {
     }));
     return reply.send(dto);
   } catch (error: unknown) {
-    req.log.error({ error }, 'update_satis_siparisi_failed');
+    const dbError = getDatabaseError(error);
+    req.log.error({ error, dbCode: dbError.code, sqlMessage: dbError.sqlMessage }, 'update_satis_siparisi_failed');
     const err = error as { code?: string; message?: string };
-    if (err.code === 'ER_DUP_ENTRY') return reply.code(409).send({ error: { message: 'siparis_no_zaten_var' } });
-    if (err.code === 'ER_WARN_DATA_OUT_OF_RANGE') return reply.code(400).send({ error: { message: 'Girilen miktar veya fiyat çok büyük.' } });
+    if (dbError.code === 'ER_DUP_ENTRY') return reply.code(409).send({ error: { message: 'siparis_no_zaten_var' } });
+    if (dbError.code === 'ER_WARN_DATA_OUT_OF_RANGE') return reply.code(400).send({ error: { message: 'Girilen miktar veya fiyat çok büyük.' } });
     if (err.message === 'siparis_kilitli') return reply.code(409).send({ error: { message: 'siparis_kilitli' } });
     return sendInternalError(reply);
   }

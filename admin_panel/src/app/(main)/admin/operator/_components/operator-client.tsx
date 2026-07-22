@@ -153,7 +153,7 @@ function VardiyaStatusBadge() {
 
 function MakineKuyruguTab() {
   const { t } = useLocaleContext();
-  const { data, isLoading, isFetching, refetch } = useListMakineKuyruguAdminQuery();
+  const { data, isLoading, isFetching, refetch } = useListMakineKuyruguAdminQuery({ limit: 500 });
   const { data: vardiyaData } = useGetAcikVardiyalarAdminQuery();
   const { data: aktifKalipDegisimleri } = useListAktifKalipDegisimleriAdminQuery();
   const [baslat] = useUretimBaslatAdminMutation();

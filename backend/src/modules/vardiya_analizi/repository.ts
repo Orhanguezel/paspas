@@ -1,4 +1,5 @@
 import { and, desc, gte, inArray, lte, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/mysql-core';
 
 import { db } from '@/db/client';
 import { users } from '@/modules/auth/schema';
@@ -9,6 +10,8 @@ import { uretimEmirleri, uretimEmriOperasyonlari } from '@/modules/uretim_emirle
 import { urunler } from '@/modules/urunler/schema';
 
 import { toLocal, VARDIYA_TZ_OFFSET_DK, type UretimKaydi, type VardiyaTipi } from './core';
+
+const mamulUrunler = alias(urunler, 'mamul_urunler');
 
 const netMiktarSql = sql<number>`GREATEST(CASE WHEN ${operatorGunlukKayitlari.net_miktar} <> 0 THEN ${operatorGunlukKayitlari.net_miktar} ELSE (${operatorGunlukKayitlari.ek_uretim_miktari} - ${operatorGunlukKayitlari.fire_miktari}) END, 0)`;
 const hasProductionSql = sql`(${operatorGunlukKayitlari.net_miktar} <> 0 OR ${operatorGunlukKayitlari.ek_uretim_miktari} <> 0 OR ${operatorGunlukKayitlari.fire_miktari} <> 0)`;
@@ -36,9 +39,9 @@ export async function fetchUretimKayitlari(
       fire: operatorGunlukKayitlari.fire_miktari,
       ek: operatorGunlukKayitlari.ek_uretim_miktari,
       montaj: uretimEmriOperasyonlari.montaj,
-      urunId: urunler.id,
-      urunKod: urunler.kod,
-      urunAd: urunler.ad,
+      urunId: sql<string>`coalesce(${mamulUrunler.id}, ${urunler.id})`,
+      urunKod: sql<string | null>`coalesce(${mamulUrunler.kod}, ${urunler.kod})`,
+      urunAd: sql<string>`coalesce(${mamulUrunler.ad}, ${urunler.ad})`,
       operasyonId: uretimEmriOperasyonlari.id,
       operasyonAdi: uretimEmriOperasyonlari.operasyon_adi,
       operasyonTipi: urunler.operasyon_tipi,
@@ -64,6 +67,7 @@ export async function fetchUretimKayitlari(
     .from(operatorGunlukKayitlari)
     .innerJoin(uretimEmirleri, sql`${operatorGunlukKayitlari.uretim_emri_id} = ${uretimEmirleri.id}`)
     .innerJoin(urunler, sql`${uretimEmirleri.urun_id} = ${urunler.id}`)
+    .leftJoin(mamulUrunler, sql`${uretimEmirleri.mamul_urun_id} = ${mamulUrunler.id}`)
     .innerJoin(makinelerTbl, sql`${operatorGunlukKayitlari.makine_id} = ${makinelerTbl.id}`)
     .leftJoin(uretimEmriOperasyonlari, sql`${operatorGunlukKayitlari.emir_operasyon_id} = ${uretimEmriOperasyonlari.id}`)
     .leftJoin(kaliplar, sql`${uretimEmriOperasyonlari.kalip_id} = ${kaliplar.id}`)
