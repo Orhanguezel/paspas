@@ -140,6 +140,10 @@ export const devamEt: RouteHandler = async (req, reply) => {
   } catch (error) {
     const { msg, stack } = extractError(error);
     req.log.error({ error: msg, stack }, 'devam_et_failed');
+    if (msg === 'makinede_aktif_is_var' || msg === 'sadece_duraklatilan_is_devam_edebilir') {
+      return sendError(reply, 409, msg);
+    }
+    if (msg === 'kuyruk_kaydi_bulunamadi') return sendError(reply, 404, msg);
     return sendError(reply, 500, msg || 'sunucu_hatasi');
   }
 };

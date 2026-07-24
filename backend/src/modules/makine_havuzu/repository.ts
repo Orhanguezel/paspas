@@ -5,6 +5,7 @@ import type { SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/mysql-core';
 
 import { db } from '@/db/client';
+import { assertKalipMakineUyumlu } from '@/modules/_shared/kalip-makine';
 import { kalipUyumluMakineler, kaliplar, tatiller } from '@/modules/tanimlar/schema';
 import { uretimEmirleri, uretimEmriOperasyonlari } from '@/modules/uretim_emirleri/schema';
 import { urunler } from '@/modules/urunler/schema';
@@ -413,23 +414,7 @@ export async function repoAtaOperasyon(data: AtaBody): Promise<void> {
     .limit(1);
   if (!opRow) throw new Error('emir_operasyonu_bulunamadi');
 
-  if (opRow.kalip_id) {
-    const [uyumluMakine] = await db
-      .select({ makineId: kalipUyumluMakineler.makine_id })
-      .from(kalipUyumluMakineler)
-      .where(and(eq(kalipUyumluMakineler.kalip_id, opRow.kalip_id), eq(kalipUyumluMakineler.makine_id, makineId)))
-      .limit(1);
-
-    const [kalipUyumlulukKaydi] = await db
-      .select({ kalipId: kalipUyumluMakineler.kalip_id })
-      .from(kalipUyumluMakineler)
-      .where(eq(kalipUyumluMakineler.kalip_id, opRow.kalip_id))
-      .limit(1);
-
-    if (kalipUyumlulukKaydi && !uyumluMakine) {
-      throw new Error('kalip_makine_uyumsuz');
-    }
-  }
+  await assertKalipMakineUyumlu(db, opRow.kalip_id, makineId);
 
   // Cevrim suresinden planlanan sure hesapla (dk)
   const cevrimSn = Number(opRow.cevrim_suresi_sn ?? 45);

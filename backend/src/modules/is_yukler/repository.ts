@@ -5,6 +5,7 @@ import type { SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/mysql-core';
 
 import { db } from '@/db/client';
+import { assertKalipMakineUyumlu } from '@/modules/_shared/kalip-makine';
 import { makineKuyrugu, makineler } from '@/modules/makine_havuzu/schema';
 import { uretimEmirleri, uretimEmriOperasyonlari } from '@/modules/uretim_emirleri/schema';
 import { urunler } from '@/modules/urunler/schema';
@@ -63,6 +64,7 @@ function toDateString(value: Date | string | null | undefined): string | null {
 
 function toDto(row: QueueJoinRow): IsYukuDto {
   return {
+    bosMakine: false,
     kuyrukId: row.kuyrukId,
     makineId: row.makineId,
     makineKod: row.makineKod,
@@ -193,7 +195,62 @@ export async function repoList(query: ListQuery): Promise<IsYukuDto[]> {
   }
   const where = conditions.length > 0 ? and(...conditions) : undefined;
   const rows = await selectQueue(where).limit(query.limit).offset(query.offset);
-  return rows.map((row) => toDto(row as QueueJoinRow));
+  const emptyConditions: SQL[] = [
+    eq(makineler.is_yuklerinde_goster, 1),
+    eq(makineler.is_active, 1),
+    eq(makineler.durum, 'aktif'),
+    sql`NOT EXISTS (
+      SELECT 1 FROM makine_kuyrugu mk
+      WHERE mk.makine_id = ${makineler.id}
+        AND mk.durum NOT IN ('tamamlandi', 'iptal')
+    )`,
+  ];
+  if (query.makineId) emptyConditions.push(eq(makineler.id, query.makineId));
+  const emptyMachines = await db
+    .select({
+      id: makineler.id,
+      kod: makineler.kod,
+      ad: makineler.ad,
+      createdAt: makineler.created_at,
+      updatedAt: makineler.updated_at,
+    })
+    .from(makineler)
+    .where(and(...emptyConditions))
+    .orderBy(asc(makineler.gosterim_sira), asc(makineler.kod));
+
+  return [
+    ...rows.map((row) => toDto(row as QueueJoinRow)),
+    ...emptyMachines.map((machine): IsYukuDto => ({
+      bosMakine: true,
+      kuyrukId: `bos:${machine.id}`,
+      makineId: machine.id,
+      makineKod: machine.kod,
+      makineAd: machine.ad,
+      uretimEmriId: '',
+      emirNo: '',
+      urunKod: null,
+      urunAd: null,
+      mamulKod: null,
+      mamulAd: null,
+      taraf: null,
+      operasyonAdi: null,
+      musteriAd: null,
+      sira: 0,
+      planlananSureDk: 0,
+      hazirlikSuresiDk: 0,
+      planlananMiktar: 0,
+      uretilenMiktar: 0,
+      fireMiktar: 0,
+      montaj: false,
+      terminTarihi: null,
+      planlananBaslangic: null,
+      planlananBitis: null,
+      durum: 'bos',
+      isMultiOp: false,
+      createdAt: machine.createdAt,
+      updatedAt: machine.updatedAt,
+    })),
+  ];
 }
 
 export async function repoGetById(id: string): Promise<IsYukuDto | null> {
@@ -237,6 +294,7 @@ export async function repoUpdate(id: string, data: PatchBody): Promise<IsYukuDto
       id: makineKuyrugu.id,
       makineId: makineKuyrugu.makine_id,
       sira: makineKuyrugu.sira,
+      durum: makineKuyrugu.durum,
       emirOperasyonId: makineKuyrugu.emir_operasyon_id,
     })
     .from(makineKuyrugu)
@@ -250,6 +308,20 @@ export async function repoUpdate(id: string, data: PatchBody): Promise<IsYukuDto
   const movingBetweenMachines = targetMakineId !== existing.makineId;
   const movingInsideQueue = targetSira !== existing.sira;
   const payload = mapPatchInput(data);
+
+  if (movingBetweenMachines) {
+    if (existing.durum === 'calisiyor' || existing.durum === 'tamamlandi') {
+      throw new Error('calisan_is_tasinamaz');
+    }
+    if (existing.emirOperasyonId) {
+      const [operation] = await db
+        .select({ kalipId: uretimEmriOperasyonlari.kalip_id })
+        .from(uretimEmriOperasyonlari)
+        .where(eq(uretimEmriOperasyonlari.id, existing.emirOperasyonId))
+        .limit(1);
+      await assertKalipMakineUyumlu(db, operation?.kalipId ?? null, targetMakineId);
+    }
+  }
 
   await db.transaction(async (tx) => {
     if (movingBetweenMachines || movingInsideQueue) {
@@ -289,9 +361,23 @@ export async function repoUpdate(id: string, data: PatchBody): Promise<IsYukuDto
         .where(eq(makineKuyrugu.id, id));
 
       if (existing.emirOperasyonId && movingBetweenMachines) {
+        const [operation] = await tx
+          .select({
+            montaj: uretimEmriOperasyonlari.montaj,
+            montajMakineId: uretimEmriOperasyonlari.montaj_makine_id,
+          })
+          .from(uretimEmriOperasyonlari)
+          .where(eq(uretimEmriOperasyonlari.id, existing.emirOperasyonId))
+          .limit(1);
+        const operationUpdate: Partial<typeof uretimEmriOperasyonlari.$inferInsert> = {
+          makine_id: targetMakineId,
+        };
+        if (Number(operation?.montaj ?? 0) === 1 && operation?.montajMakineId === existing.makineId) {
+          operationUpdate.montaj_makine_id = targetMakineId;
+        }
         await tx
           .update(uretimEmriOperasyonlari)
-          .set({ makine_id: targetMakineId })
+          .set(operationUpdate)
           .where(eq(uretimEmriOperasyonlari.id, existing.emirOperasyonId));
       }
 

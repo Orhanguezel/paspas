@@ -204,7 +204,9 @@ function MakineKuyruguTab() {
   }
 
   // Group by machine — exclude completed jobs (tamamlandi görünmemeli)
-  const grouped = new Map<string, MakineKuyruguDetayDto[]>();
+  const grouped = new Map<string, MakineKuyruguDetayDto[]>(
+    (vardiyaData ?? []).map((machine) => [machine.makineId, []]),
+  );
   for (const item of items) {
     if (item.durum === "tamamlandi") continue;
     const key = item.makineId;
@@ -407,7 +409,7 @@ function MakineKuyruguTab() {
     <>
       <VardiyaPanel />
 
-      {!isLoading && items.length === 0 && (
+      {!isLoading && grouped.size === 0 && (
         <div className="py-24 text-center">
           <p className="text-2xl font-light text-muted-foreground">Şu an atanmış iş bulunmuyor.</p>
         </div>
@@ -418,7 +420,8 @@ function MakineKuyruguTab() {
         <div className="grid gap-10 overflow-x-hidden">
           {Array.from(grouped.entries()).map(([makineId, jobs]) => {
             const first = jobs[0];
-            const activeJob = jobs.find((j) => j.durum === "calisiyor" || j.durum === "duraklatildi");
+            const machine = vardiyaByMakine.get(makineId);
+            const activeJob = jobs.find((j) => j.durum === "calisiyor");
             const firstBekleyenId = jobs.filter((j) => j.durum === "bekliyor").sort((a, b) => a.sira - b.sira)[0]?.id ?? null;
             const firstBekleyenJob = jobs.find((j) => j.id === firstBekleyenId);
             const aktifKalip = aktifKalipByMakine.get(makineId);
@@ -433,9 +436,11 @@ function MakineKuyruguTab() {
                 {/* Machine Header Sticker */}
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="px-5 py-2 bg-slate-900 text-white rounded-t-xl text-lg font-black tracking-tight border-b-0 border border-slate-900 shadow-md">
-                    {first.makineKod}
+                    {first?.makineKod ?? machine?.makineKod}
                   </div>
-                  <div className="min-w-0 truncate text-lg font-bold text-slate-700 sm:text-xl">{first.makineAd}</div>
+                  <div className="min-w-0 truncate text-lg font-bold text-slate-700 sm:text-xl">
+                    {first?.makineAd ?? machine?.makineAd}
+                  </div>
                   <div className="h-px flex-1 bg-slate-200" />
                 </div>
 
@@ -600,6 +605,7 @@ function MakineKuyruguTab() {
                       </div>
                       <div className="grid gap-2 pb-4 sm:gap-4 sm:grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]">
                         {remainingJobs.map((job) => {
+                          const canResume = job.durum === "duraklatildi" && !activeJob && !aktifKalip;
                           const canStart = job.durum === "bekliyor" && !activeJob && !aktifKalip && !job.makinePlanliKapali && job.id === firstBekleyenId;
                           return (
                             <Fragment key={job.id}>
@@ -617,10 +623,10 @@ function MakineKuyruguTab() {
                               <Button
                                 size="sm"
                                 className="h-8 shrink-0 rounded-lg px-3 text-xs font-bold"
-                                disabled={!canStart}
-                                onClick={() => handleBaslat(job)}
+                                disabled={!canStart && !canResume}
+                                onClick={() => canResume ? openResume(job) : handleBaslat(job)}
                               >
-                                {canStart ? 'Başlat' : 'Sırada'}
+                                {canResume ? 'Devam Et' : canStart ? 'Başlat' : 'Sırada'}
                               </Button>
                             </div>
                             <Card className={`hidden w-full border-2 transition-all sm:block ${canStart ? 'border-primary/30 ring-2 ring-primary ring-offset-4' : 'opacity-80'}`}>
@@ -640,10 +646,10 @@ function MakineKuyruguTab() {
                                 <p className="mb-3 truncate text-xs text-muted-foreground sm:mb-4">{getJobSubtitle(job)}</p>
                                 <Button 
                                   className="h-9 w-full rounded-xl font-bold sm:h-10" 
-                                  disabled={!canStart} 
-                                  onClick={() => handleBaslat(job)}
+                                  disabled={!canStart && !canResume}
+                                  onClick={() => canResume ? openResume(job) : handleBaslat(job)}
                                 >
-                                  {canStart ? 'BAŞLAT' : 'SIRADA'}
+                                  {canResume ? 'DEVAM ET' : canStart ? 'BAŞLAT' : 'SIRADA'}
                                 </Button>
                                 <Button
                                   variant="outline"

@@ -54,7 +54,17 @@ export const updateIsYuku: RouteHandler = async (req, reply) => {
     if (!row) return reply.code(404).send({ error: { message: 'is_yuku_bulunamadi' } });
     return reply.send(row);
   } catch (error: unknown) {
-    const err = error as { code?: string };
+    const err = error as { code?: string; message?: string };
+    if (err.message === 'kalip_makine_uyumsuz') {
+      return reply.code(400).send({
+        error: { message: 'kalip_makine_uyumsuz', detail: 'Bu kalıp seçilen makinede kullanılamaz.' },
+      });
+    }
+    if (err.message === 'calisan_is_tasinamaz') {
+      return reply.code(409).send({
+        error: { message: 'calisan_is_tasinamaz', detail: 'Çalışan veya tamamlanmış iş başka makineye taşınamaz.' },
+      });
+    }
     if (err.code === 'ER_DUP_ENTRY') {
       return reply.code(409).send({ error: { message: 'makine_sira_cakismasi' } });
     }

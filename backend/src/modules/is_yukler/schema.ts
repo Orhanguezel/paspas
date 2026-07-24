@@ -1,4 +1,5 @@
 export type IsYukuDto = {
+  bosMakine: boolean;
   kuyrukId: string;
   makineId: string;
   makineKod: string;

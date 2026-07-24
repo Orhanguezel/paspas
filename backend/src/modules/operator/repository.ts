@@ -1244,14 +1244,14 @@ export async function repoUretimBaslat(
       now,
     });
 
-    // Ayni makinede zaten calisan veya duraklatilmis is var mi?
+    // Aynı makinede aynı anda yalnız bir çalışan iş olabilir.
     const [activeJob] = await tx
       .select({ id: makineKuyrugu.id })
       .from(makineKuyrugu)
       .where(
         and(
           eq(makineKuyrugu.makine_id, target.makine_id),
-          inArray(makineKuyrugu.durum, ['calisiyor', 'duraklatildi']),
+          eq(makineKuyrugu.durum, 'calisiyor'),
         ),
       )
       .limit(1);
@@ -2115,6 +2115,26 @@ export async function repoDevamEt(
   const now = new Date();
 
   await db.transaction(async (tx) => {
+    const [resumeTarget] = await tx
+      .select({ makineId: makineKuyrugu.makine_id, durum: makineKuyrugu.durum })
+      .from(makineKuyrugu)
+      .where(eq(makineKuyrugu.id, body.makineKuyrukId))
+      .limit(1);
+    if (!resumeTarget) throw new Error('kuyruk_kaydi_bulunamadi');
+    if (resumeTarget.durum !== 'duraklatildi') throw new Error('sadece_duraklatilan_is_devam_edebilir');
+
+    const [runningJob] = await tx
+      .select({ id: makineKuyrugu.id })
+      .from(makineKuyrugu)
+      .where(
+        and(
+          eq(makineKuyrugu.makine_id, resumeTarget.makineId),
+          eq(makineKuyrugu.durum, 'calisiyor'),
+        ),
+      )
+      .limit(1);
+    if (runningJob) throw new Error('makinede_aktif_is_var');
+
     await tx
       .update(makineKuyrugu)
       .set({ durum: 'calisiyor' })
@@ -2478,7 +2498,7 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
     }
   }
 
-  // Sadece kuyrukta bekliyor/devam_ediyor is emri olan makineleri getir
+  // Görünür aktif makineleri, kuyrukları boş olsa da operatör ekranına getir.
   const rows = await db
     .select({
       makineId: makineler.id,
@@ -2501,11 +2521,6 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
         eq(makineler.is_active, 1),
         eq(makineler.durum, 'aktif'),
         eq(makineler.operator_de_goster, 1),
-        sql`EXISTS (
-          SELECT 1 FROM makine_kuyrugu mk
-          WHERE mk.makine_id = ${makineler.id}
-            AND mk.durum IN ('bekliyor', 'calisiyor', 'duraklatildi')
-        )`,
       ),
     )
     .orderBy(asc(makineler.kod));

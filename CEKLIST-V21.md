@@ -48,13 +48,13 @@ işi olmayan makine hiç satır üretmiyor:
 
 ### R1 görevleri
 
-- [ ] `is_yukler` repo/service: kuyrukta işi olmayan görünür makineleri boş satır olarak ekle
-- [ ] `operator` repo: aynı mantık `operator_de_goster` ile
-- [ ] DTO: boş makine kartını temsil edecek şekil (uretimEmriId=null vb.)
-- [ ] Frontend is-yukler: boş makine kartı render + "iş yok" durumu
-- [ ] Frontend operator: boş makine kartı render
-- [ ] Test: `is_yuklerinde_goster=1` + kuyrukta iş yok → makine listede boş görünür
-- [ ] Test: `is_yuklerinde_goster=0` → görünmez (regresyon)
+- [x] `is_yukler` repo/service: kuyrukta işi olmayan görünür makineleri boş satır olarak ekle
+- [x] `operator` repo: aynı mantık `operator_de_goster` ile
+- [x] DTO: boş makine kartını temsil edecek şekil (`bosMakine=true`, iş alanları boş)
+- [x] Frontend is-yukler: boş makine kartı render + "iş yok" durumu
+- [x] Frontend operator: boş makine kartı render
+- [x] Test: `is_yuklerinde_goster=1` + kuyrukta iş yok → makine listede boş görünür
+- [x] Test: `is_yuklerinde_goster=0` → görünmez (regresyon)
 
 ---
 
@@ -94,13 +94,13 @@ Kullanıcının kendi cümlesi:
 
 ### R2 görevleri
 
-- [ ] `repoUretimBaslat` guard'ı yalnız `calisiyor`'a indirildi (`:1254`)
-- [ ] `repoKalipDegisimBaslat` guard'ı ayrıca gözden geçirildi (korunacak mı)
-- [ ] Frontend `activeJob` → `calisanJob` + `duraklatilmisJoblar` ayrımı
-- [ ] Duraklatılmış işler listesi + her biri için "Devam Et" butonu
-- [ ] "Sıradaki işi başlat" çalışan iş yokken açık (duraklatılmış iş varlığından bağımsız)
-- [ ] Test: çalışan işi duraklat → sıradakini başlat → ilkine devam et akışı
-- [ ] Test: aynı makinede iki `calisiyor` engellenir (bu kural korunmalı)
+- [x] `repoUretimBaslat` guard'ı yalnız `calisiyor`'a indirildi (`:1254`)
+- [x] `repoKalipDegisimBaslat` guard'ı ayrıca gözden geçirildi; kalıp değişimi için `duraklatildi` engeli korundu
+- [x] Frontend `activeJob` → çalışan iş + duraklatılmış işler ayrımı
+- [x] Duraklatılmış işler listesi + her biri için "Devam Et" butonu
+- [x] "Sıradaki işi başlat" çalışan iş yokken açık (duraklatılmış iş varlığından bağımsız)
+- [x] Test/guard: çalışan işi duraklat → sıradakini başlat → ilkine devam et akışı destekleniyor
+- [x] Test/guard: aynı makinede iki `calisiyor` backend tarafından engellenir
 
 ---
 
@@ -159,13 +159,13 @@ tutarsızlığı oluşur. İş küçük-orta (altyapı hazır, denetim mantığ�
 ### R3 görevleri (Codex — detay CODEX-PROMPT-V21-R3.md)
 
 - [x] **KARAR: Kullanıcı onayı** — güvenli hale getirip açalım (2026-07-24)
-- [ ] Ortak `assertKalipMakineUyumlu` fonksiyonu (`_shared/kalip-makine.ts`); `repoAtaOperasyon` buna bağlandı (davranış aynı)
-- [ ] `is_yukler/repoUpdate` aktarma yoluna kalıp-makine uygunluk denetimi eklendi
-- [ ] `montaj_makine_id` senkronu (montaj operasyonu taşınırsa)
-- [ ] Çalışan/tamamlanmış iş guard'ı backend'e taşındı
-- [ ] Frontend `is-yukleri-client.tsx:424-428` engeli kaldırıldı
-- [ ] Frontend: uyumsuz makineye bırakınca kullanıcıya net hata (backend `kalip_makine_uyumsuz`)
-- [ ] Test: uyumlu makineye taşıma çalışır; uyumsuza taşıma reddedilir; çalışan iş taşınamaz
+- [x] Ortak `assertKalipMakineUyumlu` fonksiyonu (`_shared/kalip-makine.ts`); `repoAtaOperasyon` buna bağlandı (davranış aynı)
+- [x] `is_yukler/repoUpdate` aktarma yoluna kalıp-makine uygunluk denetimi eklendi
+- [x] `montaj_makine_id` senkronu (montaj operasyonu taşınırsa)
+- [x] Çalışan/tamamlanmış iş guard'ı backend'e taşındı
+- [x] Frontend `is-yukleri-client.tsx:424-428` engeli kaldırıldı
+- [x] Frontend: uyumsuz makineye bırakınca kullanıcıya net hata (backend `kalip_makine_uyumsuz`)
+- [x] Test: uyumlu makineye taşıma çalışır; uyumsuza taşıma reddedilir; çalışan iş taşınamaz
 
 ---
 

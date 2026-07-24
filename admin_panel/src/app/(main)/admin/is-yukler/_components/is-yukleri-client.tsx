@@ -376,18 +376,24 @@ export default function IsYukleriClient() {
 
   useEffect(() => {
     const machineList = (makineler?.items ?? [])
-      .filter((machine) => makineId === 'hepsi' || machine.id === makineId)
+      .filter(
+        (machine) =>
+          machine.isActive &&
+          machine.durum === 'aktif' &&
+          machine.isYuklerindeGoster &&
+          (makineId === 'hepsi' || machine.id === makineId),
+      )
       .map((machine) => ({ makineId: machine.id, makineKod: machine.kod, makineAd: machine.ad }));
     const nextGroups = machineList.map((machine) => ({
       ...machine,
       items: (data?.items ?? [])
-          .filter((item) => item.makineId === machine.makineId)
+          .filter((item) => item.makineId === machine.makineId && !item.bosMakine)
           .sort((a, b) => {
             const p = (d: string) => (d === 'calisiyor' || d === 'duraklatildi' ? 0 : d === 'bekliyor' ? 1 : 2);
             return p(a.durum) !== p(b.durum) ? p(a.durum) - p(b.durum) : a.sira - b.sira;
           }),
     }));
-    setLocalGroups(makineId !== 'hepsi' ? nextGroups : nextGroups.filter((g) => g.items.length > 0));
+    setLocalGroups(nextGroups);
   }, [data?.items, makineler?.items, makineId]);
 
   const sensors = useSensors(
@@ -420,12 +426,6 @@ export default function IsYukleriClient() {
       : Math.max(targetGroup.items.findIndex((item) => item.kuyrukId === over.id), 0);
 
     if (sourceGroupId === targetGroupId && sourceIndex === targetIndex) return;
-
-    // Makineler arası sürükle-bırak kapalı — kullanıcı "Makineden Çıkar" + yeniden ata akışını kullanmalı
-    if (sourceGroupId !== targetGroupId) {
-      toast.warning('Makineler arası taşıma için önce "Makineden Çıkar" deyip yeniden atama yapın.');
-      return;
-    }
 
     const movedItem = sourceGroup.items[sourceIndex];
 
@@ -485,21 +485,40 @@ export default function IsYukleriClient() {
           ? t('admin.erp.isYukler.messages.reordered')
           : t('admin.erp.isYukler.messages.moved'),
       );
-    } catch {
-      toast.error(t('admin.erp.isYukler.messages.moveError'));
+    } catch (error: unknown) {
+      const detail =
+        typeof error === 'object' &&
+        error !== null &&
+        'data' in error &&
+        typeof error.data === 'object' &&
+        error.data !== null &&
+        'error' in error.data &&
+        typeof error.data.error === 'object' &&
+        error.data.error !== null &&
+        'detail' in error.data.error &&
+        typeof error.data.error.detail === 'string'
+          ? error.data.error.detail
+          : null;
+      toast.error(detail ?? t('admin.erp.isYukler.messages.moveError'));
       const machineList = (makineler?.items ?? [])
-        .filter((machine) => makineId === 'hepsi' || machine.id === makineId)
+        .filter(
+          (machine) =>
+            machine.isActive &&
+            machine.durum === 'aktif' &&
+            machine.isYuklerindeGoster &&
+            (makineId === 'hepsi' || machine.id === makineId),
+        )
         .map((machine) => ({ makineId: machine.id, makineKod: machine.kod, makineAd: machine.ad }));
       const rollback = machineList.map((machine) => ({
         ...machine,
         items: (data?.items ?? [])
-          .filter((item) => item.makineId === machine.makineId)
+          .filter((item) => item.makineId === machine.makineId && !item.bosMakine)
           .sort((a, b) => {
             const p = (d: string) => (d === 'calisiyor' || d === 'duraklatildi' ? 0 : d === 'bekliyor' ? 1 : 2);
             return p(a.durum) !== p(b.durum) ? p(a.durum) - p(b.durum) : a.sira - b.sira;
           }),
       }));
-      setLocalGroups(makineId !== 'hepsi' ? rollback : rollback.filter((g) => g.items.length > 0));
+      setLocalGroups(rollback);
     }
   }
 

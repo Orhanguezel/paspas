@@ -4,6 +4,7 @@
 // =============================================================
 
 export interface IsYukuDto {
+  bosMakine: boolean;
   kuyrukId: string;
   makineId: string;
   makineKod: string;
@@ -71,6 +72,7 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 export function normalizeIsYuku(raw: unknown): IsYukuDto {
   const r = isRecord(raw) ? raw : {};
   return {
+    bosMakine: r.bosMakine === true || r.bosMakine === 1 || r.bosMakine === "1",
     kuyrukId: toStr(r.kuyrukId),
     makineId: toStr(r.makineId),
     makineKod: toStr(r.makineKod),
