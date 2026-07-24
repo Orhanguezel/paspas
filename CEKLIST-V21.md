@@ -104,7 +104,11 @@ Kullanıcının kendi cümlesi:
 
 ---
 
-# 🔴 R3 — Makineler arası üretim aktarma (sürükle-bırak) — KULLANICI KARARINA BIRAKILDI
+# 🔴 R3 — Makineler arası üretim aktarma (sürükle-bırak) — ✅ ONAYLANDI (2026-07-24)
+
+> **Kullanıcı kararı (2026-07-24):** "Makine aktarmayı güvenli hale getirip açalım. Codex yapsın
+> implementasyonu." → Detaylı brief: [`CODEX-PROMPT-V21-R3.md`](./CODEX-PROMPT-V21-R3.md). Codex bu
+> brief'e göre implement edecek; deploy'u mimar (Claude) yapacak.
 
 Kullanıcının kendi cümlesi:
 
@@ -152,9 +156,10 @@ Aktarma **güvenli şekilde açılabilir**, ama önce backend `repoUpdate` şu 3
 Bunlar giderilmeden frontend engeli **kaldırılmamalı** — aksi halde uyumsuz makineye taşıma ve montaj
 tutarsızlığı oluşur. İş küçük-orta (altyapı hazır, denetim mantığı mevcut, sadece bağlama).
 
-### R3 görevleri (onaylanırsa)
+### R3 görevleri (Codex — detay CODEX-PROMPT-V21-R3.md)
 
-- [ ] **KARAR: Kullanıcı onayı** — güvenli hale getirip açalım mı?
+- [x] **KARAR: Kullanıcı onayı** — güvenli hale getirip açalım (2026-07-24)
+- [ ] Ortak `assertKalipMakineUyumlu` fonksiyonu (`_shared/kalip-makine.ts`); `repoAtaOperasyon` buna bağlandı (davranış aynı)
 - [ ] `is_yukler/repoUpdate` aktarma yoluna kalıp-makine uygunluk denetimi eklendi
 - [ ] `montaj_makine_id` senkronu (montaj operasyonu taşınırsa)
 - [ ] Çalışan/tamamlanmış iş guard'ı backend'e taşındı
