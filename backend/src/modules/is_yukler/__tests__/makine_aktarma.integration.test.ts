@@ -5,6 +5,7 @@ import { db } from '@/db/client';
 import { makineler, makineKuyrugu } from '@/modules/makine_havuzu/schema';
 import { kaliplar, kalipUyumluMakineler } from '@/modules/tanimlar/schema';
 import { uretimEmirleri, uretimEmriOperasyonlari } from '@/modules/uretim_emirleri/schema';
+import { urunler } from '@/modules/urunler/schema';
 
 import { repoList, repoUpdate } from '../repository';
 
@@ -24,6 +25,7 @@ async function cleanup(): Promise<void> {
   await db.delete(makineKuyrugu).where(eq(makineKuyrugu.id, ids.queue));
   await db.delete(uretimEmriOperasyonlari).where(eq(uretimEmriOperasyonlari.id, ids.operation));
   await db.delete(uretimEmirleri).where(eq(uretimEmirleri.id, ids.order));
+  await db.delete(urunler).where(eq(urunler.id, ids.product));
   await db.delete(kalipUyumluMakineler).where(eq(kalipUyumluMakineler.kalip_id, ids.mold));
   await db.delete(kaliplar).where(eq(kaliplar.id, ids.mold));
   await db.delete(makineler).where(inArray(makineler.id, [ids.sourceMachine, ids.targetMachine]));
@@ -35,6 +37,8 @@ async function seed(options: { compatible: boolean | null; status?: string; asse
     { id: ids.targetMachine, kod: 'V21-R3-B', ad: 'V21 R3 Hedef', durum: 'aktif', is_active: 1 },
   ]);
   await db.insert(kaliplar).values({ id: ids.mold, kod: 'V21-R3-K', ad: 'V21 R3 Kalıp' });
+  // uretim_emirleri.urun_id foreign key'i icin urun kaydi zorunlu
+  await db.insert(urunler).values({ id: ids.product, kod: 'V21-R3-U', ad: 'V21 R3 Ürün', kategori: 'urun' });
   if (options.compatible !== null) {
     await db.insert(kalipUyumluMakineler).values({
       id: ids.compatibility,
