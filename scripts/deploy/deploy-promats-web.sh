@@ -14,8 +14,9 @@ cd "$REPO/frontend"
 echo "==> bun install"
 bun install
 
-echo "==> temiz build (onceki standalone + kopyalanan static/public kalintisi ENOTEMPTY yapar)"
-rm -rf .next/standalone
+echo "==> tam temiz build (.next cache dahil — yoksa NEXT_PUBLIC_* env degisikligi"
+echo "    client bundle'a yansimaz, /api/v1 fallback'te kalir)"
+rm -rf .next
 
 echo "==> build (standalone, /promats basePath)"
 # .env.production'daki TUM NEXT_PUBLIC_* degiskenleri build'e girmeli (ozellikle
