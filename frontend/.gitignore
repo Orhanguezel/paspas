@@ -34,3 +34,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Lighthouse CI raporlari (cop test ciktisi, secret icerebilir)
+/.lighthouseci
+.lighthouseci/
+lhr-*.json
+lhr-*.html
