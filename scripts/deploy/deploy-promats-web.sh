@@ -15,7 +15,11 @@ echo "==> bun install"
 bun install
 
 echo "==> build (standalone, /promats basePath)"
-PROMATS_BASE_PATH=/promats NEXT_PUBLIC_BASE_PATH=/promats bun run build
+# .env.production'daki TUM NEXT_PUBLIC_* degiskenleri build'e girmeli (ozellikle
+# NEXT_PUBLIC_API_URL) — yoksa client bundle /api/v1 fallback'e duser ve
+# /api/v1/site_settings/* 404 verir. Env'i source ederek build'e tasi.
+set -a; [ -f .env.production ] && source .env.production; set +a
+PROMATS_BASE_PATH="${PROMATS_BASE_PATH:-/promats}" NEXT_PUBLIC_BASE_PATH="${NEXT_PUBLIC_BASE_PATH:-/promats}" bun run build
 
 echo "==> standalone'i tamamla (Next.js static + public)"
 rm -rf .next/standalone/.next/static .next/standalone/public
