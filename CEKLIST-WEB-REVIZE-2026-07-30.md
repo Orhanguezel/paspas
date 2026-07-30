@@ -35,8 +35,9 @@ görsel kimliği korunur, yalnız eksik Türkçe karakterler DIN TR'den gelir.
 - [ ] `01f96b37` Ürün vitrini: mevcut siteye yaklaştır; ürün adları altında (Türkçe karakter R0 ile düzelir) → **ürünler grafikçi revizesi bekliyor (R-beklemede ile aynı)**
 
 ### 🟠 R2 — Kurumsal / Hakkımızda `/promats/tr/hakkimizda`
-- [ ] `65a7453c` Referans tasarıma yaklaştır (artifact: claude.ai/public/artifacts/32c583b0-...); üst blok sağa görsel
-- [ ] `fe0d5cd0` "Dört Temel Yetkinlik" → "Temel Yetkinliklerimiz"; "Sistematik Süreç Anlayışı" altına 4 görsel bloğu
+- [x] `fe0d5cd0` **"Dört Temel Yetkinlik" → "Temel Yetkinliklerimiz"** — canlıda zaten yapılmış (special page id=14, `<h3>Temel Yetkinliklerimiz</h3>`). ✅ doğrulandı.
+- [ ] `65a7453c` Referans tasarıma yaklaştır (artifact 32c583b0) + üst blok sağa görsel → **grafikçi/tasarım + asset işi.** Artifact içeriği claude.ai SPA olduğu için koddan render/analiz edilemedi; hedef layout görsel olarak grafikçiden alınmalı. Üst-sağ görsel henüz yok (docx "sonra değişecek ama şimdilik").
+- [ ] `fe0d5cd0` (2. kısım) "Sistematik Süreç Anlayışı" altına 4 görsel bloğu → **asset gerektiriyor**; görseller Promats'a yüklenip Hakkımızda editorial içeriğine (RichContentEditor / special page id=14 `detail`) blok olarak eklenmeli. Kod değil, içerik/asset işi.
 
 ### 🟠 R3 — İletişim `/promats/tr/iletisim` ✅
 - [x] `d25090ff` Yerleşim: en başta "BİZE ULAŞIN / DOĞRU ÇÖZÜM İÇİN BURADAYIZ" hero kutusu (açıklama + 3 ✔ madde, TR/EN); harita en alta taşındı. ✅ deploy + canlı doğrulandı. — Not: EN metinler docx "görseldeki gibi" diyor ama görsel okunamadı; makul çeviri kondu, kullanıcı/grafikçi ince ayar yapabilir. Metinler page.tsx'te locale-bazlı (ileride static_texts'e taşınabilir).
