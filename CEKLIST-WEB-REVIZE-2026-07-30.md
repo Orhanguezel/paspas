@@ -38,9 +38,9 @@ görsel kimliği korunur, yalnız eksik Türkçe karakterler DIN TR'den gelir.
 - [ ] `65a7453c` Referans tasarıma yaklaştır (artifact: claude.ai/public/artifacts/32c583b0-...); üst blok sağa görsel
 - [ ] `fe0d5cd0` "Dört Temel Yetkinlik" → "Temel Yetkinliklerimiz"; "Sistematik Süreç Anlayışı" altına 4 görsel bloğu
 
-### 🟠 R3 — İletişim `/promats/tr/iletisim`
-- [ ] `d25090ff` Yerleşim: harita ortada açılmasın; en başta iletişim kutusu ("BİZE ULAŞIN / DOĞRU ÇÖZÜM İÇİN BURADAYIZ" + 3 madde); TR/EN metinler docx'te
-- [ ] `a1bf78c3` İlgilenilen ürün grubu: **çoklu seçim**, kompakt (kapalı kutu + check ile); şu anki hali iyi görünmüyor
+### 🟠 R3 — İletişim `/promats/tr/iletisim` ✅
+- [x] `d25090ff` Yerleşim: en başta "BİZE ULAŞIN / DOĞRU ÇÖZÜM İÇİN BURADAYIZ" hero kutusu (açıklama + 3 ✔ madde, TR/EN); harita en alta taşındı. ✅ deploy + canlı doğrulandı. — Not: EN metinler docx "görseldeki gibi" diyor ama görsel okunamadı; makul çeviri kondu, kullanıcı/grafikçi ince ayar yapabilir. Metinler page.tsx'te locale-bazlı (ileride static_texts'e taşınabilir).
+- [x] `a1bf78c3` İlgilenilen ürün grubu: native `<select multiple>` → kapalı kutu + checkbox paneli (dışarı-tıkla/Escape kapanır) + seçili ürün etiketleri (× ile kaldır). ✅ deploy + canlı doğrulandı.
 
 ### 🟡 R4 — OEM & Manufacturing `/promats/en/oem-manufacturing`
 - [ ] `3fc2bea0` Bilgi bloğu 2 satır → tek satır (sığmazsa "OEM & PRIVATE LABEL" tek kare)
