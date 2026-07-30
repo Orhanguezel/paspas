@@ -1,0 +1,75 @@
+# Promats Web Sitesi Revize Çeklisti — 2026-07-30
+
+Kaynak: `Promats REvize1 (1).docx` + canlı `page_feedback` `/promats/*` ve `[Web]` notları.
+Web sitesi kodu: **`frontend/`** (Next.js, `[locale]` i18n, `components/promats`).
+
+> **Öncelik (kullanıcı, 2026-07-30):** Web önce. Teklif/CRM ve web-form backend entegrasyonu
+> (`[Web]` grubu) **sonraki aşama**. Bu çeklist görsel/UX revizeleri (A grubu) kapsar.
+
+> **Not — görsel doğrulama:** Bu revizeler büyük ölçüde tasarım/layout. Kod değişikliği sonrası
+> görsel doğrulama (screenshot) mimar (Claude) tarafından kod düzeyinde, son onay kullanıcı/grafikçi
+> tarafından yapılır. Ürünler sayfası grafikçi çıktısına bağlı (beklemede).
+
+---
+
+## A grubu — Görsel/UX revizeleri (öncelikli)
+
+### 🔴 R0 — Site geneli Türkçe karakter / font tutarlılığı `f585a467` + `211168d1`
+**Kök neden (kanıtlı):** `frontend/public/assets/css/vendor/font/stylesheet.css`'te **Gotham** ailesi
+(`gothamblack/bold/book/medium/rounded`) İngilizce font — Türkçe **İ ı Ğ ğ Ş ş** gliflerini içermiyor.
+Aynı sayfada DIN TR (`din_trmedium/bold`, Türkçe destekli) ile karışınca "İ'ler farklı görünüyor"
+(docx). next/font fontları (Plus Jakarta, Source Serif) zaten `latin-ext` içeriyor — sorun onlarda değil.
+
+**Karar:** Gotham font-family'lerine, Türkçe karakterler için `unicode-range` ile DIN TR kaynağını
+aynı isim altında bağla (glyph-level fallback). Kullanım yerlerine dokunmadan merkezi çözüm; Gotham
+görsel kimliği korunur, yalnız eksik Türkçe karakterler DIN TR'den gelir.
+
+- [ ] Gotham varyantları için Türkçe `unicode-range` fallback (DIN TR) — `stylesheet.css`
+- [ ] `İ ı Ğ ğ Ş ş Ç ç Ö ö Ü ü` kapsandı (U+0130-0131, U+011E-011F, U+015E-015F, U+00C7/E7, U+00D6/F6, U+00DC/FC)
+- [ ] Build + görsel kontrol (başlıklarda İ tutarlı)
+
+### 🟠 R1 — Anasayfa `/promats/tr`
+- [ ] `f55e3d4d` Neden Promats: kompozisyon düzeni (araç içi paspas görseli bir tık büyük); arka plandaki "Neden Promats?" yazısı bilinçli mi — netleştir
+- [ ] `632017d6` E-Katalog menüsü: "PDF indir" + "Katalog görüntüle (View)" iki seçenek; E-Katalog butonuna basınca açılan menü **dışarı tıklayınca kapanmalı** (şu an kapanmıyor); alttaki eski buton kaldırılacak
+- [ ] `cbbabc5d` Footer sosyal medya ikonları: marka renkleriyle (şu an renksiz/gri) — üstteki renkli hallerle aynı
+- [ ] `01f96b37` Ürün vitrini: mevcut siteye yaklaştır; ürün adları altında (Türkçe karakter R0 ile düzelir)
+
+### 🟠 R2 — Kurumsal / Hakkımızda `/promats/tr/hakkimizda`
+- [ ] `65a7453c` Referans tasarıma yaklaştır (artifact: claude.ai/public/artifacts/32c583b0-...); üst blok sağa görsel
+- [ ] `fe0d5cd0` "Dört Temel Yetkinlik" → "Temel Yetkinliklerimiz"; "Sistematik Süreç Anlayışı" altına 4 görsel bloğu
+
+### 🟠 R3 — İletişim `/promats/tr/iletisim`
+- [ ] `d25090ff` Yerleşim: harita ortada açılmasın; en başta iletişim kutusu ("BİZE ULAŞIN / DOĞRU ÇÖZÜM İÇİN BURADAYIZ" + 3 madde); TR/EN metinler docx'te
+- [ ] `a1bf78c3` İlgilenilen ürün grubu: **çoklu seçim**, kompakt (kapalı kutu + check ile); şu anki hali iyi görünmüyor
+
+### 🟡 R4 — OEM & Manufacturing `/promats/en/oem-manufacturing`
+- [ ] `3fc2bea0` Bilgi bloğu 2 satır → tek satır (sığmazsa "OEM & PRIVATE LABEL" tek kare)
+- [ ] `8c18cc51` Başlık hiyerarşisi: her başlıkta 1. satır küçük font + farklı renk (örnekteki gibi); şu an iki satır da büyük
+
+### 🟡 R5 — Ürün detay `/promats/tr/urunler/maximum-serisi`
+- [ ] `07d1d6fb` "First Class PVC Material" rozeti yarım/kırpık — tam görünmeli; görsel altı renk sola devam etmeli (mevcut sayfadaki gibi); renk farkı giderilmeli
+
+### ⏸️ Beklemede
+- [ ] `b782729d` Ürünler sayfası `/promats/tr/urunler` — **grafikçi revizesi bekliyor**, ana hatlar iyi
+- [ ] `95b60548` Genel revize dokümanı ve takip — bu çeklistin kendisi (kapatma referansı)
+
+---
+
+## B grubu — Web form/teklif backend entegrasyonu (SONRAKİ AŞAMA)
+
+Teklif/CRM modülüne bağlı; kullanıcı kararıyla bu turda kapsam dışı:
+`f37133af` public teklif endpointi, `9296069b` veri modeli, `19fc9585` iletişim/OEM form akışı,
+`683a30a9` payload sözleşmesi, `457cf954` iletişim/teklif ayrımı, `b0730b54` ürün detayından teklif,
+`303338d6` form UX/spam/analitik, `f29f6917` eski contact geriye uyum.
+
+---
+
+## Sıralama
+
+1. **R0** (font/Türkçe) — site geneli, teknik, tek düzeltme çok yeri etkiler → **önce bu**
+2. R1 (anasayfa) — en çok görülen sayfa; footer icon + E-katalog menü kapanma net/kolay
+3. R3 (iletişim) — form işlevsel değişiklik
+4. R2 (kurumsal), R4 (OEM), R5 (ürün detay) — layout/tasarım
+5. Ürünler (R-beklemede) — grafikçi
+
+**Kapatma:** Her madde deploy + görsel doğrulama sonrası ilgili feedback thread'i `resolved`.
