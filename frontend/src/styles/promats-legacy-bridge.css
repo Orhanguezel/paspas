@@ -378,8 +378,8 @@ body.promats-offcanvas::before {
   text-decoration: none;
 }
 .promats-public .untree_co--site-mobile-menu .promats-close-x:hover { opacity: 0.6; }
-.promats-public .untree_co--site-mobile-menu ul a:hover,
-.promats-public .untree_co--site-mobile-menu ul li a:hover { color: var(--pm-brand, #ffa001) !important; }
+.promats-public .untree_co--site-mobile-menu ul a:not(.promats-social-link):hover,
+.promats-public .untree_co--site-mobile-menu ul li a:not(.promats-social-link):hover { color: var(--pm-brand, #ffa001) !important; }
 /* Desktop hover dropdown (ÜRÜNLER alt linkleri) — gri çok soluk, okunur koyu griye çek */
 .promats-public .sticky-wrapper .untree_co--site-nav .site-nav-ul > li.has-children > .dropdown > li a,
 .promats-public .sticky-wrapper .untree_co--site-nav .site-nav-ul > li.has-children > ul > li a {
@@ -1097,7 +1097,9 @@ body.promats-offcanvas::before {
   text-transform: none;
   text-decoration: none;
 }
-.promats-public .untree_co--site-footer.footer a:hover {
+/* Sosyal ikonlar hariç: genel link hover'ı marka (turuncu). Sosyal linkler
+   dışlanır (`:not`), yoksa hover'da marka renkleri turuncuya dönüp kayboluyordu. */
+.promats-public .untree_co--site-footer.footer a:not(.promats-social-link):hover {
   color: var(--pm-brand, #ffa001) !important;
 }
 .promats-public .untree_co--site-footer.footer .footer-menu .nav {
