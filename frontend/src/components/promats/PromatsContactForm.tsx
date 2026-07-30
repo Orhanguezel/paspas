@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { getPublicApiBaseUrl } from '@/lib/site-config';
 
@@ -30,11 +30,40 @@ const API_BASE = getPublicApiBaseUrl().replace(/\/+$/, '');
 
 export default function PromatsContactForm({ labels, formClassName, products = [], defaultProduct, subjectOptions = [] }: Props) {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  // İlgilenilen ürün grubu: çoklu seçim, kapalı kutu + checkbox (müşteri notu a1bf78c3).
+  // Native <select multiple> yerine dışarı tıklayınca kapanan checkbox paneli.
+  const [productsOpen, setProductsOpen] = useState(false);
+  const [selectedProductNames, setSelectedProductNames] = useState<string[]>(
+    defaultProduct ? [defaultProduct] : [],
+  );
+  const productsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!productsOpen) return;
+    const onPointer = (e: MouseEvent) => {
+      if (productsRef.current && !productsRef.current.contains(e.target as Node)) {
+        setProductsOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setProductsOpen(false);
+    };
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [productsOpen]);
+
+  function toggleProduct(name: string, checked: boolean): void {
+    setSelectedProductNames((prev) => (checked ? [...prev, name] : prev.filter((n) => n !== name)));
+  }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const selectedProducts = form.getAll('products').map(String).filter(Boolean);
+    const selectedProducts = selectedProductNames;
     setStatus('sending');
     try {
       const res = await fetch(`${API_BASE}/contact`, {
@@ -54,6 +83,7 @@ export default function PromatsContactForm({ labels, formClassName, products = [
       if (!res.ok) throw new Error('contact_failed');
       setStatus('sent');
       event.currentTarget.reset();
+      setSelectedProductNames([]);
     } catch {
       setStatus('error');
     }
@@ -78,10 +108,54 @@ export default function PromatsContactForm({ labels, formClassName, products = [
       ) : null}
       {products.length ? (
         <div className="form-group">
-          <label htmlFor="promats-contact-products">{labels.products}</label>
-          <select id="promats-contact-products" className="form-control promats-contact-products" name="products" multiple defaultValue={defaultProduct ? [defaultProduct] : []}>
-            {products.map((product) => <option key={product.slug} value={product.name}>{product.name}</option>)}
-          </select>
+          <label htmlFor="promats-products-toggle">{labels.products}</label>
+          <div className="promats-multiselect" ref={productsRef}>
+            <button
+              type="button"
+              id="promats-products-toggle"
+              className={`form-control promats-multiselect-toggle ${selectedProductNames.length ? '' : 'is-placeholder'}`}
+              onClick={() => setProductsOpen((v) => !v)}
+              aria-haspopup="listbox"
+              aria-expanded={productsOpen}
+            >
+              <span className="promats-multiselect-value">
+                {selectedProductNames.length
+                  ? `${selectedProductNames.length} ${labels.products?.toLocaleLowerCase('tr-TR') ?? ''} seçildi`
+                  : labels.products}
+              </span>
+              <span className="promats-multiselect-caret" aria-hidden="true" />
+            </button>
+            {productsOpen ? (
+              <div className="promats-multiselect-panel" role="listbox">
+                {products.map((product) => (
+                  <label key={product.slug} className="promats-multiselect-option">
+                    <input
+                      type="checkbox"
+                      value={product.name}
+                      checked={selectedProductNames.includes(product.name)}
+                      onChange={(e) => toggleProduct(product.name, e.target.checked)}
+                    />
+                    <span>{product.name}</span>
+                  </label>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          {selectedProductNames.length ? (
+            <div className="promats-multiselect-tags">
+              {selectedProductNames.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  className="promats-multiselect-tag"
+                  onClick={() => toggleProduct(name, false)}
+                  aria-label={`${name} kaldır`}
+                >
+                  {name}<span aria-hidden="true"> ×</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
       <div className="form-group">

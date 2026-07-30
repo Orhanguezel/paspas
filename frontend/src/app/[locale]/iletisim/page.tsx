@@ -47,25 +47,40 @@ export default async function ContactPage({
   const { address, phone, email } = siteConfig.contact;
   const contactMapEmbedUrl = settings.contact_map_embed_url;
 
+  // İletişim hero metni (docx R3 d25090ff). Sayfa açılınca ortada harita yerine
+  // en başta iletişim kutusu gelsin. Editoryal pazarlama kopyası; locale bazlı.
+  const isEn = locale === 'en';
+  const hero = isEn
+    ? {
+        eyebrow: 'CONTACT US',
+        title: "WE'RE HERE FOR THE RIGHT SOLUTION",
+        description:
+          'Whether you would like information about our products, want to request a price quote, or wish to explore custom manufacturing options for your brand — our team will be glad to help.',
+        bullets: ['Fast response', 'Product & price support', 'Custom manufacturing for your brand'],
+      }
+    : {
+        eyebrow: 'BİZE ULAŞIN',
+        title: 'DOĞRU ÇÖZÜM İÇİN BURADAYIZ',
+        description:
+          'İster ürünlerimiz hakkında bilgi almak, ister fiyat teklifi talep etmek ya da markanıza özel üretim seçeneklerini değerlendirmek isteyin; ekibimiz size yardımcı olmaktan memnuniyet duyacaktır.',
+        bullets: ['Hızlı geri dönüş', 'Ürün ve fiyat desteği', 'Markanıza özel üretim'],
+      };
+
   return (
     <>
-      {contactMapEmbedUrl ? (
-        <section className="contact_us promats-contact-map-section position-relative" id="iletisimform">
-          <DevNote section="contact-map" title="İletişim Harita" />
-          <div className="promats-contact-map-wrap"><iframe
-            allowFullScreen
-            frameBorder="0"
-            height="420"
-            src={contactMapEmbedUrl}
-            style={{ border: 0 }}
-            width="100%"
-            title={t(settings, 'Promats harita')}
-          /></div>
-          <a className="btn btn-yellow promats-directions-btn" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`} target="_blank" rel="noreferrer">
-            {t(settings, 'Yol Tarifi Al')}
-          </a>
-        </section>
-      ) : null}
+      <section className="promats-contact-hero position-relative">
+        <DevNote section="contact-hero" title="İletişim Hero" />
+        <div className="container">
+          <span className="promats-contact-hero-eyebrow">{hero.eyebrow}</span>
+          <h1 className="promats-contact-hero-title">{hero.title}</h1>
+          <p className="promats-contact-hero-desc">{hero.description}</p>
+          <ul className="promats-contact-hero-list">
+            {hero.bullets.map((item) => (
+              <li key={item}><span className="promats-contact-hero-check" aria-hidden="true">✔</span>{item}</li>
+            ))}
+          </ul>
+        </div>
+      </section>
       <section className="section8_bg position-relative">
         <DevNote section="contact-form" title="İletişim Formu" />
         <div className="container">
@@ -108,6 +123,23 @@ export default async function ContactPage({
           </div>
         </div>
       </section>
+      {contactMapEmbedUrl ? (
+        <section className="contact_us promats-contact-map-section position-relative" id="iletisimform">
+          <DevNote section="contact-map" title="İletişim Harita" />
+          <div className="promats-contact-map-wrap"><iframe
+            allowFullScreen
+            frameBorder="0"
+            height="420"
+            src={contactMapEmbedUrl}
+            style={{ border: 0 }}
+            width="100%"
+            title={t(settings, 'Promats harita')}
+          /></div>
+          <a className="btn btn-yellow promats-directions-btn" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`} target="_blank" rel="noreferrer">
+            {t(settings, 'Yol Tarifi Al')}
+          </a>
+        </section>
+      ) : null}
     </>
   );
 }
