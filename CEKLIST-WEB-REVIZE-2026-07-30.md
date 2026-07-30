@@ -48,8 +48,8 @@ görsel kimliği korunur, yalnız eksik Türkçe karakterler DIN TR'den gelir.
 
 > **Ek düzeltme (kullanıcı, tur içi):** İletişim hero'su header'ın (fixed 85px) altında kalıyordu → hero üst padding'i PmHero ile aynı ~130px offset'e çekildi. ✅ deploy + canlı doğrulandı.
 
-### 🟡 R5 — Ürün detay `/promats/tr/urunler/maximum-serisi`
-- [ ] `07d1d6fb` "First Class PVC Material" rozeti yarım/kırpık — tam görünmeli; görsel altı renk sola devam etmeli (mevcut sayfadaki gibi); renk farkı giderilmeli
+### 🟡 R5 — Ürün detay `/promats/tr/urunler/maximum-serisi` ✅ (görsel onay bekliyor)
+- [x] `07d1d6fb` (a) "First Class PVC Material" damgası hero'nun koyu paspas görseline binince sağ yarısı kayboluyordu → z-index + beyaz hale ile ayrıştı, tamamı görünür. (b) Overview arka planı sağa yaslıydı (solda beyaz keskin kenar) → `cover`/`center right` ile renk sola devam eder (docx image22 "mevcut sayfa" gibi). (c) Renk farkı/font → R0 ile çözüldü. ✅ deploy + canlı doğrulandı. — Not: piksel-tam eşleşme için son görsel onay kullanıcı/grafikçide; docx "bu sayfa için grafikçi çalışıyor, küçük revizeler gelebilir" diyordu.
 
 ### ⏸️ Beklemede
 - [ ] `b782729d` Ürünler sayfası `/promats/tr/urunler` — **grafikçi revizesi bekliyor**, ana hatlar iyi
