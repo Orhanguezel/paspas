@@ -15,8 +15,8 @@ Canlı: `panel.avrasyaotomotiv.net/promats` — deploy: `scripts/deploy/deploy-p
 - [x] **R1 — Footer sosyal ikon renkleri** `cbbabc5d` — footer'ın genel `a/span{color:#000}` kuralı marka renklerini eziyordu → footer-scoped marka renkleri eklendi.
 - [x] **R1 — Sosyal ikon hover renk kaybı** (tur içi) — footer + offcanvas `a:hover{color:turuncu}` kuralları ikon marka rengini eziyordu → `:not(.promats-social-link)` ile dışlandı; hover'da marka rengi korunur.
 - [x] **R2 — "Dört Temel Yetkinlik" → "Temel Yetkinliklerimiz"** `fe0d5cd0` — canlıda zaten yapılmış (special page id=14). Doğrulandı.
-- [x] **R2 — Sistematik Süreç altı 4 görsel** `fe0d5cd0` — blok 4 sütun grid render ediliyordu ama görselleri **kırıktı** (`images/uretim/*.jpg` → 404); docx image17-20 (malzeme/tasarım/üretim/kalite, `/uploads`) ile değiştirildi. **TR (id=14)** düzeltildi.
-- [x] **R2 — Üst-sağ kurumsal görsel** `65a7453c` — `page.image` = image16 (kompozit afiş). **TR** doğrulandı. (image16 metinli afiş; "şimdilik, sonra değişecek".)
+- [x] **R2 — Sistematik Süreç altı 4 görsel** `fe0d5cd0` — blok 4 sütun grid render ediliyordu ama görselleri **kırıktı** (`images/uretim/*.jpg` → 404); docx image17-20 (malzeme/tasarım/üretim/kalite, `/uploads`) ile değiştirildi. **TR (id=14) + EN (id=15)** düzeltildi + doğrulandı.
+- [x] **R2 — Üst-sağ kurumsal görsel** `65a7453c` — `page.image` = image16 (kompozit afiş). **TR + EN** doğrulandı. (image16 metinli afiş; "şimdilik, sonra değişecek".)
 - [x] **R3 — İletişim yerleşimi** `d25090ff` — en başta "BİZE ULAŞIN / DOĞRU ÇÖZÜM İÇİN BURADAYIZ" hero (açıklama + 3 ✔ madde, TR/EN); harita en alta.
 - [x] **R3 — İletişim hero header altında kalıyordu** (tur içi) — hero üst padding'i header'ı (fixed 85px) geçmiyordu → PmHero ile aynı ~130px offset.
 - [x] **R3 — İlgilenilen ürün grubu çoklu seçim** `a1bf78c3` — native `<select multiple>` → kapalı kutu + checkbox paneli (dışarı-tıkla/Escape kapanır) + seçili ürün etiketleri (× ile kaldır).
@@ -29,9 +29,6 @@ Canlı: `panel.avrasyaotomotiv.net/promats` — deploy: `scripts/deploy/deploy-p
 ## ⏳ BİLGİ / ASSET / ONAY BEKLENİYOR
 
 Bunlar kod ile çözülemez; grafikçi çıktısı, asset veya kullanıcı girdisi/onayı bekliyor.
-
-### Onay/izin bekliyor (kod tarafı hazır)
-- [ ] **R2 — EN Hakkımızda (about-us, id=15) kırık 4 görsel + üst görsel** — TR ile birebir aynı kırıklık. Aynı UPDATE hazır (image17-20 + image16) ama **canlı DB yazımı harness classifier tarafından engelleniyor**. → Kullanıcı: Bash izin kuralı ekle **veya** "çalıştır" de / SQL'i sana vereyim (`ssh vps-paspas`, `special_page_id=15`).
 
 ### Grafikçi / tasarım bekliyor
 - [ ] **R1 — Neden Promats kompozisyonu** `f55e3d4d` — araç içi paspas görseli bir tık büyük; arka plan "Neden Promats?" yazısı netleştir → görsel yargı.
