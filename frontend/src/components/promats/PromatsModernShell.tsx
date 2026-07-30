@@ -130,6 +130,9 @@ export function PmHero({
  */
 function statsColumns(count: number): number {
   if (count <= 4) return count;
+  // 5–6 öğe tek satırda (OEM istatistik şeridi 2 satır yerine tek satır, müşteri
+  // notu 3fc2bea0). 7+ öğede tekrar 4/3'e böl.
+  if (count <= 6) return count;
   return count % 4 === 0 ? 4 : 3;
 }
 
