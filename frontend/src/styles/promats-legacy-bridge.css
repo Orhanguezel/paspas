@@ -286,6 +286,10 @@ body.promats-offcanvas::before {
    Hakkımızda gibi düz statik sayfaları gereksiz uzatıyor. */
 .promats-public .promats-static-content.section4_bg {
   margin-top: 0;
+  /* Header (position:fixed; height:85px) içeriğin üstünü örtüyor. Üst boşluk header'ı
+     geçmeli — bu offset önceden SADECE mobilde (max-width:756px) vardı; desktop'ta
+     başlık (ör. ABOUT US / HAKKIMIZDA) header altında kalıyordu (müşteri notu 28a79c87). */
+  padding-top: 7rem;
 }
 
 @media (max-width: 756px) {
