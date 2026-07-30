@@ -43,8 +43,10 @@ görsel kimliği korunur, yalnız eksik Türkçe karakterler DIN TR'den gelir.
 - [x] `a1bf78c3` İlgilenilen ürün grubu: native `<select multiple>` → kapalı kutu + checkbox paneli (dışarı-tıkla/Escape kapanır) + seçili ürün etiketleri (× ile kaldır). ✅ deploy + canlı doğrulandı.
 
 ### 🟡 R4 — OEM & Manufacturing `/promats/en/oem-manufacturing`
-- [ ] `3fc2bea0` Bilgi bloğu 2 satır → tek satır (sığmazsa "OEM & PRIVATE LABEL" tek kare)
-- [ ] `8c18cc51` Başlık hiyerarşisi: her başlıkta 1. satır küçük font + farklı renk (örnekteki gibi); şu an iki satır da büyük
+- [ ] `3fc2bea0` Bilgi bloğu 2 satır → tek satır (sığmazsa "OEM & PRIVATE LABEL" tek kare) → **hangi blok kastedildiği docx görseline bağlı, belirsiz; kullanıcı görsel onayında netleştirecek**
+- [x] `8c18cc51` Başlık hiyerarşisi: `.pm-caps__title` 1. satır (eyebrow) küçük font + koyu renk, 2. satır büyük marka rengi (önceden ikisi de büyük/turuncuydu). Tüm modern sayfa başlıklarına uygulanır. ✅ deploy + canlı doğrulandı.
+
+> **Ek düzeltme (kullanıcı, tur içi):** İletişim hero'su header'ın (fixed 85px) altında kalıyordu → hero üst padding'i PmHero ile aynı ~130px offset'e çekildi. ✅ deploy + canlı doğrulandı.
 
 ### 🟡 R5 — Ürün detay `/promats/tr/urunler/maximum-serisi`
 - [ ] `07d1d6fb` "First Class PVC Material" rozeti yarım/kırpık — tam görünmeli; görsel altı renk sola devam etmeli (mevcut sayfadaki gibi); renk farkı giderilmeli
