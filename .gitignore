@@ -28,5 +28,5 @@ docs/vps_*.tsv
 # promats.com.tr FTP yedegi (DB/sifre icerebilir, commit edilmez)
 promats-ftp-yedek/
 
-# Promats web rewrite nested project
-promats/
+# Katalog projesi (buyuk PDF, frontend build ile ilgisiz)
+catalog/promats/
