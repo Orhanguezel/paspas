@@ -195,7 +195,16 @@ export default function PromatsProductDetail({ locale, product, related, setting
           className="untree_co--site-section section2_bg promats-product-overview position-relative"
           style={
             s.backgroundImage
-              ? { backgroundImage: `url('${assetPath(s.backgroundImage)}'), linear-gradient(white, white)`, backgroundColor: 'white', backgroundPosition: 'right' }
+              ? {
+                  // Arka plan görseli tüm bölümü kaplasın (renk sola doğru devam etsin,
+                  // müşteri notu 07d1d6fb "mevcut sayfadaki gibi"). Önceden sağa yaslıydı
+                  // (backgroundPosition:right) → solda beyaz, ortada keskin kenar oluşuyordu.
+                  backgroundImage: `url('${assetPath(s.backgroundImage)}'), linear-gradient(white, white)`,
+                  backgroundColor: 'white',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center right',
+                  backgroundRepeat: 'no-repeat',
+                }
               : { backgroundColor: 'white' }
           }
         >

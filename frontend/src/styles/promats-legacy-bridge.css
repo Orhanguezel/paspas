@@ -772,6 +772,12 @@ body.promats-offcanvas::before {
   height: 112px;
   object-fit: contain;
   margin-top: 0;
+  /* "First Class PVC Material" damgası hero'nun koyu paspas görseline binince sağ
+     yarısı kayboluyordu (müşteri notu "yarım çıkmış"). Üstte tut + hafif hale ile
+     koyu zeminde ayrış → damganın tamamı görünür. */
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.45));
 }
 .promats-public .promats-product-content {
   background: #f6f7f8;
