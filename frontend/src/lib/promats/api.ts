@@ -1,3 +1,5 @@
+import { notFound } from 'next/navigation';
+
 import { getPublicApiBaseUrl } from '@/lib/site-config';
 
 export type Locale = 'tr' | 'en';
@@ -217,7 +219,14 @@ export async function getSettings(locale: string): Promise<Record<string, string
 }
 
 export async function getPageContent<T>(locale: string, page: string): Promise<T> {
-  return fetchPromats<T>(`/page-content/${encodeURIComponent(page)}`, locale);
+  try {
+    return await fetchPromats<T>(`/page-content/${encodeURIComponent(page)}`, locale);
+  } catch (e) {
+    // İçerik CMS'te tanımlı değilse (404) o sayfa 404 verir; tek bir eksik
+    // editorial içerik tüm site build'ini patlatmaz (fail-soft, build-time SSG).
+    if (e instanceof Error && /\b404\b/.test(e.message)) notFound();
+    throw e;
+  }
 }
 
 export async function getArticles(locale: string): Promise<ArticleListItem[]> {
