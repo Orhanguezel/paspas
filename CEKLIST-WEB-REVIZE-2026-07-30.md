@@ -36,8 +36,9 @@ görsel kimliği korunur, yalnız eksik Türkçe karakterler DIN TR'den gelir.
 
 ### 🟠 R2 — Kurumsal / Hakkımızda `/promats/tr/hakkimizda`
 - [x] `fe0d5cd0` **"Dört Temel Yetkinlik" → "Temel Yetkinliklerimiz"** — canlıda zaten yapılmış (special page id=14, `<h3>Temel Yetkinliklerimiz</h3>`). ✅ doğrulandı.
-- [ ] `65a7453c` Referans tasarıma yaklaştır (artifact 32c583b0) + üst blok sağa görsel → **grafikçi/tasarım + asset işi.** Artifact içeriği claude.ai SPA olduğu için koddan render/analiz edilemedi; hedef layout görsel olarak grafikçiden alınmalı. Üst-sağ görsel henüz yok (docx "sonra değişecek ama şimdilik").
-- [ ] `fe0d5cd0` (2. kısım) "Sistematik Süreç Anlayışı" altına 4 görsel bloğu → **asset gerektiriyor**; görseller Promats'a yüklenip Hakkımızda editorial içeriğine (RichContentEditor / special page id=14 `detail`) blok olarak eklenmeli. Kod değil, içerik/asset işi.
+- [x] `fe0d5cd0` (2. kısım) "Sistematik Süreç Anlayışı" altına 4 görsel bloğu — **canlı hata bulundu ve düzeltildi:** blok zaten 4 sütun grid render ediliyordu ama görselleri KIRIKTI (`images/uretim/*.jpg` → 404). docx image17-20 (malzeme/tasarım/üretim/kalite, VPS `/uploads`'ta mevcut) ile değiştirildi. ✅ **TR (id=14) düzeltildi + doğrulandı.** ⏳ EN (id=15) aynı kırıklıkta — aynı UPDATE bekliyor (classifier onayı/izin).
+- [x] `65a7453c` (üst-sağ görsel kısmı) `page.image` = image16 (kurumsal kompozit afiş) yapıldı — üst blok sağ görsel. ✅ TR doğrulandı. Not: image16 metinli afiş, kullanıcı "şimdilik, sonra değişecek" demişti.
+- [ ] `65a7453c` (layout kısmı) Kurumsal sayfa düzenini artifact 32c583b0'a benzet → **grafikçi/tasarım işi**; artifact claude.ai SPA olduğu için koddan render edilemiyor, görsel hedef grafikçiden alınmalı.
 
 ### 🟠 R3 — İletişim `/promats/tr/iletisim` ✅
 - [x] `d25090ff` Yerleşim: en başta "BİZE ULAŞIN / DOĞRU ÇÖZÜM İÇİN BURADAYIZ" hero kutusu (açıklama + 3 ✔ madde, TR/EN); harita en alta taşındı. ✅ deploy + canlı doğrulandı. — Not: EN metinler docx "görseldeki gibi" diyor ama görsel okunamadı; makul çeviri kondu, kullanıcı/grafikçi ince ayar yapabilir. Metinler page.tsx'te locale-bazlı (ileride static_texts'e taşınabilir).
