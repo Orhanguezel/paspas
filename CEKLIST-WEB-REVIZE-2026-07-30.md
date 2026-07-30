@@ -44,7 +44,7 @@ görsel kimliği korunur, yalnız eksik Türkçe karakterler DIN TR'den gelir.
 - [x] `a1bf78c3` İlgilenilen ürün grubu: native `<select multiple>` → kapalı kutu + checkbox paneli (dışarı-tıkla/Escape kapanır) + seçili ürün etiketleri (× ile kaldır). ✅ deploy + canlı doğrulandı.
 
 ### 🟡 R4 — OEM & Manufacturing `/promats/en/oem-manufacturing`
-- [ ] `3fc2bea0` Bilgi bloğu 2 satır → tek satır (sığmazsa "OEM & PRIVATE LABEL" tek kare) → **hangi blok kastedildiği docx görseline bağlı, belirsiz; kullanıcı görsel onayında netleştirecek**
+- [x] `3fc2bea0` Bilgi bloğu 2 satır → tek satır — docx image27 ile tespit edildi: OEM istatistik şeridi (2017/35+/OEM/PL/8+/Istanbul, 6 öğe) 3×2 iki satır geliyordu. `statsColumns` 6 öğe için tek satır (6 sütun) döner; cols:6 border + tablet'te 3 sütuna düşme eklendi. Üretim/ürünler (4 öğe) etkilenmez. ✅ deploy + canlı doğrulandı (`stats-cols:6`).
 - [x] `8c18cc51` Başlık hiyerarşisi: `.pm-caps__title` 1. satır (eyebrow) küçük font + koyu renk, 2. satır büyük marka rengi (önceden ikisi de büyük/turuncuydu). Tüm modern sayfa başlıklarına uygulanır. ✅ deploy + canlı doğrulandı.
 
 > **Ek düzeltme (kullanıcı, tur içi):** İletişim hero'su header'ın (fixed 85px) altında kalıyordu → hero üst padding'i PmHero ile aynı ~130px offset'e çekildi. ✅ deploy + canlı doğrulandı.
