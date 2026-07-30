@@ -684,18 +684,20 @@ body.promats-offcanvas::before {
   font-family: var(--font-sans), Arial, sans-serif;
   text-align: left;
 }
-.promats-public .promats-header-catalog summary {
+.promats-public .promats-header-catalog-toggle {
   list-style: none;
   cursor: pointer;
   border: 1px solid var(--pm-brand, #ffa001);
   border-radius: 999px;
   padding: 8px 17px;
+  background: transparent;
   color: #fff;
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
+  font-family: inherit;
+  line-height: 1;
 }
-.promats-public .promats-header-catalog summary::-webkit-details-marker { display: none; }
 .promats-public .promats-header-catalog-menu {
   position: absolute;
   z-index: 50;
@@ -1062,6 +1064,16 @@ body.promats-offcanvas::before {
 .promats-public .untree_co--site-footer.footer .promats-social-link span {
   color: inherit !important;
 }
+/* Footer'ın genel `.footer a/span { color:#000 }` kuralı (yüksek specificity) marka
+   renklerini eziyordu → ikonlar gri görünüyordu (müşteri notu cbbabc5d). Footer
+   scope'unda marka renklerini yeniden tanımla; span color:inherit ile <a>'dan alır.
+   Üstteki renkli (mobil menü / social-media) hallerle aynı renkler. */
+.promats-public .untree_co--site-footer.footer .promats-social-link--facebook { color: #1877f2 !important; }
+.promats-public .untree_co--site-footer.footer .promats-social-link--instagram { color: #e4405f !important; }
+.promats-public .untree_co--site-footer.footer .promats-social-link--whatsapp { color: #25d366 !important; }
+.promats-public .untree_co--site-footer.footer .promats-social-link--youtube { color: #ff0000 !important; }
+.promats-public .untree_co--site-footer.footer .promats-social-link--linkedin { color: #0a66c2 !important; }
+.promats-public .untree_co--site-footer.footer .promats-social-link--twitter { color: #1d9bf0 !important; }
 
 /* Footer: tek component her sayfada ayni beyaz zemin, okunur metin ve stabil grid. */
 .promats-public .untree_co--site-footer.footer {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 import type { MenuLink, Product, SiteConfig } from '@/lib/promats/api';
@@ -25,6 +25,8 @@ export default function PromatsHeader({ locale, products, settings, siteConfig, 
   const [searchOpen, setSearchOpen] = useState(false);
   const [sticky, setSticky] = useState(false);
   const [productsOpen, setProductsOpen] = useState(true);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const catalogRef = useRef<HTMLDivElement>(null);
 
   // Anasayfa header'i koyu hero uzerinde seffaf durur; diger tum sayfalarda
   // (bg-light hero) header solid siyah (black-header) olur → tek/tutarli header.
@@ -43,6 +45,26 @@ export default function PromatsHeader({ locale, products, settings, siteConfig, 
     }
     return () => document.body.classList.remove('offcanvas');
   }, [menuOpen]);
+
+  // E-Katalog menüsü (native <details> değil): dışarı tıklayınca ve Escape ile
+  // kapanır. <details> müşteri notunda "dışarı tıklayınca kapanmıyor" idi.
+  useEffect(() => {
+    if (!catalogOpen) return;
+    const onPointer = (e: MouseEvent) => {
+      if (catalogRef.current && !catalogRef.current.contains(e.target as Node)) {
+        setCatalogOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setCatalogOpen(false);
+    };
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [catalogOpen]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -144,17 +166,32 @@ export default function PromatsHeader({ locale, products, settings, siteConfig, 
           {title ? <div className="header d-none d-lg-block"><h1>{title}</h1></div> : null}
           <div className="icons-wrap text-md-right">
             {siteConfig.ekatalogUrl ? (
-              <details className="promats-header-catalog d-none d-lg-inline-block">
-                <summary>{t(settings, 'E-Katalog')}</summary>
-                <div className="promats-header-catalog-menu">
-                  <a href={siteConfig.ekatalogUrl} target="_blank" rel="noreferrer">
-                    {t(settings, 'Katalog Görüntüle')}
-                  </a>
-                  <a href={siteConfig.ekatalogUrl} download>
-                    {t(settings, 'PDF İndir')}
-                  </a>
-                </div>
-              </details>
+              <div className="promats-header-catalog d-none d-lg-inline-block" ref={catalogRef}>
+                <button
+                  type="button"
+                  className="promats-header-catalog-toggle"
+                  onClick={() => setCatalogOpen((v) => !v)}
+                  aria-haspopup="true"
+                  aria-expanded={catalogOpen}
+                >
+                  {t(settings, 'E-Katalog')}
+                </button>
+                {catalogOpen ? (
+                  <div className="promats-header-catalog-menu">
+                    <a
+                      href={siteConfig.ekatalogUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={() => setCatalogOpen(false)}
+                    >
+                      {t(settings, 'Katalog Görüntüle')}
+                    </a>
+                    <a href={siteConfig.ekatalogUrl} download onClick={() => setCatalogOpen(false)}>
+                      {t(settings, 'PDF İndir')}
+                    </a>
+                  </div>
+                ) : null}
+              </div>
             ) : null}
             <ul className="icons-top d-lg-block">
               {searchIcon ? <li>
