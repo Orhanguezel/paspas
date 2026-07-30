@@ -29,10 +29,10 @@ görsel kimliği korunur, yalnız eksik Türkçe karakterler DIN TR'den gelir.
 - [ ] Build + görsel kontrol (başlıklarda İ tutarlı)
 
 ### 🟠 R1 — Anasayfa `/promats/tr`
-- [ ] `f55e3d4d` Neden Promats: kompozisyon düzeni (araç içi paspas görseli bir tık büyük); arka plandaki "Neden Promats?" yazısı bilinçli mi — netleştir
-- [ ] `632017d6` E-Katalog menüsü: "PDF indir" + "Katalog görüntüle (View)" iki seçenek; E-Katalog butonuna basınca açılan menü **dışarı tıklayınca kapanmalı** (şu an kapanmıyor); alttaki eski buton kaldırılacak
-- [ ] `cbbabc5d` Footer sosyal medya ikonları: marka renkleriyle (şu an renksiz/gri) — üstteki renkli hallerle aynı
-- [ ] `01f96b37` Ürün vitrini: mevcut siteye yaklaştır; ürün adları altında (Türkçe karakter R0 ile düzelir)
+- [ ] `f55e3d4d` Neden Promats: kompozisyon düzeni (araç içi paspas görseli bir tık büyük); arka plandaki "Neden Promats?" yazısı bilinçli mi — netleştir → **görsel yargı, grafikçi/kullanıcı girdisi bekliyor**
+- [x] `632017d6` E-Katalog menüsü: native `<details>` → controlled dropdown, **dışarı tıklayınca + Escape ile kapanır** (PromatsHeader.tsx). "Katalog Görüntüle" + "PDF İndir" iki seçenek zaten vardı. ✅ deploy + canlı doğrulandı (`promats-header-catalog-toggle`). — Not: ayrı "alttaki eski buton" kodda bulunmadı (header'da tek E-Katalog menüsü); footer'daki `E-Katalog İndir` linki footer'ın meşru öğesi, dokunulmadı — canlıda gereksizse kullanıcı işaret ederse kaldırılır.
+- [x] `cbbabc5d` Footer sosyal medya ikonları: footer'ın genel `a/span{color:#000}` kuralı marka renklerini eziyordu → footer-scoped marka renkleri eklendi (promats-legacy-bridge.css). ✅ deploy + canlı CSS doğrulandı.
+- [ ] `01f96b37` Ürün vitrini: mevcut siteye yaklaştır; ürün adları altında (Türkçe karakter R0 ile düzelir) → **ürünler grafikçi revizesi bekliyor (R-beklemede ile aynı)**
 
 ### 🟠 R2 — Kurumsal / Hakkımızda `/promats/tr/hakkimizda`
 - [ ] `65a7453c` Referans tasarıma yaklaştır (artifact: claude.ai/public/artifacts/32c583b0-...); üst blok sağa görsel
