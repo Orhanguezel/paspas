@@ -2540,10 +2540,11 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
       .orderBy(desc(vardiyaKayitlari.baslangic))
       .limit(machineIds.length * 4)
     : [];
+  // V22/R1 — 3 secenek: icinde bulunulan (acik) vardiya + gecmis 2. Cap 3.
   const recentByMachine = new Map<string, Array<{ id: string; vardiyaTipi: string; baslangic: Date; bitis: Date | null }>>();
   for (const row of recentRows) {
     const list = recentByMachine.get(row.makineId) ?? [];
-    if (list.length >= 2) continue;
+    if (list.length >= 3) continue;
     list.push({
       id: row.id,
       vardiyaTipi: row.vardiyaTipi,
@@ -2553,15 +2554,27 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
     recentByMachine.set(row.makineId, list);
   }
 
-  return rows.map((r) => ({
-    makineId: r.makineId,
-    makineKod: r.makineKod,
-    makineAd: r.makineAd,
-    acikVardiyaId: r.acikVardiyaId ?? null,
-    vardiyaTipi: r.vardiyaTipi ?? null,
-    baslangic: r.baslangic ?? null,
-    sonVardiyalar: recentByMachine.get(r.makineId) ?? [],
-  }));
+  return rows.map((r) => {
+    const recent = [...(recentByMachine.get(r.makineId) ?? [])];
+    // Acik vardiya listede yoksa 3. secenek olarak basa ekle (default o secilir).
+    if (r.acikVardiyaId && r.vardiyaTipi && r.baslangic && !recent.some((v) => v.id === r.acikVardiyaId)) {
+      recent.unshift({
+        id: r.acikVardiyaId,
+        vardiyaTipi: r.vardiyaTipi,
+        baslangic: r.baslangic,
+        bitis: null,
+      });
+    }
+    return {
+      makineId: r.makineId,
+      makineKod: r.makineKod,
+      makineAd: r.makineAd,
+      acikVardiyaId: r.acikVardiyaId ?? null,
+      vardiyaTipi: r.vardiyaTipi ?? null,
+      baslangic: r.baslangic ?? null,
+      sonVardiyalar: recent.slice(0, 3),
+    };
+  });
 }
 
 // ============================================================

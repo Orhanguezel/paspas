@@ -60,7 +60,11 @@ zaten listedeyse ikinci kez ekleme; değilse başa ekle, toplam 3'ü aşma.
 
 ---
 
-# 🟠 R2 — Son veri girişini geri alma
+# ~~🟠 R2 — Son veri girişini geri alma~~ — ❌ İPTAL EDİLDİ (2026-07-30)
+
+> **Kullanıcı kararı (2026-07-30):** "Geri almayı iptal ettik." Feedback `cfd0b8f2` `resolved`
+> yapıldı — yanlış giriş için mevcut düzenleme akışı (girişi seçip miktarı düzeltme) yeterli görüldü.
+> Aşağıdaki analiz kayıt için duruyor; **implement edilmeyecek.**
 
 Kullanıcının kendi cümlesi:
 
