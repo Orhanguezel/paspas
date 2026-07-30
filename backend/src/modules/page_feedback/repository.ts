@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, notInArray, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
+import { users } from '@/modules/auth/schema';
 
 import { pageFeedbackComments, pageFeedbackThreads } from './schema';
 import type { PageFeedbackCommentRow, PageFeedbackThreadRow } from './schema';
@@ -14,10 +15,24 @@ import type {
   UpdatePageFeedbackBody,
 } from './validation';
 
+async function resolveUserName(userId: string | null): Promise<string | null> {
+  if (!userId) return null;
+  const rows = await db
+    .select({ fullName: users.full_name, email: users.email })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  const user = rows[0];
+  if (!user) return null;
+  return user.fullName?.trim() || user.email?.trim() || null;
+}
+
 function buildWhere(query: ListPageFeedbackQuery): SQL | undefined {
   const conditions: SQL[] = [];
   if (query.pagePath) conditions.push(eq(pageFeedbackThreads.page_path, query.pagePath));
   if (query.status) conditions.push(eq(pageFeedbackThreads.status, query.status));
+  if (query.sourceApp) conditions.push(eq(pageFeedbackThreads.source_app, query.sourceApp));
+  if (query.activeOnly) conditions.push(notInArray(pageFeedbackThreads.status, ['resolved', 'closed']));
   if (conditions.length === 0) return undefined;
   return conditions.length === 1 ? conditions[0] : and(...conditions);
 }
@@ -71,17 +86,20 @@ export async function repoGetPageFeedback(id: string): Promise<{
 export async function repoCreatePageFeedback(
   body: CreatePageFeedbackBody,
   userId: string | null,
-): Promise<{ thread: PageFeedbackThreadRow; comments: PageFeedbackCommentRow[] }> {
+): Promise<{ thread: PageFeedbackThreadRow; comments: PageFeedbackCommentRow[]; createdCommentId: string }> {
   const threadId = randomUUID();
   const commentId = randomUUID();
+  const userName = await resolveUserName(userId);
 
   await db.insert(pageFeedbackThreads).values({
     id: threadId,
     page_path: body.pagePath,
     page_title: body.pageTitle || null,
+    source_app: body.sourceApp,
     subject: body.subject,
     priority: body.priority,
     created_by_user_id: userId,
+    created_by_name: userName,
   });
 
   await db.insert(pageFeedbackComments).values({
@@ -91,26 +109,33 @@ export async function repoCreatePageFeedback(
     body: body.body,
     attachments: body.attachments,
     created_by_user_id: userId,
+    created_by_name: userName,
   });
 
-  return repoGetPageFeedback(threadId) as Promise<{ thread: PageFeedbackThreadRow; comments: PageFeedbackCommentRow[] }>;
+  return {
+    ...(await repoGetPageFeedback(threadId)),
+    createdCommentId: commentId,
+  } as { thread: PageFeedbackThreadRow; comments: PageFeedbackCommentRow[]; createdCommentId: string };
 }
 
 export async function repoCreatePageFeedbackComment(
   threadId: string,
   body: CreatePageFeedbackCommentBody,
   userId: string | null,
-): Promise<{ thread: PageFeedbackThreadRow | null; comments: PageFeedbackCommentRow[] }> {
+): Promise<{ thread: PageFeedbackThreadRow | null; comments: PageFeedbackCommentRow[]; createdCommentId?: string }> {
   const existing = await repoGetPageFeedback(threadId);
   if (!existing.thread) return { thread: null, comments: [] };
 
+  const commentId = randomUUID();
+  const userName = await resolveUserName(userId);
   await db.insert(pageFeedbackComments).values({
-    id: randomUUID(),
+    id: commentId,
     thread_id: threadId,
     message_type: body.messageType,
     body: body.body,
     attachments: body.attachments,
     created_by_user_id: userId,
+    created_by_name: userName,
   });
 
   await db
@@ -128,7 +153,7 @@ export async function repoCreatePageFeedbackComment(
     })
     .where(eq(pageFeedbackThreads.id, threadId));
 
-  return repoGetPageFeedback(threadId);
+  return { ...(await repoGetPageFeedback(threadId)), createdCommentId: commentId };
 }
 
 export async function repoUpdatePageFeedback(

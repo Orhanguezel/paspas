@@ -14,6 +14,7 @@ import {
   CircleOff,
   Clock,
   ClipboardCheck,
+  ClipboardList,
   Cpu,
   Database,
   Factory,
@@ -22,6 +23,7 @@ import {
   BookOpenText,
   FolderTree,
   Presentation,
+  PanelsTopLeft,
   HardDrive,
   KeyRound,
   LayoutDashboard,
@@ -65,7 +67,7 @@ export type AdminSidebarRole = PanelRole;
 
 export type AdminNavItemKey = AdminNavKey;
 
-export type AdminNavGroupKey = 'overview' | 'production' | 'logistics' | 'system';
+export type AdminNavGroupKey = 'overview' | 'production' | 'logistics' | 'website' | 'system';
 
 export type AdminNavConfigItem = {
   key: AdminNavItemKey;
@@ -88,6 +90,8 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
     id: 1,
     key: 'overview',
     items: [
+
+      { key: 'yazilim_gorevleri', url: '/admin/yazilim-gorevleri', icon: ClipboardList, roles: ['admin'] },
 
       // V2: görevler (tasks/notifications) buraya eklenecek
       // { key: 'gorevler', url: '/admin/gorevler', icon: ClipboardList, roles: ['admin', 'operator', 'satin_almaci'] },
@@ -156,6 +160,13 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
   },
   {
     id: 4,
+    key: 'website',
+    items: [
+      { key: 'web_sayfasi', url: '/admin/web-sayfasi', icon: PanelsTopLeft, roles: ['admin'] },
+    ],
+  },
+  {
+    id: 5,
     key: 'system',
     items: [
       { key: 'site_settings',     url: '/admin/sistem',           icon: Settings,     roles: ['admin'] },
@@ -175,6 +186,7 @@ const FALLBACK_GROUP_LABELS: Record<AdminNavGroupKey, string> = {
   overview:   'Genel',
   production: 'Üretim Süreçleri',
   logistics:  'Lojistik & Stok',
+  website:    'Web Sitesi',
   system:     'Sistem Yönetimi',
 };
 
@@ -218,6 +230,8 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   admin_documentation: 'Dokumantasyon',
   vardiya_analizi:   'Vardiya Analizi',
   proje_teklifi:     'Proje Teklifleri',
+  web_sayfasi:       'Promats İçerik Yönetimi',
+  yazilim_gorevleri: 'Yazılım Görevleri',
 };
 
 export function buildAdminSidebarItems(
@@ -229,7 +243,7 @@ export function buildAdminSidebarItems(
   const items = copy?.items ?? ({} as AdminNavCopy['items']);
 
   const getTitle = (item: AdminNavConfigItem): string => {
-    const tKey = `admin.dashboard.items.${item.key}` as any;
+    const tKey = `admin.dashboard.items.${item.key}`;
     const translated = t ? t(tKey) : '';
     return (
       items[item.key] ||
@@ -259,7 +273,12 @@ export function buildAdminSidebarItems(
     .map((group) => {
       const label =
         labels[group.key] ||
-        (t ? t(`admin.sidebar.groups.${group.key}` as any) : '') ||
+        (() => {
+          if (!t) return '';
+          const key = `admin.sidebar.groups.${group.key}`;
+          const translated = t(key);
+          return translated && translated !== key ? translated : '';
+        })() ||
         FALLBACK_GROUP_LABELS[group.key] ||
         '';
 

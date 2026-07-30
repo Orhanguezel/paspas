@@ -5,6 +5,7 @@
         "overview": "Genel",
         "production": "Üretim Süreçleri",
         "logistics": "Lojistik & Stok",
+        "website": "Web Sitesi",
         "system": "Sistem Yönetimi"
       }
     },
@@ -40,7 +41,9 @@
         "hafta_sonu_planlari": "Hafta Sonu Planları",
         "sevkiyat": "Sevkiyat",
         "mal_kabul": "Mal Kabul",
-        "proje_teklifi": "Proje Teklifleri"
+        "proje_teklifi": "Proje Teklifleri",
+        "web_sayfasi": "Promats İçerik Yönetimi",
+        "yazilim_gorevleri": "Yazılım Görevleri"
       }
     },
     "reports": {
@@ -818,6 +821,13 @@
       "passwordUpdateFailed": "Şifre güncellenemedi."
     },
     "sidebar": {
+      "groups": {
+        "overview": "Genel",
+        "production": "Üretim Süreçleri",
+        "logistics": "Lojistik & Stok",
+        "website": "Web Sitesi",
+        "system": "Sistem Yönetimi"
+      },
       "search": "Ara",
       "searchShortcut": "⌘J",
       "searchPlaceholder": "Ara (şimdilik sınırlı)...",

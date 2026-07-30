@@ -1,0 +1,1651 @@
+/**
+ * Promats legacy CSS ↔ Tailwind izolasyon köprüsü.
+ * Asset'ler globals.css @import ile yüklenir; bu dosya çakışma + font eşlemesini yapar.
+ */
+
+.promats-public {
+  --font-display: 'din_trbold', 'gothambold', 'gothamblack', Arial, sans-serif;
+  --font-serif: 'din_trmedium', 'gothambook', Arial, sans-serif;
+  --font-sans: 'din_trmedium', 'gothambook', Arial, sans-serif;
+  font-family: var(--font-sans);
+  font-synthesis: none;
+}
+
+body:has(.promats-public) {
+  font-family: var(--font-sans);
+  color: var(--pm-text-body, #707070);
+  line-height: 1.7;
+}
+
+/* Tailwind font utility override — orijinal Gotham */
+.promats-public.font-sans,
+.promats-public .font-sans {
+  font-family: var(--font-sans);
+}
+
+.promats-public .font-display {
+  font-family: var(--font-display);
+}
+
+.promats-public .font-serif {
+  font-family: var(--font-serif);
+}
+
+.promats-public.promats-legacy-active h1,
+.promats-public.promats-legacy-active h2,
+.promats-public.promats-legacy-active h3,
+.promats-public.promats-legacy-active h4,
+.promats-public.promats-legacy-active h5,
+.promats-public.promats-legacy-active h6,
+.promats-public h1,
+.promats-public h2,
+.promats-public h3,
+.promats-public h4,
+.promats-public h5,
+.promats-public h6 {
+  font-family: var(--font-display);
+  color: var(--pm-text-heading, #000);
+  letter-spacing: 0;
+  font-synthesis: none;
+}
+
+.promats-public .untree_co--site-section h1,
+.promats-public .untree_co--site-section h2,
+.promats-public .untree_co--site-section .other-header,
+.promats-public .untree_co--site-section .yellow-header {
+  font-family: var(--font-display) !important;
+  font-size: clamp(32px, 4vw, 46px);
+  line-height: 1.08;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.promats-public .untree_co--site-section h3 {
+  font-family: var(--font-display) !important;
+  font-size: clamp(20px, 2vw, 26px);
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Bootstrap grid box-model — Tailwind preflight ile uyum */
+.promats-public .container,
+.promats-public .container-fluid,
+.promats-public .row,
+.promats-public [class*='col-'] {
+  box-sizing: border-box;
+}
+
+/* Tailwind reset, legacy btn sınıflarını ezmesin */
+.promats-public .btn,
+.promats-public .btn-primary,
+.promats-public .btn-black {
+  all: revert-layer;
+}
+
+/* Orijinal mobil menü overlay — body.offcanvas karşılığı (React) */
+body.promats-offcanvas {
+  overflow: hidden;
+}
+
+body.promats-offcanvas::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 8;
+  pointer-events: none;
+}
+
+/* Mobil menü panel geçişi — orijinal offcanvas hissi */
+@media (max-width: 1023px) {
+  .promats-public [data-mobile-menu] {
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+  }
+}
+
+/* next/image hero arka plan — orijinal background-size:cover davranışı.
+   position:relative ŞART: PromatsHeroBg içindeki `<img fill>` (position:absolute) en yakın
+   konumlu atasına yerleşir. Ana sayfada Swiper slide konumlu olduğu için görsel görünüyordu,
+   ama ürün detay hero'su <main> içinde static kalınca görsel konumsuz ata bulamayıp 4954px'e
+   taşıyor, sadece minik şeridi görünüyordu (sağ taraf siyah). Relative ile görsel hero'yu
+   kaplar; tüm ürün detaylarında ve hero fallback'inde dinamik çalışır. */
+.promats-public .promats-hero-with-bg {
+  position: relative;
+  overflow: hidden;
+  min-height: 500px;
+  height: 100vh;
+}
+
+.promats-public .owl-hero .swiper-slide {
+  min-height: 500px;
+  height: 100vh;
+}
+
+.promats-public .promats-hero-with-bg > .container {
+  position: relative;
+  z-index: 1;
+}
+
+.promats-public .promats-hero-bg {
+  object-fit: cover;
+  object-position: center;
+  z-index: 0;
+}
+
+.promats-public .promats-section-with-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.promats-public .promats-section-with-bg > .promats-section-content {
+  position: relative;
+  z-index: 1;
+}
+
+.promats-public .promats-section-bg {
+  object-fit: cover;
+  object-position: center;
+  z-index: 0;
+}
+
+/* Hero başlık (PREMIUM / OTO PASPASLAR) — lettering plugin kullanılmıyor (K6: reveal
+   animasyonu atlandı). style.css `.hero-heading{line-height:0}` orijinalde lettering'in
+   ürettiği iç içe span'lere bağlıydı; o span'ler olmayınca iki <h1> üst üste biniyordu.
+   Lettering'siz düz metin için normal line-height + blok dizilim ver (görsel sonuç birebir:
+   iki temiz turuncu satır). Özgüllük style.css 3-class kuralını yenmek için .promats-public ekli. */
+.promats-public .untree_co--site-hero .site-hero-contents .hero-heading {
+  line-height: 1.02;
+  display: block;
+  margin-bottom: 0;
+}
+
+/* Iki baslik satiri arasi bosluk. Canlida iki <h1> arasi adim 54px (1440px viewport'ta
+   olculdu); line-height 1.02 tek basina 39px veriyor, aradaki 15px canlida h1'in
+   bootstrap margin'inden geliyordu (Tailwind preflight onu sifirliyor). Sadece ikinci
+   satira ver ki .sub-text ile arasi ayri ayarlanabilsin. */
+.promats-public .untree_co--site-hero .site-hero-contents .hero-heading + .hero-heading {
+  margin-top: 15px;
+}
+
+/* Hero paragrafi + "incele" butonu. Canli site body'de `font-family:"gotham"` diyor ama
+   assets/css/vendor/font/stylesheet.css'te `gotham` diye bir aile YOK (sadece gothambook /
+   gothammedium / gothamblack...) — yani canlida bu metin sans-serif fallback'ine, Arial'a
+   dusuyor. Bridge'in genel --font-sans'i (din_trmedium) daha genis oldugu icin ayni kutuda
+   paragraf 2 yerine 3 satira kiriliyordu. Hero'da canlinin efektif stack'ini birebir kullan.
+   Baslik ile arasindaki 12px de canlidaki 51px'lik adimi tutturmak icin. */
+.promats-public .untree_co--site-hero .site-hero-contents .sub-text {
+  font-family: 'gotham', Arial, sans-serif;
+  margin-top: 12px;
+}
+
+/* globals.css @layer base'teki genel `p { color: var(--color-text-secondary); font-family:
+   var(--font-serif) }` kurali, DB'den gelen hero HTML'indeki <p>'yi de yakalayip koyu gri
+   (#333) yapiyordu — koyu banner gorseli uzerinde paragraf neredeyse okunmuyordu ve
+   .sub-text'in beyaz rengi/Arial stack'i alta inmiyordu. Hero paragrafi kapsayicidan
+   miras alsin. */
+.promats-public .untree_co--site-hero .site-hero-contents .sub-text p {
+  color: inherit;
+  font-family: inherit;
+}
+
+/* ===== Hero Swiper → orijinal owl-hero görünüm paritesi =====
+   owl.carousel → Swiper portunda Swiper'ın kendi DOM'u (.swiper-button-*, .swiper-pagination)
+   orijinal .owl-nav/.owl-dots CSS'inden etkilenmiyordu; hero tam-ekran değildi, oklar/dotlar
+   Swiper default'tu. Aşağıdaki kurallar orijinal style.css owl davranışını Swiper'a uyguluyor. */
+.promats-public .owl-hero,
+.promats-public .owl-hero .swiper-wrapper,
+.promats-public .owl-hero .swiper-slide {
+  width: 100%;
+  height: 100vh;
+  min-height: 500px;
+}
+.promats-public .owl-hero .swiper-slide {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.promats-public .owl-hero .swiper-slide > .untree_co--site-hero {
+  width: 100%;
+  height: 100%;
+}
+/* Oklar: orijinal owl navText = bnr-left/right.png (67x67 yuvarlak turuncu), top:74% left:22% cift.
+   Swiper default ::after ok gizlenir, yerine bnr gorselleri konur. */
+.promats-public .owl-hero .swiper-button-prev,
+.promats-public .owl-hero .swiper-button-next {
+  position: absolute;
+  top: 74%;
+  width: 67px;
+  height: 67px;
+  margin: 0;
+  background-repeat: no-repeat;
+  background-size: 67px 67px;
+  background-position: center;
+  z-index: 10;
+}
+.promats-public .owl-hero .swiper-button-prev::after,
+.promats-public .owl-hero .swiper-button-next::after { content: none; display: none; }
+.promats-public .owl-hero .swiper-button-prev {
+  left: 22%; right: auto;
+  background-image: var(--pm-hero-arrow-left, none);
+  transform: translateX(-5px);
+}
+.promats-public .owl-hero .swiper-button-next {
+  left: 22%; right: auto;
+  background-image: var(--pm-hero-arrow-right, none);
+  transform: translateX(85px);
+}
+.promats-public .owl-hero .swiper-button-prev:hover,
+.promats-public .owl-hero .swiper-button-next:hover { opacity: 0.6; }
+@media (max-width: 991.98px) {
+  .promats-public .owl-hero .swiper-button-prev,
+  .promats-public .owl-hero .swiper-button-next { display: none; }
+}
+@media (max-width: 756px) {
+  .promats-public .promats-hero-with-bg,
+  .promats-public .owl-hero,
+  .promats-public .owl-hero .swiper-wrapper,
+  .promats-public .owl-hero .swiper-slide {
+    height: 60vh;
+    min-height: 500px;
+  }
+}
+/* Dots: orijinal .owl-hero .owl-dots (alt 50px, ortalı, 28x8 rounded, aktif beyaz) */
+.promats-public .owl-hero .swiper-pagination { bottom: 50px; }
+.promats-public .owl-hero .swiper-pagination-bullet {
+  width: 28px;
+  height: 8px;
+  margin: 0 4px !important;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 1;
+}
+.promats-public .owl-hero .swiper-pagination-bullet-active { background: var(--pm-text-on-dark, #fff); }
+
+/* "incele" butonu (DB: <a class="btn btn-yellow">) — orijinal pill gorunumu.
+   Tailwind preflight box-model'i etkiledigi icin yuksek-ozgulluk + acik display/padding ile zorla. */
+.promats-public .site-hero-contents .btn,
+.promats-public a.btn.btn-yellow {
+  display: inline-block;
+  padding: 6px 24px;
+  border-radius: 1.5rem;
+  font-size: 12px;
+  font-weight: 300;
+  line-height: 1.5;
+  text-align: center;
+  text-decoration: none;
+  border: 0;
+  cursor: pointer;
+}
+.promats-public a.btn.btn-yellow { background: var(--pm-brand, #ffa001); color: var(--pm-text-heading, #000); }
+.promats-public a.btn.btn-yellow:hover { opacity: 0.6; color: var(--pm-text-heading, #000); }
+.promats-public .site-hero-contents .btn { margin: 20px 10px; }
+
+/* Ürün detay ve statik sayfa ritmi. Legacy mobil CSS `.section4_bg` için genel
+   `margin-top:340px` veriyor; bu ürün renkleri bölümünde canlıya yakın ama
+   Hakkımızda gibi düz statik sayfaları gereksiz uzatıyor. */
+.promats-public .promats-static-content.section4_bg {
+  margin-top: 0;
+}
+
+@media (max-width: 756px) {
+  .promats-public .promats-static-content.section4_bg {
+    margin-top: 0;
+    /* Header `position:fixed; height:85px` içeriğin üstünü örtüyor. Mobilde üst boşluk
+       header'ı geçmeli (6.5rem=104px > 85px); eski 4.5rem=72px başlığı (ör. ABOUT US)
+       header altında bırakıyordu. Bu kural tüm statik/özel sayfalar için geçerli. */
+    padding-top: 6.5rem;
+    padding-bottom: 4.5rem;
+  }
+
+  .promats-public .promats-product-overview.untree_co--site-section {
+    padding-top: 5.5rem;
+    padding-bottom: 5rem;
+  }
+
+  .promats-public .promats-product-colors.section4_bg {
+    margin-top: 340px;
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+  }
+
+  .promats-public .promats-product-set.section6_bg {
+    padding-top: 4rem;
+    padding-bottom: 12rem;
+  }
+
+  .promats-public .promats-product-related.untree_co--site-section {
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+  }
+}
+
+/* Mobil menü kapatma X'i header ikonlariyla cakismasin: panel ust alani opak + X net */
+.promats-public .untree_co--site-mobile-menu { padding-top: 20px; }
+.promats-public .untree_co--site-mobile-menu .close-wrap { justify-content: space-between; align-items: center; }
+
+/* ÜRÜNLER dropdown link görünürlüğü (kontrast) — orijinalde mobil menü siyah, desktop dropdown gri.
+   Bir override metni görünmez kılıyordu; ürün/menü linklerini net göster. */
+.promats-public .untree_co--site-mobile-menu ul a,
+.promats-public .untree_co--site-mobile-menu ul li a {
+  color: var(--pm-text-heading, #000) !important;
+  opacity: 1 !important;
+}
+
+/* ÜRÜNLER alt menüsü — sağa girintili + sol kılavuz çizgisi ile "alt menü" olduğu belli.
+   Üst öğeler 20px sol boşlukta; alt öğeler daha içeride (36px) ve sol dikey çizgi nesteme işareti. */
+.promats-public .untree_co--site-mobile-menu .promats-sub-menu {
+  list-style: none;
+  margin: 4px 0 8px 20px;
+  padding: 0;
+  border-left: 2px solid var(--pm-border, #e5e5e5);
+}
+.promats-public .untree_co--site-mobile-menu .promats-sub-menu > li > a {
+  display: block;
+  position: relative;
+  padding: 7px 20px 7px 22px;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  color: var(--pm-text-body, #6b6b6b) !important;
+}
+/* Her alt öğe önünde küçük çizgi işareti — liste hissi. */
+.promats-public .untree_co--site-mobile-menu .promats-sub-menu > li > a::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 10px;
+  height: 1px;
+  background: var(--pm-border, #d9d9d9);
+}
+.promats-public .untree_co--site-mobile-menu .promats-sub-menu > li > a:hover {
+  color: var(--pm-brand, #ffa001) !important;
+}
+.promats-public .untree_co--site-mobile-menu .promats-sub-menu > li > a:hover::before {
+  background: var(--pm-brand, #ffa001);
+}
+
+/* Kapatma X — tek temiz işaret (kırılgan bar1/bar2 yerine) */
+.promats-public .untree_co--site-mobile-menu .promats-close-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--pm-text-heading, #000);
+  text-decoration: none;
+}
+.promats-public .untree_co--site-mobile-menu .promats-close-x:hover { opacity: 0.6; }
+.promats-public .untree_co--site-mobile-menu ul a:hover,
+.promats-public .untree_co--site-mobile-menu ul li a:hover { color: var(--pm-brand, #ffa001) !important; }
+/* Desktop hover dropdown (ÜRÜNLER alt linkleri) — gri çok soluk, okunur koyu griye çek */
+.promats-public .sticky-wrapper .untree_co--site-nav .site-nav-ul > li.has-children > .dropdown > li a,
+.promats-public .sticky-wrapper .untree_co--site-nav .site-nav-ul > li.has-children > ul > li a {
+  color: var(--pm-text-body-strong, #333) !important;
+}
+.promats-public .sticky-wrapper .untree_co--site-nav .site-nav-ul > li.has-children > .dropdown > li a:hover {
+  color: var(--pm-text-heading, #000) !important;
+}
+
+/* Dinamik editorial sayfalar: OEM, partner ve üretim.
+   Renkler Promats tema tokenlarından gelir. */
+.promats-public .promats-editorial-page {
+  background: var(--pm-section-s2, #fafaf8);
+  color: var(--pm-text-body, #707070);
+}
+.promats-public .promats-editorial-page .promats-editorial-hero {
+  min-height: auto;
+  height: auto;
+  padding: clamp(4.5rem, 7vw, 6rem) 0 clamp(3rem, 4vw, 4rem);
+  overflow: visible;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.promats-public .promats-editorial-page .untree_co--site-hero.inner-page.promats-editorial-hero {
+  min-height: 0 !important;
+  height: auto !important;
+  margin-top: 0 !important;
+  padding-top: clamp(4.5rem, 7vw, 6rem) !important;
+  padding-bottom: clamp(3rem, 4vw, 4rem) !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
+.promats-public .promats-editorial-page .untree_co--site-hero.inner-page.promats-editorial-hero > .container > .row {
+  height: auto !important;
+  min-height: 0 !important;
+}
+.promats-public .promats-editorial-page .untree_co--site-hero.bg-light {
+  background:
+    radial-gradient(circle at 15% 15%, rgba(255, 160, 1, 0.18), transparent 32%),
+    linear-gradient(135deg, rgba(255, 160, 1, 0.12), rgba(255, 255, 255, 0) 54%),
+    var(--pm-section-s2, #fafaf8) !important;
+}
+.promats-public .promats-editorial-page .promats-editorial-hero::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -18px;
+  width: min(1120px, calc(100% - 32px));
+  height: 36px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--pm-brand, #ffa001), rgba(0, 0, 0, 0.82));
+  opacity: 0.16;
+  pointer-events: none;
+}
+.promats-public .promats-editorial-page .promats-editorial-hero .heading {
+  font-size: clamp(34px, 4.8vw, 60px);
+  line-height: 1.02;
+  margin-bottom: 1rem;
+}
+.promats-public .promats-editorial-page .promats-editorial-hero .lead {
+  max-width: 880px;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: clamp(17px, 1.8vw, 23px);
+  line-height: 1.6;
+}
+.promats-public .promats-editorial-page .section2_bg {
+  background-color: var(--pm-section-s2, #fafaf8) !important;
+  background-image: none !important;
+}
+.promats-public .promats-editorial-page .section4_bg {
+  background-color: var(--pm-section-s4, #eeeeee) !important;
+  background-image: none !important;
+  margin-top: 0 !important;
+}
+.promats-public .promats-editorial-page .section5_bg {
+  background-color: var(--pm-section-s5, #242729) !important;
+  background-image: none !important;
+  color: var(--pm-text-on-dark, #ffffff);
+}
+.promats-public .promats-editorial-page .black_bg {
+  background-color: var(--pm-section-black, #000000) !important;
+}
+.promats-public .promats-editorial-page h1,
+.promats-public .promats-editorial-page h2,
+.promats-public .promats-editorial-page h3,
+.promats-public .promats-editorial-page .heading {
+  color: var(--pm-text-heading, #000000);
+}
+.promats-public .promats-editorial-page .black_bg h1,
+.promats-public .promats-editorial-page .black_bg h2,
+.promats-public .promats-editorial-page .black_bg h3,
+.promats-public .promats-editorial-page .section5_bg h1,
+.promats-public .promats-editorial-page .section5_bg h2,
+.promats-public .promats-editorial-page .section5_bg h3 {
+  color: var(--pm-text-on-dark, #ffffff);
+}
+.promats-public .promats-editorial-page .bg-white {
+  background: var(--pm-surface-white, #ffffff) !important;
+}
+.promats-public .promats-editorial-page .lead,
+.promats-public .promats-editorial-page p {
+  color: var(--pm-text-body, #707070);
+}
+.promats-public .promats-editorial-page .black_bg p,
+.promats-public .promats-editorial-page .section5_bg p {
+  color: var(--pm-text-muted, #cbd0d8);
+}
+
+/* Kurumsal: içerik ve medya yine özel sayfa kaydından gelir; yalnız sunum iki
+   kolonlu kurumsal kompozisyona ve dört görsellik yetkinlik şeridine dönüşür. */
+.promats-public .promats-about-page {
+  background: #f5f8fb !important;
+  color: #18334c;
+}
+.promats-public .promats-about-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(420px, 1.1fr);
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(12, 48, 75, 0.12);
+}
+.promats-public .promats-about-page .promats-static-copy {
+  padding: clamp(32px, 5vw, 70px);
+  max-width: none;
+  color: #31465a;
+  font-family: var(--font-sans), Arial, sans-serif;
+}
+.promats-public .promats-about-page .promats-static-copy h2,
+.promats-public .promats-about-page .promats-static-copy h3 {
+  color: #073a61;
+  font-family: var(--font-sans), Arial, sans-serif;
+  font-weight: 800;
+}
+.promats-public .promats-about-hero-media img {
+  width: 100%;
+  height: 100%;
+  min-height: 560px;
+  object-fit: cover;
+}
+.promats-public .promats-about-gallery {
+  row-gap: 24px;
+}
+.promats-public .promats-about-gallery img {
+  width: 100%;
+  aspect-ratio: 1 / 0.78;
+  object-fit: cover;
+  border-radius: 20px;
+  box-shadow: 0 12px 35px rgba(12, 48, 75, 0.13);
+}
+@media (max-width: 991.98px) {
+  .promats-public .promats-about-hero { grid-template-columns: 1fr; }
+  .promats-public .promats-about-hero-media img { min-height: 320px; }
+}
+
+/* =========================================================
+   OEM Manufacturing sayfasi — mevcut palet uzerine kurulu.
+   Yeni renk/tema YOK; accent marka tokeni, koyu bolumler .black_bg,
+   kartlar bg-white. Sadece yeni bilesenlerin duzeni.
+   ========================================================= */
+.promats-public .oem-eyebrow {
+  color: var(--pm-brand, #ffa001);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+.promats-public .oem-badges { list-style: none; margin: 0; padding: 0; }
+.promats-public .oem-badge {
+  display: inline-block;
+  margin: 4px 4px 0;
+  padding: 5px 14px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 1.5rem;
+  font-size: 12px;
+  color: var(--pm-text-body-strong, #333);
+  background: var(--pm-surface-white, #fff);
+}
+
+/* Rakamlar */
+.promats-public .oem-stat-value { font-size: 30px; font-weight: 800; color: var(--pm-text-strong, #111); line-height: 1.1; }
+.promats-public .oem-stat-label { font-size: 12px; color: var(--pm-text-muted-alt, #6b7280); margin-top: 4px; }
+.promats-public .oem-stats-section .oem-stat {
+  padding: 22px 14px;
+  border-radius: 8px;
+  background: var(--pm-surface-white, #fff);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+/* Kartlar — hafif kenar + hover kalkma */
+.promats-public .oem-card,
+.promats-public .oem-step,
+.promats-public .oem-series,
+.promats-public .oem-compare,
+.promats-public .oem-cap,
+.promats-public .oem-faq-item {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  transition: transform 0.24s ease, box-shadow 0.24s ease;
+}
+.promats-public .oem-card:hover,
+.promats-public .oem-step:hover,
+.promats-public .oem-series:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* Isaretli listeler (avantaj/dezavantaj) */
+.promats-public .oem-list { list-style: none; margin: 0; padding: 0; }
+.promats-public .oem-list li { position: relative; padding: 4px 0 4px 26px; font-size: 15px; }
+.promats-public .oem-list li::before {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  font-weight: 700;
+}
+.promats-public .oem-list--pro li::before { content: '\2713'; color: var(--pm-text-pro, #ffa001); }
+.promats-public .oem-list--con li::before { content: '\2717'; color: var(--pm-text-con, #b91c1c); }
+
+/* Karsilastirma kartlari */
+.promats-public .oem-compare--pro { border-top: 3px solid var(--pm-brand, #ffa001); }
+.promats-public .oem-compare--con { border-top: 3px solid rgba(0, 0, 0, 0.15); }
+
+/* Surec adim numarasi */
+.promats-public .oem-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--pm-brand, #ffa001);
+  color: var(--pm-text-heading, #000);
+  font-weight: 800;
+}
+
+/* Uretim kabiliyetleri madde */
+.promats-public .oem-cap { display: flex; align-items: center; font-weight: 500; color: var(--pm-text-body-strong, #333); }
+
+/* Urun serileri */
+.promats-public .oem-series-ref { font-size: 12px; letter-spacing: 0.08em; color: var(--pm-brand, #ffa001); font-weight: 700; }
+
+/* SSS */
+.promats-public .oem-faq-q { font-weight: 700; color: var(--pm-text-strong, #111); }
+
+/* Koyu bolumler (ihracat + son CTA) — .black_bg uzerine yalniz padding + acik metin */
+.promats-public .oem-export,
+.promats-public .oem-final-cta { padding: 5rem 0; }
+.promats-public .oem-export h2,
+.promats-public .oem-export .oem-list li,
+.promats-public .oem-final-cta h2,
+.promats-public .oem-final-cta p { color: var(--pm-text-on-dark, #fff); }
+.promats-public .oem-export-stat { font-size: 64px; font-weight: 800; color: var(--pm-brand, #ffa001); line-height: 1; }
+.promats-public .oem-export-stat-label { font-size: 14px; color: var(--pm-text-muted, #cbd0d8); margin-top: 6px; }
+.promats-public .oem-export .oem-list--pro li::before { color: var(--pm-brand, #ffa001); }
+
+/* Ikincil / outline butonlar — btn-yellow ile ayni pill formu */
+.promats-public a.btn.btn-outline-dark,
+.promats-public a.btn.btn-outline-light {
+  display: inline-block;
+  padding: 6px 24px;
+  border-radius: 1.5rem;
+  font-size: 12px;
+  font-weight: 300;
+  line-height: 1.5;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+.promats-public a.btn.btn-outline-dark { border: 1px solid var(--pm-text-strong, #111); color: var(--pm-text-strong, #111); background: transparent; }
+.promats-public a.btn.btn-outline-dark:hover { background: var(--pm-text-strong, #111); color: var(--pm-text-on-dark, #fff); }
+.promats-public a.btn.btn-outline-light { border: 1px solid rgba(255, 255, 255, 0.7); color: var(--pm-text-on-dark, #fff); background: transparent; }
+.promats-public a.btn.btn-outline-light:hover { background: var(--pm-text-on-dark, #fff); color: var(--pm-text-strong, #111); }
+
+/* OEM iletisim formu alanlari */
+.promats-public .oem-inquiry-form .form-control { margin-bottom: 0; }
+.promats-public .oem-inquiry-form .form-group { margin-bottom: 1rem; }
+.promats-public .oem-inquiry-form select.form-control { height: calc(2.25rem + 2px); }
+.promats-public .oem-form-note { margin-top: -0.25rem; }
+.promats-public .oem-factory-tag { font-size: 13px; }
+/* NOT: Eski OEM tasarımındaki `#oem-contact` koyu bölüm kuralları kaldırıldı. Yeni OEM
+   sayfası (promats-modern-page) aynı #oem-contact anchor'ını kullanıyor ama açık kartla;
+   id özgüllüğü pm-* stillerini eziyordu (başlık beyaza dönüyordu). Modern iletişim kartı
+   tümüyle promats-modern.css `.pm-contact*` kurallarıyla biçimlenir. */
+
+/* Header ikonları (arama / menü). Orijinalde bunlar <a> idi ve style.css
+   `.icons-top li a { background:#000; width:40px; height:40px; padding:8px }` kuralını
+   alıyordu: 8px padding + img-fluid sayesinde 38px'lik PNG 24px'e küçülüyor, siyah kutu da
+   siyah nav üzerinde görünmüyordu. Erişilebilirlik için <button>'a çevrildiğinden o kural
+   artık eşleşmiyor; ikonlar hem tam 38px hem de Tailwind'in buton çerçevesiyle kutulu
+   çıkıyordu. Aynı geometriyi butona uygula ve buton kromunu sıfırla. */
+.promats-public .icons-top { display: inline-flex; align-items: center; gap: 0; }
+.promats-public .icons-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.promats-public .promats-header-catalog {
+  position: relative;
+  font-family: var(--font-sans), Arial, sans-serif;
+  text-align: left;
+}
+.promats-public .promats-header-catalog summary {
+  list-style: none;
+  cursor: pointer;
+  border: 1px solid var(--pm-brand, #ffa001);
+  border-radius: 999px;
+  padding: 8px 17px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.promats-public .promats-header-catalog summary::-webkit-details-marker { display: none; }
+.promats-public .promats-header-catalog-menu {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 185px;
+  padding: 8px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.24);
+}
+.promats-public .promats-header-catalog-menu a {
+  display: block;
+  padding: 9px 11px;
+  border-radius: 9px;
+  color: #111;
+  font-size: 13px;
+  text-decoration: none;
+}
+.promats-public .promats-header-catalog-menu a:hover {
+  background: rgba(255, 160, 1, 0.14);
+  color: #111;
+}
+.promats-public .icons-top li { margin: 0; padding: 0; }
+.promats-public .icons-top li + li { margin-left: 0; }
+.promats-public .icons-top li > button {
+  background: #000;
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  display: inline-block;
+  position: relative;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  opacity: 1;
+  cursor: pointer;
+}
+.promats-public .icons-top li > button:hover { opacity: 0.6; }
+.promats-public .icons-top li > button img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Ürün detay hero'su koyu (overlay) — açıklama yazısı beyaz olmalı (kontrast).
+   Açık bg-light iç sayfa hero'ları overlay içermediği için etkilenmez. */
+.promats-public .untree_co--site-hero.inner-page.overlay .site-hero-contents .sub-text {
+  color: var(--pm-text-on-dark, #fff) !important;
+}
+.promats-public .untree_co--site-hero.inner-page.overlay .site-hero-contents .sub-text * {
+  color: inherit !important;
+}
+
+/* Ürün detay sayfası: gri alt bölümler beyaz arka plan (müşteri talebi).
+   Kartlar beyaz section üstünde ayırt edilsin diye hafif gölge eklenir. */
+.promats-public .promats-product-overview.section2_bg { background-color: var(--pm-section-product-s2, #fff) !important; }
+.promats-public .product_section4.section4_bg { background-color: var(--pm-section-product-s4, #fff) !important; }
+.promats-public .product_section4.section4_bg .properties [class*="col-"] > div {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.07);
+}
+.promats-public .promats-product-hero,
+.promats-public .promats-product-hero h2,
+.promats-public .promats-product-overview,
+.promats-public .promats-product-set,
+.promats-public .promats-product-content {
+  font-family: var(--font-sans), Arial, sans-serif;
+}
+.promats-public .promats-product-hero .number1 {
+  width: 112px !important;
+  height: 112px;
+  object-fit: contain;
+  margin-top: 0;
+}
+.promats-public .promats-product-content {
+  background: #f6f7f8;
+}
+.promats-public .promats-product-accordions {
+  max-width: 980px;
+  margin: 0 auto;
+}
+.promats-public .promats-product-accordions details {
+  margin-bottom: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  background: #fff;
+}
+.promats-public .promats-product-accordions summary {
+  cursor: pointer;
+  padding: 20px 24px;
+  color: #111;
+  font-size: 18px;
+  font-weight: 800;
+}
+.promats-public .promats-product-accordion-body {
+  padding: 0 24px 22px;
+  color: #50545a;
+  line-height: 1.75;
+}
+.promats-public .promats-product-source {
+  display: table;
+  margin: 22px auto;
+  color: #111;
+  font-weight: 700;
+}
+.promats-public .promats-product-interest {
+  max-width: 980px;
+  margin: 34px auto 0;
+  padding: 26px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-radius: 20px;
+  background: #111;
+  color: #fff;
+}
+.promats-public .promats-product-interest strong,
+.promats-public .promats-product-interest span { display: block; color: #fff; }
+.promats-public .promats-product-interest strong { font-size: 22px; }
+.promats-public .promats-contact-map-section {
+  padding: 44px 16px;
+  text-align: center;
+  background: #f5f6f7;
+}
+.promats-public .promats-contact-map-wrap {
+  width: min(620px, 100%);
+  margin: 0 auto 18px;
+  overflow: hidden;
+  border-radius: 24px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.14);
+}
+.promats-public .promats-contact-map-wrap iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1.35 / 1;
+}
+.promats-public .promats-contact-products {
+  min-height: 150px;
+  padding: 8px;
+}
+.promats-public .section8_bg form {
+  padding: clamp(20px, 3vw, 34px);
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.08);
+}
+.promats-public .section8_bg form .form-control {
+  min-height: 48px;
+  border: 1px solid #d9dde2;
+  border-radius: 12px;
+  background: #f8f9fa;
+}
+.promats-public .section8_bg form textarea.form-control { min-height: 140px; }
+@media (max-width: 767.98px) {
+  .promats-public .promats-product-interest { align-items: stretch; flex-direction: column; }
+}
+
+/* Ana sayfa urun CTA'si: orijinal turuncu pill, kart sinirinda kaybolmadan gorunsun. */
+.promats-public .promats-product-cta {
+  border: 8px solid var(--pm-section-s2, #fafaf8);
+  box-shadow: 0 10px 24px rgba(255, 160, 1, 0.24);
+  font-family: var(--font-sans), Arial, sans-serif;
+  min-width: 120px;
+  margin-left: auto;
+  margin-right: auto;
+  transform: translateY(8px);
+}
+
+/* Ana sayfa ürün vitrini: referanstaki daha belirgin başlık, daha ferah kart ve
+   biraz küçültülmüş ana ürün görseli. */
+.promats-public .promats-home-products .product_showcase_header {
+  font-family: var(--font-sans), Arial, sans-serif;
+  font-size: clamp(76px, 9vw, 142px);
+  line-height: 0.82;
+  font-weight: 800;
+  letter-spacing: -0.06em;
+}
+.promats-public .promats-home-products .custom-row-02192 > div:first-child img {
+  width: 88%;
+  max-height: 650px;
+  object-fit: contain;
+}
+.promats-public .promats-home-products .product_showcase_prop,
+.promats-public .promats-home-products .product_showcase_prop legend,
+.promats-public .promats-home-products .product_showcase_small {
+  font-family: var(--font-sans), Arial, sans-serif;
+}
+.promats-public .promats-home-products .product_showcase_prop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.promats-public .promats-home-products .product_showcase_prop .icons {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Neden Promats: DB'den gelen legacy HTML korunur; yalniz alan, kontrast ve responsive ritim duzeltilir. */
+.promats-public .promats-why-section {
+  min-height: auto;
+  height: auto;
+  padding: clamp(4rem, 7vw, 7rem) 0;
+  overflow: hidden;
+}
+.promats-public .promats-why-watermark {
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.08) !important;
+  font-size: clamp(68px, 9vw, 132px);
+  line-height: 0.9;
+  width: auto;
+  max-width: 720px;
+  top: 22px;
+  left: 24px;
+}
+.promats-public .promats-why-copy {
+  position: relative;
+  z-index: 2;
+  color: var(--pm-text-on-dark, #fff);
+}
+.promats-public .promats-why-copy .neden_promat {
+  max-width: 620px;
+}
+.promats-public .promats-why-copy .neden_promat h2 {
+  color: var(--pm-text-on-dark, #fff);
+  font-size: clamp(34px, 4vw, 58px);
+  line-height: 0.98;
+  margin-bottom: 18px;
+}
+.promats-public .promats-why-copy .neden_promat span {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: clamp(14px, 1.25vw, 17px);
+  line-height: 1.65;
+}
+.promats-public .promats-why-copy .neden_promat_iconbg {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  max-width: 640px;
+  margin-top: 28px;
+  overflow: hidden;
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(255, 183, 48, 0.96), rgba(255, 160, 1, 0.9)),
+    var(--pm-brand, #ffa001);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
+}
+.promats-public .promats-why-copy .neden_promat_iconbg .icon {
+  min-height: 122px;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.35);
+}
+.promats-public .promats-why-copy .neden_promat_iconbg .icon:last-child {
+  border-right: 0;
+}
+.promats-public .promats-why-copy .neden_promat_iconbg img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  margin-bottom: 14px;
+}
+.promats-public .promats-why-copy .neden_promat_iconbg span {
+  color: #000;
+  font-family: var(--font-sans), Arial, sans-serif;
+  font-size: clamp(14px, 1.4vw, 18px);
+  line-height: 1.2;
+}
+.promats-public .promats-why-media img {
+  width: 108%;
+  max-width: none;
+  max-height: 560px;
+  object-fit: contain;
+  margin-top: 0;
+  transform: translateX(-2%) scale(1.04);
+  transform-origin: left center;
+}
+
+/* Ana sayfa ozellik basligi: uzun/bozuk kelimelerde de tasma yapmaz. */
+.promats-public .promats-section-title {
+  font-family: var(--font-sans), Arial, sans-serif !important;
+  font-weight: 800;
+  font-size: clamp(38px, 7vw, 92px) !important;
+  line-height: 0.95;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  margin-bottom: 2rem;
+}
+
+.promats-public .promats-home-features,
+.promats-public .promats-home-features h2,
+.promats-public .promats-home-features h3,
+.promats-public .promats-home-features span,
+.promats-public .promats-home-features em {
+  font-family: var(--font-sans), Arial, sans-serif;
+}
+
+/* E-bulten bolumu: koyu zeminde net kontrast ve orijinal form hissi. */
+.promats-public .promats-newsletter {
+  background-size: cover;
+  background-position: center;
+}
+.promats-public .promats-newsletter h4 {
+  color: var(--pm-text-on-dark, #fff);
+  font-size: clamp(24px, 3vw, 42px);
+  line-height: 1.05;
+  margin-bottom: 10px;
+}
+.promats-public .promats-newsletter span {
+  color: rgba(255, 255, 255, 0.82);
+}
+.promats-public .promats-newsletter .form-subscribe {
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Footer sosyal medya: etiket ikonlarin ustunde sabit dursun. */
+.promats-public .social-media {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.promats-public .social-media .promats-social-label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: #999;
+}
+.promats-public .social-media .icons-top {
+  justify-content: center;
+  gap: 10px;
+}
+.promats-public .social-media .promats-social-link {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.13);
+  font-size: 19px;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.promats-public .social-media .promats-social-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 20px rgba(0, 0, 0, 0.2);
+}
+.promats-public .social-media .promats-social-link--facebook { color: #1877f2 !important; }
+.promats-public .social-media .promats-social-link--instagram { color: #e4405f !important; }
+.promats-public .social-media .promats-social-link--whatsapp { color: #25d366 !important; }
+.promats-public .social-media .promats-social-link--youtube { color: #ff0000 !important; }
+.promats-public .social-media .promats-social-link--linkedin { color: #0a66c2 !important; }
+.promats-public .social-media .promats-social-link--twitter { color: #1d9bf0 !important; }
+.promats-public .untree_co--site-footer.footer .promats-social-link span {
+  color: inherit !important;
+}
+
+/* Footer: tek component her sayfada ayni beyaz zemin, okunur metin ve stabil grid. */
+.promats-public .untree_co--site-footer.footer {
+  background: var(--pm-surface-white, #fff) !important;
+  color: var(--pm-text-heading, #000) !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding: clamp(2.5rem, 5vw, 4rem) 0;
+  font-family: var(--font-sans);
+}
+.promats-public .untree_co--site-footer.footer .row {
+  row-gap: 24px;
+}
+.promats-public .untree_co--site-footer.footer a,
+.promats-public .untree_co--site-footer.footer p,
+.promats-public .untree_co--site-footer.footer li,
+.promats-public .untree_co--site-footer.footer span {
+  color: var(--pm-text-heading, #000) !important;
+  font-family: var(--font-sans);
+}
+.promats-public .untree_co--site-footer.footer a {
+  text-transform: none;
+  text-decoration: none;
+}
+.promats-public .untree_co--site-footer.footer a:hover {
+  color: var(--pm-brand, #ffa001) !important;
+}
+.promats-public .untree_co--site-footer.footer .footer-menu .nav {
+  gap: 8px 18px;
+}
+.promats-public .untree_co--site-footer.footer .footer-menu .nav-link {
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.promats-public .untree_co--site-footer.footer .list-group,
+.promats-public .untree_co--site-footer.footer .list-group-item {
+  background: transparent;
+  border: 0;
+}
+.promats-public .untree_co--site-footer.footer .list-group-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.promats-public .untree_co--site-footer.footer i {
+  flex: 0 0 auto;
+  float: none;
+  margin: 0;
+  color: var(--pm-brand, #ffa001) !important;
+}
+.promats-public .untree_co--site-footer.footer .copyright p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pm-text-body, #707070) !important;
+}
+.promats-public .untree_co--site-footer.footer .promats-social-label {
+  color: var(--pm-text-body, #707070) !important;
+}
+.promats-public .untree_co--site-footer.footer .e-katalog {
+  background: var(--pm-brand, #ffa001);
+  color: var(--pm-text-heading, #000) !important;
+}
+.promats-public .untree_co--site-footer.footer .e-katalog:hover {
+  background: var(--pm-text-heading, #000);
+  color: var(--pm-text-on-dark, #fff) !important;
+}
+
+@media (max-width: 991.98px) {
+  .promats-public .untree_co--site-footer.footer {
+    text-align: center;
+  }
+  .promats-public .untree_co--site-footer.footer .list-group-item {
+    justify-content: center;
+  }
+}
+
+/* Urun detay basliklari: Türkce karakterleri dar sutunda parcala/ust uste bindirme. */
+.promats-public .promats-flow-heading,
+.promats-public h2.promats-flow-heading {
+  width: auto;
+  max-width: 420px;
+  font-size: clamp(30px, 4vw, 46px);
+  line-height: 1.04;
+  margin-left: 0;
+  margin-right: 0;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.promats-public .promats-flow-heading::before {
+  left: 0;
+  margin-left: 0;
+}
+.promats-public .promats-product-overview .product-prop-icons .icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 28px;
+}
+.promats-public .promats-product-overview .product-prop-icons .icon {
+  float: none;
+  margin-left: 0;
+  min-height: 92px;
+}
+
+/* 5 Parca Tam Set: beyaz zemin, net baslik ve daha temiz alt gorsel kartlari. */
+.promats-public .promats-product-set {
+  background: var(--pm-surface-white, #fff) !important;
+  color: var(--pm-text-heading, #000);
+  padding-top: clamp(4rem, 7vw, 7rem);
+  padding-bottom: clamp(4rem, 7vw, 7rem);
+}
+.promats-public .promats-product-set .clearfix {
+  display: block;
+  color: var(--pm-text-body, #707070);
+  font-size: 15px;
+  margin-bottom: 22px;
+}
+.promats-public .promats-product-set > .container > .row {
+  align-items: center;
+}
+.promats-public .promats-product-set .tam_set {
+  background: #fff;
+  color: var(--pm-text-heading, #000);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+.promats-public .promats-product-set .tam_set_media {
+  background: #111;
+}
+.promats-public .promats-product-set .tam_set_media img {
+  width: 100%;
+  min-height: 160px;
+  object-fit: cover;
+  border-radius: 0;
+  filter: grayscale(1);
+}
+.promats-public .promats-product-set .tam_set_caption {
+  min-height: 96px;
+  padding: 16px 18px;
+}
+.promats-public .promats-product-set .tam_set_caption span {
+  display: block;
+  width: 100%;
+  color: var(--pm-text-heading, #000);
+  font-family: var(--font-display);
+  font-size: 15px;
+  line-height: 1.25;
+}
+.promats-public .promats-product-related {
+  background: var(--pm-surface-white, #fff) !important;
+}
+
+/* Hakkimizda/statik sayfa: icerik gorsel ustunde koyu overlay ile ust section hissinde. */
+.promats-public .promats-static-content--overlay {
+  margin-top: 0;
+  padding-top: clamp(6rem, 10vw, 9rem);
+  background-size: cover;
+  background-position: center;
+  color: var(--pm-text-on-dark, #fff);
+}
+.promats-public .promats-static-content--overlay .promats-static-copy {
+  max-width: 780px;
+  color: rgba(255, 255, 255, 0.9);
+}
+.promats-public .promats-static-content--overlay h1,
+.promats-public .promats-static-content--overlay h2,
+.promats-public .promats-static-content--overlay h3 {
+  color: var(--pm-brand, #ffa001);
+}
+.promats-public .promats-static-content--overlay span,
+.promats-public .promats-static-content--overlay p,
+.promats-public .promats-static-content--overlay b {
+  color: inherit;
+  font-size: clamp(14px, 1.15vw, 17px);
+  line-height: 1.85;
+}
+
+/* Uretim sayfasi: background gorsellerini kucuk/tekrarli hissettirmeyen tek media panel. */
+.promats-public .promats-uretim-section {
+  overflow: hidden;
+}
+.promats-public .promats-uretim-section > .container > .row {
+  min-height: clamp(460px, 58vw, 640px);
+}
+.promats-public .promats-uretim-media {
+  position: relative;
+  overflow: hidden;
+  min-height: clamp(320px, 36vw, 500px);
+  border-radius: 8px;
+  background: #111;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.16);
+}
+.promats-public .promats-uretim-media img {
+  width: 100%;
+  height: 100%;
+  min-height: clamp(320px, 36vw, 500px);
+  object-fit: cover;
+  object-position: center;
+  filter: grayscale(1) contrast(1.08);
+  opacity: 0.92;
+}
+.promats-public .promats-uretim-media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.12), rgba(255, 160, 1, 0.1));
+  pointer-events: none;
+}
+.promats-public .promats-uretim-copy {
+  max-width: 560px;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  box-shadow: 0 14px 46px rgba(0, 0, 0, 0.08);
+}
+.promats-public .promats-uretim-copy h2 {
+  font-size: clamp(30px, 4vw, 50px);
+  line-height: 1.05;
+}
+
+/* Kaynaklar: hero + liste kartlari editorial sayfalarla ayni sistemde. */
+.promats-public .promats-resources-list {
+  padding-top: clamp(4rem, 7vw, 6rem);
+  padding-bottom: clamp(4rem, 7vw, 6rem);
+}
+.promats-public .promats-resource-card {
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.07);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.promats-public .promats-resource-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+}
+.promats-public .promats-resource-card img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  filter: grayscale(0.2);
+}
+.promats-public .promats-resource-card h3 {
+  font-size: clamp(22px, 2vw, 30px);
+  line-height: 1.12;
+}
+.promats-public .promats-resource-card p {
+  font-size: 15px;
+}
+.promats-public .promats-resource-detail {
+  padding-top: clamp(4rem, 7vw, 6rem);
+  padding-bottom: clamp(4rem, 7vw, 6rem);
+}
+.promats-public .promats-resource-detail-media {
+  overflow: hidden;
+  border-radius: 8px;
+  background: #111;
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.14);
+}
+.promats-public .promats-resource-detail-media img {
+  width: 100%;
+  aspect-ratio: 16 / 8;
+  object-fit: cover;
+  filter: grayscale(0.18);
+}
+.promats-public .promats-resource-detail-copy {
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.08);
+  color: var(--pm-text-body, #707070);
+}
+.promats-public .promats-resource-detail-copy h1,
+.promats-public .promats-resource-detail-copy h2,
+.promats-public .promats-resource-detail-copy h3,
+.promats-public .promats-resource-detail-copy h4 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+.promats-public .promats-resource-detail-copy p,
+.promats-public .promats-resource-detail-copy li {
+  font-size: clamp(15px, 1.2vw, 17px);
+  line-height: 1.8;
+}
+.promats-public .promats-resource-detail-copy p:last-child {
+  margin-bottom: 0;
+}
+
+.promats-public .promats-products-list {
+  padding-top: clamp(4rem, 7vw, 6rem);
+  padding-bottom: clamp(4rem, 7vw, 6rem);
+}
+.promats-public .promats-product-list-card {
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.07);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.promats-public .promats-product-list-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+}
+.promats-public .promats-product-list-card img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: contain;
+  padding: 24px;
+  background: var(--pm-section-s4, #eeeeee);
+}
+
+@media (max-width: 991.98px) {
+  .promats-public {
+    overflow-x: hidden;
+  }
+  .promats-public .promats-editorial-page .untree_co--site-section,
+  .promats-public .promats-editorial-page .section4_bg,
+  .promats-public .promats-editorial-page .section2_bg,
+  .promats-public .promats-editorial-page .section5_bg {
+    margin-top: 0 !important;
+    padding-top: 3.25rem !important;
+    padding-bottom: 3.25rem !important;
+  }
+  .promats-public .promats-editorial-page .black_bg {
+    margin-top: 0 !important;
+    padding-top: 3rem !important;
+    padding-bottom: 3rem !important;
+  }
+  .promats-public .promats-editorial-page .promats-editorial-hero,
+  .promats-public .promats-editorial-page .untree_co--site-hero.inner-page.promats-editorial-hero {
+    margin-top: 0 !important;
+    padding-top: 5.25rem !important;
+    padding-bottom: 2.5rem !important;
+    min-height: 0 !important;
+    height: auto !important;
+  }
+  .promats-public .promats-editorial-page .promats-editorial-hero .heading {
+    font-size: clamp(30px, 9vw, 40px);
+  }
+  .promats-public .promats-editorial-page .promats-editorial-hero .lead {
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .promats-public .oem-stats-section .row {
+    margin-bottom: -16px;
+  }
+  .promats-public .oem-stats-section [class*='col-'],
+  .promats-public .promats-editorial-page [class*='col-'] {
+    min-width: 0;
+  }
+  .promats-public .oem-export,
+  .promats-public .oem-final-cta {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+  .promats-public .promats-products-list,
+  .promats-public .promats-resources-list {
+    padding-top: 3.25rem !important;
+    padding-bottom: 3.25rem !important;
+  }
+  .promats-public .promats-product-hero.promats-hero-with-bg,
+  .promats-public .untree_co--site-hero.inner-page.promats-product-hero {
+    height: auto !important;
+    min-height: 0 !important;
+    margin-top: 0 !important;
+    padding-top: 5.5rem !important;
+    padding-bottom: 3rem !important;
+    background-size: cover !important;
+    background-position: center !important;
+  }
+  .promats-public .promats-product-hero > .container > .row {
+    min-height: 520px;
+    align-items: center !important;
+  }
+  .promats-public .promats-product-hero .site-hero-contents {
+    max-width: 100%;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .promats-public .promats-product-hero .site-hero-contents h2 {
+    font-size: clamp(34px, 11vw, 46px);
+    line-height: 0.96;
+  }
+  .promats-public .promats-product-overview.untree_co--site-section,
+  .promats-public .promats-product-set,
+  .promats-public .product_section4.section4_bg,
+  .promats-public .promats-product-related.untree_co--site-section {
+    margin-top: 0 !important;
+    padding-top: 3.5rem !important;
+    padding-bottom: 3.5rem !important;
+  }
+  .promats-public .promats-product-related > .container > .row,
+  .promats-public .section7_bg > .row {
+    margin-left: 0;
+    margin-right: 0;
+  }
+  .promats-public .promats-product-related .swiper.row {
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+  }
+  .promats-public .section7_bg {
+    overflow-x: hidden;
+  }
+  .promats-public .section7_bg > .row > [class*='col-'] {
+    max-width: 100%;
+  }
+  .promats-public .promats-uretim-section > .container > .row {
+    min-height: 0;
+  }
+  .promats-public .promats-uretim-media,
+  .promats-public .promats-uretim-media img {
+    min-height: 260px;
+  }
+  .promats-public .promats-uretim-copy {
+    padding: 1.25rem;
+  }
+  .promats-public .promats-why-section {
+    padding: 4rem 0;
+  }
+  .promats-public .promats-why-copy .neden_promat_iconbg {
+    grid-template-columns: 1fr;
+  }
+  .promats-public .promats-why-copy .neden_promat_iconbg .icon {
+    min-height: 120px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  }
+  .promats-public .promats-why-copy .neden_promat_iconbg .icon:last-child {
+    border-bottom: 0;
+  }
+  .promats-public .promats-flow-heading,
+  .promats-public h2.promats-flow-heading {
+    max-width: none;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .promats-public .promats-flow-heading::before {
+    left: 50%;
+    margin-left: -20px;
+  }
+  .promats-public .promats-product-overview .product-prop-icons .icons {
+    justify-content: center;
+  }
+  .promats-public .promats-product-set .tam_set {
+    float: none;
+    width: 100%;
+    margin: 18px 0 0;
+  }
+  .promats-public .promats-uretim-copy {
+    max-width: none;
+  }
+  .promats-public .promats-editorial-page .promats-editorial-hero {
+    padding-top: 5rem;
+    padding-bottom: 3.5rem;
+  }
+}
+
+/* Arama sayfası, sayfanın en üstündeki tek bölüm; `position:fixed; height:85px` header
+   başlığı örtüyordu (mobilde h1 ~64px'te kalıyordu). Üst boşluk header'ı geçmeli. */
+.promats-public .promats-search-page {
+  padding-top: clamp(7rem, 12vw, 9rem);
+}
+
+/* ==========================================================================
+   HERO SABİT METİN + HARF-REVEAL (orijinal owl-hero davranışı)
+   Orijinalde her slide'ın metni aynıydı ve slide değişince lettering.js + GSAP ile harf
+   harf aşağıdan yukarı beliriyordu. Burada metin slide'ların dışında tek sabit overlay;
+   arkada yalnız görseller fade ile geçer. Reveal, GSAP yerine saf CSS ile yeniden kuruldu
+   (y:100%→0, harf harf gecikme; PromatsHeroContents inline animation-delay verir).
+   ========================================================================== */
+
+.promats-public .owl-hero.promats-hero--fixed {
+  position: relative;
+}
+
+/* Sabit metin katmanı: slider'ın üstünde, slide içeriğiyle aynı dikey hizada (align-items:center).
+   pointer-events:none — altta kalan Swiper ok/dot tıklamaları geçsin; sadece buton/link tıklanır. */
+.promats-public .promats-hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+.promats-public .promats-hero-overlay > .container {
+  width: 100%;
+}
+.promats-public .promats-hero-overlay .site-hero-contents a,
+.promats-public .promats-hero-overlay .site-hero-contents button {
+  pointer-events: auto;
+}
+
+/* Harf reveal — her satır (.hero-heading) satır seviyesinde overflow:hidden ile maskelenir;
+   harfler translateY(110%)'ten 0'a yükselir. cubic-bezier expo-out ~ Expo.easeInOut hissi. */
+.promats-public .promats-hero-contents .hero-heading {
+  overflow: hidden;
+  padding-bottom: 0.06em;
+}
+.promats-public .promats-hero-overlay--en .promats-hero-contents .hero-heading {
+  font-size: 2.25rem;
+  letter-spacing: -0.015em;
+}
+.promats-public .promats-hero-contents .pm-ltr {
+  display: inline-block;
+  white-space: pre;
+}
+.promats-public .promats-hero-contents .pm-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+.promats-public .promats-hero-contents .pm-sp {
+  display: inline-block;
+  white-space: pre;
+}
+.promats-public .promats-hero-contents .pm-ltr > i {
+  display: inline-block;
+  font-style: normal;
+  transform: translateY(110%);
+  animation: pmHeroLetterRise 1.15s cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+@keyframes pmHeroLetterRise {
+  from { transform: translateY(110%); }
+  to { transform: translateY(0); }
+}
+
+/* Alt metin (paragraf + buton): harflerden sonra fade + yukarı kayarak gelir. */
+.promats-public .promats-hero-contents .sub-text {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: pmHeroSubUp 0.9s ease 0.7s both;
+}
+@keyframes pmHeroSubUp {
+  to { opacity: 1; transform: none; }
+}
+
+/* Erişilebilirlik: hareket azaltma tercihinde animasyon yok, metin doğrudan görünür. */
+@media (prefers-reduced-motion: reduce) {
+  .promats-public .promats-hero-contents .pm-ltr > i { animation: none; transform: none; }
+  .promats-public .promats-hero-contents .sub-text { animation: none; opacity: 1; transform: none; }
+}
+
+/* Sabit overlay başlığı/alt-metni: orijinal hero stil kuralları `.untree_co--site-hero
+   .site-hero-contents ...`e bağlıydı; overlay o ata olmadan yaşadığı için başlık siyah
+   (default h1) kalıp koyu zeminde kayboluyordu. Orijinal değerleri (ilk parite turunda
+   onaylanan) overlay'e birebir taşı: turuncu gothamblack başlık, beyaz gotham/Arial alt-metin. */
+.promats-public .promats-hero-contents .hero-heading {
+  font-size: 2.4rem;
+  color: #ffaa00;
+  font-family: 'gothamblack', sans-serif;
+  font-weight: 900;
+  line-height: 1.02;
+  margin: 0;
+}
+.promats-public .promats-hero-contents .hero-heading + .hero-heading {
+  margin-top: 15px;
+}
+.promats-public .promats-hero-contents .sub-text {
+  color: #fff;
+  font-family: 'gotham', Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 300;
+  margin-top: 12px;
+}
+.promats-public .promats-hero-contents .sub-text p {
+  color: inherit;
+  font-family: inherit;
+}
+.promats-public .promats-hero-contents .btn-border {
+  width: 40px !important;
+  float: left;
+}
+@media (max-width: 991.98px) {
+  .promats-public .promats-hero-contents .hero-heading {
+    font-size: 1.8rem;
+  }
+}

@@ -1,0 +1,790 @@
+@import 'tailwindcss';
+/* NOT: Legacy public CSS (font/icomoon/aos/bootstrap/22menu/style) artik
+   `@import url('/assets/...')` ile DEGIL, root layout <head> icindeki <link>
+   etiketleriyle yukleniyor. Sebep: `@import url()` Tailwind v4 genisledikten
+   sonra "bastan sonra" konuma dustugu icin CSS spec geregi tarayici tarafindan
+   atiliyordu (tum site stilsiz kaliyordu). <link> en guvenilir + birebir css.asp. */
+@import '../styles/promats-legacy-bridge.css';
+@import '../styles/promats-modern.css';
+
+@theme {
+  /* Tema tokenları: runtime tokensToCSS -> --gm-* */
+
+  /* Tailwind `gold-*` sınıf adları korunur; değerler yeşil skala (seed ile uyumlu). */
+  --color-gold-50:  var(--gm-gold-50);
+  --color-gold-100: var(--gm-gold-100);
+  --color-gold-200: var(--gm-gold-200);
+  --color-gold-300: var(--gm-gold-300);
+  --color-gold-400: var(--gm-gold-400);
+  --color-gold-500: var(--gm-gold-500);
+  --color-gold-600: var(--gm-gold-600);
+  --color-gold-700: var(--gm-gold-700);
+  --color-gold-800: var(--gm-gold-800);
+  --color-gold-900: var(--gm-gold-900);
+
+  --color-sand-50:  var(--gm-sand-50);
+  --color-sand-100: var(--gm-sand-100);
+  --color-sand-200: var(--gm-sand-200);
+  --color-sand-300: var(--gm-sand-300);
+  --color-sand-400: var(--gm-sand-400);
+  --color-sand-500: var(--gm-sand-500);
+  --color-sand-600: var(--gm-sand-600);
+  --color-sand-700: var(--gm-sand-700);
+  --color-sand-800: var(--gm-sand-800);
+  --color-sand-900: var(--gm-sand-900);
+
+  --color-deep:       var(--gm-primary-dark);
+  --color-dark:       var(--gm-bg-deep);
+  --color-card:       var(--gm-surface);
+  --color-card-hover: var(--gm-surface-high);
+
+  --color-plum:      var(--gm-accent);
+  --color-plum-soft: color-mix(in srgb, var(--gm-accent) 70%, var(--gm-surface));
+
+  --color-bg-primary:      var(--gm-bg);
+  --color-bg-secondary:    var(--gm-bg-deep);
+  --color-bg-card:         var(--gm-surface);
+  --color-bg-card-hover:   var(--gm-surface-high);
+  --color-bg-accent:       color-mix(in srgb, var(--gm-primary) 10%, transparent);
+  --color-bg-dark:         var(--color-deep);
+
+  --color-background:      var(--gm-bg);
+  --color-foreground:      var(--gm-text);
+
+  --color-text-primary:    var(--gm-text);
+  --color-text-secondary:  var(--gm-text-dim);
+  --color-text-muted:      var(--gm-muted);
+  --color-text-on-dark:    var(--gm-text-primary-dark, var(--gm-surface));
+
+  --color-brand-primary:   var(--gm-primary);
+  --color-brand-hover:     var(--gm-primary-hover);
+  --color-brand-dark:      var(--gm-primary-dark);
+  --color-brand-light:     color-mix(in srgb, var(--gm-primary) 14%, transparent);
+
+  /* Eski adlar: artık ikincil yeşil tonları (altın değil). */
+  --color-brand-gold:      var(--gm-gold);
+  --color-brand-gold-deep: var(--gm-gold-deep);
+  --color-brand-gold-dim:  var(--gm-gold-dim);
+
+  --color-bg-base:         var(--gm-bg);
+  --color-bg-deep:         var(--gm-bg-deep);
+  --color-surface:         var(--gm-surface);
+  --color-surface-high:    var(--gm-surface-high);
+
+  --color-primary:         var(--color-brand-primary);
+  --color-primary-hover:   var(--color-brand-hover);
+
+  --color-accent-gold:      var(--gm-gold);
+  --color-accent-spiritual: var(--gm-accent);
+
+  --color-border-light:  var(--gm-border-soft);
+  --color-border-medium: var(--gm-border);
+  --color-border-hover:  color-mix(in srgb, var(--gm-primary) 38%, transparent);
+
+  --color-success: var(--gm-success);
+  --color-warning: var(--gm-warning);
+  --color-error:   var(--gm-error);
+  --color-info:    var(--gm-info);
+
+  --font-sans:    var(--gm-font-sans, var(--font-pj), 'Plus Jakarta Sans', system-ui, sans-serif);
+  --font-serif:   var(--gm-font-serif, var(--font-source-serif), Georgia, 'Times New Roman', serif);
+  --font-display: var(--gm-font-display, var(--font-pj), 'Plus Jakarta Sans', system-ui, sans-serif);
+}
+
+/* ─── SHADOWS (LIGHT) ─── */
+:root {
+  --shadow-soft:   var(--gm-shadow-soft);
+  --shadow-medium: var(--gm-shadow-card);
+  --shadow-glow:   var(--gm-shadow-glow);
+  --shadow-gold:   var(--gm-shadow-gold);
+
+  /* ─── MYSTICAL ACCENTS (requested colors) ─── */
+  --color-mystic-mint: color-mix(in srgb, var(--gm-primary-light) 30%, var(--gm-surface));
+  --color-mystic-cyan: color-mix(in srgb, var(--gm-info) 35%, var(--gm-surface));
+  --color-mystic-rose: color-mix(in srgb, var(--gm-gold-100) 50%, var(--gm-surface));
+}
+
+/* ============================================================
+   DARK THEME — [data-theme="dark"] (token tabanlı yeşil gece)
+   ============================================================ */
+[data-theme="dark"] {
+  --color-bg-primary:      var(--gm-bg);
+  --color-bg-secondary:    var(--gm-bg-deep);
+  --color-bg-card:         var(--gm-surface);
+  --color-bg-card-hover:   var(--gm-surface-high);
+  --color-bg-accent:       color-mix(in srgb, var(--gm-primary) 12%, transparent);
+  --color-bg-dark:         var(--gm-bg-deep);
+
+  --color-text-primary:    var(--gm-text);
+  --color-text-secondary:  var(--gm-text-dim);
+  --color-text-muted:      var(--gm-muted);
+  --color-text-on-dark:    var(--gm-text);
+
+  --color-brand-primary:   var(--gm-primary);
+  --color-brand-hover:     var(--gm-primary-light);
+  --color-brand-dark:      var(--gm-primary-dark);
+  --color-brand-light:     color-mix(in srgb, var(--gm-primary-light) 18%, transparent);
+
+  --color-primary:         var(--gm-primary);
+  --color-primary-hover:   var(--gm-primary-light);
+
+  --color-border-light:    var(--gm-border-soft);
+  --color-border-medium:   var(--gm-border);
+  --color-border-hover:    color-mix(in srgb, var(--gm-primary-light) 45%, transparent);
+
+  --shadow-soft:           var(--gm-shadow-soft);
+  --shadow-medium:         var(--gm-shadow-card);
+  --shadow-glow:           var(--gm-shadow-glow);
+  --shadow-gold:           var(--gm-shadow-gold);
+}
+
+@layer base {
+  html {
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-gold-600) var(--color-bg-secondary);
+  }
+
+  body {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-family: var(--font-serif);
+    font-weight: 400;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    position: relative;
+    width: 100%;
+  }
+
+  /* Subtle film grain over everything */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.35;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.66 0 0 0 0 0.53 0 0 0 0 0.29 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  ::selection {
+    background: var(--color-gold-300);
+    color: var(--gm-primary-dark);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    color: var(--color-text-primary);
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+  }
+
+  /* İtalik vurgu — marka yeşili */
+  h1 em, h2 em, h3 em {
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--color-gold-600);
+    font-weight: 400;
+    font-variation-settings: "SOFT" 100;
+  }
+
+  p, .prose, .prose p, .prose li {
+    color: var(--color-text-secondary);
+    font-family: var(--font-serif);
+  }
+
+  main li {
+    color: var(--color-text-secondary);
+  }
+
+  a {
+    color: var(--color-brand-primary);
+    transition: color 0.3s ease;
+  }
+  a:hover {
+    color: var(--color-brand-hover);
+  }
+}
+
+@layer utilities {
+  .shadow-soft   { box-shadow: var(--shadow-soft); }
+  .shadow-medium { box-shadow: var(--shadow-medium); }
+  .shadow-glow   { box-shadow: var(--shadow-glow); }
+  .shadow-gold   { box-shadow: var(--shadow-gold); }
+
+  /* ─── PREMIUM COMPONENTS ─── */
+
+  .skip-link {
+    position: fixed;
+    left: 1rem;
+    top: 1rem;
+    z-index: 100000;
+    transform: translateY(-150%);
+    border-radius: var(--gm-radius-pill);
+    background: var(--gm-text);
+    color: var(--gm-bg);
+    padding: 0.75rem 1rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.2s ease;
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+    outline: 2px solid var(--gm-primary);
+    outline-offset: 3px;
+  }
+
+  .section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: var(--color-gold-600);
+    margin-bottom: 1.5rem;
+  }
+  .section-label::before {
+    content: '';
+    width: 40px;
+    height: 1px;
+    background: var(--color-gold-400);
+  }
+
+  .btn-premium {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 1rem 2.6rem;
+    background: var(--color-sand-800);          /* ink button — premium feel */
+    color: var(--color-sand-50);
+    text-decoration: none;
+    font-family: var(--font-serif);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    border: none;
+  }
+  .btn-premium:hover {
+    background: var(--color-gold-400);
+    color: var(--color-sand-800);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-gold);
+  }
+
+  .btn-outline-premium {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 1rem 2.6rem;
+    background: transparent;
+    border: 1px solid var(--color-border-medium);
+    color: var(--color-text-primary);
+    text-decoration: none;
+    font-family: var(--font-serif);
+    font-size: 0.78rem;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+  .btn-outline-premium:hover {
+    border-color: var(--color-gold-400);
+    color: var(--color-gold-600);
+    background: var(--color-bg-accent);
+  }
+
+  /* ─── SCROLL REVEAL ───
+     Hydration-safe: `.reveal` SSR'da görünür kalır. `body.scroll-reveal-ready`
+     hydration tamamlanınca eklenir; sadece o noktadan sonra fade/translate
+     başlar. Bu, server HTML'deki class listesinin client hydrate sırasında
+     mutate edilmesini engeller (no .visible toggle race). */
+  .reveal {
+    transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  body.scroll-reveal-ready .reveal:not(.visible) {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  body.scroll-reveal-ready .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+  .reveal-delay-4 { transition-delay: 0.4s; }
+
+  /* ─── HERO ANIMATIONS ─── */
+  @keyframes heroFadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .hero-fade-up    { opacity: 0; animation: heroFadeUp 1s ease forwards; }
+  .hero-fade-up-1  { animation-delay: 0.5s; }
+  .hero-fade-up-2  { animation-delay: 0.7s; }
+  .hero-fade-up-3  { animation-delay: 0.9s; }
+  .hero-fade-up-4  { animation-delay: 1.1s; }
+  .hero-critical   { opacity: 1; transform: none; animation: none; }
+
+  @keyframes dotPulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.8); }
+    50%      { opacity: 1;   transform: scale(1.2); }
+  }
+  .dot-pulse { animation: dotPulse 2s ease-in-out infinite; }
+
+  @keyframes scrollLine {
+    0%, 100% { transform: scaleY(1);   opacity: 0.5; }
+    50%      { transform: scaleY(0.5); opacity: 1; }
+  }
+
+  /* ─── SUBTLE TWINKLE (used in mystical hero sections) ─── */
+  @keyframes twinkle {
+    0%, 100% { opacity: 0;   transform: scale(0.5); }
+    50%      { opacity: 0.7; transform: scale(1); }
+  }
+  .twinkle { animation: twinkle 4s ease-in-out infinite; }
+
+  /* ─── SLOW ROTATE (used for orbital decorative SVGs) ─── */
+  @keyframes rotateSlow {
+    to { transform: rotate(360deg); }
+  }
+  .rotate-slow         { animation: rotateSlow 80s linear infinite; }
+  .rotate-slow-reverse { animation: rotateSlow 120s linear infinite reverse; }
+
+  /* ─── Yumuşak marka parıltısı (hero) ─── */
+  @keyframes goldReflection {
+    0%, 100% { transform: scale(1) translateY(0); opacity: 0.3; filter: blur(40px); }
+    50%      { transform: scale(1.1) translateY(-10px); opacity: 0.5; filter: blur(50px); }
+  }
+  .gold-reflection {
+    position: absolute;
+    bottom: -150px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 140%;
+    height: 400px;
+    background: radial-gradient(circle at center, var(--color-gold-400) 0%, transparent 70%);
+    mix-blend-mode: plus-lighter;
+    pointer-events: none;
+    z-index: 1;
+    animation: goldReflection 8s ease-in-out infinite;
+    opacity: 0.4;
+  }
+
+  /* ─── MYSTICAL AURA GLOWS ─── */
+  .aura-mint { background: radial-gradient(circle at center, var(--color-mystic-mint) 0%, transparent 70%); }
+  .aura-cyan { background: radial-gradient(circle at center, var(--color-mystic-cyan) 0%, transparent 70%); }
+  .aura-rose { background: radial-gradient(circle at center, var(--color-mystic-rose) 0%, transparent 70%); }
+
+  /* ─── PREMIUM LANDING–ALIGNED HERO ─── */
+  @keyframes tgHeroFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-12px) rotate(2deg); }
+  }
+  .animate-tg-hero-float {
+    animation: tgHeroFloat 7s ease-in-out infinite;
+  }
+
+  .text-gradient-brand {
+    display: block;
+    color: transparent;
+    background: linear-gradient(
+      135deg,
+      var(--gm-primary-dark),
+      var(--gm-primary) 58%,
+      var(--gm-primary-light)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  .hero-eyebrow-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border: 1px solid color-mix(in srgb, var(--gm-primary) 18%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--gm-gold-50) 75%, transparent);
+    color: var(--gm-primary-dark);
+    font-weight: 800;
+    font-size: 13px;
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--gm-primary) 10%, transparent);
+  }
+
+  .hero-eyebrow-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--gm-gold);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--gm-gold) 18%, transparent);
+    flex-shrink: 0;
+  }
+
+  .btn-hero-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 46px;
+    padding: 13px 20px;
+    border-radius: 999px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--gm-surface);
+    background: linear-gradient(135deg, var(--gm-primary), var(--gm-primary-dark));
+    box-shadow: 0 14px 28px color-mix(in srgb, var(--gm-primary) 28%, transparent);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    text-decoration: none;
+    border: none;
+  }
+  .btn-hero-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 38px color-mix(in srgb, var(--gm-primary) 34%, transparent);
+  }
+
+  .btn-hero-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 46px;
+    padding: 13px 20px;
+    border-radius: 999px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--gm-text-dim);
+    background: color-mix(in srgb, var(--gm-surface) 72%, transparent);
+    border: 1px solid color-mix(in srgb, var(--gm-sand-900) 10%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.2s ease, border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+    text-decoration: none;
+  }
+  .btn-hero-secondary:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--gm-primary) 35%, transparent);
+    color: var(--gm-primary-dark);
+    background: color-mix(in srgb, var(--gm-gold-50) 92%, transparent);
+  }
+
+  .hero-metric-card {
+    padding: 18px;
+    border-radius: 22px;
+    background: color-mix(in srgb, var(--gm-surface) 78%, transparent);
+    border: 1px solid color-mix(in srgb, var(--gm-sand-900) 8%, transparent);
+    box-shadow: 0 18px 48px color-mix(in srgb, var(--gm-sand-900) 6%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+}
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 1rem;
+  max-width: 1300px;
+}
+
+.devnote-marker {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 40;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  background: #111827;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+.devnote-marker--active {
+  background: #d4af37;
+  color: #111827;
+}
+
+.devnote-sheet {
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+  z-index: 9000 !important;
+  width: min(100vw, 672px) !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  border-left: 1px solid #e5e7eb;
+  background: #fff !important;
+  color: #111827;
+}
+
+.devnote-sheet__body {
+  display: grid;
+  gap: 20px;
+  padding: 16px 16px 28px;
+}
+
+.devnote-context,
+.devnote-new-card,
+.devnote-thread-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+}
+
+.devnote-context {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: #f8fafc;
+}
+
+.devnote-context span,
+.devnote-thread-card__head span,
+.devnote-message span,
+.devnote-list-head span,
+.devnote-page-title {
+  display: block;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.devnote-new-card,
+.devnote-card-fields,
+.devnote-thread-list,
+.devnote-messages,
+.devnote-comment-form {
+  display: grid;
+  gap: 12px;
+}
+
+.devnote-card-title,
+.devnote-list-head,
+.devnote-thread-card__head,
+.devnote-form-row,
+.devnote-form-actions,
+.devnote-badges,
+.devnote-file-pills {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.devnote-card-title,
+.devnote-list-head p,
+.devnote-thread-card__head p {
+  margin: 0;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.devnote-list-head,
+.devnote-thread-card__head,
+.devnote-form-row {
+  justify-content: space-between;
+}
+
+.devnote-thread-card__head > div:first-child {
+  min-width: 0;
+}
+
+.devnote-thread-card__head span {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.devnote-message {
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.devnote-message__type {
+  margin-bottom: 8px;
+}
+
+.devnote-message p {
+  margin: 0;
+  color: #111827;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.devnote-message span {
+  margin-top: 8px;
+}
+
+.devnote-attachments {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.devnote-attachment {
+  display: block;
+  overflow: hidden;
+  min-height: 42px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.devnote-attachment img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.devnote-attachment span {
+  padding: 10px;
+}
+
+.devnote-file-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  cursor: pointer;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: #fff;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.devnote-file-button:hover {
+  background: #f9fafb;
+}
+
+.devnote-file-button input {
+  display: none;
+}
+
+.devnote-file-pills span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #374151;
+  font-size: 12px;
+}
+
+.devnote-file-pills button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  padding: 0;
+}
+
+.devnote-sheet input,
+.devnote-sheet textarea,
+.devnote-sheet select {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #111827;
+  font-size: 14px;
+}
+
+.devnote-sheet select {
+  width: auto;
+  min-width: 132px;
+  height: 36px;
+  padding: 0 34px 0 12px;
+}
+
+.devnote-textarea {
+  min-height: 80px !important;
+  resize: vertical;
+}
+
+.devnote-textarea--new {
+  min-height: 112px !important;
+}
+
+.devnote-submit {
+  width: 100%;
+  gap: 6px;
+}
+
+.devnote-empty {
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  padding: 28px 12px;
+  color: #6b7280;
+  text-align: center;
+  font-size: 14px;
+}
+
+.devnote-list-head .is-loading {
+  animation: devnote-pulse 1s ease-in-out infinite;
+}
+
+.devnote-page-title {
+  display: none;
+}
+
+@keyframes devnote-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (max-width: 575px) {
+  .devnote-sheet__body {
+    padding-inline: 12px;
+  }
+
+  .devnote-attachments {
+    grid-template-columns: 1fr;
+  }
+
+  .devnote-form-actions,
+  .devnote-form-row,
+  .devnote-file-button,
+  .devnote-sheet select {
+    width: 100%;
+  }
+}

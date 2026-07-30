@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 390, height: 844 } });
+await p.goto('http://localhost:3177/en/oem-manufacturing', { waitUntil: 'networkidle' });
+await p.addStyleTag({ content: '[data-aos]{opacity:1!important;transform:none!important;transition:none!important}' });
+await p.evaluate(async () => { for (let y=0;y<document.body.scrollHeight;y+=300){window.scrollTo(0,y);await new Promise(r=>setTimeout(r,70));} window.scrollTo(0,0); });
+await p.waitForTimeout(3000);
+await p.screenshot({ path: '/tmp/oem-mobile.png', fullPage: true });
+console.log('overflowX', await p.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth), 'h', await p.evaluate(()=>document.body.scrollHeight));
+await b.close();

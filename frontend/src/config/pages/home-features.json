@@ -1,0 +1,146 @@
+{
+  "tr": {
+    "eyebrow": "Neden {{appName}}?",
+    "title": "Projeye göre şekillenen <em>nötr</em> bir başlangıç.",
+    "features": [
+      {
+        "num": "I",
+        "title": "Korunan <em>uygulama iskeleti</em>",
+        "body": "Routing, layout, tema, auth ve state yönetimi yeni marka için hazır kalır.",
+        "meta": [
+          "App Router",
+          "Layout",
+          "Tema"
+        ],
+        "settingKey": "ui_feature_structure_image",
+        "imageFallback": "/img/placeholder.svg",
+        "overlayLabel": "İskelet",
+        "imageAlt": "Nötr arayüz alanı"
+      },
+      {
+        "num": "II",
+        "title": "DB tabanlı <em>metin altyapısı</em>",
+        "body": "Yerel statik çeviri dosyaları yerine site ayarları ve içerik kaynakları kullanılabilir.",
+        "meta": [
+          "i18n",
+          "Site ayarları",
+          "İçerik"
+        ],
+        "settingKey": "ui_feature_content_image",
+        "imageFallback": "/img/placeholder.svg",
+        "overlayLabel": "İçerik",
+        "imageAlt": "İçerik alanı"
+      },
+      {
+        "num": "III",
+        "title": "Jenerik <em>sayfa seti</em>",
+        "body": "Ana sayfa, blog, iletişim, SSS, hesap ve yasal sayfalar domain bağımsız başlar.",
+        "meta": [
+          "Blog",
+          "İletişim",
+          "Hesap"
+        ],
+        "settingKey": "ui_feature_pages_image",
+        "imageFallback": "/img/placeholder.svg",
+        "overlayLabel": "Sayfalar",
+        "imageAlt": "Sayfa şablonu"
+      }
+    ]
+  },
+  "en": {
+    "eyebrow": "Why {{appName}}?",
+    "title": "A <em>neutral</em> starting point shaped by your project.",
+    "features": [
+      {
+        "num": "I",
+        "title": "Preserved <em>app shell</em>",
+        "body": "Routing, layout, theme, auth, and state management stay ready for a new brand.",
+        "meta": [
+          "App Router",
+          "Layout",
+          "Theme"
+        ],
+        "settingKey": "ui_feature_structure_image",
+        "imageFallback": "/img/placeholder.svg",
+        "overlayLabel": "Shell",
+        "imageAlt": "Neutral UI area"
+      },
+      {
+        "num": "II",
+        "title": "DB-driven <em>copy foundation</em>",
+        "body": "Site settings and content sources can drive copy instead of static locale files.",
+        "meta": [
+          "i18n",
+          "Settings",
+          "Content"
+        ],
+        "settingKey": "ui_feature_content_image",
+        "imageFallback": "/img/placeholder.svg",
+        "overlayLabel": "Content",
+        "imageAlt": "Content area"
+      },
+      {
+        "num": "III",
+        "title": "Generic <em>page set</em>",
+        "body": "Home, blog, contact, FAQ, account, and legal pages start without domain assumptions.",
+        "meta": [
+          "Blog",
+          "Contact",
+          "Account"
+        ],
+        "settingKey": "ui_feature_pages_image",
+        "imageFallback": "/img/placeholder.svg",
+        "overlayLabel": "Pages",
+        "imageAlt": "Page template"
+      }
+    ]
+  },
+  "de": {
+    "eyebrow": "Warum {{appName}}?",
+    "title": "Ein <em>neutraler</em> Startpunkt für Ihr Projekt.",
+    "features": [
+      {
+        "num": "I",
+        "title": "Erhaltene <em>App-Struktur</em>",
+        "body": "Routing, Layout, Theme, Auth und State bleiben für eine neue Marke bereit.",
+        "meta": [
+          "App Router",
+          "Layout",
+          "Theme"
+        ],
+        "settingKey": "ui_feature_structure_image",
+        "imageFallback": "/img/placeholder.svg",
+        "overlayLabel": "Struktur",
+        "imageAlt": "Neutraler UI-Bereich"
+      },
+      {
+        "num": "II",
+        "title": "DB-basierte <em>Textbasis</em>",
+        "body": "Site-Einstellungen und Inhaltsquellen können Texte statt statischer Locale-Dateien liefern.",
+        "meta": [
+          "i18n",
+          "Einstellungen",
+          "Inhalt"
+        ],
+        "settingKey": "ui_feature_content_image",
+        "imageFallback": "/img/placeholder.svg",
+        "overlayLabel": "Inhalt",
+        "imageAlt": "Inhaltsbereich"
+      },
+      {
+        "num": "III",
+        "title": "Generische <em>Seitengruppe</em>",
+        "body": "Home, Blog, Kontakt, FAQ, Konto und Rechtliches starten ohne Domain-Annahmen.",
+        "meta": [
+          "Blog",
+          "Kontakt",
+          "Konto"
+        ],
+        "settingKey": "ui_feature_pages_image",
+        "imageFallback": "/img/placeholder.svg",
+        "overlayLabel": "Seiten",
+        "imageAlt": "Seitenvorlage"
+      }
+    ]
+  }
+}

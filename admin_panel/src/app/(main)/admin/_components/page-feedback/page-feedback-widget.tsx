@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 
-import { Bug, ImagePlus, MessageSquarePlus, Send, X } from "lucide-react";
+import { Bug, ImagePlus, MessageSquarePlus, Mic, Send, Square, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -73,6 +73,7 @@ function assetToAttachment(asset: StorageAsset): PageFeedbackAttachment {
 function AttachmentPreview({ attachment }: { attachment: PageFeedbackAttachment }) {
   const url = resolveMediaUrl(attachment.url);
   const isImage = attachment.mime.startsWith("image/");
+  const isAudio = attachment.mime.startsWith("audio/");
 
   if (isImage) {
     return (
@@ -88,11 +89,69 @@ function AttachmentPreview({ attachment }: { attachment: PageFeedbackAttachment 
       </a>
     );
   }
+  if (isAudio) return <audio controls preload="metadata" src={url} className="w-full" />;
 
   return (
     <a href={url} target="_blank" rel="noreferrer" className="block rounded-md border bg-muted px-3 py-2 text-xs">
       {attachment.name}
     </a>
+  );
+}
+
+function LocalAudioPreview({ file }: { file: File }) {
+  const url = useMemo(() => URL.createObjectURL(file), [file]);
+  useEffect(() => () => URL.revokeObjectURL(url), [url]);
+  return <audio controls preload="metadata" src={url} className="h-9 max-w-full" />;
+}
+
+function VoiceRecorder({ onRecorded, disabled }: { onRecorded: (file: File) => void; disabled?: boolean }) {
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const [recording, setRecording] = useState(false);
+
+  useEffect(() => () => {
+    recorderRef.current?.stop();
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
+  async function start() {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      toast.error("Bu tarayıcı mikrofon kaydını desteklemiyor.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const type = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"]
+        .find((item) => MediaRecorder.isTypeSupported(item));
+      const recorder = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
+      streamRef.current = stream;
+      recorderRef.current = recorder;
+      chunksRef.current = [];
+      recorder.ondataavailable = (event) => event.data.size && chunksRef.current.push(event.data);
+      recorder.onstop = () => {
+        const mime = recorder.mimeType || "audio/webm";
+        const extension = mime.includes("ogg") ? "ogg" : "webm";
+        const blob = new Blob(chunksRef.current, { type: mime });
+        if (blob.size) onRecorded(new File([blob], `sesli-not-${Date.now()}.${extension}`, { type: mime }));
+        stream.getTracks().forEach((track) => track.stop());
+        setRecording(false);
+      };
+      recorder.start();
+      setRecording(true);
+    } catch {
+      toast.error("Mikrofon izni alınamadı.");
+    }
+  }
+
+  return recording ? (
+    <Button type="button" variant="destructive" size="sm" onClick={() => recorderRef.current?.stop()}>
+      <Square className="mr-2 size-4" /> Kaydı durdur
+    </Button>
+  ) : (
+    <Button type="button" variant="outline" size="sm" onClick={() => void start()} disabled={disabled}>
+      <Mic className="mr-2 size-4" /> Sesli sorun kaydet
+    </Button>
   );
 }
 
@@ -105,6 +164,7 @@ function FilePills({ files, onRemove }: { files: File[]; onRemove: (index: numbe
           key={`${file.name}-${file.size}-${file.lastModified}`}
           className="inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs"
         >
+          {file.type.startsWith("audio/") ? <LocalAudioPreview file={file} /> : null}
           {file.name}
           <button type="button" onClick={() => onRemove(index)} className="text-muted-foreground hover:text-foreground">
             <X className="size-3" />
@@ -237,6 +297,7 @@ function ThreadCard({
 
 export function PageFeedbackWidget() {
   const pathname = usePathname();
+  const sourceApp = pathname.startsWith("/admin/web-sayfasi") ? "promats-web" : "paspas";
   const pageTitle = useMemo(
     () =>
       typeof document === "undefined" ? pageTitleFallback(pathname) : document.title || pageTitleFallback(pathname),
@@ -277,8 +338,8 @@ export function PageFeedbackWidget() {
   const removeNewFile = (index: number) => setFiles((current) => current.filter((_, itemIndex) => itemIndex !== index));
 
   const submitNew = async () => {
-    if (!subject.trim() || !body.trim()) {
-      toast.error("Konu ve not zorunlu.");
+    if (!subject.trim() || (!body.trim() && files.length === 0)) {
+      toast.error("Konu ile açıklama veya ses kaydı zorunlu.");
       return;
     }
 
@@ -287,8 +348,9 @@ export function PageFeedbackWidget() {
       await createFeedback({
         pagePath: pathname,
         pageTitle,
+        sourceApp,
         subject: subject.trim(),
-        body: body.trim(),
+        body: body.trim() || "Sesli sorun kaydı eklendi.",
         priority,
         messageType: "report",
         attachments,
@@ -377,6 +439,10 @@ export function PageFeedbackWidget() {
                     onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
                   />
                 </label>
+                <VoiceRecorder
+                  onRecorded={(file) => setFiles((current) => [...current, file])}
+                  disabled={busy}
+                />
               </div>
               <FilePills files={files} onRemove={removeNewFile} />
               <Button type="button" onClick={submitNew} disabled={busy} className="w-full">

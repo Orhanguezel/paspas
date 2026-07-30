@@ -1,0 +1,116 @@
+{
+  "tr": {
+    "title": "Editoryal Politika ve Metodoloji",
+    "description": "{{appName}} içeriklerinin nasıl hazırlandığını, yapay zekâ destekli taslağın nasıl kullanıldığını ve kalite ilkelerimizi açıklar.",
+    "back": "Hakkımızda sayfasına dön",
+    "authorRoleTitle": "Editoryal ve kalite süreci",
+    "authorExpertiseLabels": ["Editoryal gözden geçirme", "Öğrenme tasarımı", "Erişilebilir dil"],
+    "credentialsNote": "İçerik kalitesi ve güncelleme süreçleri",
+    "sections": [
+      {
+        "title": "İçerik ilkemiz",
+        "paragraphs": [
+          "{{appName}} içerikleri kullanıcıya kesin hüküm vermek için değil; daha bilinçli seçim yapmasına ve uzman görüşmesine daha hazırlıklı gelmesine yardımcı olmak için hazırlanır.",
+          "Her içerikte sade dil, korku üretmeyen anlatım ve uygulanabilir bilgi önceliklidir. Bağımlılık yaratan, kesin felaket ya da mucize vadeden ifadeleri editoryal olarak uygun bulmayız."
+        ]
+      },
+      {
+        "title": "Yapay zekâ destekli taslağın şeffaflığı",
+        "paragraphs": [
+          "Bazı genel bilgilendirme içeriklerinde LLM destekli taslaklama kullanılabilir. Amaç otorite taklidi yapmak değil; başlıkları düzenlemek, metni daha okunabilir kılmak ve çok dilli yayını hızlandırmaktır.",
+          "Taslaklar {{appName}} editoryal sürecinden geçer: doğruluk, bağlam, erişilebilir dil ve etik sınırlar kontrol edilir."
+        ]
+      },
+      {
+        "title": "Öğrenme ve içerik metodolojisi",
+        "paragraphs": [
+          "Modüller ve konu akışları öğrenme bilimi ilkeleriyle uyumlu olacak şekilde yapılandırılır; kaynaklar güncellenir ve kullanıcı geri bildirimiyle iyileştirilir.",
+          "Kişiselleştirilmiş öneriler, kullanıcı tercihleri ve platform politikalarına göre şeffaf kurallarla sunulur."
+        ]
+      },
+      {
+        "title": "Kim gözden geçirir?",
+        "paragraphs": [
+          "İçerikler yayın öncesi editoryal kontrolden geçer. Kullanıcıya temas eden metinlerde tutarlılık, doğruluk ve güvenli dil önceliklidir.",
+          "Platform içerikleri genel bilgilendirme niteliğindedir; kişisel durumlar için ilgili uzmana başvurulmalıdır."
+        ]
+      }
+    ]
+  },
+  "en": {
+    "title": "Editorial policy and methodology",
+    "description": "How {{appName}} prepares content, uses AI-assisted drafting, and applies quality standards.",
+    "back": "Back to About",
+    "authorRoleTitle": "Editorial quality process",
+    "authorExpertiseLabels": ["Editorial review", "Learning design", "Accessible language"],
+    "credentialsNote": "Content quality and update practices",
+    "sections": [
+      {
+        "title": "Content principles",
+        "paragraphs": [
+          "{{appName}} content helps users prepare for informed choices and expert conversations, not to replace professional advice in regulated domains.",
+          "We prioritise plain language, non-coercive tone and practical insight. We reject dependency language and absolute predictions."
+        ]
+      },
+      {
+        "title": "Transparency on AI-assisted drafting",
+        "paragraphs": [
+          "Some educational drafts may use LLMs to structure topics and improve readability.",
+          "Drafts are reviewed for accuracy, context, accessibility and ethical boundaries before publishing."
+        ]
+      },
+      {
+        "title": "Learning methodology",
+        "paragraphs": [
+          "Modules follow learner-centred structure; sources are maintained and improved with feedback.",
+          "Personalised suggestions follow transparent rules aligned with platform policy."
+        ]
+      },
+      {
+        "title": "Review process",
+        "paragraphs": [
+          "Content is editorially reviewed before release. User-facing copy prioritises consistency, accuracy and trust.",
+          "Platform content is general information; consult a relevant professional for personal situations."
+        ]
+      }
+    ]
+  },
+  "de": {
+    "title": "Redaktionelle Richtlinie und Methodik",
+    "description": "Wie {{appName}} Inhalte erstellt und KI-gestützte Entwürfe prüft.",
+    "back": "Zurück zu Über uns",
+    "authorRoleTitle": "Redaktion und Qualität",
+    "authorExpertiseLabels": ["Lektorat", "Lerndesign", "Zugängliche Sprache"],
+    "credentialsNote": "Inhaltsqualität und Aktualisierung",
+    "sections": [
+      {
+        "title": "Grundsätze",
+        "paragraphs": [
+          "{{appName}} Inhalte unterstützen informierte Entscheidungen und Vorbereitung auf Beratung — kein Ersatz für regulierte Fachberatung.",
+          "Wir setzen auf klare Sprache, keine Angstkommunikation und praktische Orientierung."
+        ]
+      },
+      {
+        "title": "Transparenz zu KI",
+        "paragraphs": [
+          "Einige Entwürfe können LLM-unterstützt strukturiert werden.",
+          "Vor Veröffentlichung prüfen wir Genauigkeit, Kontext und ethische Grenzen."
+        ]
+      },
+      {
+        "title": "Lernmethodik",
+        "paragraphs": [
+          "Module sind lernerzentriert; Quellen werden gepflegt und verbessert.",
+          "Personalisierung folgt nachvollziehbaren Regeln."
+        ]
+      },
+      {
+        "title": "Prüfung",
+        "paragraphs": [
+          "Inhalte werden redaktionell geprüft. Profiltexte und Nutzer-Kommunikation priorisieren Vertrauen.",
+          "Einzelberatungen liegen in der Verantwortung der Expert:innen."
+        ]
+      }
+    ]
+  }
+}

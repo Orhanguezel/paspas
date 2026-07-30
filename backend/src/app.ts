@@ -59,6 +59,7 @@ import { registerMalKabul } from '@/modules/mal_kabul/router';
 import { registerVardiyaAnalizi } from '@/modules/vardiya_analizi/router';
 import { registerPageFeedbackAdmin } from '@/modules/page_feedback/router';
 import { registerProjeTeklifiNotlariAdmin } from '@/modules/projeTeklifiNotlari/router';
+import { registerWebPromatsAdmin, registerWebPromatsPublic } from '@/modules/web_promats/router';
 
 // Storage config (site_settings + env)
 import { getStorageSettings } from '@/modules/siteSettings/service';
@@ -240,6 +241,7 @@ export async function createApp() {
     await api.register(registerVardiyaAnalizi,  { prefix: '/admin' });
     await api.register(registerPageFeedbackAdmin, { prefix: '/admin' });
     await api.register(registerProjeTeklifiNotlariAdmin, { prefix: '/admin' });
+    await api.register(registerWebPromatsAdmin, { prefix: '/admin' });
 
     // --- Public modüller → /api/... ---
     await registerPublicLoginConfig(api);
@@ -251,6 +253,7 @@ export async function createApp() {
     await registerUserRoles(api);
     await registerSiteSettings(api);
     await registerCategories(api);
+    await registerWebPromatsPublic(api);
 
   }, { prefix: '/api' });
 

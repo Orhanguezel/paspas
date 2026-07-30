@@ -1,0 +1,20 @@
+{
+  "tr": {
+    "title": "Şablonu projenize uyarlayın.",
+    "desc": "Bu alanı ürününüzün temel çağrısı, destek akışı veya iletişim bağlantısı için kullanın.",
+    "cta": "İletişim",
+    "secondary": "SSS"
+  },
+  "en": {
+    "title": "Adapt the template to your project.",
+    "desc": "Use this area for your product call to action, support flow, or contact link.",
+    "cta": "Contact",
+    "secondary": "FAQ"
+  },
+  "de": {
+    "title": "Passen Sie die Vorlage an Ihr Projekt an.",
+    "desc": "Nutzen Sie diesen Bereich für Produkt-CTA, Support oder Kontakt.",
+    "cta": "Kontakt",
+    "secondary": "FAQ"
+  }
+}

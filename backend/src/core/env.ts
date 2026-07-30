@@ -118,6 +118,12 @@ export const env = {
   SMTP_USER: process.env.SMTP_USER || "",
   SMTP_PASS: process.env.SMTP_PASS || "",
   MAIL_FROM: process.env.MAIL_FROM || "",
+
+  // Yazılımcı notu bildirimleri. Eksikse özellik fail-open kapanır.
+  TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || "",
+  TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID || "",
+  PROMATS_REVALIDATE_URL: process.env.PROMATS_REVALIDATE_URL || "",
+  PROMATS_REVALIDATE_SECRET: process.env.PROMATS_REVALIDATE_SECRET || "",
 } as const;
 
 export type AppEnv = typeof env;

@@ -13,7 +13,7 @@ export const pageFeedbackApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     listPageFeedback: builder.query<
       PageFeedbackListResponse,
-      { pagePath?: string; status?: string; limit?: number; offset?: number } | undefined
+      { pagePath?: string; status?: string; sourceApp?: string; activeOnly?: boolean; limit?: number; offset?: number } | undefined
     >({
       query: (params) => ({
         url: ADMIN_BASE,

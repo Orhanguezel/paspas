@@ -17,6 +17,7 @@ export type PageFeedbackComment = {
   body: string;
   attachments: PageFeedbackAttachment[];
   createdByUserId: string | null;
+  createdByName: string | null;
   createdAt: string;
 };
 
@@ -24,11 +25,13 @@ export type PageFeedbackThread = {
   id: string;
   pagePath: string;
   pageTitle: string | null;
+  sourceApp: "paspas" | "promats-web";
   subject: string;
   status: PageFeedbackStatus;
   priority: PageFeedbackPriority;
   createdByUserId: string | null;
   assignedToUserId: string | null;
+  createdByName: string | null;
   lastCommentAt: string;
   createdAt: string;
   updatedAt: string;
@@ -43,6 +46,7 @@ export type PageFeedbackListResponse = {
 export type CreatePageFeedbackBody = {
   pagePath: string;
   pageTitle?: string;
+  sourceApp?: "paspas" | "promats-web";
   subject: string;
   body: string;
   priority?: PageFeedbackPriority;

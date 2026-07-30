@@ -1,6 +1,7 @@
 import type { FastifyReply, RouteHandler } from 'fastify';
 
 import { createAdminNotification } from '@/modules/notifications/controller';
+import { sendTelegram } from '@/core/telegram';
 
 import { threadRowToDto } from './schema';
 import {
@@ -16,6 +17,7 @@ import {
   listPageFeedbackQuerySchema,
   updatePageFeedbackSchema,
 } from './validation';
+import { transcribeAudio } from './transcript';
 
 function getUserId(req: unknown): string | null {
   const r = req as { user?: { sub?: string; id?: string } };
@@ -36,6 +38,11 @@ async function notifyAdmins(input: { title: string; message: string }) {
   } catch {
     // Feedback kaydini bildirim hatasi yuzunden bozma.
   }
+  void sendTelegram(`🔔 ${input.title}\n${input.message}`);
+}
+
+function sourceAppLabel(sourceApp: string): string {
+  return sourceApp === 'promats-web' ? 'Promats Web' : 'Paspas';
 }
 
 export const listPageFeedback: RouteHandler = async (req, reply) => {
@@ -72,10 +79,11 @@ export const createPageFeedback: RouteHandler = async (req, reply) => {
   try {
     const parsed = createPageFeedbackSchema.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
-    const { thread, comments } = await repoCreatePageFeedback(parsed.data, getUserId(req));
+    const { thread, comments, createdCommentId } = await repoCreatePageFeedback(parsed.data, getUserId(req));
+    void transcribeAudio(createdCommentId, parsed.data.body, parsed.data.attachments);
     await notifyAdmins({
       title: 'Yeni yazilimci notu',
-      message: `${parsed.data.pagePath}: ${parsed.data.subject}`,
+      message: `[${sourceAppLabel(parsed.data.sourceApp)}] ${parsed.data.pagePath}: ${parsed.data.subject}`,
     });
     return reply.code(201).send(threadRowToDto(thread, comments));
   } catch (error) {
@@ -89,11 +97,12 @@ export const addPageFeedbackComment: RouteHandler = async (req, reply) => {
     const id = String((req.params as { id?: string }).id || '');
     const parsed = createPageFeedbackCommentSchema.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
-    const { thread, comments } = await repoCreatePageFeedbackComment(id, parsed.data, getUserId(req));
+    const { thread, comments, createdCommentId } = await repoCreatePageFeedbackComment(id, parsed.data, getUserId(req));
     if (!thread) return reply.code(404).send({ error: { message: 'not_bulunamadi' } });
+    void transcribeAudio(createdCommentId, parsed.data.body, parsed.data.attachments);
     await notifyAdmins({
       title: parsed.data.messageType === 'question' ? 'Netlestirme sorusu eklendi' : parsed.data.messageType === 'solution' ? 'Cozum notu eklendi' : 'Yazilimci notuna yorum eklendi',
-      message: `${thread.page_path}: ${thread.subject}`,
+      message: `[${sourceAppLabel(thread.source_app)}] ${thread.page_path}: ${thread.subject}`,
     });
     return reply.code(201).send(threadRowToDto(thread, comments));
   } catch (error) {

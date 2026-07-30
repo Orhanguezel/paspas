@@ -59,6 +59,15 @@ function normalizeLegacyHtmlValue(raw: string | undefined | null): string {
       // ignore
     }
   }
+
+  // Eski ASP/Access içerikleri HTML etiketlerini entity olarak saklıyordu:
+  // &lt;h2&gt;...&lt;/h2&gt;. Görsel editöre ham kod yerine gerçek HTML ver.
+  if (typeof document !== 'undefined' && /&lt;[a-z][\s\S]*&gt;/i.test(raw)) {
+    const decoder = document.createElement('textarea');
+    decoder.innerHTML = raw;
+    return decoder.value;
+  }
+
   return raw;
 }
 
@@ -120,8 +129,6 @@ const RichContentEditor: React.FC<RichContentEditorProps> = ({
     // legacy normalize
     if (
       typeof value === 'string' &&
-      value.trim().startsWith('{') &&
-      value.trim().endsWith('}') &&
       normalized !== value
     ) {
       onChange(normalized);

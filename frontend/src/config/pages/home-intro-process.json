@@ -1,0 +1,71 @@
+{
+  "tr": {
+    "eyebrow": "Akış",
+    "titleBefore": "Şablonu ",
+    "titleAccent": "nasıl kullanırsınız?",
+    "lead": "Nötr sayfaları kendi marka, içerik ve ürün kararlarınızla doldurun.",
+    "steps": [
+      {
+        "icon": "bookOpen",
+        "title": "Markayı tanımla",
+        "desc": "AppName ve site ayarlarını proje değerlerinizle güncelleyin."
+      },
+      {
+        "icon": "playCircle",
+        "title": "İçeriği ekle",
+        "desc": "Ana sayfa bölümlerini, blogları ve SSS kayıtlarını DB veya CMS üzerinden besleyin."
+      },
+      {
+        "icon": "chartColumn",
+        "title": "Yayına hazırla",
+        "desc": "SEO, yasal metinler ve iletişim bilgilerini tamamlayıp doğrulama yapın."
+      }
+    ]
+  },
+  "en": {
+    "eyebrow": "Flow",
+    "titleBefore": "How to use ",
+    "titleAccent": "the template",
+    "lead": "Fill neutral pages with your brand, content, and product decisions.",
+    "steps": [
+      {
+        "icon": "bookOpen",
+        "title": "Define the brand",
+        "desc": "Update AppName and site settings with project values."
+      },
+      {
+        "icon": "playCircle",
+        "title": "Add content",
+        "desc": "Feed home sections, posts, and FAQs from DB or CMS records."
+      },
+      {
+        "icon": "chartColumn",
+        "title": "Prepare launch",
+        "desc": "Complete SEO, legal copy, contact details, and validation."
+      }
+    ]
+  },
+  "de": {
+    "eyebrow": "Ablauf",
+    "titleBefore": "So nutzen Sie ",
+    "titleAccent": "die Vorlage",
+    "lead": "Füllen Sie neutrale Seiten mit Marke, Inhalt und Produktentscheidungen.",
+    "steps": [
+      {
+        "icon": "bookOpen",
+        "title": "Marke definieren",
+        "desc": "AppName und Site-Einstellungen mit Projektwerten aktualisieren."
+      },
+      {
+        "icon": "playCircle",
+        "title": "Inhalte ergänzen",
+        "desc": "Home-Bereiche, Beiträge und FAQs aus DB oder CMS speisen."
+      },
+      {
+        "icon": "chartColumn",
+        "title": "Launch vorbereiten",
+        "desc": "SEO, Rechtstexte, Kontaktdaten und Validierung abschließen."
+      }
+    ]
+  }
+}

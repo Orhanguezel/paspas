@@ -15,13 +15,16 @@ export const attachmentSchema = z.object({
 export const listPageFeedbackQuerySchema = z.object({
   pagePath: z.string().trim().min(1).max(512).optional(),
   status: feedbackStatusSchema.optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(25),
+  sourceApp: z.enum(['paspas', 'promats-web']).optional(),
+  activeOnly: z.enum(['true', 'false']).transform((value) => value === 'true').optional(),
+  limit: z.coerce.number().int().min(1).max(500).default(25),
   offset: z.coerce.number().int().min(0).default(0),
 });
 
 export const createPageFeedbackSchema = z.object({
   pagePath: z.string().trim().min(1).max(512),
   pageTitle: z.string().trim().max(255).optional(),
+  sourceApp: z.enum(['paspas', 'promats-web']).optional().default('paspas'),
   subject: z.string().trim().min(1).max(255),
   body: z.string().trim().min(1).max(10000),
   priority: feedbackPrioritySchema.optional().default('normal'),

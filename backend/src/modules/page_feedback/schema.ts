@@ -15,10 +15,12 @@ export const pageFeedbackThreads = mysqlTable(
     id: char('id', { length: 36 }).primaryKey().notNull(),
     page_path: varchar('page_path', { length: 512 }).notNull(),
     page_title: varchar('page_title', { length: 255 }),
+    source_app: varchar('source_app', { length: 32 }).notNull().default('paspas'),
     subject: varchar('subject', { length: 255 }).notNull(),
     status: varchar('status', { length: 32 }).notNull().default('open'),
     priority: varchar('priority', { length: 32 }).notNull().default('normal'),
     created_by_user_id: char('created_by_user_id', { length: 36 }),
+    created_by_name: varchar('created_by_name', { length: 120 }),
     assigned_to_user_id: char('assigned_to_user_id', { length: 36 }),
     last_comment_at: datetime('last_comment_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -39,6 +41,7 @@ export const pageFeedbackComments = mysqlTable(
     body: text('body').notNull(),
     attachments: json('attachments').$type<PageFeedbackAttachment[] | null>().default(null),
     created_by_user_id: char('created_by_user_id', { length: 36 }),
+    created_by_name: varchar('created_by_name', { length: 120 }),
     created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (t) => ({
@@ -56,6 +59,7 @@ export type PageFeedbackCommentDto = {
   body: string;
   attachments: PageFeedbackAttachment[];
   createdByUserId: string | null;
+  createdByName: string | null;
   createdAt: Date | string;
 };
 
@@ -63,10 +67,12 @@ export type PageFeedbackThreadDto = {
   id: string;
   pagePath: string;
   pageTitle: string | null;
+  sourceApp: string;
   subject: string;
   status: string;
   priority: string;
   createdByUserId: string | null;
+  createdByName: string | null;
   assignedToUserId: string | null;
   lastCommentAt: Date | string;
   createdAt: Date | string;
@@ -95,6 +101,7 @@ export function commentRowToDto(row: PageFeedbackCommentRow): PageFeedbackCommen
     body: row.body,
     attachments: parseAttachments(row.attachments),
     createdByUserId: row.created_by_user_id ?? null,
+    createdByName: row.created_by_name ?? null,
     createdAt: row.created_at,
   };
 }
@@ -107,10 +114,12 @@ export function threadRowToDto(
     id: row.id,
     pagePath: row.page_path,
     pageTitle: row.page_title ?? null,
+    sourceApp: row.source_app,
     subject: row.subject,
     status: row.status,
     priority: row.priority,
     createdByUserId: row.created_by_user_id ?? null,
+    createdByName: row.created_by_name ?? null,
     assignedToUserId: row.assigned_to_user_id ?? null,
     lastCommentAt: row.last_comment_at,
     createdAt: row.created_at,

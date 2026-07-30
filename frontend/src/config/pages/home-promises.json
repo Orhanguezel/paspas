@@ -1,0 +1,74 @@
+{
+  "tr": {
+    "eyebrow": "Temel ilkeler",
+    "title": "{{appName}} için <em>nötr</em> sözler",
+    "promises": [
+      {
+        "num": "01",
+        "title": "Markadan bağımsız",
+        "text": "Varsayılan metinler AppName tokenı ve env değerleriyle çalışır.",
+        "target": "MARKA"
+      },
+      {
+        "num": "02",
+        "title": "Genişletilebilir",
+        "text": "Bileşen ve sayfa iskeleti yeni domain içerikleri için boş bırakılır.",
+        "target": "YAPI"
+      },
+      {
+        "num": "03",
+        "title": "Sade başlangıç",
+        "text": "Ticaret ve proje özel akışlar varsayılan şablonda yer almaz.",
+        "target": "SADELİK"
+      }
+    ]
+  },
+  "en": {
+    "eyebrow": "Principles",
+    "title": "<em>Neutral</em> promises for {{appName}}",
+    "promises": [
+      {
+        "num": "01",
+        "title": "Brand independent",
+        "text": "Default copy works with the AppName token and environment values.",
+        "target": "BRAND"
+      },
+      {
+        "num": "02",
+        "title": "Extendable",
+        "text": "Components and page shells are ready for new domain content.",
+        "target": "STRUCTURE"
+      },
+      {
+        "num": "03",
+        "title": "Simple start",
+        "text": "Commerce and project-specific flows are not part of the default template.",
+        "target": "SIMPLICITY"
+      }
+    ]
+  },
+  "de": {
+    "eyebrow": "Prinzipien",
+    "title": "<em>Neutrale</em> Grundlagen für {{appName}}",
+    "promises": [
+      {
+        "num": "01",
+        "title": "Markenunabhängig",
+        "text": "Standardtexte nutzen AppName-Token und Umgebungswerte.",
+        "target": "MARKE"
+      },
+      {
+        "num": "02",
+        "title": "Erweiterbar",
+        "text": "Komponenten und Seiten sind für neue Domain-Inhalte vorbereitet.",
+        "target": "STRUKTUR"
+      },
+      {
+        "num": "03",
+        "title": "Einfacher Start",
+        "text": "Commerce und projektspezifische Flows sind nicht Teil der Standardvorlage.",
+        "target": "EINFACH"
+      }
+    ]
+  }
+}

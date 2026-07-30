@@ -1,0 +1,131 @@
+{
+  "tr": {
+    "eyebrow": "Boş taslak frontend",
+    "title": "{{appName}}",
+    "subtitle": "HAZIR · NÖTR",
+    "heroTitleLine1": "{{appName}}",
+    "heroTitleGradient": "taslak arayüz.",
+    "headline": "<em>Temiz başlangıç</em>, esnek sayfalar ve korunmuş altyapı<br/>— <strong>markanıza hazır nötr iskelet</strong>.",
+    "lead": "{{appName}}; içerik, üyelik, blog, iletişim ve yasal sayfalarıyla yeni projeler için sade bir başlangıç sunar.",
+    "tagline": "Marka, içerik ve ürün detaylarını kendi projenize göre doldurun.",
+    "socialProof": "App Router, i18n, auth, SEO, tema ve state altyapısı korunur.",
+    "metrics": [
+      {
+        "value": "App Router",
+        "label": "Modern yapı"
+      },
+      {
+        "value": "i18n",
+        "label": "DB tabanlı metin"
+      },
+      {
+        "value": "Auth",
+        "label": "Hazır hesap akışı"
+      }
+    ],
+    "showcaseTopic": "Şablon modülü",
+    "showcaseProgress": "Adım 1/3",
+    "showcaseQuestion": "Bu alan hangi proje için doldurulacak?",
+    "showcaseOptionA": "A) SaaS",
+    "showcaseOptionB": "B) İçerik sitesi",
+    "showcaseOptionC": "C) Portal",
+    "showcaseOptionD": "D) Özel uygulama",
+    "showcaseXpLabel": "UI",
+    "showcaseXpValue": "Ready",
+    "showcaseStreak": "3",
+    "showcaseStreakSuffix": "temel alan",
+    "showcaseStreakSub": "İçerik, hesap, iletişim",
+    "showcaseBadgeTitle": "Şablon hazır",
+    "showcaseBadgeSub": "Nötr başlangıç",
+    "showcaseXpGain": "Hazır",
+    "primaryCTA": "İletişime geç",
+    "secondaryCTA": "Blogu incele",
+    "scrollHint": "Aşağı kaydır"
+  },
+  "en": {
+    "eyebrow": "Blank frontend template",
+    "title": "{{appName}}",
+    "subtitle": "READY · NEUTRAL",
+    "heroTitleLine1": "{{appName}}",
+    "heroTitleGradient": "template UI.",
+    "headline": "<em>A clean start</em>, flexible pages, and preserved infrastructure<br/>— <strong>a neutral shell ready for your brand</strong>.",
+    "lead": "{{appName}} provides a simple starting point with content, account, blog, contact, and legal pages.",
+    "tagline": "Fill brand, content, and product details for your project.",
+    "socialProof": "App Router, i18n, auth, SEO, theme, and state foundations remain in place.",
+    "metrics": [
+      {
+        "value": "App Router",
+        "label": "Modern structure"
+      },
+      {
+        "value": "i18n",
+        "label": "DB-driven copy"
+      },
+      {
+        "value": "Auth",
+        "label": "Account flow"
+      }
+    ],
+    "showcaseTopic": "Template module",
+    "showcaseProgress": "Step 1/3",
+    "showcaseQuestion": "Which project will this area describe?",
+    "showcaseOptionA": "A) SaaS",
+    "showcaseOptionB": "B) Content site",
+    "showcaseOptionC": "C) Portal",
+    "showcaseOptionD": "D) Custom app",
+    "showcaseXpLabel": "UI",
+    "showcaseXpValue": "Ready",
+    "showcaseStreak": "3",
+    "showcaseStreakSuffix": "core areas",
+    "showcaseStreakSub": "Content, account, contact",
+    "showcaseBadgeTitle": "Template ready",
+    "showcaseBadgeSub": "Neutral start",
+    "showcaseXpGain": "Ready",
+    "primaryCTA": "Contact us",
+    "secondaryCTA": "Read the blog",
+    "scrollHint": "Scroll down"
+  },
+  "de": {
+    "eyebrow": "Leere Frontend-Vorlage",
+    "title": "{{appName}}",
+    "subtitle": "BEREIT · NEUTRAL",
+    "heroTitleLine1": "{{appName}}",
+    "heroTitleGradient": "Vorlagen-UI.",
+    "headline": "<em>Sauberer Start</em>, flexible Seiten und erhaltene Infrastruktur<br/>— <strong>eine neutrale Basis für Ihre Marke</strong>.",
+    "lead": "{{appName}} bietet einen einfachen Startpunkt mit Inhalt, Konto, Blog, Kontakt und Rechtlichem.",
+    "tagline": "Marke, Inhalte und Produktdetails projektbezogen ergänzen.",
+    "socialProof": "App Router, i18n, Auth, SEO, Theme und State bleiben erhalten.",
+    "metrics": [
+      {
+        "value": "App Router",
+        "label": "Moderne Struktur"
+      },
+      {
+        "value": "i18n",
+        "label": "DB-basierte Texte"
+      },
+      {
+        "value": "Auth",
+        "label": "Kontofluss"
+      }
+    ],
+    "showcaseTopic": "Vorlagenmodul",
+    "showcaseProgress": "Schritt 1/3",
+    "showcaseQuestion": "Welches Projekt beschreibt dieser Bereich?",
+    "showcaseOptionA": "A) SaaS",
+    "showcaseOptionB": "B) Inhaltsseite",
+    "showcaseOptionC": "C) Portal",
+    "showcaseOptionD": "D) Eigene App",
+    "showcaseXpLabel": "UI",
+    "showcaseXpValue": "Ready",
+    "showcaseStreak": "3",
+    "showcaseStreakSuffix": "Kernbereiche",
+    "showcaseStreakSub": "Inhalt, Konto, Kontakt",
+    "showcaseBadgeTitle": "Vorlage bereit",
+    "showcaseBadgeSub": "Neutraler Start",
+    "showcaseXpGain": "Bereit",
+    "primaryCTA": "Kontakt",
+    "secondaryCTA": "Blog lesen",
+    "scrollHint": "Nach unten"
+  }
+}

@@ -72,6 +72,7 @@ const emptyNav: AdminNavCopy = {
     overview:   '',
     production: '',
     logistics:  '',
+    website:    '',
     system:     '',
   },
   items: {
@@ -104,6 +105,8 @@ const emptyNav: AdminNavCopy = {
     test_center:       '',
     admin_documentation: '',
     proje_teklifi:     '',
+    yazilim_gorevleri: '',
+    web_sayfasi: '',
     hafta_sonu_planlari: '',
     makine_kapama:     '',
     calisma_planlari:  '',
@@ -127,6 +130,7 @@ export function normalizeAdminUiCopy(raw: unknown): AdminUiCopy {
     overview:   uiText(labelsRaw.overview),
     production: uiText(labelsRaw.production),
     logistics:  uiText(labelsRaw.logistics),
+    website:    uiText(labelsRaw.website),
     system:     uiText(labelsRaw.system),
   };
 
@@ -160,6 +164,8 @@ export function normalizeAdminUiCopy(raw: unknown): AdminUiCopy {
     test_center:       uiText(itemsRaw.test_center),
     admin_documentation: uiText(itemsRaw.admin_documentation),
     proje_teklifi:     uiText(itemsRaw.proje_teklifi),
+    yazilim_gorevleri: uiText(itemsRaw.yazilim_gorevleri),
+    web_sayfasi: uiText(itemsRaw.web_sayfasi),
     hafta_sonu_planlari: uiText(itemsRaw.hafta_sonu_planlari),
     makine_kapama:     uiText(itemsRaw.makine_kapama),
     calisma_planlari:  uiText(itemsRaw.calisma_planlari),

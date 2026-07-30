@@ -1,0 +1,231 @@
+{
+  "rootLayout": {
+    "titleDefault": "{{appName}} — Otomobil paspas sistemleri",
+    "titleTemplate": "%s | {{appName}}"
+  },
+  "brand": {
+    "appName": "Promats",
+    "taglineTr": "Araca özel otomobil paspas sistemleri",
+    "taglineEn": "Tailor-made automotive mat systems",
+    "themeColor": "#ffa001",
+    "themeColorDark": "#000000",
+    "wordMarkLine1": "{{appName}}",
+    "wordMarkLine2": "",
+    "shortName": "{{appName}}",
+    "copyrightHolder": "{{appName}}",
+    "defaultLogoAlt": "Promats logo"
+  },
+  "site": {
+    "originFallback": "http://localhost:3177",
+    "apiBaseFallback": "http://127.0.0.1:8087/api/v1"
+  },
+  "i18n": {
+    "defaultLocale": "tr"
+  },
+  "seo": {
+    "global": {
+      "site_name": "{{appName}}",
+      "title_default": "{{appName}} — Araca özel otomobil paspasları",
+      "title_template": "%s | {{appName}}",
+      "description": "{{appName}}, otomobiller için araca özel paspas sistemleri üretir.",
+      "open_graph": {
+        "type": "website",
+        "images": [
+          "/img/og-default.jpg"
+        ]
+      },
+      "twitter": {
+        "card": "summary_large_image",
+        "site": "",
+        "creator": ""
+      },
+      "robots": {
+        "noindex": false,
+        "index": true,
+        "follow": true
+      }
+    },
+    "siteMetaByLocale": {
+      "tr": {
+        "title": "{{appName}} — Araca özel otomobil paspasları",
+        "description": "Promats; otomobiller için araca özel, dayanıklı ve şık paspas sistemleri üretir.",
+        "keywords": "Promats, oto paspas, otomobil paspası, araç paspası, 5D paspas"
+      },
+      "en": {
+        "title": "{{appName}} — Tailor-made automotive mat systems",
+        "description": "Promats manufactures durable, stylish and vehicle-specific automotive mat systems.",
+        "keywords": "Promats, car mats, automotive mats, custom car mats"
+      },
+      "de": {
+        "title": "{{appName}} — Fahrzeugspezifische Automatten",
+        "description": "Promats produziert langlebige und elegante, fahrzeugspezifische Automatten.",
+        "keywords": "Promats, Automatten, Fahrzeugmatten"
+      }
+    },
+    "localeDescriptionFallback": {
+      "tr": "{{appName}} — Araca özel otomobil paspas sistemleri.",
+      "en": "{{appName}} — Tailor-made automotive mat systems.",
+      "de": "{{appName}} — Fahrzeugspezifische Automatten."
+    },
+    "htmlMetaDescriptionByLocale": {
+      "tr": "{{appName}} — Otomobiller için araca özel, dayanıklı ve şık paspas sistemleri.",
+      "en": "{{appName}} — Durable and stylish vehicle-specific automotive mat systems.",
+      "de": "{{appName}} — Robuste und elegante fahrzeugspezifische Automatten."
+    }
+  },
+  "jsonLd": {
+    "organizationDescription": {
+      "tr": "Araca özel otomobil paspas sistemleri üreticisi.",
+      "en": "Manufacturer of tailor-made automotive mat systems.",
+      "de": "Hersteller fahrzeugspezifischer Automatten."
+    },
+    "placeholderSameAs": []
+  },
+  "editorial": {
+    "teamNameTemplate": "{{appName}} Editorial Team"
+  },
+  "manifest": {
+    "nameKey": "manifest.name",
+    "shortNameKey": "manifest.shortName",
+    "descriptionKey": "manifest.description",
+    "name": "{{appName}}",
+    "shortName": "{{appName}}",
+    "description": "Araca özel otomobil paspas sistemleri.",
+    "startLocalePath": "/tr"
+  },
+  "navigation": {
+    "headerFallbackMenu": [
+      {
+        "id": "fb-home",
+        "url": "/",
+        "label": {
+          "tr": "Ana Sayfa",
+          "en": "Home",
+          "de": "Startseite"
+        }
+      },
+      {
+        "id": "fb-blog",
+        "url": "/blog",
+        "label": {
+          "tr": "Blog",
+          "en": "Blog",
+          "de": "Blog"
+        }
+      },
+      {
+        "id": "fb-faq",
+        "url": "/faqs",
+        "label": {
+          "tr": "SSS",
+          "en": "FAQ",
+          "de": "FAQ"
+        }
+      },
+      {
+        "id": "fb-contact",
+        "url": "/contact",
+        "label": {
+          "tr": "İletişim",
+          "en": "Contact",
+          "de": "Kontakt"
+        }
+      }
+    ],
+    "footerFallbackSections": [
+      {
+        "id": "fb-content",
+        "title": {
+          "tr": "İçerik",
+          "en": "Content",
+          "de": "Inhalt"
+        },
+        "items": [
+          {
+            "id": "fb-blog",
+            "url": "/blog",
+            "label": {
+              "tr": "Blog",
+              "en": "Blog",
+              "de": "Blog"
+            }
+          },
+          {
+            "id": "fb-faq",
+            "url": "/faqs",
+            "label": {
+              "tr": "SSS",
+              "en": "FAQ",
+              "de": "FAQ"
+            }
+          }
+        ]
+      },
+      {
+        "id": "fb-company",
+        "title": {
+          "tr": "Şirket",
+          "en": "Company",
+          "de": "Unternehmen"
+        },
+        "items": [
+          {
+            "id": "fb-contact",
+            "url": "/contact",
+            "label": {
+              "tr": "İletişim",
+              "en": "Contact",
+              "de": "Kontakt"
+            }
+          },
+          {
+            "id": "fb-editorial",
+            "url": "/editorial-policy",
+            "label": {
+              "tr": "Editoryal Politika",
+              "en": "Editorial Policy",
+              "de": "Redaktionelle Richtlinie"
+            }
+          }
+        ]
+      },
+      {
+        "id": "fb-legal",
+        "title": {
+          "tr": "Yasal",
+          "en": "Legal",
+          "de": "Rechtliches"
+        },
+        "items": [
+          {
+            "id": "fb-terms",
+            "url": "/terms",
+            "label": {
+              "tr": "Kullanım Şartları",
+              "en": "Terms",
+              "de": "Nutzungsbedingungen"
+            }
+          },
+          {
+            "id": "fb-privacy",
+            "url": "/privacy-policy",
+            "label": {
+              "tr": "Gizlilik Politikası",
+              "en": "Privacy Policy",
+              "de": "Datenschutz"
+            }
+          },
+          {
+            "id": "fb-cookie",
+            "url": "/cookie-policy",
+            "label": {
+              "tr": "Çerez Politikası",
+              "en": "Cookie Policy",
+              "de": "Cookie-Richtlinie"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

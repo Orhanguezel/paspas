@@ -1,0 +1,20 @@
+{
+  "tr": {
+    "subtitle": "Yeni proje için <em>nötr</em> ve düzenlenebilir başlangıç.",
+    "cta": "İLETİŞİME GEÇ",
+    "link": "/tr/contact",
+    "titleTemplate": "{{appName}} ŞABLONUNA HOŞ GELDİNİZ"
+  },
+  "en": {
+    "subtitle": "A <em>neutral</em>, editable start for a new project.",
+    "cta": "CONTACT",
+    "link": "/en/contact",
+    "titleTemplate": "WELCOME TO {{appName}} TEMPLATE"
+  },
+  "de": {
+    "subtitle": "Ein <em>neutraler</em>, editierbarer Start für ein neues Projekt.",
+    "cta": "KONTAKT",
+    "link": "/de/contact",
+    "titleTemplate": "WILLKOMMEN BEI {{appName}}"
+  }
+}

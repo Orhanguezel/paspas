@@ -1,10 +1,18 @@
 'use client';
 
 import * as React from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { ArrowLeft, ExternalLink, Save, Trash2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bell,
+  CalendarClock,
+  CheckCircle2,
+  ExternalLink,
+  Save,
+  Trash2,
+  User,
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,12 +27,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-import type { NotificationView, CreateNotificationBody } from '@/integrations/shared';
+import type { CreateNotificationBody } from '@/integrations/shared';
 import {
   useGetNotificationByIdQuery,
   useCreateNotificationMutation,
   useUpdateNotificationMutation,
   useDeleteNotificationMutation,
+  useListUsersAdminQuery,
 } from '@/integrations/hooks';
 
 import { useAdminT } from '@/app/(main)/admin/_components/common/useAdminT';
@@ -81,10 +90,13 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
   const { data: item, isLoading: isLoadingItem } = useGetNotificationByIdQuery(id, {
     skip: isNew,
   });
+  const usersQ = useListUsersAdminQuery({ limit: 200 }, { skip: isNew });
+  const recipient = usersQ.data?.find((user) => user.id === item?.user_id);
 
   const [createNotification, { isLoading: isCreating }] = useCreateNotificationMutation();
   const [updateNotification, { isLoading: isUpdating }] = useUpdateNotificationMutation();
   const [deleteNotification, { isLoading: isDeleting }] = useDeleteNotificationMutation();
+  const readMarked = React.useRef(false);
 
   const [formData, setFormData] = React.useState<FormData>({
     user_id: '',
@@ -103,6 +115,15 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
       });
     }
   }, [isNew, item]);
+
+  React.useEffect(() => {
+    if (isNew || !item || item.is_read || readMarked.current) return;
+
+    readMarked.current = true;
+    void updateNotification({ id: item.id, body: { is_read: true } }).unwrap().catch(() => {
+      readMarked.current = false;
+    });
+  }, [isNew, item, updateNotification]);
 
   const busy = isCreating || isUpdating || isDeleting;
 
@@ -173,12 +194,12 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
               <CardTitle className="text-2xl font-bold">
                 {isNew
                   ? t('notifications.form.createTitle')
-                  : t('notifications.form.editTitle')}
+                  : 'Bildirim'}
               </CardTitle>
               <CardDescription>
                 {isNew
                   ? t('notifications.form.createDescription')
-                  : t('notifications.form.editDescription')}
+                  : 'Bildirim içeriğini okuyun ve ilgili kayda kolayca ulaşın.'}
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -202,26 +223,6 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
         </CardHeader>
       </Card>
 
-      {/* Feedback thread quick-link */}
-      {feedbackLink && (
-        <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/20">
-          <CardContent className="flex items-center justify-between py-3">
-            <div className="text-sm">
-              <span className="font-medium">Sayfa:</span>{' '}
-              <code className="rounded bg-blue-100 px-1 dark:bg-blue-900">{feedbackLink.pagePath}</code>
-              {' · '}
-              <span className="text-muted-foreground">{feedbackLink.subject}</span>
-            </div>
-            <Button asChild size="sm" variant="outline">
-              <Link href={feedbackLink.pagePath}>
-                <ExternalLink className="mr-1.5 size-3.5" />
-                Sayfaya Git
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Loading state for existing item */}
       {!isNew && isLoadingItem && (
         <Card>
@@ -231,36 +232,45 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
         </Card>
       )}
 
-      {/* Read-only view for existing notifications */}
+      {/* Human-friendly read-only view for existing notifications */}
       {!isNew && !isLoadingItem && item && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('notifications.form.infoTitle')}</CardTitle>
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b bg-muted/30">
+            <div className="flex items-start gap-4">
+              <div className="rounded-2xl bg-primary/10 p-3 text-primary">
+                <Bell className="size-6" />
+              </div>
+              <div className="min-w-0">
+                <CardTitle className="text-xl">{item.title}</CardTitle>
+                <CardDescription className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
+                  <span className="inline-flex items-center gap-1.5">
+                    <User className="size-4" />
+                    {recipient?.full_name?.trim() || 'Kullanıcı'}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <CalendarClock className="size-4" />
+                    {new Date(item.created_at).toLocaleString(localeMapping[adminLocale] || 'tr-TR')}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="size-4" />
+                    Okundu
+                  </span>
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">{t('notifications.form.userId')}</p>
-                <p className="text-sm">{item.user_id || '—'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">{t('notifications.form.title')}</p>
-                <p className="text-sm font-semibold">{item.title}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">{t('notifications.form.message')}</p>
-                <p className="text-sm whitespace-pre-wrap">{item.message}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">{t('notifications.form.type')}</p>
-                <p className="text-sm">{t(`notifications.types.${item.type}`, {}, item.type)}</p>
-              </div>
+          <CardContent className="p-6 md:p-8">
+            <div className="whitespace-pre-wrap rounded-2xl border bg-background p-5 text-base leading-7 text-foreground">
+              {feedbackLink?.subject || item.message}
             </div>
-            <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-950/20">
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                {t('notifications.form.editWarning')}
-              </p>
-            </div>
+            {feedbackLink && (
+              <div className="mt-4 flex justify-end">
+                <Button onClick={() => router.push(feedbackLink.pagePath)}>
+                  <ExternalLink className="mr-2 size-4" />
+                  İlgili sayfaya git
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -362,36 +372,6 @@ export default function AdminNotificationDetailClient({ id }: { id: string }) {
         </Card>
       )}
 
-      {/* Detail info (for existing items) */}
-      {!isNew && item && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('notifications.details.title')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">{t('notifications.details.id')}</p>
-                <p className="text-sm">{item.id}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">{t('notifications.details.userId')}</p>
-                <p className="text-sm">{item.user_id}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">{t('notifications.details.status')}</p>
-                <p className="text-sm">{item.is_read ? t('notifications.details.read') : t('notifications.details.unread')}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">{t('notifications.details.createdAt')}</p>
-                <p className="text-sm">
-                  {new Date(item.created_at).toLocaleString(localeMapping[adminLocale] || 'tr-TR')}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

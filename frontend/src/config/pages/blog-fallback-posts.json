@@ -1,0 +1,56 @@
+{
+  "tr": [
+    {
+      "id": "fallback-blog-1",
+      "title": "Yeni frontend şablonunu uyarlama rehberi",
+      "slug": "frontend-sablonu-uyarlama",
+      "summary": "Marka, menü, içerik ve SEO alanlarını proje ihtiyaçlarına göre doldurmak için kısa rehber.",
+      "featured_image": "/img/placeholder.svg",
+      "created_at": "2026-04-30T09:00:00.000Z"
+    },
+    {
+      "id": "fallback-blog-2",
+      "title": "İçerik yapısını planlarken kontrol listesi",
+      "slug": "icerik-yapisi-kontrol-listesi",
+      "summary": "Ana sayfa, blog, SSS ve yasal sayfalar için yalın bir başlangıç kontrol listesi.",
+      "featured_image": "/img/placeholder.svg",
+      "created_at": "2026-04-23T09:00:00.000Z"
+    }
+  ],
+  "en": [
+    {
+      "id": "fallback-blog-1",
+      "title": "Guide to adapting a new frontend template",
+      "slug": "adapting-frontend-template",
+      "summary": "A short guide for filling brand, menu, content, and SEO areas for your project.",
+      "featured_image": "/img/placeholder.svg",
+      "created_at": "2026-04-30T09:00:00.000Z"
+    },
+    {
+      "id": "fallback-blog-2",
+      "title": "Checklist for planning content structure",
+      "slug": "content-structure-checklist",
+      "summary": "A lean starting checklist for home, blog, FAQ, and legal pages.",
+      "featured_image": "/img/placeholder.svg",
+      "created_at": "2026-04-23T09:00:00.000Z"
+    }
+  ],
+  "de": [
+    {
+      "id": "fallback-blog-1",
+      "title": "Leitfaden zur Anpassung einer Frontend-Vorlage",
+      "slug": "frontend-vorlage-anpassen",
+      "summary": "Kurzer Leitfaden für Marke, Menü, Inhalte und SEO im neuen Projekt.",
+      "featured_image": "/img/placeholder.svg",
+      "created_at": "2026-04-30T09:00:00.000Z"
+    },
+    {
+      "id": "fallback-blog-2",
+      "title": "Checkliste für die Inhaltsstruktur",
+      "slug": "inhaltsstruktur-checkliste",
+      "summary": "Eine schlanke Start-Checkliste für Home, Blog, FAQ und Rechtliches.",
+      "featured_image": "/img/placeholder.svg",
+      "created_at": "2026-04-23T09:00:00.000Z"
+    }
+  ]
+}

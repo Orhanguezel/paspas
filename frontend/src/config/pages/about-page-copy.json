@@ -1,0 +1,110 @@
+{
+  "tr": {
+    "eyebrow": "{{appName}} hakkında",
+    "title": "Yeni projeler için sade ve genişletilebilir bir frontend şablonu.",
+    "lead": "{{appName}}, marka ve domain içeriği sonradan eklenecek şekilde hazırlanmış nötr bir web uygulaması iskeletidir.",
+    "founderTitle": "Başlangıç Noktası",
+    "founderParagraphs": [
+      "Bu şablon, tekrar kullanılabilir bir frontend temeli sağlamak için hazırlanmıştır.",
+      "Proje özel kararlar içerik, tasarım ve entegrasyon katmanlarında sonradan tamamlanır."
+    ],
+    "methodologyTitle": "Yaklaşım",
+    "methodologyParagraphs": [
+      "Altyapı korunur; domain metinleri ve ticari akışlar varsayılan olarak boşaltılır.",
+      "Yeni proje, kendi bilgi mimarisi ve içerik kaynaklarıyla bu iskelet üzerine kurulur."
+    ],
+    "experienceTitle": "Kapsam",
+    "experienceParagraphs": [
+      "Ana sayfa, blog, iletişim, SSS, hesap, yasal sayfalar, tema ve SEO altyapısı korunur.",
+      "Marka adı env ve AppName tokenı üzerinden yönetilir."
+    ],
+    "differentiatorsTitle": "Neden {{appName}}?",
+    "differentiators": [
+      {
+        "title": "Nötr içerik",
+        "body": "Varsayılan metinler proje bağımsızdır."
+      },
+      {
+        "title": "Korunan iskelet",
+        "body": "Routing, auth, i18n ve tema altyapısı kullanılabilir durumdadır."
+      },
+      {
+        "title": "Kolay uyarlama",
+        "body": "Yeni domain içerikleri DB veya CMS üzerinden beslenebilir."
+      }
+    ],
+    "authorBio": "{{appName}} içerikleri proje ekiplerinin kendi marka ve ürün kararlarıyla tamamlanacak şekilde hazırlanır."
+  },
+  "en": {
+    "eyebrow": "About {{appName}}",
+    "title": "A simple and extendable frontend template for new projects.",
+    "lead": "{{appName}} is a neutral web app shell prepared for later brand and domain content.",
+    "founderTitle": "Starting Point",
+    "founderParagraphs": [
+      "This template provides a reusable frontend foundation.",
+      "Project-specific decisions are completed later in content, design, and integration layers."
+    ],
+    "methodologyTitle": "Approach",
+    "methodologyParagraphs": [
+      "Infrastructure stays in place while domain copy and commerce flows are cleared by default.",
+      "A new project can build on this shell with its own information architecture and content sources."
+    ],
+    "experienceTitle": "Scope",
+    "experienceParagraphs": [
+      "Home, blog, contact, FAQ, account, legal pages, theme, and SEO foundations remain.",
+      "The brand name is managed through env and the AppName token."
+    ],
+    "differentiatorsTitle": "Why {{appName}}?",
+    "differentiators": [
+      {
+        "title": "Neutral copy",
+        "body": "Default text is project independent."
+      },
+      {
+        "title": "Preserved shell",
+        "body": "Routing, auth, i18n, and theme foundations remain usable."
+      },
+      {
+        "title": "Easy adaptation",
+        "body": "New domain content can come from DB or CMS records."
+      }
+    ],
+    "authorBio": "{{appName}} content is prepared to be completed by project teams with their own brand and product decisions."
+  },
+  "de": {
+    "eyebrow": "Über {{appName}}",
+    "title": "Eine einfache und erweiterbare Frontend-Vorlage für neue Projekte.",
+    "lead": "{{appName}} ist eine neutrale Web-App-Struktur für spätere Marken- und Domain-Inhalte.",
+    "founderTitle": "Startpunkt",
+    "founderParagraphs": [
+      "Diese Vorlage bietet eine wiederverwendbare Frontend-Basis.",
+      "Projektspezifische Entscheidungen werden später in Inhalt, Design und Integration ergänzt."
+    ],
+    "methodologyTitle": "Ansatz",
+    "methodologyParagraphs": [
+      "Die Infrastruktur bleibt erhalten, Domain-Texte und Commerce-Flows werden standardmäßig geleert.",
+      "Ein neues Projekt kann mit eigener Informationsarchitektur und Inhaltsquellen darauf aufbauen."
+    ],
+    "experienceTitle": "Umfang",
+    "experienceParagraphs": [
+      "Home, Blog, Kontakt, FAQ, Konto, Rechtliches, Theme und SEO bleiben erhalten.",
+      "Der Markenname wird über Env und AppName-Token verwaltet."
+    ],
+    "differentiatorsTitle": "Warum {{appName}}?",
+    "differentiators": [
+      {
+        "title": "Neutrale Texte",
+        "body": "Standardtexte sind projektunabhängig."
+      },
+      {
+        "title": "Erhaltene Struktur",
+        "body": "Routing, Auth, i18n und Theme bleiben nutzbar."
+      },
+      {
+        "title": "Einfache Anpassung",
+        "body": "Neue Inhalte können aus DB oder CMS kommen."
+      }
+    ],
+    "authorBio": "{{appName}} Inhalte sind dafür vorbereitet, von Projektteams mit eigenen Marken- und Produktentscheidungen ergänzt zu werden."
+  }
+}
