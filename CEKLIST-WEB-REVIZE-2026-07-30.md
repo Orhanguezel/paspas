@@ -23,6 +23,7 @@ Canlı: `panel.avrasyaotomotiv.net/promats` — deploy: `scripts/deploy/deploy-p
 - [x] **R4 — OEM istatistik şeridi tek satır** `3fc2bea0` — 6 öğe (2017/35+/OEM/PL/8+/Istanbul) 3×2 iki satır geliyordu; `statsColumns` 6 öğede tek satır (6 sütun), tablet'te 3'e düşer. (docx image27 ile tespit.)
 - [x] **R4 — Başlık hiyerarşisi** `8c18cc51` — `.pm-caps__title` 1. satır küçük font + koyu renk (eyebrow), 2. satır büyük marka. Tüm modern sayfa başlıklarına uygulanır.
 - [x] **R5 — Ürün detay** `07d1d6fb` — (a) "First Class PVC Material" damgası koyu görsele binince kayboluyordu → z-index + beyaz hale; (b) overview arka planı sağa yaslıydı → `cover`/`center right` ile renk sola devam eder; (c) renk/font → R0 ile.
+- [x] **about/hakkımızda başlığı desktop'ta header altında kalıyordu** `28a79c87` — header offset (`padding-top`) sadece mobilde tanımlıydı, desktop'a da 7rem eklendi. ✅ deploy + canlı doğrulandı. (Not: "yazı stili" ince ayarı thread ekindeki görseli bekliyor.)
 
 ---
 
@@ -35,6 +36,10 @@ Bunlar kod ile çözülemez; grafikçi çıktısı, asset veya kullanıcı girdi
 - [ ] **R1 — Ürün vitrini** `01f96b37` — mevcut siteye yaklaştır → ürünler grafikçi revizesine bağlı.
 - [ ] **R2 — Kurumsal layout** `65a7453c` — sayfa düzenini artifact `32c583b0`'a benzet. Artifact claude.ai SPA olduğu için koddan render edilemedi; **hedef layout görsel olarak grafikçiden alınmalı.**
 - [ ] **Ürünler sayfası** `b782729d` — `/promats/tr/urunler` grafikçi revizesi bekliyor (ana hatlar iyi).
+
+### Yeni feedback notları (bilgi/görsel bekliyor)
+- [ ] **`516ea5cb` OEM & Private Label** — "boş alan var, kontrast değil kontrol et" → thread ekindeki görsel gerekli, hangi bölüm/boşluk belirsiz.
+- [ ] **`28a79c87` about-us "yazı stili"** — header-altında-kalma kısmı ✅ çözüldü; "yazı stilini düzelt" kısmı thread ekindeki görseli bekliyor.
 
 ### Opsiyonel ince ayar (kullanıcı/grafikçi)
 - [ ] **R3 — EN hero metinleri** — docx "görseldeki gibi" diyordu, görsel okunamadı; makul çeviri kondu, istenirse düzeltilir.
