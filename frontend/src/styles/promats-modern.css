@@ -234,6 +234,17 @@
 .promats-public .promats-modern-page .pm-caps__title span {
   display: block;
 }
+/* Başlık hiyerarşisi (müşteri notu 8c18cc51): 1. satır küçük font + farklı (koyu)
+   renkte eyebrow; 2. satır büyük marka rengi ana başlık. Önceden iki satır da
+   aynı büyüklük/renkti. Tüm modern sayfa başlıklarına uygulanır. */
+.promats-public .promats-modern-page .pm-caps__title span:first-child {
+  font-family: var(--font-sans);
+  font-size: 0.4em;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--pm-x-ink, #1a1d21);
+  margin-bottom: 8px;
+}
 
 .promats-public .promats-modern-page .pm-caps__intro {
   max-width: 540px;

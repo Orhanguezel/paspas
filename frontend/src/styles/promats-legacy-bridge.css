@@ -905,7 +905,9 @@ body.promats-offcanvas::before {
 /* İletişim hero — sayfa başında "BİZE ULAŞIN / DOĞRU ÇÖZÜM İÇİN BURADAYIZ"
    kutusu (docx R3 d25090ff); harita en alta taşındı. */
 .promats-public .promats-contact-hero {
-  padding: clamp(2.5rem, 6vw, 5rem) 0 clamp(1.5rem, 3vw, 2.5rem);
+  /* Üst boşluk header'ı (position:fixed; height:85px) geçmeli, yoksa "BİZE ULAŞIN"
+     header'ın altında kalıyor (PmHero ile aynı 130px mantığı). */
+  padding: clamp(120px, 13vw, 150px) 0 clamp(1.5rem, 3vw, 2.5rem);
   text-align: center;
 }
 .promats-public .promats-contact-hero-eyebrow {
