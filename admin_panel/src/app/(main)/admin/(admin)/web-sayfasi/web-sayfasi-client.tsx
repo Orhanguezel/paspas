@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  Brush, Edit3, Eye, EyeOff, FileJson2, FileText, FolderOpen, Globe2, Home,
-  ImageIcon, Languages, LayoutList, Menu as MenuIcon, Newspaper, Palette,
+  Brush, Edit3, ExternalLink, Eye, EyeOff, FileJson2, FileText, FolderOpen, Globe2, Home,
+  ImageIcon, Languages, LayoutList, Menu as MenuIcon, Monitor, Newspaper, Palette,
   Plus, RefreshCcw, Save, Search, ShoppingBag, Trash2, Type,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -25,6 +25,9 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -47,6 +50,21 @@ const tabs = [
   { key: 'home-sections', label: 'Ana Sayfa Bölümleri', icon: Home, tone: 'text-amber-700 bg-amber-50 border-amber-200' },
   { key: 'files', label: 'Web Dosyaları', icon: FolderOpen, tone: 'text-slate-700 bg-slate-50 border-slate-200' },
 ] as const;
+
+// Canlı promats web sitesi — sekmeye göre ilgili sayfa önizlemede gösterilir.
+const PROMATS_WEB_BASE = 'https://panel.avrasyaotomotiv.net/promats';
+const previewPath: Record<TableKey, string> = {
+  products: '/urunler',
+  pages: '',
+  'page-content': '',
+  articles: '/kaynaklar',
+  menu: '',
+  texts: '',
+  settings: '',
+  theme: '',
+  'home-sections': '',
+  files: '',
+};
 
 const themeColors = [
   ['primary', 'Ana marka rengi'], ['primaryDark', 'Koyu marka rengi'], ['accent', 'Vurgu rengi'],
@@ -216,6 +234,8 @@ function createTemplate(table: Exclude<TableKey, 'settings' | 'theme' | 'files'>
 export default function WebSayfasiClient({ initialTab = 'products' }: { initialTab?: TableKey }) {
   const router = useRouter();
   const [tab, setTab] = useState<TableKey>(initialTab);
+  const [previewOpen, setPreviewOpen] = useState(true);
+  const [previewNonce, setPreviewNonce] = useState(0);
   const [languageId, setLanguageId] = useState(1);
   const [items, setItems] = useState<Row[]>([]);
   const [search, setSearch] = useState('');
@@ -462,12 +482,37 @@ export default function WebSayfasiClient({ initialTab = 'products' }: { initialT
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={(value) => {
-        const next = value as TableKey;
-        setTab(next);
-        router.push(tabRoutes[next]);
-      }}>
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-2 bg-transparent p-0 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9">
+      {/* Bölüm menüsü — mobilde dropdown (dar ekranda 9 kart tüm sayfayı kaplıyordu),
+          masaüstünde kompakt kart ızgarası. */}
+      <div className="lg:hidden">
+        <Label className="mb-1 block text-xs text-muted-foreground">Bölüm</Label>
+        <Select value={tab} onValueChange={(value) => { const next = value as TableKey; setTab(next); router.push(tabRoutes[next]); }}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {tabs.map((item) => {
+              const Icon = item.icon;
+              return (
+                <SelectItem key={item.key} value={item.key}>
+                  <span className="flex items-center gap-2"><Icon className="size-4" /> {item.label}</span>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Tabs
+        value={tab}
+        onValueChange={(value) => {
+          const next = value as TableKey;
+          setTab(next);
+          router.push(tabRoutes[next]);
+        }}
+        className="hidden lg:block"
+      >
+        <TabsList className="grid h-auto w-full grid-cols-5 gap-2 bg-transparent p-0 xl:grid-cols-9">
           {tabs.map((item) => {
             const Icon = item.icon;
             return (
@@ -485,6 +530,38 @@ export default function WebSayfasiClient({ initialTab = 'products' }: { initialT
           })}
         </TabsList>
       </Tabs>
+
+      {/* Canlı önizleme — düzenlenen bölümün ilgili promats sayfası. */}
+      <Card className="overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between gap-2 border-b py-3">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Monitor className="size-4 text-muted-foreground" /> Canlı Önizleme
+            <span className="hidden font-normal text-muted-foreground sm:inline">— {PROMATS_WEB_BASE}/{languageId === 2 ? 'en' : 'tr'}{previewPath[tab]}</span>
+          </CardTitle>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={() => setPreviewNonce((n) => n + 1)} title="Önizlemeyi yenile">
+              <RefreshCcw className="size-4" />
+            </Button>
+            <Button asChild variant="ghost" size="icon" title="Yeni sekmede aç">
+              <a href={`${PROMATS_WEB_BASE}/${languageId === 2 ? 'en' : 'tr'}${previewPath[tab]}`} target="_blank" rel="noreferrer"><ExternalLink className="size-4" /></a>
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setPreviewOpen((v) => !v)} title={previewOpen ? 'Önizlemeyi gizle' : 'Önizlemeyi göster'}>
+              {previewOpen ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </Button>
+          </div>
+        </CardHeader>
+        {previewOpen && (
+          <CardContent className="p-0">
+            <iframe
+              key={`${tab}-${languageId}-${previewNonce}`}
+              src={`${PROMATS_WEB_BASE}/${languageId === 2 ? 'en' : 'tr'}${previewPath[tab]}`}
+              title="Promats web önizleme"
+              className="h-105 w-full border-0 bg-white sm:h-140"
+              loading="lazy"
+            />
+          </CardContent>
+        )}
+      </Card>
 
       {!['settings', 'theme', 'home-sections', 'files'].includes(tab) && (
         <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-muted/20 p-3">
