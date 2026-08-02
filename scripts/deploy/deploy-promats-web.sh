@@ -30,6 +30,19 @@ rm -rf .next/standalone/.next/static .next/standalone/public
 cp -r .next/static .next/standalone/.next/static
 cp -r public .next/standalone/public
 
+# nginx kok-alias asset senkronu: /assets ve /userfiles istekleri (basePath'siz, next/image
+# unoptimized) nginx tarafindan ESKI konumdan servis edilir; deploy ise yeni konuma gelir.
+# Bu bosluk yeni eklenen her gorselde 404 verir. Repo asset'lerini nginx konumuna senkronla.
+# --delete YOK (additive): userfiles/ altindaki panel yuklemeleri korunur.
+echo "==> nginx kok-alias asset senkronu"
+NGINX_PUB=/var/www/promats/frontend/frontend/public
+if [ -d "$NGINX_PUB" ]; then
+  mkdir -p "$NGINX_PUB/assets"
+  rsync -a public/assets/ "$NGINX_PUB/assets/"
+  [ -d public/userfiles ] && { mkdir -p "$NGINX_PUB/userfiles"; rsync -a public/userfiles/ "$NGINX_PUB/userfiles/"; }
+  echo "    -> $NGINX_PUB/assets senkronlandi"
+fi
+
 echo "==> restart"
 pm2 restart promats-frontend --update-env
 sleep 5

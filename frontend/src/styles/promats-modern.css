@@ -1883,6 +1883,28 @@
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.14);
 }
 
+/* Yetkinlik ikonu — Promats resmi ikon seti (kendi yuvarlak-kare renkli zemini var,
+   turuncu çember yok). İkon görseli sabit boyutta, ortalı. */
+.promats-public .promats-hakkimizda-page .pm-cap__img {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+.promats-public .promats-hakkimizda-page .pm-cap__img img {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  display: block;
+}
+.promats-public .promats-hakkimizda-page .pm-cap__title-text {
+  display: block;
+  font-family: var(--font-display);
+  color: var(--pm-x-brand);
+  font-size: 15px;
+  line-height: 1.35;
+}
+
 /* Yetkinlik kartına numara + açıklama ekle (pm-caps ikon ızgarasını genişletir) */
 .promats-public .promats-hakkimizda-page .pm-cap__no {
   display: block;

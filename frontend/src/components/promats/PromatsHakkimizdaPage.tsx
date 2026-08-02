@@ -5,8 +5,7 @@ import hakkimizdaContent from '@/config/pages/hakkimizda-page.json';
 import { localeHref as href } from '@/lib/promats/links';
 
 import PromatsImage from './PromatsImage';
-import { PmHero, PmSectionHeading, StackedTitle } from './PromatsModernShell';
-import { PromatsUretimIcon } from './PromatsUretimIcons';
+import { PmHero, PmSectionHeading } from './PromatsModernShell';
 
 type Cap = { no: string; icon: string; title: string; body: string };
 type Step = { no: string; title: string; body: string };
@@ -28,6 +27,14 @@ type HakkimizdaContent = {
 };
 
 const KIMLIK_ANCHOR = '#kurumsal-kimligimiz';
+
+// Yetkinlik ikonları — Promats resmi ikon seti (kendi yuvarlak-kare zeminli renkli ikonlar).
+const CAP_ICON: Record<string, string> = {
+  product: '/assets/images/hakkimizda/icons/urun-gelistirme.svg',
+  material: '/assets/images/hakkimizda/icons/malzeme-teknolojisi.svg',
+  injection: '/assets/images/hakkimizda/icons/uretim-yetkinligi.svg',
+  quality: '/assets/images/hakkimizda/icons/kalite-anlayisi.svg',
+};
 
 export function PromatsHakkimizdaPage({ locale }: { locale: string }) {
   const c = (hakkimizdaContent as Record<string, HakkimizdaContent>)[locale === 'en' ? 'en' : 'tr']!;
@@ -76,10 +83,12 @@ export function PromatsHakkimizdaPage({ locale }: { locale: string }) {
           <ul className="pm-caps__grid">
             {c.yetkinlik.items.map((item, index) => (
               <li className="pm-cap" key={item.no} data-aos="fade-up" data-aos-delay={index * 80}>
-                <PromatsUretimIcon name={item.icon} />
+                <span className="pm-cap__img">
+                  <PromatsImage src={CAP_ICON[item.icon]} alt="" width={112} height={112} assetBase="/assets" sizes="112px" />
+                </span>
                 <span className="pm-cap__label">
                   <span className="pm-cap__no">{item.no}</span>
-                  <StackedTitle lines={[item.title]} />
+                  <span className="pm-cap__title-text">{item.title}</span>
                 </span>
                 <span className="pm-cap__body">{item.body}</span>
               </li>
