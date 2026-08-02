@@ -51,20 +51,8 @@ const tabs = [
   { key: 'files', label: 'Web Dosyaları', icon: FolderOpen, tone: 'text-slate-700 bg-slate-50 border-slate-200' },
 ] as const;
 
-// Canlı promats web sitesi — sekmeye göre ilgili sayfa önizlemede gösterilir.
+// Canlı promats web sitesi — yalnızca ana (landing) sayfada anasayfa önizlemesi gösterilir.
 const PROMATS_WEB_BASE = 'https://panel.avrasyaotomotiv.net/promats';
-const previewPath: Record<TableKey, string> = {
-  products: '/urunler',
-  pages: '',
-  'page-content': '',
-  articles: '/kaynaklar',
-  menu: '',
-  texts: '',
-  settings: '',
-  theme: '',
-  'home-sections': '',
-  files: '',
-};
 
 const themeColors = [
   ['primary', 'Ana marka rengi'], ['primaryDark', 'Koyu marka rengi'], ['accent', 'Vurgu rengi'],
@@ -231,7 +219,7 @@ function createTemplate(table: Exclude<TableKey, 'settings' | 'theme' | 'files'>
   return { ...common, original_text: '', title: '' };
 }
 
-export default function WebSayfasiClient({ initialTab = 'products' }: { initialTab?: TableKey }) {
+export default function WebSayfasiClient({ initialTab = 'products', landing = false }: { initialTab?: TableKey; landing?: boolean }) {
   const router = useRouter();
   const [tab, setTab] = useState<TableKey>(initialTab);
   const [previewOpen, setPreviewOpen] = useState(true);
@@ -531,37 +519,40 @@ export default function WebSayfasiClient({ initialTab = 'products' }: { initialT
         </TabsList>
       </Tabs>
 
-      {/* Canlı önizleme — düzenlenen bölümün ilgili promats sayfası. */}
-      <Card className="overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between gap-2 border-b py-3">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <Monitor className="size-4 text-muted-foreground" /> Canlı Önizleme
-            <span className="hidden font-normal text-muted-foreground sm:inline">— {PROMATS_WEB_BASE}/{languageId === 2 ? 'en' : 'tr'}{previewPath[tab]}</span>
-          </CardTitle>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={() => setPreviewNonce((n) => n + 1)} title="Önizlemeyi yenile">
-              <RefreshCcw className="size-4" />
-            </Button>
-            <Button asChild variant="ghost" size="icon" title="Yeni sekmede aç">
-              <a href={`${PROMATS_WEB_BASE}/${languageId === 2 ? 'en' : 'tr'}${previewPath[tab]}`} target="_blank" rel="noreferrer"><ExternalLink className="size-4" /></a>
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setPreviewOpen((v) => !v)} title={previewOpen ? 'Önizlemeyi gizle' : 'Önizlemeyi göster'}>
-              {previewOpen ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            </Button>
-          </div>
-        </CardHeader>
-        {previewOpen && (
-          <CardContent className="p-0">
-            <iframe
-              key={`${tab}-${languageId}-${previewNonce}`}
-              src={`${PROMATS_WEB_BASE}/${languageId === 2 ? 'en' : 'tr'}${previewPath[tab]}`}
-              title="Promats web önizleme"
-              className="h-105 w-full border-0 bg-white sm:h-140"
-              loading="lazy"
-            />
-          </CardContent>
-        )}
-      </Card>
+      {/* Canlı önizleme — YALNIZCA ana (landing) sayfada, promats anasayfasını gösterir.
+          Bölüm sekmelerine geçilince (menü tıklaması) önizleme gösterilmez. */}
+      {landing && (
+        <Card className="overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 border-b py-3">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Monitor className="size-4 text-muted-foreground" /> Canlı Önizleme
+              <span className="hidden font-normal text-muted-foreground sm:inline">— {PROMATS_WEB_BASE}/{languageId === 2 ? 'en' : 'tr'}</span>
+            </CardTitle>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" onClick={() => setPreviewNonce((n) => n + 1)} title="Önizlemeyi yenile">
+                <RefreshCcw className="size-4" />
+              </Button>
+              <Button asChild variant="ghost" size="icon" title="Yeni sekmede aç">
+                <a href={`${PROMATS_WEB_BASE}/${languageId === 2 ? 'en' : 'tr'}`} target="_blank" rel="noreferrer"><ExternalLink className="size-4" /></a>
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setPreviewOpen((v) => !v)} title={previewOpen ? 'Önizlemeyi gizle' : 'Önizlemeyi göster'}>
+                {previewOpen ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </Button>
+            </div>
+          </CardHeader>
+          {previewOpen && (
+            <CardContent className="p-0">
+              <iframe
+                key={`${languageId}-${previewNonce}`}
+                src={`${PROMATS_WEB_BASE}/${languageId === 2 ? 'en' : 'tr'}`}
+                title="Promats web önizleme"
+                className="h-105 w-full border-0 bg-white sm:h-140"
+                loading="lazy"
+              />
+            </CardContent>
+          )}
+        </Card>
+      )}
 
       {!['settings', 'theme', 'home-sections', 'files'].includes(tab) && (
         <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-muted/20 p-3">
