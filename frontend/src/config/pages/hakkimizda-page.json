@@ -1,0 +1,186 @@
+{
+  "tr": {
+    "meta": {
+      "title": "Hakkımızda",
+      "description": "Promats, 2017'den bu yana PVC universal oto paspas üretiminde uzmanlaşmış, 35'ten fazla ülkeye ihracat yapan Türk üreticisidir. Kurumsal kimliğimiz, yetkinliklerimiz ve üretim sürecimiz."
+    },
+    "hero": {
+      "eyebrow": "Hakkımızda",
+      "headline": ["Güvenilir Üretimin", "Arkasındaki Marka"],
+      "text": "Promats, PVC universal oto paspas üretiminde uzmanlaşmış bir Türk üreticisidir. 2017'den bu yana kurumsal yapısını, üretim disiplinini ve kalite anlayışını sistematik bir şekilde geliştirerek uluslararası iş ortaklarının güvenini kazanmıştır.",
+      "cta": "Kurumsal Kimliğimiz"
+    },
+    "kimlik": {
+      "eyebrow": "Promats Kimdir?",
+      "heading": "Kurumsal Kimliğimiz",
+      "paragraphs": [
+        "Promats, 2017 yılında İstanbul İkitelli Organize Sanayi Bölgesi'nde kurulan Avrasya Paspas Otomotiv'in PVC universal oto paspas markasıdır.",
+        "Ürün geliştirme, malzeme teknolojisi ve üretim süreçlerini kendi bünyesinde yöneten şirketimiz, kalite odaklı üretim anlayışıyla bugün 35'ten fazla ülkeye ürün tedarik eden güvenilir bir üretici konumundadır.",
+        "OEM ve Private Label üretim kabiliyetimizle, uluslararası iş ortaklarımıza sürdürülebilir ve uzun vadeli çözümler sunmayı hedefliyoruz."
+      ],
+      "image": "/assets/images/hakkimizda/kurumsal-fabrika.jpg",
+      "imageAlt": "Promats üretim tesisi ve kurumsal kimlik"
+    },
+    "yetkinlik": {
+      "eyebrowLine": "Bizi Farklı Kılan",
+      "headingLine": "Temel Yetkinliklerimiz",
+      "items": [
+        { "no": "01", "icon": "product", "title": "Ürün Geliştirme", "body": "Yeni ürün serileri, kalıp ve tasarım süreçleri iç bünyede sistematik olarak yürütülür." },
+        { "no": "02", "icon": "material", "title": "Malzeme Teknolojisi", "body": "PVC compound formülasyonu üzerinde çalışılarak dayanıklılık ve performans sürekli iyileştirilir." },
+        { "no": "03", "icon": "injection", "title": "Üretim Yetkinliği", "body": "Modern üretim tesisinde yüksek kapasiteli, standartlaştırılmış üretim süreçleri uygulanır." },
+        { "no": "04", "icon": "quality", "title": "Kalite Anlayışı", "body": "Her üretim aşamasında kontrol noktaları uygulanarak tutarlı ürün kalitesi güvence altına alınır." }
+      ]
+    },
+    "surec": {
+      "eyebrowLine": "Üretim Yaklaşımımız",
+      "headingLine": "Sistematik Bir Süreç Anlayışı",
+      "intro": "Araştırmadan sevkiyata kadar her aşama, tutarlılık ve izlenebilirlik esas alınarak yönetilir. Detaylı üretim süreçlerimizi Üretim sayfamızda inceleyebilirsiniz.",
+      "steps": [
+        { "no": "01", "title": "Araştırma", "body": "Pazar ve ihtiyaç analizi" },
+        { "no": "02", "title": "Ürün Geliştirme", "body": "Tasarım ve kalıplama" },
+        { "no": "03", "title": "Malzeme", "body": "Compound hazırlığı" },
+        { "no": "04", "title": "Üretim", "body": "Kalıplama ve baskı" },
+        { "no": "05", "title": "Kalite", "body": "Kontrol noktaları" },
+        { "no": "06", "title": "Paketleme", "body": "Standart paketleme" },
+        { "no": "07", "title": "Sevkiyat", "body": "Lojistik ve teslimat" }
+      ]
+    },
+    "degerler": {
+      "eyebrowLine": "Değerlerimiz",
+      "headingLine": "Çalışma Anlayışımızın Temelleri",
+      "items": [
+        { "mark": "✓", "title": "Kalite", "body": "Her üretim aşamasında tutarlılık ve standardizasyon esas alınır." },
+        { "mark": "◆", "title": "Güven", "body": "Şeffaf iletişim ve zamanında teslimat ile uzun vadeli iş ilişkileri kurulur." },
+        { "mark": "↗", "title": "Sürekli Gelişim", "body": "Malzeme ve üretim süreçleri düzenli olarak gözden geçirilir ve geliştirilir." },
+        { "mark": "●", "title": "Sorumluluk", "body": "Üretimin her aşamasında kurumsal ve çevresel sorumluluk gözetilir." }
+      ]
+    },
+    "sertifikalar": {
+      "eyebrowLine": "Kalite ve Uygunluk Belgelerimiz",
+      "headingLine": "Sertifikalarımız",
+      "intro": "Üretim süreçlerimiz, uluslararası kabul görmüş standartlar ve düzenli denetimlerle güvence altına alınmaktadır.",
+      "items": [
+        { "code": "ISO 9001", "title": "ISO 9001", "body": "Kalite yönetim sistemi standardına uygunluk." },
+        { "code": "REACH", "title": "REACH", "body": "Kimyasal maddelerin güvenli kullanımına ilişkin AB uygunluğu." },
+        { "code": "IATF 16949", "title": "IATF 16949", "body": "Otomotiv sektörüne özel kalite yönetim standardı." },
+        { "code": "ISO 14001", "title": "ISO 14001", "body": "Çevre yönetim sistemi standardına uygunluk." },
+        { "code": "ISO 45001", "title": "ISO 45001", "body": "İş sağlığı ve güvenliği yönetim sistemi standardı." },
+        { "code": "BSCI", "title": "BSCI", "body": "Sosyal uygunluk ve etik üretim denetim programı." }
+      ]
+    },
+    "yolculuk": {
+      "eyebrowLine": "2017'den Bugüne",
+      "headingLine": "Promats'ın Yolculuğu",
+      "items": [
+        { "year": "2017", "body": "Promats markasının oluşturulması" },
+        { "year": "2018", "body": "Üretim altyapısının geliştirilmesi ve PVC Compound teknolojisinin geliştirilmesi" },
+        { "year": "2019", "body": "Automechanika İstanbul Fuarı" },
+        { "year": "2020–2021", "body": "Yeni ürün serilerinin geliştirilmesi" },
+        { "year": "2023–2024", "body": "Uluslararası pazarlarda büyüme" },
+        { "year": "Bugün", "body": "35'ten fazla ülkeye ihracat" }
+      ]
+    },
+    "cta": {
+      "eyebrow": "Devamını Keşfedin",
+      "heading": "Promats'ı Daha Yakından Keşfedin",
+      "text": "Üretim yaklaşımımız, ürün gruplarımız ve kurumsal yapımız hakkında daha fazla bilgi almak için ilgili sayfalarımızı inceleyebilirsiniz.",
+      "links": [
+        { "label": "Üretim", "href": "/uretim" },
+        { "label": "Ürünler", "href": "/urunler" },
+        { "label": "İletişim", "href": "/iletisim" }
+      ]
+    }
+  },
+  "en": {
+    "meta": {
+      "title": "About Us",
+      "description": "Promats is a Turkish manufacturer specialised in PVC universal car mat production since 2017, exporting to more than 35 countries. Our corporate identity, capabilities and production process."
+    },
+    "hero": {
+      "eyebrow": "About Us",
+      "headline": ["The Brand Behind", "Reliable Manufacturing"],
+      "text": "Promats is a Turkish manufacturer specialised in PVC universal car mat production. Since 2017 it has systematically developed its corporate structure, production discipline and quality approach, earning the trust of international business partners.",
+      "cta": "Our Corporate Identity"
+    },
+    "kimlik": {
+      "eyebrow": "Who Is Promats?",
+      "heading": "Our Corporate Identity",
+      "paragraphs": [
+        "Promats is the PVC universal car mat brand of Avrasya Paspas Otomotiv, founded in 2017 in the İkitelli Organised Industrial Zone in Istanbul.",
+        "Managing product development, material technology and production processes in-house, our company is today a reliable manufacturer supplying products to more than 35 countries with a quality-focused production approach.",
+        "With our OEM and Private Label manufacturing capability, we aim to provide sustainable and long-term solutions to our international business partners."
+      ],
+      "image": "/assets/images/hakkimizda/kurumsal-fabrika.jpg",
+      "imageAlt": "Promats production facility and corporate identity"
+    },
+    "yetkinlik": {
+      "eyebrowLine": "What Sets Us Apart",
+      "headingLine": "Our Core Capabilities",
+      "items": [
+        { "no": "01", "icon": "product", "title": "Product Development", "body": "New product series, mould and design processes are carried out systematically in-house." },
+        { "no": "02", "icon": "material", "title": "Material Technology", "body": "Durability and performance are continuously improved by working on the PVC compound formulation." },
+        { "no": "03", "icon": "injection", "title": "Production Capability", "body": "High-capacity, standardised production processes are applied in a modern production facility." },
+        { "no": "04", "icon": "quality", "title": "Quality Approach", "body": "Consistent product quality is secured by applying control points at every production stage." }
+      ]
+    },
+    "surec": {
+      "eyebrowLine": "Our Production Approach",
+      "headingLine": "A Systematic Process Mindset",
+      "intro": "From research to shipment, every stage is managed with consistency and traceability at its core. You can review our detailed production processes on our Production page.",
+      "steps": [
+        { "no": "01", "title": "Research", "body": "Market and needs analysis" },
+        { "no": "02", "title": "Product Development", "body": "Design and moulding" },
+        { "no": "03", "title": "Material", "body": "Compound preparation" },
+        { "no": "04", "title": "Production", "body": "Moulding and printing" },
+        { "no": "05", "title": "Quality", "body": "Control points" },
+        { "no": "06", "title": "Packaging", "body": "Standard packaging" },
+        { "no": "07", "title": "Shipment", "body": "Logistics and delivery" }
+      ]
+    },
+    "degerler": {
+      "eyebrowLine": "Our Values",
+      "headingLine": "The Foundations of How We Work",
+      "items": [
+        { "mark": "✓", "title": "Quality", "body": "Consistency and standardisation are essential at every production stage." },
+        { "mark": "◆", "title": "Trust", "body": "Long-term business relationships are built through transparent communication and on-time delivery." },
+        { "mark": "↗", "title": "Continuous Improvement", "body": "Material and production processes are regularly reviewed and improved." },
+        { "mark": "●", "title": "Responsibility", "body": "Corporate and environmental responsibility is observed at every stage of production." }
+      ]
+    },
+    "sertifikalar": {
+      "eyebrowLine": "Our Quality and Compliance Certificates",
+      "headingLine": "Our Certificates",
+      "intro": "Our production processes are secured by internationally recognised standards and regular audits.",
+      "items": [
+        { "code": "ISO 9001", "title": "ISO 9001", "body": "Compliance with the quality management system standard." },
+        { "code": "REACH", "title": "REACH", "body": "EU compliance regarding the safe use of chemical substances." },
+        { "code": "IATF 16949", "title": "IATF 16949", "body": "Quality management standard specific to the automotive sector." },
+        { "code": "ISO 14001", "title": "ISO 14001", "body": "Compliance with the environmental management system standard." },
+        { "code": "ISO 45001", "title": "ISO 45001", "body": "Occupational health and safety management system standard." },
+        { "code": "BSCI", "title": "BSCI", "body": "Social compliance and ethical production audit programme." }
+      ]
+    },
+    "yolculuk": {
+      "eyebrowLine": "From 2017 to Today",
+      "headingLine": "The Promats Journey",
+      "items": [
+        { "year": "2017", "body": "Creation of the Promats brand" },
+        { "year": "2018", "body": "Development of production infrastructure and PVC compound technology" },
+        { "year": "2019", "body": "Automechanika Istanbul Fair" },
+        { "year": "2020–2021", "body": "Development of new product series" },
+        { "year": "2023–2024", "body": "Growth in international markets" },
+        { "year": "Today", "body": "Exporting to more than 35 countries" }
+      ]
+    },
+    "cta": {
+      "eyebrow": "Discover More",
+      "heading": "Get to Know Promats More Closely",
+      "text": "To learn more about our production approach, product ranges and corporate structure, you can review our related pages.",
+      "links": [
+        { "label": "Production", "href": "/uretim" },
+        { "label": "Products", "href": "/urunler" },
+        { "label": "Contact", "href": "/iletisim" }
+      ]
+    }
+  }
+}
