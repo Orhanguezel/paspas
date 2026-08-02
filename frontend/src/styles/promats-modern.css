@@ -1900,9 +1900,58 @@
   max-width: 240px;
 }
 
-/* Süreç 7 adım — 4'lü ızgarada 4+3 diziliş; son satır ortalı hissi için otomatik */
-.promats-public .promats-hakkimizda-page .pm-steps--7 {
-  grid-template-columns: repeat(4, 1fr);
+/* Süreç akışı — referans tasarım: tek satır yuvarlak numaralı rozetler + aralarında oklar.
+   Masaüstünde 7 adım tek sıra; adımlar eşit genişlik, oklar çemberle dikey hizalı. */
+.promats-public .promats-hakkimizda-page .pm-flow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  list-style: none;
+  margin: 46px 0 0;
+  padding: 0;
+}
+.promats-public .promats-hakkimizda-page .pm-flow__item {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  padding: 0 4px;
+}
+.promats-public .promats-hakkimizda-page .pm-flow__circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid var(--pm-x-brand);
+  color: var(--pm-x-brand);
+  font-family: var(--font-display);
+  font-size: 20px;
+  margin-bottom: 16px;
+}
+.promats-public .promats-hakkimizda-page .pm-flow__title {
+  font-family: var(--font-display);
+  color: var(--pm-x-ink);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 0 0 6px;
+}
+.promats-public .promats-hakkimizda-page .pm-flow__body {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--pm-text-body, #707070);
+  margin: 0;
+}
+/* Ok — çemberin dikey ortasıyla hizalı (çember yüksekliğinin yarısı kadar üstten). */
+.promats-public .promats-hakkimizda-page .pm-flow__arrow {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  margin-top: 20px;
+  color: #c9c9c9;
+  font-size: 20px;
+  line-height: 1;
 }
 
 /* Değer kartı — işaret (✓ ◆ ↗ ●) + başlık + metin */
@@ -2002,8 +2051,22 @@
     grid-template-columns: 1fr;
     gap: 28px;
   }
-  .promats-public .promats-hakkimizda-page .pm-steps--7 {
-    grid-template-columns: repeat(2, 1fr);
+  /* Mobilde akış tek satır kalır ve yatay kaydırılır (7 rozet dar ekrana sığmaz). */
+  .promats-public .promats-hakkimizda-page .pm-flow {
+    justify-content: flex-start;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 12px;
+    scroll-snap-type: x proximity;
+  }
+  .promats-public .promats-hakkimizda-page .pm-flow__item {
+    flex: 0 0 118px;
+    scroll-snap-align: start;
+  }
+  .promats-public .promats-hakkimizda-page .pm-flow__circle {
+    width: 56px;
+    height: 56px;
+    font-size: 18px;
   }
   .promats-public .promats-hakkimizda-page .pm-timeline {
     grid-template-columns: 1fr;
@@ -2028,6 +2091,3 @@
   .promats-public .promats-hakkimizda-page .pm-cert { flex-direction: row; }
 }
 
-@media (max-width: 575.98px) {
-  .promats-public .promats-hakkimizda-page .pm-steps--7 { grid-template-columns: 1fr; }
-}

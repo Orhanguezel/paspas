@@ -1,3 +1,5 @@
+import { Fragment } from 'react';
+
 import { DevNote } from '@/components/devnote';
 import hakkimizdaContent from '@/config/pages/hakkimizda-page.json';
 import { localeHref as href } from '@/lib/promats/links';
@@ -93,13 +95,20 @@ export function PromatsHakkimizdaPage({ locale }: { locale: string }) {
           <div className="pm-section__head">
             <PmSectionHeading line1={c.surec.eyebrowLine} line2={c.surec.headingLine} intro={c.surec.intro} />
           </div>
-          <ol className="pm-steps pm-steps--7">
+          {/* Referans tasarım: tek satır — yuvarlak numaralı rozetler + aralarında oklar.
+              Masaüstünde 7 adım tek sıra; mobilde tek satır kalıp yatay kaydırılır. */}
+          <ol className="pm-flow" data-aos="fade-up">
             {c.surec.steps.map((step, index) => (
-              <li className="pm-step" key={step.no} data-aos="fade-up" data-aos-delay={(index % 4) * 60}>
-                <span className="pm-step__num">{step.no}</span>
-                <h3 className="pm-step__title">{step.title}</h3>
-                <p className="pm-step__body">{step.body}</p>
-              </li>
+              <Fragment key={step.no}>
+                <li className="pm-flow__item">
+                  <span className="pm-flow__circle">{step.no}</span>
+                  <h3 className="pm-flow__title">{step.title}</h3>
+                  <p className="pm-flow__body">{step.body}</p>
+                </li>
+                {index < c.surec.steps.length - 1 ? (
+                  <li className="pm-flow__arrow" aria-hidden="true">→</li>
+                ) : null}
+              </Fragment>
             ))}
           </ol>
         </div>
