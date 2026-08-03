@@ -7,9 +7,12 @@ export type MusteriTur = 'musteri' | 'tedarikci';
 export type BayiSegment = 'toptanci' | 'otomotiv' | 'kucuk_bayi' | 'ihracat' | 'kurumsal' | 'diger';
 export type MusteriPortalStatus = 'not_invited' | 'invited' | 'active' | 'suspended';
 
+export type MusteriDurumu = 'aday' | 'aktif' | 'pasif';
+
 export interface MusteriDto {
   id: string;
   tur: MusteriTur;
+  musteriDurumu: MusteriDurumu;
   kod: string;
   ad: string;
   ilgiliKisi: string | null;
@@ -90,6 +93,7 @@ export function normalizeMusteri(raw: unknown): MusteriDto {
   return {
     id:       toStr(r.id),
     tur:      tur === 'tedarikci' ? 'tedarikci' : 'musteri',
+    musteriDurumu: (toStr(r.musteriDurumu, 'aktif') as MusteriDurumu),
     kod:      toStr(r.kod),
     ad:       toStr(r.ad),
     ilgiliKisi: r.ilgiliKisi != null ? toStr(r.ilgiliKisi) : null,

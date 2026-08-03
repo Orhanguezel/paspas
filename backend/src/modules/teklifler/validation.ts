@@ -26,15 +26,24 @@ export const teklifListQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).default(0),
 });
 
+// Mevcut müşteri seç VEYA satır içi yeni "aday müşteri" ekle
+const yeniMusteriSchema = z.object({
+  ad: z.string().trim().min(1, 'Ad zorunlu').max(255),
+  telefon: z.string().trim().max(32).optional(),
+  email: z.string().trim().email().max(255).optional(),
+  adres: z.string().trim().max(500).optional(),
+});
+
 export const teklifCreateSchema = z.object({
-  musteriId: z.string().uuid('Geçerli bir müşteri seçiniz'),
+  musteriId: z.string().uuid('Geçerli bir müşteri seçiniz').optional(),
+  yeniMusteri: yeniMusteriSchema.optional(),
   paraBirimi: paraBirimiEnum.default('TRY'),
   dil: dilEnum.default('tr'),
   kdvOrani: z.coerce.number().min(0).max(100).default(20),
   kdvDahil: z.boolean().default(false),
   gecerlilikTarihi: z.string().optional(),
   talepId: z.string().uuid().optional(),
-});
+}).refine((v) => !!(v.musteriId || v.yeniMusteri), { message: 'Müşteri seçin veya yeni aday ekleyin' });
 
 export const teklifPatchSchema = z.object({
   paraBirimi: paraBirimiEnum.optional(),

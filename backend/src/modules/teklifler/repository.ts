@@ -179,12 +179,27 @@ export async function repoGetTeklif(id: string): Promise<ReturnType<typeof tekli
 }
 
 export async function repoCreateTeklif(body: TeklifCreateBody, userId: string | null): Promise<ReturnType<typeof teklifRowToDto>> {
+  // Mevcut müşteri ya da satır içi yeni "aday müşteri"
+  let musteriId = body.musteriId ?? null;
+  if (!musteriId && body.yeniMusteri) {
+    const created = await musteriRepoCreate({
+      tur: 'musteri',
+      musteriDurumu: 'aday',
+      ad: body.yeniMusteri.ad,
+      telefon: body.yeniMusteri.telefon,
+      email: body.yeniMusteri.email,
+      adres: body.yeniMusteri.adres,
+    });
+    musteriId = created.id;
+  }
+  if (!musteriId) throw new Error('musteri_gerekli');
+
   const id = randomUUID();
   const teklifNo = await generateTeklifNo();
   await db.insert(teklifler).values({
     id,
     teklif_no: teklifNo,
-    musteri_id: body.musteriId,
+    musteri_id: musteriId,
     talep_id: body.talepId ?? null,
     durum: 'taslak',
     dil: body.dil,
@@ -382,10 +397,13 @@ export async function repoDonusturTalep(
   // modülünün repoCreate'i ile açılır (transaction öncesi).
   let musteriId = body.musteriId ?? null;
   if (!musteriId && body.yeniMusteri) {
+    // Web/telefon talebinden gelen yeni müşteri = aday müşteri
     const created = await musteriRepoCreate({
       tur: 'musteri',
+      musteriDurumu: 'aday',
       ad: body.yeniMusteri.ad,
       telefon: body.yeniMusteri.telefon,
+      email: body.yeniMusteri.email,
       adres: body.yeniMusteri.adres,
     });
     musteriId = created.id;

@@ -98,8 +98,16 @@ export interface TeklifKalemPayload {
   iskontoOrani?: number;
 }
 
+export interface YeniAdayMusteri {
+  ad: string;
+  telefon?: string;
+  email?: string;
+  adres?: string;
+}
+
 export interface TeklifCreatePayload {
-  musteriId: string;
+  musteriId?: string;
+  yeniMusteri?: YeniAdayMusteri;
   paraBirimi?: string;
   dil?: string;
   kdvOrani?: number;

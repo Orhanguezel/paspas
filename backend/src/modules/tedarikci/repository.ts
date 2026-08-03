@@ -70,6 +70,7 @@ export async function repoList(query: ListQuery): Promise<ListResult> {
       .select({
         id: musteriler.id,
         tur: musteriler.tur,
+        musteri_durumu: musteriler.musteri_durumu,
         kod: musteriler.kod,
         ad: musteriler.ad,
         ilgili_kisi: musteriler.ilgili_kisi,
@@ -115,6 +116,7 @@ export async function repoGetById(id: string): Promise<TedarikciRow | null> {
     .select({
       id: musteriler.id,
       tur: musteriler.tur,
+      musteri_durumu: musteriler.musteri_durumu,
       kod: musteriler.kod,
       ad: musteriler.ad,
       ilgili_kisi: musteriler.ilgili_kisi,

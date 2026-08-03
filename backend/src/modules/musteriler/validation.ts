@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const musteriTurEnum = z.enum(['musteri', 'tedarikci']);
+const musteriDurumEnum = z.enum(['aday', 'aktif', 'pasif']);
 const sortEnum = z.enum(['ad', 'created_at']);
 const orderEnum = z.enum(['asc', 'desc']);
 const bayiSegmentEnum = z.enum(['toptanci', 'otomotiv', 'kucuk_bayi', 'ihracat', 'kurumsal', 'diger']);
@@ -22,6 +23,7 @@ const optionalUrl = z.preprocess(
 export const listQuerySchema = z.object({
   q: z.string().trim().min(1).optional(),
   tur: musteriTurEnum.optional(),
+  musteriDurumu: musteriDurumEnum.optional(),
   isActive: isActiveQuerySchema.optional(),
   limit: z.coerce.number().int().min(1).max(500).default(100),
   offset: z.coerce.number().int().min(0).default(0),
@@ -35,6 +37,7 @@ export const nextKodQuerySchema = z.object({
 
 export const createSchema = z.object({
   tur: musteriTurEnum.default('musteri'),
+  musteriDurumu: musteriDurumEnum.optional(),
   kod: z.string().trim().min(1).max(32).optional(),
   ad: z.string().trim().min(1).max(255),
   ilgiliKisi: optionalText(255),

@@ -25,6 +25,9 @@ function buildWhere(query: ListQuery): SQL | undefined {
   if (query.tur) {
     conditions.push(eq(musteriler.tur, query.tur));
   }
+  if (query.musteriDurumu) {
+    conditions.push(eq(musteriler.musteri_durumu, query.musteriDurumu));
+  }
   if (typeof query.isActive === 'boolean') {
     conditions.push(eq(musteriler.is_active, query.isActive ? 1 : 0));
   }
@@ -61,6 +64,7 @@ async function mapCreateInput(data: CreateBody): Promise<typeof musteriler.$infe
   return {
     id: randomUUID(),
     tur: data.tur,
+    musteri_durumu: data.musteriDurumu,
     kod,
     ad: data.ad,
     ilgili_kisi: data.ilgiliKisi,
@@ -88,6 +92,7 @@ async function mapCreateInput(data: CreateBody): Promise<typeof musteriler.$infe
 function mapPatchInput(data: PatchBody): Partial<typeof musteriler.$inferInsert> {
   const payload: Partial<typeof musteriler.$inferInsert> = {};
   if (data.tur !== undefined) payload.tur = data.tur;
+  if (data.musteriDurumu !== undefined) payload.musteri_durumu = data.musteriDurumu;
   if (data.kod !== undefined) payload.kod = data.kod;
   if (data.ad !== undefined) payload.ad = data.ad;
   if (data.ilgiliKisi !== undefined) payload.ilgili_kisi = data.ilgiliKisi;

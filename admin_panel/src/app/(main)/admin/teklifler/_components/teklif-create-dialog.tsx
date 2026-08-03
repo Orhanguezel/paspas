@@ -37,7 +37,12 @@ export default function TeklifCreateDialog({ open, onClose }: Props) {
   const { data: musterilerData } = useListMusterilerAdminQuery({ tur: 'musteri' });
   const musteriler = musterilerData?.items ?? [];
 
+  const [mode, setMode] = useState<'mevcut' | 'aday'>('mevcut');
   const [musteriId, setMusteriId] = useState('');
+  const [adayAd, setAdayAd] = useState('');
+  const [adayTelefon, setAdayTelefon] = useState('');
+  const [adayEmail, setAdayEmail] = useState('');
+  const [adayAdres, setAdayAdres] = useState('');
   const [paraBirimi, setParaBirimi] = useState<string>('TRY');
   const [kdvOrani, setKdvOrani] = useState('20');
   const [kdvDahil, setKdvDahil] = useState(true);
@@ -47,7 +52,9 @@ export default function TeklifCreateDialog({ open, onClose }: Props) {
 
   useEffect(() => {
     if (open) {
+      setMode('mevcut');
       setMusteriId('');
+      setAdayAd(''); setAdayTelefon(''); setAdayEmail(''); setAdayAdres('');
       setParaBirimi('TRY');
       setKdvOrani('20');
       setKdvDahil(true);
@@ -56,13 +63,19 @@ export default function TeklifCreateDialog({ open, onClose }: Props) {
   }, [open]);
 
   async function handleSubmit() {
-    if (!musteriId) {
+    if (mode === 'mevcut' && !musteriId) {
       toast.error(t('admin.erp.teklifler.form.musteriPlaceholder'));
+      return;
+    }
+    if (mode === 'aday' && !adayAd.trim()) {
+      toast.error('Aday müşteri adı zorunlu.');
       return;
     }
     try {
       const teklif = await create({
-        musteriId,
+        ...(mode === 'mevcut'
+          ? { musteriId }
+          : { yeniMusteri: { ad: adayAd.trim(), telefon: adayTelefon.trim() || undefined, email: adayEmail.trim() || undefined, adres: adayAdres.trim() || undefined } }),
         paraBirimi,
         kdvOrani: Number(kdvOrani) || 0,
         kdvDahil,
@@ -88,21 +101,57 @@ export default function TeklifCreateDialog({ open, onClose }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="space-y-1">
+          <div className="space-y-2">
             <Label>{t('admin.erp.teklifler.form.musteri')}</Label>
-            <Select value={musteriId || 'none'} onValueChange={(v) => setMusteriId(v === 'none' ? '' : v)}>
-              <SelectTrigger>
-                <SelectValue placeholder={t('admin.erp.teklifler.form.musteriPlaceholder')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none" disabled>
-                  {t('admin.erp.teklifler.form.musteriPlaceholder')}
-                </SelectItem>
-                {musteriler.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>{m.ad}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Mevcut müşteri seç veya yeni aday müşteri ekle */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button type="button" size="sm" variant={mode === 'mevcut' ? 'default' : 'outline'} onClick={() => setMode('mevcut')}>
+                Mevcut müşteri
+              </Button>
+              <Button type="button" size="sm" variant={mode === 'aday' ? 'default' : 'outline'} onClick={() => setMode('aday')}>
+                Yeni aday müşteri
+              </Button>
+            </div>
+
+            {mode === 'mevcut' ? (
+              <Select value={musteriId || 'none'} onValueChange={(v) => setMusteriId(v === 'none' ? '' : v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t('admin.erp.teklifler.form.musteriPlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none" disabled>
+                    {t('admin.erp.teklifler.form.musteriPlaceholder')}
+                  </SelectItem>
+                  {musteriler.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.ad}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="space-y-2 rounded-md border p-3">
+                <p className="text-xs text-muted-foreground">
+                  Sistemde kayıtlı değilse aday müşteri olarak eklenir; teklif siparişe dönüşünce müşteriye yükselir.
+                </p>
+                <div className="space-y-1">
+                  <Label className="text-xs">Ad / Firma *</Label>
+                  <Input value={adayAd} onChange={(e) => setAdayAd(e.target.value)} placeholder="Örn. Demir Otomotiv Ltd. Şti." />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Telefon</Label>
+                    <Input value={adayTelefon} onChange={(e) => setAdayTelefon(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">E-posta</Label>
+                    <Input value={adayEmail} onChange={(e) => setAdayEmail(e.target.value)} />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Adres</Label>
+                  <Input value={adayAdres} onChange={(e) => setAdayAdres(e.target.value)} />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

@@ -4,6 +4,7 @@ import { char, datetime, decimal, int, mysqlTable, tinyint, varchar } from 'driz
 export const musteriler = mysqlTable('musteriler', {
   id: char('id', { length: 36 }).primaryKey().notNull(),
   tur: varchar('tur', { length: 32 }).notNull().default('musteri'),
+  musteri_durumu: varchar('musteri_durumu', { length: 32 }).notNull().default('aktif'),
   kod: varchar('kod', { length: 32 }).notNull(),
   ad: varchar('ad', { length: 255 }).notNull(),
   ilgili_kisi: varchar('ilgili_kisi', { length: 255 }),
@@ -34,6 +35,7 @@ export type MusteriRow = typeof musteriler.$inferSelect;
 export type MusteriDto = {
   id: string;
   tur: 'musteri' | 'tedarikci';
+  musteriDurumu: 'aday' | 'aktif' | 'pasif';
   kod: string;
   ad: string;
   ilgiliKisi: string | null;
@@ -63,6 +65,7 @@ export function rowToDto(row: MusteriRow): MusteriDto {
   return {
     id: row.id,
     tur: row.tur as 'musteri' | 'tedarikci',
+    musteriDurumu: (row.musteri_durumu as 'aday' | 'aktif' | 'pasif') ?? 'aktif',
     kod: row.kod,
     ad: row.ad,
     ilgiliKisi: row.ilgili_kisi ?? null,

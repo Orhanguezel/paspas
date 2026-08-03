@@ -178,9 +178,17 @@ export default function MusterilerClient() {
               <TableRow key={m.id}>
                 <TableCell className="font-mono text-xs whitespace-nowrap">{m.kod}</TableCell>
                 <TableCell>
-                  <Badge variant={m.tur === 'tedarikci' ? 'secondary' : 'default'}>
-                    {t(`admin.erp.musteriler.types.${m.tur}`)}
-                  </Badge>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <Badge variant={m.tur === 'tedarikci' ? 'secondary' : 'default'}>
+                      {t(`admin.erp.musteriler.types.${m.tur}`)}
+                    </Badge>
+                    {m.musteriDurumu === 'aday' && (
+                      <Badge variant="outline" className="border-amber-400 bg-amber-50 text-amber-700">Aday</Badge>
+                    )}
+                    {m.musteriDurumu === 'pasif' && (
+                      <Badge variant="outline" className="text-muted-foreground">Pasif</Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="font-medium">{m.ad}</TableCell>
                 <TableCell>{m.ilgiliKisi ?? '—'}</TableCell>
