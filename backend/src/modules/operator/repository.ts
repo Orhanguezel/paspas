@@ -401,6 +401,7 @@ async function ensureAutomaticShiftForMachine(
     preferredVardiyaTipi,
     notlar,
     strictNoExisting,
+    bypassWorkingDay,
   }: {
     makineId: string;
     operatorUserId: string | null;
@@ -408,6 +409,13 @@ async function ensureAutomaticShiftForMachine(
     preferredVardiyaTipi?: VardiyaTipi;
     notlar?: string | null;
     strictNoExisting?: boolean;
+    /**
+     * Operatör bir üretim/vardiya girişi sırasında "içinde bulunulan vardiya"yı
+     * elle seçtiğinde (virtual vardiya seçeneği) çalışma-günü kısıtı uygulanmaz:
+     * kullanıcı bilinçli olarak veri girmek istiyordur. Yalnız otomatik/örtük
+     * çağrılarda (GET, başlat) çalışma-günü kısıtı geçerlidir.
+     */
+    bypassWorkingDay?: boolean;
   },
 ) {
   const openShift = await closeExpiredOpenShiftForMachine(tx, makineId, now);
@@ -430,10 +438,12 @@ async function ensureAutomaticShiftForMachine(
   // Cuma gece → Cumartesi sabah). Vardiyanın başlangıç GÜNÜ ya da bitiş GÜNÜ
   // çalışma günüyse vardiya geçerlidir. Yalnız başlangıç gününe bakmak,
   // çalışma gününe sarkmış gece vardiyalarını yanlışlıkla engelliyordu.
-  const calismaBaslangic = await isMakineWorkingDay(makineId, vardiyaPenceresi.baslangic);
-  const calismaBitis = await isMakineWorkingDay(makineId, vardiyaPenceresi.bitis);
-  if (!calismaBaslangic && !calismaBitis) {
-    throw new Error('makine_bugun_calismiyor');
+  if (!bypassWorkingDay) {
+    const calismaBaslangic = await isMakineWorkingDay(makineId, vardiyaPenceresi.baslangic);
+    const calismaBitis = await isMakineWorkingDay(makineId, vardiyaPenceresi.bitis);
+    if (!calismaBaslangic && !calismaBitis) {
+      throw new Error('makine_bugun_calismiyor');
+    }
   }
 
   const id = randomUUID();
@@ -448,6 +458,54 @@ async function ensureAutomaticShiftForMachine(
 
   const [createdShift] = await tx.select().from(vardiyaKayitlari).where(eq(vardiyaKayitlari.id, id)).limit(1);
   return createdShift;
+}
+
+// ============================================================
+// Virtual (henüz kaydı olmayan) "içinde bulunulan vardiya" seçeneği
+// ------------------------------------------------------------
+// Operatör ekranındaki vardiya seçicide üç seçenek olmalı: içinde bulunulan
+// (aktif) vardiya + geçmiş iki vardiya. Aktif vardiyanın `vardiya_kayitlari`
+// kaydı, ilk üretim girişi olana dek OLUŞMAYABİLİR (ör. Pazartesi sabahı henüz
+// hiçbir makinede üretim başlamamışken). Bu durumda aktif vardiya listede hiç
+// görünmüyordu. Çözüm: kayıt yokken sanal (virtual) bir seçenek üretip başa
+// (default) koyuyoruz; kullanıcı bu seçenekle veri girdiğinde gerçek vardiya
+// kaydı submit anında materyalize ediliyor. GET tarafında DB'ye yazma yok.
+// ============================================================
+const VIRTUAL_SHIFT_PREFIX = 'virtual:';
+
+function buildVirtualShiftId(pencere: VardiyaPenceresi): string {
+  return `${VIRTUAL_SHIFT_PREFIX}${pencere.vardiyaTipi}:${pencere.baslangic.getTime()}`;
+}
+
+function parseVirtualShiftId(id: string | null | undefined): { vardiyaTipi: VardiyaTipi } | null {
+  if (!id || !id.startsWith(VIRTUAL_SHIFT_PREFIX)) return null;
+  const vardiyaTipi = id.slice(VIRTUAL_SHIFT_PREFIX.length).split(':')[0];
+  if (vardiyaTipi !== 'gunduz' && vardiyaTipi !== 'gece') return null;
+  return { vardiyaTipi };
+}
+
+/**
+ * Submit sırasında gelen `vardiyaKayitId` sanal ise, o vardiyanın gerçek kaydını
+ * (yoksa oluşturarak) döndürür ve gerçek id'yi verir. Sanal değilse olduğu gibi
+ * geri döner. Manuel seçim olduğu için çalışma-günü kısıtı uygulanmaz.
+ */
+async function materializeVirtualShift(
+  tx: DbTransaction,
+  makineId: string,
+  vardiyaKayitId: string | null | undefined,
+  now: Date,
+  operatorUserId: string | null,
+): Promise<string | null> {
+  const virtual = parseVirtualShiftId(vardiyaKayitId);
+  if (!virtual) return vardiyaKayitId ?? null;
+  const shift = await ensureAutomaticShiftForMachine(tx, {
+    makineId,
+    operatorUserId,
+    now,
+    preferredVardiyaTipi: virtual.vardiyaTipi,
+    bypassWorkingDay: true,
+  });
+  return shift.id;
 }
 
 /**
@@ -1396,10 +1454,12 @@ export async function repoUretimBitir(
     const toplamFire = oncekiFire + body.fireMiktar;
 
     // Log final günlük kayıt as one more incremental entry.
+    // Sanal "içinde bulunulan vardiya" seçildiyse gerçek kaydını oluştur/bul.
+    const submittedVardiyaKayitId = await materializeVirtualShift(tx, kqRow.makine_id, body.vardiyaKayitId, now, operatorUserId);
     const vardiyaKayitId = await resolveVardiyaKayitIdForProduction(tx, {
       makineId: kqRow.makine_id,
       kayitTarihi: now,
-      vardiyaKayitId: body.vardiyaKayitId,
+      vardiyaKayitId: submittedVardiyaKayitId,
     });
 
     await tx.insert(operatorGunlukKayitlari).values({
@@ -2080,11 +2140,16 @@ export async function repoDuraklat(
         .where(eq(uretimEmriOperasyonlari.id, kqRow.emir_operasyon_id));
     }
 
+    // Sanal "içinde bulunulan vardiya" seçildiyse gerçek kaydını oluştur/bul.
+    const vardiyaKayitId = kqRow?.makine_id
+      ? await materializeVirtualShift(tx, kqRow.makine_id, body.vardiyaKayitId, now, operatorUserId)
+      : (body.vardiyaKayitId ?? null);
+
     await tx.insert(durusKayitlari).values({
       id: randomUUID(),
       makine_id: kqRow?.makine_id ?? '',
       makine_kuyruk_id: body.makineKuyrukId,
-      vardiya_kayit_id: body.vardiyaKayitId ?? null,
+      vardiya_kayit_id: vardiyaKayitId,
       operator_user_id: operatorUserId ?? null,
       durus_nedeni_id: body.durusNedeniId,
       durus_tipi: 'durus',
@@ -2173,6 +2238,8 @@ export async function repoDevamEt(
 
     // Log incremental production during downtime + update stock
     if (body.uretilenMiktar !== undefined && body.uretilenMiktar > 0 && kqRow) {
+      // Sanal "içinde bulunulan vardiya" seçildiyse gerçek kaydını oluştur/bul.
+      const vardiyaKayitId = await materializeVirtualShift(tx, kqRow.makine_id, body.vardiyaKayitId, now, operatorUserId);
       await recordIncrementalProductionEntry(tx, {
         kqRow,
         operatorUserId,
@@ -2181,7 +2248,7 @@ export async function repoDevamEt(
         birimTipi: body.birimTipi,
         notlar: body.notlar ?? 'Duruş sonu artımlı üretim kaydı',
         gunlukDurum: 'devam_ediyor',
-        vardiyaKayitId: body.vardiyaKayitId,
+        vardiyaKayitId,
       });
     }
 
@@ -2264,6 +2331,9 @@ export async function repoVardiyaSonu(
 
   // Log incremental production at shift end + update stock
   if (body.uretilenMiktar !== undefined && body.uretilenMiktar > 0) {
+    // Vardiya sonunda üretim, henüz kapatılan açık vardiyaya yazılır. Sanal id
+    // gelirse (pratikte gelmez) yeni vardiya oluşturmak yerine kapatılana bağla.
+    const vardiyaKayitId = parseVirtualShiftId(body.vardiyaKayitId) ? openVardiya.id : (body.vardiyaKayitId ?? null);
     await db.transaction(async (tx) => {
       const runningJob = await findActiveMachineJob(tx, body.makineId);
       if (!runningJob) return;
@@ -2276,7 +2346,7 @@ export async function repoVardiyaSonu(
         birimTipi: body.birimTipi,
         notlar: body.notlar ?? 'Vardiya sonu günlük üretim girişi',
         gunlukDurum: 'yarim_kaldi',
-        vardiyaKayitId: body.vardiyaKayitId,
+        vardiyaKayitId,
       });
     });
   }
@@ -2292,7 +2362,10 @@ export async function repoGunlukUretimGir(
   const now = new Date();
 
   const kayit = await db.transaction(async (tx) => {
-    const openShift = body.vardiyaKayitId
+    // Sanal "içinde bulunulan vardiya" seçildiyse gerçek kaydını oluştur/bul.
+    const vardiyaKayitId = await materializeVirtualShift(tx, body.makineId, body.vardiyaKayitId, now, operatorUserId);
+
+    const openShift = vardiyaKayitId
       ? null
       : await closeExpiredOpenShiftForMachine(tx, body.makineId, now);
 
@@ -2320,8 +2393,8 @@ export async function repoGunlukUretimGir(
     if (recentDuplicate) return rowToGunlukGirisDto(recentDuplicate);
 
     let kayitTarihi = now;
-    if (body.vardiyaKayitId) {
-      const targetShift = await findShiftByIdForMachine(tx, body.vardiyaKayitId, body.makineId);
+    if (vardiyaKayitId) {
+      const targetShift = await findShiftByIdForMachine(tx, vardiyaKayitId, body.makineId);
       if (!targetShift) throw new Error('vardiya_kaydi_bulunamadi');
       kayitTarihi = targetShift.bitis ? new Date(targetShift.bitis) : now;
     } else if (openShift) {
@@ -2350,7 +2423,7 @@ export async function repoGunlukUretimGir(
       notlar: body.notlar ?? 'Vardiya sonu günlük üretim girişi',
       gunlukDurum: 'yarim_kaldi',
       kayitTarihi,
-      vardiyaKayitId: body.vardiyaKayitId,
+      vardiyaKayitId,
     });
   });
 
@@ -2554,6 +2627,9 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
     recentByMachine.set(row.makineId, list);
   }
 
+  // İçinde bulunulan vardiya penceresi (tüm makineler için ortak — tanımlar global).
+  const currentWindow = await getCurrentShiftWindow(now);
+
   return rows.map((r) => {
     const recent = [...(recentByMachine.get(r.makineId) ?? [])];
     // Acik vardiya listede yoksa 3. secenek olarak basa ekle (default o secilir).
@@ -2564,6 +2640,26 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
         baslangic: r.baslangic,
         bitis: null,
       });
+    }
+
+    // İçinde bulunulan vardiyanın henüz gerçek kaydı yoksa (ör. bugün hiç üretim
+    // başlamamışken) sanal seçenek olarak başa ekle — default bu seçilir.
+    // Kullanıcı bu seçenekle veri girdiğinde kayıt submit anında oluşturulur.
+    if (currentWindow) {
+      const currentRepresented = recent.some(
+        (v) =>
+          v.bitis === null &&
+          v.vardiyaTipi === currentWindow.vardiyaTipi &&
+          new Date(v.baslangic).getTime() === currentWindow.baslangic.getTime(),
+      );
+      if (!currentRepresented) {
+        recent.unshift({
+          id: buildVirtualShiftId(currentWindow),
+          vardiyaTipi: currentWindow.vardiyaTipi,
+          baslangic: currentWindow.baslangic,
+          bitis: null,
+        });
+      }
     }
     return {
       makineId: r.makineId,
