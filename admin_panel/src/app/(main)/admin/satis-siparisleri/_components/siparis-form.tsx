@@ -121,7 +121,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
 
   const handleUrunChange = useCallback(
     (idx: number, urunId: string) => {
-      form.setValue(`items.${idx}.urunId`, urunId);
+      form.setValue(`items.${idx}.urunId`, urunId, { shouldValidate: true });
       const fiyat = urunFiyatMap.get(urunId);
       if (fiyat != null) {
         form.setValue(`items.${idx}.birimFiyat`, fiyat);
@@ -237,7 +237,33 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
   }
 
   function onInvalid() {
-    toast.error("Formda eksik veya hatalı alanlar var. Lütfen işaretli alanları kontrol edin.");
+    // Hangi alanın hatalı olduğunu net söyle — özellikle kalem (ürün) satırları
+    // özel combobox olduğu için RHF otomatik odaklayamıyor; kullanıcı neyi
+    // düzelteceğini görmüyordu. Somut mesaj + işaretli (kırmızı) combobox veriyoruz.
+    const errs = form.formState.errors;
+    const msgs: string[] = [];
+    if (errs.siparisNo) msgs.push("Sipariş no zorunlu");
+    if (errs.musteriId) msgs.push("Müşteri seçilmemiş");
+    if (errs.siparisTarihi) msgs.push("Sipariş tarihi zorunlu");
+    if (errs.ekstraIndirimOrani) msgs.push("Ekstra iskonto 0–100 arasında olmalı");
+    const itemErrors = errs.items;
+    if (itemErrors && !Array.isArray(itemErrors) && itemErrors.root?.message) {
+      msgs.push(itemErrors.root.message);
+    }
+    if (Array.isArray(itemErrors)) {
+      itemErrors.forEach((itemErr, idx) => {
+        if (!itemErr) return;
+        if (itemErr.urunId) msgs.push(`${idx + 1}. kalemde ürün seçilmemiş`);
+        if (itemErr.miktar) msgs.push(`${idx + 1}. kalemde miktar geçersiz`);
+        if (itemErr.birimFiyat) msgs.push(`${idx + 1}. kalemde fiyat geçersiz`);
+      });
+    }
+    if (msgs.length === 0) {
+      toast.error("Formda eksik veya hatalı alanlar var. Lütfen işaretli alanları kontrol edin.");
+      return;
+    }
+    const shown = msgs.slice(0, 3).join(" · ");
+    toast.error(`Kaydedilemedi — ${shown}${msgs.length > 3 ? " · …" : ""}`);
   }
 
   return (
@@ -294,9 +320,10 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
             <MusteriCombobox
               musteriler={musteriler}
               value={selectedMusteriId}
-              onChange={(v) => form.setValue("musteriId", v)}
+              onChange={(v) => form.setValue("musteriId", v, { shouldValidate: true })}
               placeholder={t("admin.erp.satisSiparisleri.form.musteriPlaceholder")}
               disabled={isLocked}
+              error={!!form.formState.errors.musteriId}
             />
             {form.formState.errors.musteriId && (
               <p className="text-xs text-destructive">{form.formState.errors.musteriId.message}</p>
@@ -357,6 +384,7 @@ export default function SiparisForm({ open, onClose, siparis }: Props) {
                     onChange={(v) => handleUrunChange(idx, v)}
                     placeholder={t("admin.erp.satisSiparisleri.form.urunPlaceholder")}
                     disabled={isLocked}
+                    error={!!form.formState.errors.items?.[idx]?.urunId}
                   />
                   {form.formState.errors.items?.[idx]?.urunId && (
                     <p className="text-xs text-destructive">{form.formState.errors.items[idx]?.urunId?.message}</p>
@@ -490,9 +518,10 @@ interface MusteriComboboxProps {
   onChange: (value: string) => void;
   placeholder: string;
   disabled?: boolean;
+  error?: boolean;
 }
 
-function MusteriCombobox({ musteriler, value, onChange, placeholder, disabled }: MusteriComboboxProps) {
+function MusteriCombobox({ musteriler, value, onChange, placeholder, disabled, error }: MusteriComboboxProps) {
   const [open, setOpen] = useState(false);
   const selected = musteriler.find((m) => m.id === value);
 
@@ -502,7 +531,7 @@ function MusteriCombobox({ musteriler, value, onChange, placeholder, disabled }:
         <Button
           type="button"
           variant="outline"
-          className="h-9 w-full justify-between text-sm font-normal"
+          className={`h-9 w-full justify-between text-sm font-normal ${error ? "border-destructive ring-1 ring-destructive" : ""}`}
           disabled={disabled}
         >
           <span className="truncate">{selected ? selected.ad : placeholder}</span>
@@ -541,9 +570,10 @@ interface UrunComboboxProps {
   onChange: (value: string) => void;
   placeholder: string;
   disabled?: boolean;
+  error?: boolean;
 }
 
-function UrunCombobox({ urunler, value, onChange, placeholder, disabled }: UrunComboboxProps) {
+function UrunCombobox({ urunler, value, onChange, placeholder, disabled, error }: UrunComboboxProps) {
   const [open, setOpen] = useState(false);
   const selected = urunler.find((u) => u.id === value);
 
@@ -553,7 +583,7 @@ function UrunCombobox({ urunler, value, onChange, placeholder, disabled }: UrunC
         <Button
           type="button"
           variant="outline"
-          className="h-8 w-full justify-between text-sm font-normal"
+          className={`h-8 w-full justify-between text-sm font-normal ${error ? "border-destructive ring-1 ring-destructive" : ""}`}
           disabled={disabled}
         >
           <span className="truncate">{selected ? `${selected.kod} — ${selected.ad}` : placeholder}</span>
