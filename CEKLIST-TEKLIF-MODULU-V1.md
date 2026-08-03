@@ -81,9 +81,59 @@ alan eşleşmesini (üst plandaki Görev #1) tanımlar.
 
 ---
 
+---
+
+## V1.5 — Aday Müşteri (Prospect) kavramı + CRM çekirdeği (transpalet aktarımı)
+
+> Kullanıcı talebi (2026-08-03): Web/telefon/manuel yoldan, sistemde kayıtlı olmayan
+> kişiden teklif alabiliriz → bunlar **aday müşteri**. Teklif siparişe dönüşürse **gerçek
+> müşteri** olur. **Transpalet'ten aktarılacak, yeniden yazılmayacak.**
+
+**Transpalet'te mevcut karşılık:** `musteriler.musteri_durumu` enum
+`('potansiyel','aktif','pasif','eski','kara_liste')` — *potansiyel = aday*. Ayrıca `talepler`
+(lead durumları: yeni/atandi/iletisimde/nitelikli/uygun_degil/donusturuldu) ve `crm` modülü
+(firsat/pipeline/aktivite/convert).
+
+### Aday müşteri (V1.5 — öncelikli)
+- [ ] **Müşteriye durum alanı ekle** — `musteriler.musteri_durumu` (`aday | aktif | pasif`),
+      seed SQL ile (ALTER yok; `CREATE TABLE` tanımına ekle + fresh, ya da yeni kurulumda ekli).
+      Kaynak: transpalet `db/seed/sql/104_musteriler_schema.sql` + `234_v1_musteri_crm_genislet.sql`,
+      `modules/musteriler/schema.ts` (`musteri_durumu`/`takip_durumu`). Paspas'ta 'potansiyel'→**'aday'**.
+- [ ] **Web teklif talebini dönüştürürken** yeni müşteri **aday** açılsın (`musteri_durumu='aday'`);
+      mevcut müşteri seçilirse durumu değişmez. (V1'deki `repoDonusturTalep` genişletilir.)
+- [ ] **Manuel teklif oluştururken:** mevcut müşteriyi seç **veya** satır içi **yeni aday müşteri ekle**
+      (ad/telefon/e-posta/adres) → aday olarak kaydedilir, teklife bağlanır.
+- [ ] **Telefonla gelen istek:** admin gelen kutusuna **manuel talep ekleme** (kaynak='telefon') →
+      adaya/teklife dönüştür. (V1 `teklif_talepleri`'ne manuel create endpoint'i.)
+- [ ] **Teklif → satış siparişine dönüşünce** (Adım 4) aday müşteri otomatik **aktif müşteri** olsun
+      (promote), audit'e yazılsın. Kaynak: transpalet `modules/crm/convert.service.ts`.
+- [ ] **Müşteri listesi:** aday/aktif filtresi + rozet; aday müşteriler ayrı görünüm/sekme.
+
+### CRM (transpalet'ten aktarılacak — işe yarayan kısımlar; büyük plan 33-58 ile)
+- [ ] **Talepler modülünü hizala** — Paspas `teklif_talepleri` ile transpalet `talepler`
+      (`235_v1_talepler_schema.sql`, `modules/talepler/*`) alanlarını eşle; lead durum makinesini taşı.
+- [ ] **(Opsiyonel/ileri) Fırsat + pipeline** — talep→fırsat→teklif zinciri. Kaynak:
+      `modules/crm/{deals,pipelines,activities,convert}.service.ts` + seed `231/232/233/236`.
+      *Not: aday müşteri + talep V1.5 için yeterli; tam CRM (Kanban/aktivite/rapor) sonraki faz.*
+
+**Transpalet kaynak dosyaları (kopya, yeniden yazma yok):**
+`modules/musteriler/schema.ts` · `db/seed/sql/104,234` (müşteri durumu) ·
+`modules/talepler/*` · `db/seed/sql/235` (talep/lead) ·
+`modules/crm/convert.service.ts` (dönüşüm + müşteri promote) ·
+`modules/crm/{deals,pipelines,activities,dashboard,gorunumler,insights}.service.ts` + `231/232/233/236` (tam CRM, ileri faz).
+
+---
+
 ## Definition of Done (V1)
 - [ ] Admin'de "Teklif Modülü" başlığı, iki alt sayfa görünür ve yetki korumalı.
 - [ ] Manuel teklif oluşturulup taslak düzenlenebiliyor (müşteri+ürün seçici, toplamlar backendde).
 - [ ] Web teklif talebi kaydediliyor, gelen kutusunda görünüyor, müşteri+taslak teklife dönüşüyor.
 - [ ] Örnek Promats teklif formu yazdırılabilir/önizlenebilir.
 - [ ] `bun run build` (backend) ve `tsc` (admin) temiz.
+
+### DoD — V1.5 (Aday Müşteri)
+- [ ] Sistemde kayıtlı olmayan kişiden (web/telefon/manuel) teklif → **aday müşteri** kaydı oluşuyor.
+- [ ] Manuel teklifte müşteri **seçilebiliyor veya satır içi aday müşteri eklenebiliyor**.
+- [ ] Teklif satış siparişine dönüşünce aday müşteri **aktif müşteriye** yükseliyor (tek yönlü, audit'li).
+- [ ] Müşteri listesinde aday/aktif ayrımı (filtre + rozet) görünüyor.
+- [ ] Müşteri durumu seed SQL ile eklendi (ALTER yok); transpalet'ten aktarıldı, yeniden yazılmadı.
