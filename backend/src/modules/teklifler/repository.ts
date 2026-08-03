@@ -8,6 +8,8 @@ import { randomUUID } from 'node:crypto';
 import { and, asc, desc, eq, like, or, sql } from 'drizzle-orm';
 
 import { db, pool } from '@/db/client';
+import type { AppRole } from '@/common/middleware/roles';
+import { TEKLIF_ISKONTO_LIMITLERI } from '@/common/middleware/permissions';
 import { repoCreate as musteriRepoCreate } from '@/modules/musteriler/repository';
 import { musteriler } from '@/modules/musteriler/schema';
 import { repoGetNextSiparisNo } from '@/modules/satis_siparisleri/repository';
@@ -23,6 +25,8 @@ import {
   teklifKalemleri,
   teklifKalemRowToDto,
   teklifler,
+  teklifRevizyonlari,
+  teklifRevizyonRowToDto,
   teklifRowToDto,
   teklifTalepleri,
   teklifTalepRowToDto,
@@ -53,6 +57,29 @@ export function assertGecis(mevcut: string, hedef: string): void {
   const izin = GECISLER[mevcut as TeklifDurum] ?? [];
   if (!izin.includes(hedef as TeklifDurum)) {
     throw new Error('gecersiz_teklif_gecisi');
+  }
+}
+
+// ── İskonto onay kapısı (transpalet CRM_ISKONTO_LIMITLERI'nden uyarlanmıştır) ──
+// Rolün limitini aşan genel iskonto, admin onayı olmadan gönderilemez.
+
+export function iskontoOnayGerekli(iskontoOrani: number, role: string): boolean {
+  const limit = TEKLIF_ISKONTO_LIMITLERI[role as AppRole] ?? 0;
+  return iskontoOrani > limit;
+}
+
+function assertIskontoOnayiEngelYok(row: TeklifRow, role: string): void {
+  if (iskontoOnayGerekli(Number(row.iskonto_orani), role) && row.iskonto_onaylandi !== 1) {
+    throw new Error('iskonto_onayi_gerekli');
+  }
+}
+
+/** Controller'ın /gonder eyleminden çağırdığı public gate — DTO alanları üzerinden. */
+export function assertTeklifGonderilebilir(
+  teklif: { iskontoOrani: number; iskontoOnaylandi: boolean }, actorRole: string,
+): void {
+  if (iskontoOnayGerekli(teklif.iskontoOrani, actorRole) && !teklif.iskontoOnaylandi) {
+    throw new Error('iskonto_onayi_gerekli');
   }
 }
 
@@ -178,15 +205,17 @@ export async function repoListTeklifler(q: TeklifListQuery): Promise<{ items: Re
 export async function repoGetTeklif(id: string): Promise<ReturnType<typeof teklifRowToDto> | null> {
   const row = await getTeklifRow(id);
   if (!row) return null;
-  const [kalemler, musteriAd, gonderimler] = await Promise.all([
+  const [kalemler, musteriAd, gonderimler, revizyonlar] = await Promise.all([
     getKalemRows(id),
     getMusteriAd(row.musteri_id),
     db.select().from(teklifGonderimleri).where(eq(teklifGonderimleri.teklif_id, id)).orderBy(desc(teklifGonderimleri.created_at)),
+    db.select().from(teklifRevizyonlari).where(eq(teklifRevizyonlari.teklif_id, id)).orderBy(desc(teklifRevizyonlari.revizyon_no)),
   ]);
   return teklifRowToDto(row, {
     musteriAd,
     kalemler: kalemler.map(teklifKalemRowToDto),
     gonderimler: gonderimler.map(teklifGonderimRowToDto),
+    revizyonlar: revizyonlar.map((r) => teklifRevizyonRowToDto(r)),
   });
 }
 
@@ -269,7 +298,13 @@ export async function repoPatchTeklif(id: string, body: TeklifPatchBody): Promis
   if (body.dil !== undefined) set.dil = body.dil;
   if (body.kdvOrani !== undefined) set.kdv_orani = String(body.kdvOrani);
   if (body.kdvDahil !== undefined) set.kdv_dahil = body.kdvDahil ? 1 : 0;
-  if (body.iskontoOrani !== undefined) set.iskonto_orani = String(body.iskontoOrani);
+  if (body.iskontoOrani !== undefined && Number(body.iskontoOrani) !== Number(row.iskonto_orani)) {
+    // Onay, o anki iskonto oranına bağlıydı — oran değişince yeniden onay gerekir.
+    set.iskonto_orani = String(body.iskontoOrani);
+    set.iskonto_onaylandi = 0;
+    set.iskonto_onaylayan_user_id = null;
+    set.iskonto_onay_at = null;
+  }
   if (body.nakliye !== undefined) set.nakliye = String(body.nakliye);
   if (body.gecerlilikTarihi !== undefined) set.gecerlilik_tarihi = body.gecerlilikTarihi ? new Date(body.gecerlilikTarihi) : null;
   if (body.odemeKosullari !== undefined) set.odeme_kosullari = body.odemeKosullari ?? null;
@@ -289,15 +324,86 @@ export async function repoDeleteTeklif(id: string): Promise<boolean> {
   return true;
 }
 
-export async function repoSetTeklifDurum(id: string, durum: string, redNedeni?: string): Promise<ReturnType<typeof teklifRowToDto> | null> {
+export async function repoSetTeklifDurum(
+  id: string, durum: string, redNedeni: string | undefined, actorRole: string,
+): Promise<ReturnType<typeof teklifRowToDto> | null> {
   const row = await getTeklifRow(id);
   if (!row) return null;
   assertGecis(row.durum, durum);
+  // 'gonderildi' hedefi — hem generic durum hem /gonder üzerinden ulaşılabilir;
+  // iskonto onay kapısı her iki yoldan da geçerli olsun.
+  if (durum === 'gonderildi') assertIskontoOnayiEngelYok(row, actorRole);
   await db.update(teklifler).set({
     durum,
     red_nedeni: durum === 'red' ? (redNedeni ?? null) : row.red_nedeni,
   }).where(eq(teklifler.id, id));
   return repoGetTeklif(id);
+}
+
+/** Taslak → onay_bekliyor: yalnız gerçekten onay gereken (limit aşan) tekliflerde. */
+export async function repoOnayaGonder(id: string, actorRole: string): Promise<ReturnType<typeof teklifRowToDto> | null> {
+  const row = await getTeklifRow(id);
+  if (!row) return null;
+  if (!iskontoOnayGerekli(Number(row.iskonto_orani), actorRole)) throw new Error('onay_gerekmiyor');
+  assertGecis(row.durum, 'onay_bekliyor');
+  await db.update(teklifler).set({ durum: 'onay_bekliyor' }).where(eq(teklifler.id, id));
+  return repoGetTeklif(id);
+}
+
+/** Admin onayı: iskonto onaylanır, teklif düzenlemeye (taslak) geri döner. */
+export async function repoOnaylaIskonto(id: string, userId: string | null): Promise<ReturnType<typeof teklifRowToDto> | null> {
+  const row = await getTeklifRow(id);
+  if (!row) return null;
+  if (row.durum !== 'onay_bekliyor') throw new Error('gecersiz_teklif_gecisi');
+  await db.update(teklifler).set({
+    durum: 'taslak',
+    iskonto_onaylandi: 1,
+    iskonto_onaylayan_user_id: userId,
+    iskonto_onay_at: new Date(),
+  }).where(eq(teklifler.id, id));
+  return repoGetTeklif(id);
+}
+
+/** Admin reddi: iskonto onaylanmaz, teklif düzenlemeye (taslak) geri döner. */
+export async function repoReddetIskonto(id: string, neden: string): Promise<ReturnType<typeof teklifRowToDto> | null> {
+  const row = await getTeklifRow(id);
+  if (!row) return null;
+  if (row.durum !== 'onay_bekliyor') throw new Error('gecersiz_teklif_gecisi');
+  await db.update(teklifler).set({ durum: 'taslak', red_nedeni: neden }).where(eq(teklifler.id, id));
+  return repoGetTeklif(id);
+}
+
+/**
+ * Revizyon (R0/R1/R2) — gönderilmiş/görüntülenmiş/reddedilmiş/süresi dolmuş
+ * teklifin tam anlık görüntüsünü değişmez şekilde saklar, sonra taslağa döner.
+ */
+export async function repoCreateRevizyon(
+  id: string, neden: string, userId: string | null,
+): Promise<ReturnType<typeof teklifRowToDto> | null> {
+  const row = await getTeklifRow(id);
+  if (!row) return null;
+  if (!['gonderildi', 'goruntulendi', 'red', 'suresi_doldu'].includes(row.durum)) {
+    throw new Error('gecersiz_teklif_gecisi');
+  }
+  const dto = await repoGetTeklif(id);
+  if (!dto) return null;
+
+  const maxNo = await db.select({ m: sql<number>`COALESCE(MAX(${teklifRevizyonlari.revizyon_no}), 0)` })
+    .from(teklifRevizyonlari).where(eq(teklifRevizyonlari.teklif_id, id));
+  const nextNo = Number(maxNo[0]?.m ?? 0) + 1;
+
+  await db.insert(teklifRevizyonlari).values({
+    id: randomUUID(), teklif_id: id, revizyon_no: nextNo,
+    snapshot: dto, neden, created_by: userId,
+  });
+  await db.update(teklifler).set({ durum: 'taslak' }).where(eq(teklifler.id, id));
+  return repoGetTeklif(id);
+}
+
+export async function repoListRevizyonlar(id: string): Promise<ReturnType<typeof teklifRevizyonRowToDto>[]> {
+  const rows = await db.select().from(teklifRevizyonlari)
+    .where(eq(teklifRevizyonlari.teklif_id, id)).orderBy(desc(teklifRevizyonlari.revizyon_no));
+  return rows.map((r) => teklifRevizyonRowToDto(r));
 }
 
 /**

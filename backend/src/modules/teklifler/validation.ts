@@ -68,6 +68,14 @@ export const gonderSchema = z.object({
   aliciEmail: z.string().trim().email().max(255).optional(),
 }).refine((v) => v.kanal !== 'email' || !!v.aliciEmail, { message: 'E-posta gönderimi için alıcı e-posta zorunlu' });
 
+export const onayReddetSchema = z.object({
+  neden: z.string().trim().min(1, 'Red nedeni zorunlu').max(500),
+});
+
+export const revizyonSchema = z.object({
+  neden: z.string().trim().min(1, 'Revizyon nedeni zorunlu').max(500),
+});
+
 // ── Teklif kalemi ────────────────────────────────────────────
 
 export const kalemCreateSchema = z.object({

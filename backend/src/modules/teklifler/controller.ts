@@ -13,19 +13,24 @@ import { sendMailWithAttachments } from '@/modules/mail/service';
 import { PdfUnavailableError } from './pdf.service';
 import { buildTeklifPdf } from './teklif-pdf';
 import {
-  repoAddKalem, repoCreateTalepPublic, repoCreateTeklif, repoDeleteKalem, repoDeleteTeklif,
-  repoDonusturTalep, repoGetTalep, repoGetTeklif, repoListTalepler, repoListTeklifler,
-  repoLogGonderim, repoMarkGonderildi, repoPatchKalem, repoPatchTalep, repoPatchTeklif,
-  repoSetTeklifDurum, repoTeklifByToken, repoTeklifiSipariseDonustur,
+  assertTeklifGonderilebilir, repoAddKalem, repoCreateRevizyon, repoCreateTalepPublic,
+  repoCreateTeklif, repoDeleteKalem, repoDeleteTeklif, repoDonusturTalep, repoGetTalep,
+  repoGetTeklif, repoListRevizyonlar, repoListTalepler, repoListTeklifler, repoLogGonderim,
+  repoMarkGonderildi, repoOnaylaIskonto, repoOnayaGonder, repoPatchKalem, repoPatchTalep,
+  repoPatchTeklif, repoReddetIskonto, repoSetTeklifDurum, repoTeklifByToken,
+  repoTeklifiSipariseDonustur,
 } from './repository';
 import {
-  gonderSchema, kalemCreateSchema, kalemPatchSchema, talepDonusturSchema, talepListQuerySchema,
-  talepPatchSchema, talepPublicSchema, teklifCreateSchema, teklifDurumSchema,
-  teklifListQuerySchema, teklifPatchSchema,
+  gonderSchema, kalemCreateSchema, kalemPatchSchema, onayReddetSchema, revizyonSchema,
+  talepDonusturSchema, talepListQuerySchema, talepPatchSchema, talepPublicSchema,
+  teklifCreateSchema, teklifDurumSchema, teklifListQuerySchema, teklifPatchSchema,
 } from './validation';
 
 function userIdOf(req: { user?: unknown }): string | null {
   return (req.user as { id?: string } | undefined)?.id ?? null;
+}
+function roleOf(req: { user?: unknown }): string {
+  return (req.user as { role?: string } | undefined)?.role ?? 'operator';
 }
 
 // İş kuralı hatasını uygun HTTP koduna eşle
@@ -39,6 +44,8 @@ function mapError(reply: Parameters<RouteHandler>[1], err: unknown): void {
     urun_esmesi_gerekli: 422,
     sadece_taslak_duzenlenir: 409,
     sadece_taslak_silinir: 409,
+    onay_gerekmiyor: 409,
+    iskonto_onayi_gerekli: 422,
     teklif_bulunamadi: 404,
     kalem_bulunamadi: 404,
     talep_bulunamadi: 404,
@@ -83,6 +90,9 @@ export const gonderTeklif: RouteHandler = async (req, reply) => {
 
   const teklif = await repoGetTeklif(id);
   if (!teklif) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
+  try {
+    assertTeklifGonderilebilir(teklif, roleOf(req));
+  } catch (err) { return mapError(reply, err); }
 
   if (kanal === 'email') {
     try {
@@ -189,10 +199,59 @@ export const setTeklifDurum: RouteHandler = async (req, reply) => {
   const parsed = teklifDurumSchema.safeParse(req.body);
   if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
   try {
-    const dto = await repoSetTeklifDurum(id, parsed.data.durum, parsed.data.redNedeni);
+    const dto = await repoSetTeklifDurum(id, parsed.data.durum, parsed.data.redNedeni, roleOf(req));
     if (!dto) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
     return dto;
   } catch (err) { return mapError(reply, err); }
+};
+
+// ── İskonto onay akışı ───────────────────────────────────────
+
+export const onayaGonder: RouteHandler = async (req, reply) => {
+  const { id } = req.params as { id: string };
+  try {
+    const dto = await repoOnayaGonder(id, roleOf(req));
+    if (!dto) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
+    return dto;
+  } catch (err) { return mapError(reply, err); }
+};
+
+export const onaylaIskonto: RouteHandler = async (req, reply) => {
+  const { id } = req.params as { id: string };
+  try {
+    const dto = await repoOnaylaIskonto(id, userIdOf(req));
+    if (!dto) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
+    return dto;
+  } catch (err) { return mapError(reply, err); }
+};
+
+export const reddetIskonto: RouteHandler = async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const parsed = onayReddetSchema.safeParse(req.body);
+  if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
+  try {
+    const dto = await repoReddetIskonto(id, parsed.data.neden);
+    if (!dto) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
+    return dto;
+  } catch (err) { return mapError(reply, err); }
+};
+
+// ── Revizyon (R0/R1/R2) ──────────────────────────────────────
+
+export const createRevizyon: RouteHandler = async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const parsed = revizyonSchema.safeParse(req.body);
+  if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
+  try {
+    const dto = await repoCreateRevizyon(id, parsed.data.neden, userIdOf(req));
+    if (!dto) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
+    return reply.code(201).send(dto);
+  } catch (err) { return mapError(reply, err); }
+};
+
+export const listRevizyonlar: RouteHandler = async (req, reply) => {
+  const { id } = req.params as { id: string };
+  return repoListRevizyonlar(id);
 };
 
 // ── Kalemler ─────────────────────────────────────────────────

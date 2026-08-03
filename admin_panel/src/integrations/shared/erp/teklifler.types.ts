@@ -68,6 +68,9 @@ export interface TeklifDto {
   araToplam: number;
   iskontoOrani: number;
   iskontoTutari: number;
+  iskontoOnaylandi: boolean;
+  iskontoOnaylayanUserId: string | null;
+  iskontoOnayAt: string | null;
   kdvOrani: number;
   kdvDahil: boolean;
   kdvTutari: number;
@@ -86,6 +89,7 @@ export interface TeklifDto {
   updatedAt: string;
   kalemler?: TeklifKalemDto[];
   gonderimler?: TeklifGonderimDto[];
+  revizyonlar?: TeklifRevizyonDto[];
 }
 
 export interface TeklifGonderimDto {
@@ -96,6 +100,21 @@ export interface TeklifGonderimDto {
   hataMesaji: string | null;
   createdAt: string;
 }
+
+export interface TeklifRevizyonDto {
+  id: string;
+  revizyonNo: number;
+  neden: string;
+  createdAt: string;
+}
+
+/** Sunucudaki TEKLIF_ISKONTO_LIMITLERI ile birebir — yalnız UI ipucu içindir; asıl kısıtlama backend'de. */
+export const TEKLIF_ISKONTO_LIMITLERI_UI: Record<string, number> = {
+  admin: 100,
+  sevkiyatci: 10,
+  operator: 0,
+  satin_almaci: 0,
+};
 
 export interface TeklifListResponse {
   items: TeklifDto[];
@@ -303,6 +322,9 @@ export function normalizeTeklif(raw: unknown): TeklifDto {
     araToplam:     toNum(r.araToplam),
     iskontoOrani:  toNum(r.iskontoOrani),
     iskontoTutari: toNum(r.iskontoTutari),
+    iskontoOnaylandi: toBool(r.iskontoOnaylandi, false),
+    iskontoOnaylayanUserId: r.iskontoOnaylayanUserId != null ? toStr(r.iskontoOnaylayanUserId) : null,
+    iskontoOnayAt: r.iskontoOnayAt != null ? toStr(r.iskontoOnayAt) : null,
     kdvOrani:      toNum(r.kdvOrani, 20),
     kdvDahil:      toBool(r.kdvDahil, true),
     kdvTutari:     toNum(r.kdvTutari),
@@ -329,6 +351,15 @@ export function normalizeTeklif(raw: unknown): TeklifDto {
         durum: toStr(gr.durum, 'basarili'),
         hataMesaji: gr.hataMesaji != null ? toStr(gr.hataMesaji) : null,
         createdAt: toStr(gr.createdAt),
+      };
+    }) : undefined,
+    revizyonlar: Array.isArray(r.revizyonlar) ? (r.revizyonlar as unknown[]).map((v) => {
+      const vr = (v && typeof v === 'object') ? v as Record<string, unknown> : {};
+      return {
+        id: toStr(vr.id),
+        revizyonNo: toNum(vr.revizyonNo),
+        neden: toStr(vr.neden),
+        createdAt: toStr(vr.createdAt),
       };
     }) : undefined,
   };

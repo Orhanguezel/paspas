@@ -108,6 +108,30 @@ export const tekliflerAdminApi = baseApi.injectEndpoints({
       ],
     }),
 
+    onayaGonderTeklifAdmin: b.mutation<TeklifDto, string>({
+      query: (id) => ({ url: `${BASE}/${id}/onaya-gonder`, method: 'POST' }),
+      transformResponse: (res: unknown) => normalizeTeklif(res),
+      invalidatesTags: (_r, _e, id) => [{ type: 'Teklif', id }, { type: 'Teklifler', id: 'LIST' }],
+    }),
+
+    onaylaIskontoAdmin: b.mutation<TeklifDto, string>({
+      query: (id) => ({ url: `${BASE}/${id}/onayla`, method: 'POST' }),
+      transformResponse: (res: unknown) => normalizeTeklif(res),
+      invalidatesTags: (_r, _e, id) => [{ type: 'Teklif', id }, { type: 'Teklifler', id: 'LIST' }],
+    }),
+
+    reddetIskontoAdmin: b.mutation<TeklifDto, { id: string; body: { neden: string } }>({
+      query: ({ id, body }) => ({ url: `${BASE}/${id}/onay-reddet`, method: 'POST', body }),
+      transformResponse: (res: unknown) => normalizeTeklif(res),
+      invalidatesTags: (_r, _e, { id }) => [{ type: 'Teklif', id }, { type: 'Teklifler', id: 'LIST' }],
+    }),
+
+    createTeklifRevizyonAdmin: b.mutation<TeklifDto, { id: string; body: { neden: string } }>({
+      query: ({ id, body }) => ({ url: `${BASE}/${id}/revizyon`, method: 'POST', body }),
+      transformResponse: (res: unknown) => normalizeTeklif(res),
+      invalidatesTags: (_r, _e, { id }) => [{ type: 'Teklif', id }, { type: 'Teklifler', id: 'LIST' }],
+    }),
+
     gonderTeklifAdmin: b.mutation<TeklifDto, { id: string; body: { kanal: 'email' | 'whatsapp_link' | 'manuel'; aliciEmail?: string } }>({
       query: ({ id, body }) => ({ url: `${BASE}/${id}/gonder`, method: 'POST', body }),
       transformResponse: (res: unknown) => normalizeTeklif(res),
@@ -205,6 +229,10 @@ export const {
   useUpdateTeklifAdminMutation,
   useDeleteTeklifAdminMutation,
   useSetTeklifDurumAdminMutation,
+  useOnayaGonderTeklifAdminMutation,
+  useOnaylaIskontoAdminMutation,
+  useReddetIskontoAdminMutation,
+  useCreateTeklifRevizyonAdminMutation,
   useGonderTeklifAdminMutation,
   useConvertTeklifToSiparisAdminMutation,
   useAddTeklifKalemAdminMutation,

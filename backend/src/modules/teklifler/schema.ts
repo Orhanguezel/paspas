@@ -47,6 +47,9 @@ export const teklifler = mysqlTable('teklifler', {
   ara_toplam: decimal('ara_toplam', { precision: 14, scale: 2 }).notNull().default('0.00'),
   iskonto_orani: decimal('iskonto_orani', { precision: 5, scale: 2 }).notNull().default('0.00'),
   iskonto_tutari: decimal('iskonto_tutari', { precision: 14, scale: 2 }).notNull().default('0.00'),
+  iskonto_onaylandi: tinyint('iskonto_onaylandi', { unsigned: true }).notNull().default(0),
+  iskonto_onaylayan_user_id: char('iskonto_onaylayan_user_id', { length: 36 }),
+  iskonto_onay_at: datetime('iskonto_onay_at'),
   kdv_orani: decimal('kdv_orani', { precision: 5, scale: 2 }).notNull().default('20.00'),
   kdv_dahil: tinyint('kdv_dahil', { unsigned: true }).notNull().default(0),
   kdv_tutari: decimal('kdv_tutari', { precision: 14, scale: 2 }).notNull().default('0.00'),
@@ -83,6 +86,16 @@ export const teklifKalemleri = mysqlTable('teklif_kalemleri', {
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const teklifRevizyonlari = mysqlTable('teklif_revizyonlari', {
+  id: char('id', { length: 36 }).primaryKey().notNull(),
+  teklif_id: char('teklif_id', { length: 36 }).notNull(),
+  revizyon_no: int('revizyon_no', { unsigned: true }).notNull(),
+  snapshot: json('snapshot').notNull(),
+  neden: varchar('neden', { length: 500 }).notNull(),
+  created_by: char('created_by', { length: 36 }),
+  created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const teklifGonderimleri = mysqlTable('teklif_gonderimleri', {
   id: char('id', { length: 36 }).primaryKey().notNull(),
   teklif_id: char('teklif_id', { length: 36 }).notNull(),
@@ -98,6 +111,7 @@ export type TeklifRow = typeof teklifler.$inferSelect;
 export type TeklifKalemRow = typeof teklifKalemleri.$inferSelect;
 export type TeklifTalepRow = typeof teklifTalepleri.$inferSelect;
 export type TeklifGonderimRow = typeof teklifGonderimleri.$inferSelect;
+export type TeklifRevizyonRow = typeof teklifRevizyonlari.$inferSelect;
 
 // ── DTO dönüşümleri (camelCase, Paspas konvansiyonu) ─────────
 
@@ -124,6 +138,16 @@ export function teklifKalemRowToDto(row: TeklifKalemRow) {
   };
 }
 
+export function teklifRevizyonRowToDto(row: TeklifRevizyonRow, includeSnapshot = false) {
+  return {
+    id: row.id,
+    revizyonNo: row.revizyon_no,
+    neden: row.neden,
+    createdAt: row.created_at,
+    ...(includeSnapshot ? { snapshot: row.snapshot } : {}),
+  };
+}
+
 export function teklifGonderimRowToDto(row: TeklifGonderimRow) {
   return {
     id: row.id,
@@ -141,6 +165,7 @@ export function teklifRowToDto(
     musteriAd?: string | null;
     kalemler?: ReturnType<typeof teklifKalemRowToDto>[];
     gonderimler?: ReturnType<typeof teklifGonderimRowToDto>[];
+    revizyonlar?: ReturnType<typeof teklifRevizyonRowToDto>[];
   },
 ) {
   return {
@@ -155,6 +180,9 @@ export function teklifRowToDto(
     araToplam: Number(row.ara_toplam),
     iskontoOrani: Number(row.iskonto_orani),
     iskontoTutari: Number(row.iskonto_tutari),
+    iskontoOnaylandi: row.iskonto_onaylandi === 1,
+    iskontoOnaylayanUserId: row.iskonto_onaylayan_user_id ?? null,
+    iskontoOnayAt: row.iskonto_onay_at ?? null,
     kdvOrani: Number(row.kdv_orani),
     kdvDahil: row.kdv_dahil === 1,
     kdvTutari: Number(row.kdv_tutari),
@@ -173,6 +201,7 @@ export function teklifRowToDto(
     updatedAt: row.updated_at,
     kalemler: extras?.kalemler ?? [],
     gonderimler: extras?.gonderimler ?? [],
+    revizyonlar: extras?.revizyonlar ?? [],
   };
 }
 

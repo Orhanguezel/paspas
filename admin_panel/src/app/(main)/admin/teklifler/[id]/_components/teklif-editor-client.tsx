@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
 import { resolveBaseUrl } from '@/integrations/apiBase';
 import { tokenStore } from '@/integrations/core/token';
+import { useStatusQuery } from '@/integrations/hooks';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -43,11 +44,15 @@ import {
   useUpdateTeklifAdminMutation,
   useSetTeklifDurumAdminMutation,
   useGonderTeklifAdminMutation,
+  useOnayaGonderTeklifAdminMutation,
+  useOnaylaIskontoAdminMutation,
+  useReddetIskontoAdminMutation,
+  useCreateTeklifRevizyonAdminMutation,
   useConvertTeklifToSiparisAdminMutation,
   useDeleteTeklifKalemAdminMutation,
 } from '@/integrations/endpoints/admin/erp/teklifler_admin.endpoints';
 import type { TeklifDurum, TeklifKalemDto, TeklifPatchPayload } from '@/integrations/shared/erp/teklifler.types';
-import { TEKLIF_DURUM_BADGE, TEKLIF_DURUM_GECISLERI } from '@/integrations/shared/erp/teklifler.types';
+import { TEKLIF_DURUM_BADGE, TEKLIF_DURUM_GECISLERI, TEKLIF_ISKONTO_LIMITLERI_UI } from '@/integrations/shared/erp/teklifler.types';
 import TeklifKalemDialog from './teklif-kalem-dialog';
 import TeklifPrint from './teklif-print';
 
@@ -99,8 +104,55 @@ export default function TeklifEditorClient({ id }: { id: string }) {
   const [setDurum, setDurumState] = useSetTeklifDurumAdminMutation();
   const [convert, convertState] = useConvertTeklifToSiparisAdminMutation();
   const [gonder, gonderState] = useGonderTeklifAdminMutation();
+  const [onayaGonder, onayaGonderState] = useOnayaGonderTeklifAdminMutation();
+  const [onaylaIskonto, onaylaState] = useOnaylaIskontoAdminMutation();
+  const [reddetIskonto, reddetState] = useReddetIskontoAdminMutation();
+  const [createRevizyon, revizyonState] = useCreateTeklifRevizyonAdminMutation();
   const [aliciEmail, setAliciEmail] = useState('');
   const router = useRouter();
+
+  const { data: statusData } = useStatusQuery();
+  const currentRole = (statusData as { user?: { role?: string } } | undefined)?.user?.role ?? 'operator';
+
+  async function handleOnayaGonder() {
+    try {
+      await onayaGonder(id).unwrap();
+      toast.success('Teklif onaya gönderildi.');
+    } catch (err: unknown) {
+      const msg = typeof err === 'object' && err && 'data' in err
+        ? ((err as { data?: { error?: { message?: string } } }).data?.error?.message) : undefined;
+      toast.error(msg === 'onay_gerekmiyor' ? 'Bu teklifin iskontosu onay gerektirmiyor.' : 'Onaya gönderilemedi.');
+    }
+  }
+
+  async function handleOnayla() {
+    try {
+      await onaylaIskonto(id).unwrap();
+      toast.success('İskonto onaylandı; teklif taslağa döndü, gönderebilirsiniz.');
+    } catch { toast.error('Onaylanamadı.'); }
+  }
+
+  async function handleReddet() {
+    const neden = window.prompt('Red nedeni:');
+    if (!neden || !neden.trim()) return;
+    try {
+      await reddetIskonto({ id, body: { neden: neden.trim() } }).unwrap();
+      toast.success('İskonto reddedildi; teklif taslağa döndü.');
+    } catch { toast.error('Reddedilemedi.'); }
+  }
+
+  async function handleRevizyon() {
+    const neden = window.prompt('Revizyon nedeni:');
+    if (!neden || !neden.trim()) return;
+    try {
+      await createRevizyon({ id, body: { neden: neden.trim() } }).unwrap();
+      toast.success('Yeni revizyon oluşturuldu; teklif taslağa döndü.');
+    } catch (err: unknown) {
+      const msg = typeof err === 'object' && err && 'data' in err
+        ? ((err as { data?: { error?: { message?: string } } }).data?.error?.message) : undefined;
+      toast.error(msg === 'gecersiz_teklif_gecisi' ? 'Bu durumda revizyon oluşturulamaz.' : 'Revizyon oluşturulamadı.');
+    }
+  }
 
   function publicLink(token: string): string {
     return `${resolveBaseUrl()}/web/promats/teklif/${token}`;
@@ -289,7 +341,11 @@ export default function TeklifEditorClient({ id }: { id: string }) {
   }
 
   const kalemler = [...(data.kalemler ?? [])].sort((a, b) => a.sira - b.sira);
-  const gecisler = TEKLIF_DURUM_GECISLERI[data.durum] ?? [];
+  // 'onay_bekliyor' aşağıdaki özel İskonto Onayı bloğuyla (gerçek ihtiyaç kontrolüyle) yönetilir.
+  const gecisler = (TEKLIF_DURUM_GECISLERI[data.durum] ?? []).filter((d) => d !== 'onay_bekliyor');
+  const iskontoLimiti = TEKLIF_ISKONTO_LIMITLERI_UI[currentRole] ?? 0;
+  const iskontoOnayGerekiyor = data.iskontoOrani > iskontoLimiti && !data.iskontoOnaylandi;
+  const revizyonUygunDurumlar: TeklifDurum[] = ['gonderildi', 'goruntulendi', 'red', 'suresi_doldu'];
 
   return (
     <div className="space-y-6">
@@ -335,6 +391,57 @@ export default function TeklifEditorClient({ id }: { id: string }) {
             </Button>
           ))}
         </div>
+      )}
+
+      {/* İskonto onayı — rol limitini aşan genel iskonto admin onayı gerektirir */}
+      {data.durum === 'taslak' && iskontoOnayGerekiyor && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 p-3">
+          <p className="text-sm text-amber-900">
+            Bu teklifin iskontosu (%{data.iskontoOrani}) yetki limitinizi (%{iskontoLimiti}) aşıyor. Gönderebilmek için önce onaya gönderin.
+          </p>
+          <Button size="sm" onClick={handleOnayaGonder} disabled={onayaGonderState.isLoading}>
+            Onaya Gönder
+          </Button>
+        </div>
+      )}
+      {data.durum === 'onay_bekliyor' && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 p-3">
+          <p className="text-sm text-amber-900">
+            İskonto onayı bekleniyor (%{data.iskontoOrani}). Yalnız yönetici onaylayabilir/reddedebilir.
+          </p>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleOnayla} disabled={onaylaState.isLoading}>Onayla</Button>
+            <Button size="sm" variant="destructive" onClick={handleReddet} disabled={reddetState.isLoading}>Reddet</Button>
+          </div>
+        </div>
+      )}
+      {data.iskontoOnaylandi && data.iskontoOnayAt && (
+        <p className="text-xs text-muted-foreground">
+          İskonto onaylandı · {new Date(data.iskontoOnayAt).toLocaleString('tr-TR')}
+        </p>
+      )}
+
+      {/* Revizyon — gönderilmiş/görüntülenmiş/reddedilmiş/süresi dolmuş tekliften yeni taslak */}
+      {revizyonUygunDurumlar.includes(data.durum) && (
+        <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/20 p-3">
+          <p className="text-sm text-muted-foreground">Fiyat/koşul değişikliği için yeni bir revizyon oluşturabilirsiniz. Eski teklif değişmez, ayrı bir kayıt olarak saklanır.</p>
+          <Button size="sm" variant="outline" onClick={handleRevizyon} disabled={revizyonState.isLoading}>
+            Yeni Revizyon
+          </Button>
+        </div>
+      )}
+      {data.revizyonlar && data.revizyonlar.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Revizyon Geçmişi</CardTitle></CardHeader>
+          <CardContent className="divide-y text-sm">
+            {data.revizyonlar.map((r) => (
+              <div key={r.id} className="flex items-center justify-between py-2">
+                <span>R{r.revizyonNo} · {r.neden}</span>
+                <span className="text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleString('tr-TR')}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       )}
 
       {/* Siparişe dönüştür — kabul edilmiş ve henüz dönüştürülmemiş teklif */}

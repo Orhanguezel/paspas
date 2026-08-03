@@ -16,6 +16,7 @@ export type AdminPermissionKey =
   | 'admin.satis_pazarlama'
   | 'admin.teklifler'
   | 'admin.teklif_talepleri'
+  | 'admin.teklif_onay'
   | 'admin.uretim_emirleri'
   | 'admin.makine_havuzu'
   | 'admin.is_yukler'
@@ -56,6 +57,18 @@ const ADMIN_AND_SEVKIYATCI: AppRole[] = ['admin', 'sevkiyatci'];
 const ADMIN_AND_SATIN_ALMACI: AppRole[] = ['admin', 'satin_almaci'];
 const ALL_ERP_ROLES: AppRole[] = ['admin', 'sevkiyatci', 'operator', 'satin_almaci'];
 
+/**
+ * Teklif iskonto onay limitleri (% olarak) — rolün onay istemeden verebileceği
+ * en yüksek genel iskonto oranı. admin=100 pratikte hiçbir zaman onay istemez.
+ * Kaynak: transpalet-crm CRM_ISKONTO_LIMITLERI.
+ */
+export const TEKLIF_ISKONTO_LIMITLERI: Record<AppRole, number> = {
+  admin: 100,
+  sevkiyatci: 10,
+  operator: 0,
+  satin_almaci: 0,
+};
+
 const ADMIN_PERMISSION_MAP: Record<AdminPermissionKey, AppRole[]> = {
   'admin.dashboard': ALL_ERP_ROLES,
   'admin.urunler': ['admin', 'operator', 'satin_almaci', 'sevkiyatci'],
@@ -65,6 +78,7 @@ const ADMIN_PERMISSION_MAP: Record<AdminPermissionKey, AppRole[]> = {
   'admin.satis_pazarlama': ADMIN_AND_SEVKIYATCI,
   'admin.teklifler': ADMIN_AND_SEVKIYATCI,
   'admin.teklif_talepleri': ADMIN_AND_SEVKIYATCI,
+  'admin.teklif_onay': ADMIN_ONLY,
   'admin.uretim_emirleri': ADMIN_AND_OPERATOR,
   'admin.makine_havuzu': ['admin', 'operator', 'sevkiyatci'],
   'admin.is_yukler': ADMIN_AND_OPERATOR,
@@ -99,6 +113,7 @@ const MODULE_META: Record<AdminPermissionKey, { label: string; group: string }> 
   'admin.satis_pazarlama': { label: 'Satis & Pazarlama', group: 'ERP' },
   'admin.teklifler': { label: 'Teklifler', group: 'Teklif' },
   'admin.teklif_talepleri': { label: 'Teklif Talepleri', group: 'Teklif' },
+  'admin.teklif_onay': { label: 'Teklif İskonto Onayı', group: 'Teklif' },
   'admin.uretim_emirleri': { label: 'Uretim Emirleri', group: 'ERP' },
   'admin.makine_havuzu': { label: 'Makine Havuzu', group: 'ERP' },
   'admin.is_yukler': { label: 'Makine Is Yukleri', group: 'ERP' },
