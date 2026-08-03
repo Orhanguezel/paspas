@@ -102,7 +102,7 @@ alan eşleşmesini (üst plandaki Görev #1) tanımlar.
 - [x] **Manuel teklif oluştururken:** mevcut müşteriyi seç **veya** satır içi **yeni aday müşteri ekle**
       (ad/telefon/e-posta/adres). **CANLI.**
 - [ ] **Telefonla gelen istek:** admin gelen kutusuna **manuel talep ekleme** (kaynak='telefon'). *(bekliyor)*
-- [ ] **Teklif → satış siparişine dönüşünce** aday → **aktif müşteri** (promote, audit). *(Adım 4 ile)*
+- [x] **Teklif → satış siparişine dönüşünce** aday → **aktif müşteri** (promote). **CANLI** (Adım 4 ile).
 - [x] **Müşteri listesi:** Aday/Pasif **rozeti** + `musteriDurumu` ile filtrelenebilir liste. **CANLI.**
 
 ### CRM (transpalet'ten aktarılacak — işe yarayan kısımlar; büyük plan 33-58 ile)
