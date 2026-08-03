@@ -7,8 +7,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, RefreshCcw, Plus, Pencil, Trash2, Printer, FileDown, Save,
+  ArrowLeft, RefreshCcw, Plus, Pencil, Trash2, Printer, FileDown, ShoppingCart, Save,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
@@ -41,6 +42,7 @@ import {
   useGetTeklifAdminQuery,
   useUpdateTeklifAdminMutation,
   useSetTeklifDurumAdminMutation,
+  useConvertTeklifToSiparisAdminMutation,
   useDeleteTeklifKalemAdminMutation,
 } from '@/integrations/endpoints/admin/erp/teklifler_admin.endpoints';
 import type { TeklifDurum, TeklifKalemDto, TeklifPatchPayload } from '@/integrations/shared/erp/teklifler.types';
@@ -94,6 +96,25 @@ export default function TeklifEditorClient({ id }: { id: string }) {
   const { data, isLoading, isFetching, refetch } = useGetTeklifAdminQuery(id);
   const [updateTeklif, updateState] = useUpdateTeklifAdminMutation();
   const [setDurum, setDurumState] = useSetTeklifDurumAdminMutation();
+  const [convert, convertState] = useConvertTeklifToSiparisAdminMutation();
+  const router = useRouter();
+
+  async function handleConvert() {
+    try {
+      const res = await convert(id).unwrap();
+      toast.success(`Siparişe dönüştürüldü: ${res.siparisNo}`);
+      router.push(`/admin/satis-siparisleri/${res.siparisId}`);
+    } catch (err: unknown) {
+      const msg = typeof err === 'object' && err && 'data' in err
+        ? ((err as { data?: { error?: { message?: string } } }).data?.error?.message) : undefined;
+      const map: Record<string, string> = {
+        teklif_kabul_edilmemis: 'Yalnız kabul edilmiş teklif siparişe dönüştürülebilir.',
+        teklif_zaten_donustu: 'Bu teklif zaten siparişe dönüştürülmüş.',
+        urun_esmesi_gerekli: 'Kalemlerde ürün seçili değil; siparişe dönüştürülemez.',
+      };
+      toast.error(map[msg ?? ''] ?? 'Siparişe dönüştürülemedi.');
+    }
+  }
   const [deleteKalem, deleteKalemState] = useDeleteTeklifKalemAdminMutation();
 
   const [form, setForm] = useState<HeaderFormState>(EMPTY_FORM);
@@ -284,6 +305,27 @@ export default function TeklifEditorClient({ id }: { id: string }) {
               {t(`admin.erp.teklifler.durumAksiyonlari.${DURUM_ACTION_KEY[next]}`)}
             </Button>
           ))}
+        </div>
+      )}
+
+      {/* Siparişe dönüştür — kabul edilmiş ve henüz dönüştürülmemiş teklif */}
+      {data.durum === 'kabul' && !data.donusenSiparisId && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-emerald-300 bg-emerald-50 p-3">
+          <p className="text-sm text-emerald-900">
+            Teklif kabul edildi. Ürünlü kalemleri satış siparişine dönüştürebilirsiniz; aday müşteri otomatik aktif müşteriye yükselir.
+          </p>
+          <Button size="sm" onClick={handleConvert} disabled={convertState.isLoading}>
+            <ShoppingCart className="mr-1 size-4" />
+            {convertState.isLoading ? 'Dönüştürülüyor…' : 'Siparişe Dönüştür'}
+          </Button>
+        </div>
+      )}
+      {data.donusenSiparisId && (
+        <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 p-3">
+          <p className="text-sm text-muted-foreground">Bu teklif satış siparişine dönüştürüldü.</p>
+          <Button size="sm" variant="outline" asChild>
+            <Link href={`/admin/satis-siparisleri/${data.donusenSiparisId}`}>Siparişi Aç</Link>
+          </Button>
         </div>
       )}
 

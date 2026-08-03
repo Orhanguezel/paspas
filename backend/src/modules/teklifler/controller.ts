@@ -15,7 +15,7 @@ import { renderTeklifHtml } from './pdfTemplate';
 import {
   repoAddKalem, repoCreateTalepPublic, repoCreateTeklif, repoDeleteKalem, repoDeleteTeklif,
   repoDonusturTalep, repoGetTalep, repoGetTeklif, repoListTalepler, repoListTeklifler,
-  repoPatchKalem, repoPatchTalep, repoPatchTeklif, repoSetTeklifDurum,
+  repoPatchKalem, repoPatchTalep, repoPatchTeklif, repoSetTeklifDurum, repoTeklifiSipariseDonustur,
 } from './repository';
 import {
   kalemCreateSchema, kalemPatchSchema, talepDonusturSchema, talepListQuerySchema,
@@ -33,6 +33,9 @@ function mapError(reply: Parameters<RouteHandler>[1], err: unknown): void {
   const map: Record<string, number> = {
     gecersiz_teklif_gecisi: 409,
     talep_zaten_donustu: 409,
+    teklif_zaten_donustu: 409,
+    teklif_kabul_edilmemis: 422,
+    urun_esmesi_gerekli: 422,
     sadece_taslak_duzenlenir: 409,
     sadece_taslak_silinir: 409,
     teklif_bulunamadi: 404,
@@ -125,6 +128,14 @@ export const deleteTeklif: RouteHandler = async (req, reply) => {
     const ok = await repoDeleteTeklif(id);
     if (!ok) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
     return reply.code(204).send();
+  } catch (err) { return mapError(reply, err); }
+};
+
+export const sipariseDonustur: RouteHandler = async (req, reply) => {
+  const { id } = req.params as { id: string };
+  try {
+    const result = await repoTeklifiSipariseDonustur(id);
+    return reply.code(201).send(result);
   } catch (err) { return mapError(reply, err); }
 };
 

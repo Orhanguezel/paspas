@@ -10,6 +10,8 @@ import { and, asc, desc, eq, like, or, sql } from 'drizzle-orm';
 import { db, pool } from '@/db/client';
 import { repoCreate as musteriRepoCreate } from '@/modules/musteriler/repository';
 import { musteriler } from '@/modules/musteriler/schema';
+import { repoGetNextSiparisNo } from '@/modules/satis_siparisleri/repository';
+import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/schema';
 import { urunler } from '@/modules/urunler/schema';
 
 import {
@@ -253,6 +255,65 @@ export async function repoSetTeklifDurum(id: string, durum: string, redNedeni?: 
     red_nedeni: durum === 'red' ? (redNedeni ?? null) : row.red_nedeni,
   }).where(eq(teklifler.id, id));
   return repoGetTeklif(id);
+}
+
+/**
+ * Kabul edilmiş teklifi Paspas satış siparişine dönüştürür (tek transaction):
+ * - Yalnız ürünlü kalemler (urun_id dolu) siparişe aktarılır; manuel açıklama satırları atlanır.
+ * - Teklif `donusen_siparis_id` ile bağlanır (ikinci kez dönüştürülemez).
+ * - Müşteri **aday** ise otomatik **aktif** müşteriye yükseltilir (V1.5 promote).
+ */
+export async function repoTeklifiSipariseDonustur(
+  teklifId: string,
+): Promise<{ siparisId: string; siparisNo: string }> {
+  const t = await getTeklifRow(teklifId);
+  if (!t) throw new Error('teklif_bulunamadi');
+  if (t.durum !== 'kabul') throw new Error('teklif_kabul_edilmemis');
+  if (t.donusen_siparis_id) throw new Error('teklif_zaten_donustu');
+
+  const kalemler = await getKalemRows(teklifId);
+  const urunlu = kalemler.filter((k) => k.urun_id);
+  if (urunlu.length === 0) throw new Error('urun_esmesi_gerekli');
+
+  const siparisNo = await repoGetNextSiparisNo();
+
+  return db.transaction(async (tx) => {
+    // Yarış koşulu: teklifi kilitleyip tekrar kontrol et
+    const [locked] = await tx.select({ durum: teklifler.durum, don: teklifler.donusen_siparis_id })
+      .from(teklifler).where(eq(teklifler.id, teklifId)).for('update').limit(1);
+    if (!locked) throw new Error('teklif_bulunamadi');
+    if (locked.durum !== 'kabul') throw new Error('teklif_kabul_edilmemis');
+    if (locked.don) throw new Error('teklif_zaten_donustu');
+
+    const siparisId = randomUUID();
+    await tx.insert(satisSiparisleri).values({
+      id: siparisId,
+      siparis_no: siparisNo,
+      musteri_id: t.musteri_id,
+      siparis_tarihi: new Date(),
+      durum: 'onaylandi',
+      ekstra_indirim_orani: t.iskonto_orani,
+    });
+    await tx.insert(siparisKalemleri).values(
+      urunlu.map((k, i) => ({
+        id: randomUUID(),
+        siparis_id: siparisId,
+        urun_id: k.urun_id as string,
+        miktar: k.miktar,
+        birim_fiyat: k.birim_fiyat,
+        sira: i,
+      })),
+    );
+
+    await tx.update(teklifler).set({ donusen_siparis_id: siparisId }).where(eq(teklifler.id, teklifId));
+
+    // Aday müşteri → aktif (teklif siparişe dönüştü, artık gerçek müşteri)
+    await tx.update(musteriler)
+      .set({ musteri_durumu: 'aktif' })
+      .where(and(eq(musteriler.id, t.musteri_id), eq(musteriler.musteri_durumu, 'aday')));
+
+    return { siparisId, siparisNo };
+  });
 }
 
 // ── Teklif kalemleri ─────────────────────────────────────────
