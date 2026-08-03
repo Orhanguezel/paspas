@@ -12,6 +12,10 @@ alan eşleşmesini (üst plandaki Görev #1) tanımlar.
 
 ## V1 Kapsam kararı
 
+**V2 durumu:** Adım 1 rafine form ✅ · Adım 2 sunucu PDF ✅ · Adım 3 gönderim+public ✅ ·
+Adım 4 kabul→sipariş ✅ · **Adım 5 iskonto onay+revizyon ✅** — hepsi canlıda, uçtan uca test edildi.
+Kalan: Adım 6 tam CRM (pipeline/Kanban/aktivite/rapor).
+
 **İçinde (bu aşama):**
 - Yeni **"Teklif Modülü"** admin ana başlığı → `Teklif Talepleri` (gelen kutusu) + `Teklifler`.
 - Backend: `teklifler`, `teklif_kalemleri`, `teklif_talepleri`, `teklif_no_sayaclari` tabloları
