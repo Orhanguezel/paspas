@@ -7,6 +7,8 @@ import { createHash } from 'node:crypto';
 
 import type { RouteHandler } from 'fastify';
 
+import { getErpBrandingLogoUrl, getErpCompanyProfile } from '@/modules/siteSettings/service';
+
 import {
   repoAddKalem, repoCreateTalepPublic, repoCreateTeklif, repoDeleteKalem, repoDeleteTeklif,
   repoDonusturTalep, repoGetTalep, repoGetTeklif, repoListTalepler, repoListTeklifler,
@@ -38,6 +40,13 @@ function mapError(reply: Parameters<RouteHandler>[1], err: unknown): void {
   const code = map[msg] ?? 500;
   reply.code(code).send({ error: { message: msg } });
 }
+
+// ── Firma profili (teklif başlığı — logo + firma bilgisi ayarlardan) ──
+
+export const getFirmaProfili: RouteHandler = async () => {
+  const [company, logoUrl] = await Promise.all([getErpCompanyProfile(), getErpBrandingLogoUrl()]);
+  return { ...company, logoUrl };
+};
 
 // ── Teklif ───────────────────────────────────────────────────
 

@@ -257,6 +257,8 @@ export type ErpCompanyProfile = {
   shipmentContactPhone: string | null;
   financeContactName: string | null;
   financeContactEmail: string | null;
+  iban: string | null;
+  bankName: string | null;
   about: string | null;
 };
 
@@ -294,6 +296,8 @@ function normalizeCompanyProfileValue(raw: unknown): ErpCompanyProfile {
     shipmentContactPhone: parseSettingString(parsed.shipment_contact_phone),
     financeContactName: parseSettingString(parsed.finance_contact_name),
     financeContactEmail: parseSettingString(parsed.finance_contact_email),
+    iban: parseSettingString(parsed.iban),
+    bankName: parseSettingString(parsed.bank_name),
     about: parseSettingString(parsed.about),
   };
 }
@@ -331,4 +335,20 @@ export async function getErpCompanyProfile(): Promise<ErpCompanyProfile> {
     email: company.email ?? parseSettingString(contactRaw.email),
     address: company.address ?? parseSettingString(contactRaw.address),
   };
+}
+
+/** Admin branding logosu — site_settings `ui_admin_config`.branding.logo_url */
+export async function getErpBrandingLogoUrl(): Promise<string | null> {
+  const rows = await db
+    .select({ value: siteSettings.value })
+    .from(siteSettings)
+    .where(eq(siteSettings.key, "ui_admin_config"))
+    .limit(1);
+  const raw = rows[0]?.value;
+  const parsed =
+    typeof raw === "string"
+      ? (() => { try { return JSON.parse(raw) as Record<string, unknown>; } catch { return {}; } })()
+      : raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const branding = parsed.branding && typeof parsed.branding === "object" ? (parsed.branding as Record<string, unknown>) : {};
+  return parseSettingString(branding.logo_url) ?? parseSettingString(branding.login_logo_url);
 }

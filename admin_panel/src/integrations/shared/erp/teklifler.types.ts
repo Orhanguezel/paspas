@@ -21,6 +21,26 @@ export type TalepDurum =
   | 'istenmeyen'
   | 'kapandi';
 
+export interface FirmaProfiliDto {
+  companyName: string | null;
+  legalName: string | null;
+  slogan: string | null;
+  taxOffice: string | null;
+  taxNumber: string | null;
+  mersisNumber: string | null;
+  tradeRegistryNumber: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  address: string | null;
+  district: string | null;
+  city: string | null;
+  postalCode: string | null;
+  iban: string | null;
+  bankName: string | null;
+  logoUrl: string | null;
+}
+
 export interface TeklifKalemDto {
   id: string;
   teklifId: string;

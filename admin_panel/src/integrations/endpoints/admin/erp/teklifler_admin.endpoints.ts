@@ -5,6 +5,7 @@
 
 import { baseApi } from '@/integrations/baseApi';
 import type {
+  FirmaProfiliDto,
   TeklifDto,
   TeklifListResponse,
   TeklifCreatePayload,
@@ -68,6 +69,11 @@ export const tekliflerAdminApi = baseApi.injectEndpoints({
       query: (id) => ({ url: `${BASE}/${id}` }),
       transformResponse: (res: unknown) => normalizeTeklif(res),
       providesTags: (_r, _e, id) => [{ type: 'Teklif' as const, id }],
+    }),
+
+    // Firma profili (logo + firma bilgisi — teklif başlığı için, ayarlardan)
+    getTeklifFirmaProfiliAdmin: b.query<FirmaProfiliDto, void>({
+      query: () => ({ url: `${BASE}/firma-profili` }),
     }),
 
     createTeklifAdmin: b.mutation<TeklifDto, TeklifCreatePayload>({
@@ -177,6 +183,7 @@ export const tekliflerAdminApi = baseApi.injectEndpoints({
 export const {
   useListTekliflerAdminQuery,
   useGetTeklifAdminQuery,
+  useGetTeklifFirmaProfiliAdminQuery,
   useCreateTeklifAdminMutation,
   useUpdateTeklifAdminMutation,
   useDeleteTeklifAdminMutation,

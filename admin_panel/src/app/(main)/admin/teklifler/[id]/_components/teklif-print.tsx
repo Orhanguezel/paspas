@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 import { useGetMusteriAdminQuery } from '@/integrations/endpoints/admin/erp/musteriler_admin.endpoints';
+import { useGetTeklifFirmaProfiliAdminQuery } from '@/integrations/endpoints/admin/erp/teklifler_admin.endpoints';
 import type { TeklifDto } from '@/integrations/shared/erp/teklifler.types';
 
 interface Props {
@@ -33,7 +34,17 @@ function formatTarih(v: string | null): string {
 
 export default function TeklifPrint({ open, onClose, teklif }: Props) {
   const { data: musteri } = useGetMusteriAdminQuery(teklif.musteriId, { skip: !open || !teklif.musteriId });
+  const { data: firma } = useGetTeklifFirmaProfiliAdminQuery(undefined, { skip: !open });
   const kalemler = [...(teklif.kalemler ?? [])].sort((a, b) => a.sira - b.sira);
+
+  const firmaAd = firma?.companyName || firma?.legalName || 'Firma';
+  const firmaAdresSatiri = [firma?.address, [firma?.district, firma?.city].filter(Boolean).join(' / ')]
+    .filter(Boolean).join(', ');
+  const firmaIletisim = [
+    firma?.phone && `Tel: ${firma.phone}`,
+    firma?.email,
+    firma?.website,
+  ].filter(Boolean).join(' · ');
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -72,12 +83,24 @@ export default function TeklifPrint({ open, onClose, teklif }: Props) {
 
         {/* A4 içerik */}
         <div id="teklif-print-area" className="bg-white text-black p-10 mx-auto" style={{ width: '210mm', minHeight: '297mm' }}>
-          {/* Firma başlığı */}
+          {/* Firma başlığı — logo ve firma bilgisi ayarlardan (site_settings) */}
           <div className="flex items-start justify-between border-b-2 border-black pb-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Promats A.Ş.</h1>
-              <p className="text-xs text-neutral-600 mt-1">Organize Sanayi Bölgesi, Plastik Enjeksiyon Tesisleri</p>
-              <p className="text-xs text-neutral-600">Tel: +90 (000) 000 00 00 · info@promats.com.tr · www.promats.com.tr</p>
+              {firma?.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={firma.logoUrl} alt={firmaAd} className="mb-2 max-h-16 w-auto object-contain" />
+              ) : null}
+              <h1 className="text-2xl font-bold tracking-tight">{firmaAd}</h1>
+              {firma?.legalName && firma.legalName !== firmaAd && (
+                <p className="text-xs text-neutral-600 mt-0.5">{firma.legalName}</p>
+              )}
+              {firmaAdresSatiri && <p className="text-xs text-neutral-600 mt-1">{firmaAdresSatiri}</p>}
+              {firmaIletisim && <p className="text-xs text-neutral-600">{firmaIletisim}</p>}
+              {(firma?.taxOffice || firma?.taxNumber) && (
+                <p className="text-xs text-neutral-600">
+                  {firma?.taxOffice ? `${firma.taxOffice} V.D. · ` : ''}VKN: {firma?.taxNumber ?? '—'}
+                </p>
+              )}
             </div>
             <div className="text-right">
               <h2 className="text-lg font-semibold">TEKLİF</h2>
@@ -189,6 +212,16 @@ export default function TeklifPrint({ open, onClose, teklif }: Props) {
                   <p className="text-neutral-700 whitespace-pre-line">{teklif.aciklama}</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Banka / ödeme bilgisi — ayarlardan */}
+          {(firma?.iban || firma?.bankName) && (
+            <div className="mt-8 rounded border border-neutral-300 p-3 text-sm">
+              <p className="font-semibold">Ödeme Bilgileri</p>
+              {firma?.bankName && <p className="text-neutral-700">Banka: {firma.bankName}</p>}
+              {firma?.iban && <p className="text-neutral-700">IBAN: <span className="font-mono">{firma.iban}</span></p>}
+              <p className="text-neutral-700">Hesap Ünvanı: {firma?.legalName || firmaAd}</p>
             </div>
           )}
 
