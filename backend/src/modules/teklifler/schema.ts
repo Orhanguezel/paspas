@@ -58,6 +58,9 @@ export const teklifler = mysqlTable('teklifler', {
   aciklama: varchar('aciklama', { length: 1000 }),
   red_nedeni: varchar('red_nedeni', { length: 500 }),
   donusen_siparis_id: char('donusen_siparis_id', { length: 36 }),
+  goruntuleme_token: char('goruntuleme_token', { length: 36 }),
+  gonderim_at: datetime('gonderim_at'),
+  ilk_goruntuleme_at: datetime('ilk_goruntuleme_at'),
   created_by: char('created_by', { length: 36 }),
   is_active: tinyint('is_active', { unsigned: true }).notNull().default(1),
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -80,9 +83,21 @@ export const teklifKalemleri = mysqlTable('teklif_kalemleri', {
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const teklifGonderimleri = mysqlTable('teklif_gonderimleri', {
+  id: char('id', { length: 36 }).primaryKey().notNull(),
+  teklif_id: char('teklif_id', { length: 36 }).notNull(),
+  kanal: varchar('kanal', { length: 24 }).notNull(),
+  alici_email: varchar('alici_email', { length: 255 }),
+  durum: varchar('durum', { length: 24 }).notNull().default('basarili'),
+  hata_mesaji: varchar('hata_mesaji', { length: 1000 }),
+  created_by: char('created_by', { length: 36 }),
+  created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export type TeklifRow = typeof teklifler.$inferSelect;
 export type TeklifKalemRow = typeof teklifKalemleri.$inferSelect;
 export type TeklifTalepRow = typeof teklifTalepleri.$inferSelect;
+export type TeklifGonderimRow = typeof teklifGonderimleri.$inferSelect;
 
 // ── DTO dönüşümleri (camelCase, Paspas konvansiyonu) ─────────
 
@@ -109,9 +124,24 @@ export function teklifKalemRowToDto(row: TeklifKalemRow) {
   };
 }
 
+export function teklifGonderimRowToDto(row: TeklifGonderimRow) {
+  return {
+    id: row.id,
+    kanal: row.kanal,
+    aliciEmail: row.alici_email ?? null,
+    durum: row.durum,
+    hataMesaji: row.hata_mesaji ?? null,
+    createdAt: row.created_at,
+  };
+}
+
 export function teklifRowToDto(
   row: TeklifRow,
-  extras?: { musteriAd?: string | null; kalemler?: ReturnType<typeof teklifKalemRowToDto>[] },
+  extras?: {
+    musteriAd?: string | null;
+    kalemler?: ReturnType<typeof teklifKalemRowToDto>[];
+    gonderimler?: ReturnType<typeof teklifGonderimRowToDto>[];
+  },
 ) {
   return {
     id: row.id,
@@ -136,9 +166,13 @@ export function teklifRowToDto(
     aciklama: row.aciklama ?? null,
     redNedeni: row.red_nedeni ?? null,
     donusenSiparisId: row.donusen_siparis_id ?? null,
+    goruntulemeToken: row.goruntuleme_token ?? null,
+    gonderimAt: row.gonderim_at ?? null,
+    ilkGoruntulemeAt: row.ilk_goruntuleme_at ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     kalemler: extras?.kalemler ?? [],
+    gonderimler: extras?.gonderimler ?? [],
   };
 }
 

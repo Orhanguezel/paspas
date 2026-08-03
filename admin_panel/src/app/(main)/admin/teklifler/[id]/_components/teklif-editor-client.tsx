@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, RefreshCcw, Plus, Pencil, Trash2, Printer, FileDown, ShoppingCart, Save,
+  ArrowLeft, RefreshCcw, Plus, Pencil, Trash2, Printer, FileDown, ShoppingCart, Mail, Share2, Save,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
@@ -42,6 +42,7 @@ import {
   useGetTeklifAdminQuery,
   useUpdateTeklifAdminMutation,
   useSetTeklifDurumAdminMutation,
+  useGonderTeklifAdminMutation,
   useConvertTeklifToSiparisAdminMutation,
   useDeleteTeklifKalemAdminMutation,
 } from '@/integrations/endpoints/admin/erp/teklifler_admin.endpoints';
@@ -97,7 +98,35 @@ export default function TeklifEditorClient({ id }: { id: string }) {
   const [updateTeklif, updateState] = useUpdateTeklifAdminMutation();
   const [setDurum, setDurumState] = useSetTeklifDurumAdminMutation();
   const [convert, convertState] = useConvertTeklifToSiparisAdminMutation();
+  const [gonder, gonderState] = useGonderTeklifAdminMutation();
+  const [aliciEmail, setAliciEmail] = useState('');
   const router = useRouter();
+
+  function publicLink(token: string): string {
+    return `${resolveBaseUrl()}/web/promats/teklif/${token}`;
+  }
+
+  async function handleGonderEmail() {
+    if (!aliciEmail.trim()) { toast.error('Alıcı e-posta girin.'); return; }
+    try {
+      await gonder({ id, body: { kanal: 'email', aliciEmail: aliciEmail.trim() } }).unwrap();
+      toast.success('Teklif e-posta ile gönderildi (PDF ekli).');
+      setAliciEmail('');
+    } catch (err: unknown) {
+      const msg = typeof err === 'object' && err && 'data' in err
+        ? ((err as { data?: { error?: { message?: string; detail?: string } } }).data?.error) : undefined;
+      toast.error(msg?.message === 'eposta_gonderilemedi' ? `E-posta gönderilemedi: ${msg?.detail ?? ''}` : 'Gönderilemedi.');
+    }
+  }
+
+  async function handleWhatsapp(token: string | null) {
+    if (!token) { toast.error('Görüntüleme linki henüz yok.'); return; }
+    const link = publicLink(token);
+    try { await navigator.clipboard.writeText(link); } catch { /* pano yoksa yoksay */ }
+    try { await gonder({ id, body: { kanal: 'whatsapp_link' } }).unwrap(); } catch { /* kayıt hatası kritik değil */ }
+    window.open(`https://wa.me/?text=${encodeURIComponent(`Teklifimiz: ${link}`)}`, '_blank', 'noopener');
+    toast.success('Link kopyalandı ve WhatsApp açıldı.');
+  }
 
   async function handleConvert() {
     try {
@@ -328,6 +357,52 @@ export default function TeklifEditorClient({ id }: { id: string }) {
           </Button>
         </div>
       )}
+
+      {/* Gönder & Paylaş */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Gönder & Paylaş</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="min-w-56 flex-1 space-y-1">
+              <Label className="text-xs">Alıcı e-posta</Label>
+              <Input type="email" value={aliciEmail} onChange={(e) => setAliciEmail(e.target.value)} placeholder="musteri@ornek.com" />
+            </div>
+            <Button size="sm" onClick={handleGonderEmail} disabled={gonderState.isLoading}>
+              <Mail className="mr-1 size-4" /> E-posta ile Gönder (PDF)
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => handleWhatsapp(data.goruntulemeToken)} disabled={gonderState.isLoading}>
+              <Share2 className="mr-1 size-4" /> WhatsApp linki
+            </Button>
+          </div>
+          {data.goruntulemeToken && (
+            <p className="break-all text-xs text-muted-foreground">
+              Public görüntüleme linki: <span className="font-mono">{publicLink(data.goruntulemeToken)}</span>
+            </p>
+          )}
+          {data.ilkGoruntulemeAt && (
+            <p className="text-xs text-emerald-700">
+              Müşteri ilk görüntüleme: {new Date(data.ilkGoruntulemeAt).toLocaleString('tr-TR')}
+            </p>
+          )}
+          {data.gonderimler && data.gonderimler.length > 0 && (
+            <div className="divide-y rounded-md border text-sm">
+              {data.gonderimler.map((g) => (
+                <div key={g.id} className="flex items-center justify-between px-3 py-2">
+                  <span>
+                    {g.kanal === 'email' ? 'E-posta' : g.kanal === 'whatsapp_link' ? 'WhatsApp linki' : 'Manuel'}
+                    {g.aliciEmail ? ` · ${g.aliciEmail}` : ''}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {g.durum === 'hata' ? 'Hata' : 'Başarılı'} · {new Date(g.createdAt).toLocaleString('tr-TR')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {data.redNedeni && data.durum === 'red' && (
         <Card className="border-destructive/40 bg-destructive/5">

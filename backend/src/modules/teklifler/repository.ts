@@ -18,6 +18,8 @@ import {
   type TeklifKalemRow,
   type TeklifRow,
   type TeklifTalepRow,
+  teklifGonderimleri,
+  teklifGonderimRowToDto,
   teklifKalemleri,
   teklifKalemRowToDto,
   teklifler,
@@ -176,8 +178,48 @@ export async function repoListTeklifler(q: TeklifListQuery): Promise<{ items: Re
 export async function repoGetTeklif(id: string): Promise<ReturnType<typeof teklifRowToDto> | null> {
   const row = await getTeklifRow(id);
   if (!row) return null;
-  const [kalemler, musteriAd] = await Promise.all([getKalemRows(id), getMusteriAd(row.musteri_id)]);
-  return teklifRowToDto(row, { musteriAd, kalemler: kalemler.map(teklifKalemRowToDto) });
+  const [kalemler, musteriAd, gonderimler] = await Promise.all([
+    getKalemRows(id),
+    getMusteriAd(row.musteri_id),
+    db.select().from(teklifGonderimleri).where(eq(teklifGonderimleri.teklif_id, id)).orderBy(desc(teklifGonderimleri.created_at)),
+  ]);
+  return teklifRowToDto(row, {
+    musteriAd,
+    kalemler: kalemler.map(teklifKalemRowToDto),
+    gonderimler: gonderimler.map(teklifGonderimRowToDto),
+  });
+}
+
+/** Gönderim kaydı + gonderim_at + durum→gonderildi (izin veriyorsa). */
+export async function repoLogGonderim(
+  teklifId: string, kanal: string, aliciEmail: string | null,
+  durum: 'basarili' | 'hata', hataMesaji: string | null, userId: string | null,
+): Promise<void> {
+  await db.insert(teklifGonderimleri).values({
+    id: randomUUID(), teklif_id: teklifId, kanal, alici_email: aliciEmail, durum, hata_mesaji: hataMesaji, created_by: userId,
+  });
+}
+
+/** Başarılı gönderim sonrası teklifi 'gonderildi' yap (taslak/onay_bekliyor'dan). */
+export async function repoMarkGonderildi(teklifId: string): Promise<void> {
+  const row = await getTeklifRow(teklifId);
+  if (!row) return;
+  const set: Partial<TeklifRow> = { gonderim_at: new Date() };
+  if (row.durum === 'taslak' || row.durum === 'onay_bekliyor') set.durum = 'gonderildi';
+  await db.update(teklifler).set(set).where(eq(teklifler.id, teklifId));
+}
+
+/** Public token ile teklifi bul; ilk görüntülemeyi işaretle + durum→goruntulendi. */
+export async function repoTeklifByToken(token: string): Promise<{ id: string } | null> {
+  const rows = await db.select({ id: teklifler.id, durum: teklifler.durum, ilk: teklifler.ilk_goruntuleme_at })
+    .from(teklifler).where(eq(teklifler.goruntuleme_token, token)).limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  const set: Partial<TeklifRow> = {};
+  if (!row.ilk) set.ilk_goruntuleme_at = new Date();
+  if (row.durum === 'gonderildi') set.durum = 'goruntulendi';
+  if (Object.keys(set).length > 0) await db.update(teklifler).set(set).where(eq(teklifler.id, row.id));
+  return { id: row.id };
 }
 
 export async function repoCreateTeklif(body: TeklifCreateBody, userId: string | null): Promise<ReturnType<typeof teklifRowToDto>> {
@@ -209,6 +251,7 @@ export async function repoCreateTeklif(body: TeklifCreateBody, userId: string | 
     kdv_orani: String(body.kdvOrani),
     kdv_dahil: body.kdvDahil ? 1 : 0,
     gecerlilik_tarihi: body.gecerlilikTarihi ? new Date(body.gecerlilikTarihi) : null,
+    goruntuleme_token: randomUUID(),
     created_by: userId,
   });
   const dto = await repoGetTeklif(id);
@@ -481,6 +524,7 @@ export async function repoDonusturTalep(
       durum: 'taslak',
       para_birimi: body.paraBirimi,
       aciklama: talep.mesaj ?? null,
+      goruntuleme_token: randomUUID(),
       created_by: userId,
     });
 

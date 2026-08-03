@@ -9,8 +9,8 @@ import { makeAdminPermissionGuard } from '@/common/middleware/permissions';
 
 import {
   addKalem, createTalepPublic, createTeklif, deleteKalem, deleteTeklif, donusturTalep,
-  getFirmaProfili, getTalep, getTeklif, getTeklifPdf, listTalepler, listTeklifler, patchKalem,
-  setTeklifDurum, sipariseDonustur, updateTalep, updateTeklif,
+  getFirmaProfili, getTalep, getTeklif, getTeklifPdf, gonderTeklif, listTalepler, listTeklifler,
+  patchKalem, publicTeklifByToken, setTeklifDurum, sipariseDonustur, updateTalep, updateTeklif,
 } from './controller';
 
 export async function registerTeklifler(app: FastifyInstance): Promise<void> {
@@ -28,6 +28,7 @@ export async function registerTeklifler(app: FastifyInstance): Promise<void> {
   app.delete(`${T}/:id`, { preHandler: guard }, deleteTeklif);
   app.post(`${T}/:id/durum`, { preHandler: guard }, setTeklifDurum);
   app.post(`${T}/:id/siparise-donustur`, { preHandler: guard }, sipariseDonustur);
+  app.post(`${T}/:id/gonder`, { preHandler: guard }, gonderTeklif);
   app.post(`${T}/:id/kalemler`, { preHandler: guard }, addKalem);
   app.patch(`${T}/:id/kalemler/:kalemId`, { preHandler: guard }, patchKalem);
   app.delete(`${T}/:id/kalemler/:kalemId`, { preHandler: guard }, deleteKalem);
@@ -43,4 +44,6 @@ export async function registerTeklifler(app: FastifyInstance): Promise<void> {
 /** Public web teklif talebi (siteden gelen istekler) — /api prefix altında. */
 export async function registerTeklifPublic(app: FastifyInstance): Promise<void> {
   app.post('/web/promats/teklif-talebi', createTalepPublic);
+  // Public teklif görüntüleme (token linki — WhatsApp/e-posta paylaşımı)
+  app.get('/web/promats/teklif/:token', publicTeklifByToken);
 }

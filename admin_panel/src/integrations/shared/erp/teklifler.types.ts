@@ -79,9 +79,22 @@ export interface TeklifDto {
   aciklama: string | null;
   redNedeni: string | null;
   donusenSiparisId: string | null;
+  goruntulemeToken: string | null;
+  gonderimAt: string | null;
+  ilkGoruntulemeAt: string | null;
   createdAt: string;
   updatedAt: string;
   kalemler?: TeklifKalemDto[];
+  gonderimler?: TeklifGonderimDto[];
+}
+
+export interface TeklifGonderimDto {
+  id: string;
+  kanal: string;
+  aliciEmail: string | null;
+  durum: string;
+  hataMesaji: string | null;
+  createdAt: string;
 }
 
 export interface TeklifListResponse {
@@ -301,9 +314,23 @@ export function normalizeTeklif(raw: unknown): TeklifDto {
     aciklama:      r.aciklama != null ? toStr(r.aciklama) : null,
     redNedeni:     r.redNedeni != null ? toStr(r.redNedeni) : null,
     donusenSiparisId: r.donusenSiparisId != null ? toStr(r.donusenSiparisId) : null,
+    goruntulemeToken: r.goruntulemeToken != null ? toStr(r.goruntulemeToken) : null,
+    gonderimAt:    r.gonderimAt != null ? toStr(r.gonderimAt) : null,
+    ilkGoruntulemeAt: r.ilkGoruntulemeAt != null ? toStr(r.ilkGoruntulemeAt) : null,
     createdAt:     toStr(r.createdAt),
     updatedAt:     toStr(r.updatedAt),
     kalemler:      Array.isArray(r.kalemler) ? (r.kalemler as unknown[]).map(normalizeTeklifKalem) : undefined,
+    gonderimler:   Array.isArray(r.gonderimler) ? (r.gonderimler as unknown[]).map((g) => {
+      const gr = (g && typeof g === 'object') ? g as Record<string, unknown> : {};
+      return {
+        id: toStr(gr.id),
+        kanal: toStr(gr.kanal),
+        aliciEmail: gr.aliciEmail != null ? toStr(gr.aliciEmail) : null,
+        durum: toStr(gr.durum, 'basarili'),
+        hataMesaji: gr.hataMesaji != null ? toStr(gr.hataMesaji) : null,
+        createdAt: toStr(gr.createdAt),
+      };
+    }) : undefined,
   };
 }
 

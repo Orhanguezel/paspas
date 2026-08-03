@@ -110,6 +110,26 @@ export async function sendMailRaw(input: SendMailInput) {
   return info;
 }
 
+/** sendMailRaw + PDF/dosya eki (teklif gönderimi gibi). */
+export async function sendMailWithAttachments(
+  input: SendMailInput,
+  attachments: Array<{ filename: string; content: Buffer; contentType?: string }>,
+) {
+  const data = sendMailSchema.parse(input);
+  const smtpCfg = await getSmtpSettings();
+  const fromEmail = smtpCfg.fromEmail || smtpCfg.username || 'no-reply@example.com';
+  const from = smtpCfg.fromName && fromEmail ? `${smtpCfg.fromName} <${fromEmail}>` : fromEmail;
+  const transporter = await getTransporter();
+  return transporter.sendMail({
+    from,
+    to: data.to,
+    subject: data.subject,
+    text: data.text,
+    html: data.html,
+    attachments,
+  });
+}
+
 /**
  * sendMailRaw için backward-compatible alias
  * (email-templates/mailer.ts gibi yerler sendMail bekliyor)

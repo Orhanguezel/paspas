@@ -63,6 +63,11 @@ export const teklifDurumSchema = z.object({
   redNedeni: z.string().trim().max(500).optional(),
 });
 
+export const gonderSchema = z.object({
+  kanal: z.enum(['email', 'whatsapp_link', 'manuel']),
+  aliciEmail: z.string().trim().email().max(255).optional(),
+}).refine((v) => v.kanal !== 'email' || !!v.aliciEmail, { message: 'E-posta gönderimi için alıcı e-posta zorunlu' });
+
 // ── Teklif kalemi ────────────────────────────────────────────
 
 export const kalemCreateSchema = z.object({

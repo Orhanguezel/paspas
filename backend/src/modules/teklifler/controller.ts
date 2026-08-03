@@ -7,18 +7,19 @@ import { createHash } from 'node:crypto';
 
 import type { RouteHandler } from 'fastify';
 
-import { repoGetById as repoGetMusteriById } from '@/modules/musteriler/repository';
 import { getErpBrandingLogoUrl, getErpCompanyProfile } from '@/modules/siteSettings/service';
+import { sendMailWithAttachments } from '@/modules/mail/service';
 
-import { PdfUnavailableError, renderPdf, resolveLogoDataUri } from './pdf.service';
-import { renderTeklifHtml } from './pdfTemplate';
+import { PdfUnavailableError } from './pdf.service';
+import { buildTeklifPdf } from './teklif-pdf';
 import {
   repoAddKalem, repoCreateTalepPublic, repoCreateTeklif, repoDeleteKalem, repoDeleteTeklif,
   repoDonusturTalep, repoGetTalep, repoGetTeklif, repoListTalepler, repoListTeklifler,
-  repoPatchKalem, repoPatchTalep, repoPatchTeklif, repoSetTeklifDurum, repoTeklifiSipariseDonustur,
+  repoLogGonderim, repoMarkGonderildi, repoPatchKalem, repoPatchTalep, repoPatchTeklif,
+  repoSetTeklifDurum, repoTeklifByToken, repoTeklifiSipariseDonustur,
 } from './repository';
 import {
-  kalemCreateSchema, kalemPatchSchema, talepDonusturSchema, talepListQuerySchema,
+  gonderSchema, kalemCreateSchema, kalemPatchSchema, talepDonusturSchema, talepListQuerySchema,
   talepPatchSchema, talepPublicSchema, teklifCreateSchema, teklifDurumSchema,
   teklifListQuerySchema, teklifPatchSchema,
 } from './validation';
@@ -57,32 +58,76 @@ export const getFirmaProfili: RouteHandler = async () => {
 // Teklif PDF (Promats markalı, ayarlardan logo/firma)
 export const getTeklifPdf: RouteHandler = async (req, reply) => {
   const { id } = req.params as { id: string };
-  const teklif = await repoGetTeklif(id);
-  if (!teklif) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
-
-  const [company, logoUrl, musteriRow] = await Promise.all([
-    getErpCompanyProfile(), getErpBrandingLogoUrl(), repoGetMusteriById(teklif.musteriId),
-  ]);
-  const logoDataUri = await resolveLogoDataUri(logoUrl);
-  const html = renderTeklifHtml({
-    teklif,
-    musteri: musteriRow
-      ? { ad: musteriRow.ad, adres: musteriRow.adres ?? null, telefon: musteriRow.telefon ?? null, email: null }
-      : null,
-    firma: company,
-    logoDataUri,
-  });
-
   try {
-    const pdf = await renderPdf(html);
+    const built = await buildTeklifPdf(id);
+    if (!built) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
     reply.header('Content-Type', 'application/pdf');
-    reply.header('Content-Disposition', `inline; filename="${teklif.teklifNo}.pdf"`);
-    return reply.send(pdf);
+    reply.header('Content-Disposition', `inline; filename="${built.teklifNo}.pdf"`);
+    return reply.send(built.pdf);
   } catch (err) {
     if (err instanceof PdfUnavailableError) {
       req.log.error({ err: err.message }, 'teklif_pdf_unavailable');
       return reply.code(503).send({ error: { message: 'pdf_servisi_kullanilamiyor' } });
     }
+    throw err;
+  }
+};
+
+// Teklif gönder (e-posta ekli PDF / WhatsApp linki / manuel) + gönderim kaydı
+export const gonderTeklif: RouteHandler = async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const parsed = gonderSchema.safeParse(req.body);
+  if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
+  const { kanal, aliciEmail } = parsed.data;
+  const userId = userIdOf(req);
+
+  const teklif = await repoGetTeklif(id);
+  if (!teklif) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
+
+  if (kanal === 'email') {
+    try {
+      const built = await buildTeklifPdf(id);
+      if (!built) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
+      await sendMailWithAttachments(
+        {
+          to: aliciEmail as string,
+          subject: `Teklif ${teklif.teklifNo}${teklif.musteriAd ? ` — ${teklif.musteriAd}` : ''}`,
+          html: `<p>Sayın ${teklif.musteriAd ?? 'yetkili'},</p><p><strong>${teklif.teklifNo}</strong> numaralı teklifimiz ektedir. İyi çalışmalar dileriz.</p>`,
+          text: `${teklif.teklifNo} numaralı teklifimiz ektedir.`,
+        },
+        [{ filename: `${built.teklifNo}.pdf`, content: built.pdf, contentType: 'application/pdf' }],
+      );
+      await repoLogGonderim(id, 'email', aliciEmail ?? null, 'basarili', null, userId);
+      await repoMarkGonderildi(id);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'gonderim_hatasi';
+      await repoLogGonderim(id, 'email', aliciEmail ?? null, 'hata', msg.slice(0, 900), userId);
+      if (err instanceof PdfUnavailableError) return reply.code(503).send({ error: { message: 'pdf_servisi_kullanilamiyor' } });
+      req.log.error({ err: msg }, 'teklif_email_gonderim_hatasi');
+      return reply.code(502).send({ error: { message: 'eposta_gonderilemedi', detail: msg } });
+    }
+  } else {
+    // whatsapp_link / manuel — sadece kaydı tut + gönderildi işaretle
+    await repoLogGonderim(id, kanal, null, 'basarili', null, userId);
+    await repoMarkGonderildi(id);
+  }
+
+  return repoGetTeklif(id);
+};
+
+// Public: token ile teklif PDF (siteden/WhatsApp linkiyle)
+export const publicTeklifByToken: RouteHandler = async (req, reply) => {
+  const { token } = req.params as { token: string };
+  const found = await repoTeklifByToken(token);
+  if (!found) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
+  try {
+    const built = await buildTeklifPdf(found.id);
+    if (!built) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
+    reply.header('Content-Type', 'application/pdf');
+    reply.header('Content-Disposition', `inline; filename="${built.teklifNo}.pdf"`);
+    return reply.send(built.pdf);
+  } catch (err) {
+    if (err instanceof PdfUnavailableError) return reply.code(503).send({ error: { message: 'pdf_servisi_kullanilamiyor' } });
     throw err;
   }
 };

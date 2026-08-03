@@ -108,6 +108,15 @@ export const tekliflerAdminApi = baseApi.injectEndpoints({
       ],
     }),
 
+    gonderTeklifAdmin: b.mutation<TeklifDto, { id: string; body: { kanal: 'email' | 'whatsapp_link' | 'manuel'; aliciEmail?: string } }>({
+      query: ({ id, body }) => ({ url: `${BASE}/${id}/gonder`, method: 'POST', body }),
+      transformResponse: (res: unknown) => normalizeTeklif(res),
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: 'Teklif', id },
+        { type: 'Teklifler', id: 'LIST' },
+      ],
+    }),
+
     convertTeklifToSiparisAdmin: b.mutation<{ siparisId: string; siparisNo: string }, string>({
       query: (id) => ({ url: `${BASE}/${id}/siparise-donustur`, method: 'POST' }),
       invalidatesTags: (_r, _e, id) => [
@@ -196,6 +205,7 @@ export const {
   useUpdateTeklifAdminMutation,
   useDeleteTeklifAdminMutation,
   useSetTeklifDurumAdminMutation,
+  useGonderTeklifAdminMutation,
   useConvertTeklifToSiparisAdminMutation,
   useAddTeklifKalemAdminMutation,
   usePatchTeklifKalemAdminMutation,
