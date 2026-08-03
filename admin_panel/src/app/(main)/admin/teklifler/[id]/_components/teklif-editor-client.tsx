@@ -8,10 +8,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft, RefreshCcw, Plus, Pencil, Trash2, Printer, Save,
+  ArrowLeft, RefreshCcw, Plus, Pencil, Trash2, Printer, FileDown, Save,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
+import { resolveBaseUrl } from '@/integrations/apiBase';
+import { tokenStore } from '@/integrations/core/token';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -99,6 +101,26 @@ export default function TeklifEditorClient({ id }: { id: string }) {
   const [editingKalem, setEditingKalem] = useState<TeklifKalemDto | null>(null);
   const [deleteKalemTarget, setDeleteKalemTarget] = useState<TeklifKalemDto | null>(null);
   const [printOpen, setPrintOpen] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  async function handlePdf() {
+    setPdfLoading(true);
+    try {
+      const token = tokenStore.get();
+      const res = await fetch(`${resolveBaseUrl()}/admin/teklifler/${id}/pdf`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      toast.error('PDF oluşturulamadı. Lütfen tekrar deneyin.');
+    } finally {
+      setPdfLoading(false);
+    }
+  }
   const [redDialogOpen, setRedDialogOpen] = useState(false);
   const [redNedeni, setRedNedeni] = useState('');
 
@@ -241,6 +263,9 @@ export default function TeklifEditorClient({ id }: { id: string }) {
           </Button>
           <Button variant="outline" size="sm" onClick={() => setPrintOpen(true)}>
             <Printer className="mr-1 size-4" /> {t('admin.erp.teklifler.detail.yazdir')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={handlePdf} disabled={pdfLoading}>
+            <FileDown className="mr-1 size-4" /> {pdfLoading ? 'PDF…' : 'PDF İndir'}
           </Button>
         </div>
       </div>

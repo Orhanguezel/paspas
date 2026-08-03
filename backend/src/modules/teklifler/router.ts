@@ -9,8 +9,8 @@ import { makeAdminPermissionGuard } from '@/common/middleware/permissions';
 
 import {
   addKalem, createTalepPublic, createTeklif, deleteKalem, deleteTeklif, donusturTalep,
-  getFirmaProfili, getTalep, getTeklif, listTalepler, listTeklifler, patchKalem, setTeklifDurum,
-  updateTalep, updateTeklif,
+  getFirmaProfili, getTalep, getTeklif, getTeklifPdf, listTalepler, listTeklifler, patchKalem,
+  setTeklifDurum, updateTalep, updateTeklif,
 } from './controller';
 
 export async function registerTeklifler(app: FastifyInstance): Promise<void> {
@@ -23,6 +23,7 @@ export async function registerTeklifler(app: FastifyInstance): Promise<void> {
   app.get(`${T}`, { preHandler: guard }, listTeklifler);
   app.post(`${T}`, { preHandler: guard }, createTeklif);
   app.get(`${T}/:id`, { preHandler: guard }, getTeklif);
+  app.get(`${T}/:id/pdf`, { preHandler: guard }, getTeklifPdf);
   app.patch(`${T}/:id`, { preHandler: guard }, updateTeklif);
   app.delete(`${T}/:id`, { preHandler: guard }, deleteTeklif);
   app.post(`${T}/:id/durum`, { preHandler: guard }, setTeklifDurum);

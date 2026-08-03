@@ -7,8 +7,11 @@ import { createHash } from 'node:crypto';
 
 import type { RouteHandler } from 'fastify';
 
+import { repoGetById as repoGetMusteriById } from '@/modules/musteriler/repository';
 import { getErpBrandingLogoUrl, getErpCompanyProfile } from '@/modules/siteSettings/service';
 
+import { PdfUnavailableError, renderPdf, resolveLogoDataUri } from './pdf.service';
+import { renderTeklifHtml } from './pdfTemplate';
 import {
   repoAddKalem, repoCreateTalepPublic, repoCreateTeklif, repoDeleteKalem, repoDeleteTeklif,
   repoDonusturTalep, repoGetTalep, repoGetTeklif, repoListTalepler, repoListTeklifler,
@@ -46,6 +49,39 @@ function mapError(reply: Parameters<RouteHandler>[1], err: unknown): void {
 export const getFirmaProfili: RouteHandler = async () => {
   const [company, logoUrl] = await Promise.all([getErpCompanyProfile(), getErpBrandingLogoUrl()]);
   return { ...company, logoUrl };
+};
+
+// Teklif PDF (Promats markalı, ayarlardan logo/firma)
+export const getTeklifPdf: RouteHandler = async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const teklif = await repoGetTeklif(id);
+  if (!teklif) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
+
+  const [company, logoUrl, musteriRow] = await Promise.all([
+    getErpCompanyProfile(), getErpBrandingLogoUrl(), repoGetMusteriById(teklif.musteriId),
+  ]);
+  const logoDataUri = await resolveLogoDataUri(logoUrl);
+  const html = renderTeklifHtml({
+    teklif,
+    musteri: musteriRow
+      ? { ad: musteriRow.ad, adres: musteriRow.adres ?? null, telefon: musteriRow.telefon ?? null, email: null }
+      : null,
+    firma: company,
+    logoDataUri,
+  });
+
+  try {
+    const pdf = await renderPdf(html);
+    reply.header('Content-Type', 'application/pdf');
+    reply.header('Content-Disposition', `inline; filename="${teklif.teklifNo}.pdf"`);
+    return reply.send(pdf);
+  } catch (err) {
+    if (err instanceof PdfUnavailableError) {
+      req.log.error({ err: err.message }, 'teklif_pdf_unavailable');
+      return reply.code(503).send({ error: { message: 'pdf_servisi_kullanilamiyor' } });
+    }
+    throw err;
+  }
 };
 
 // ── Teklif ───────────────────────────────────────────────────

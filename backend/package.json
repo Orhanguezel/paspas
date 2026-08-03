@@ -36,6 +36,7 @@
     "iyzipay": "^2.0.65",
     "mysql2": "^3.15.3",
     "nodemailer": "^7.0.10",
+    "puppeteer-core": "^25.4.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
