@@ -95,19 +95,15 @@ alan eşleşmesini (üst plandaki Görev #1) tanımlar.
 (firsat/pipeline/aktivite/convert).
 
 ### Aday müşteri (V1.5 — öncelikli)
-- [ ] **Müşteriye durum alanı ekle** — `musteriler.musteri_durumu` (`aday | aktif | pasif`),
-      seed SQL ile (ALTER yok; `CREATE TABLE` tanımına ekle + fresh, ya da yeni kurulumda ekli).
-      Kaynak: transpalet `db/seed/sql/104_musteriler_schema.sql` + `234_v1_musteri_crm_genislet.sql`,
-      `modules/musteriler/schema.ts` (`musteri_durumu`/`takip_durumu`). Paspas'ta 'potansiyel'→**'aday'**.
-- [ ] **Web teklif talebini dönüştürürken** yeni müşteri **aday** açılsın (`musteri_durumu='aday'`);
-      mevcut müşteri seçilirse durumu değişmez. (V1'deki `repoDonusturTalep` genişletilir.)
-- [ ] **Manuel teklif oluştururken:** mevcut müşteriyi seç **veya** satır içi **yeni aday müşteri ekle**
-      (ad/telefon/e-posta/adres) → aday olarak kaydedilir, teklife bağlanır.
-- [ ] **Telefonla gelen istek:** admin gelen kutusuna **manuel talep ekleme** (kaynak='telefon') →
-      adaya/teklife dönüştür. (V1 `teklif_talepleri`'ne manuel create endpoint'i.)
-- [ ] **Teklif → satış siparişine dönüşünce** (Adım 4) aday müşteri otomatik **aktif müşteri** olsun
-      (promote), audit'e yazılsın. Kaynak: transpalet `modules/crm/convert.service.ts`.
-- [ ] **Müşteri listesi:** aday/aktif filtresi + rozet; aday müşteriler ayrı görünüm/sekme.
+- [x] **Müşteriye durum alanı ekle** — `musteriler.musteri_durumu` (`aday | aktif | pasif`),
+      seed `221_v1_musteri_durumu.sql` (idempotent INFORMATION_SCHEMA guard, mevcut veri korunur → 'aktif').
+      **CANLI.**
+- [x] **Web teklif talebini dönüştürürken** yeni müşteri **aday** açılıyor (+email). **CANLI.**
+- [x] **Manuel teklif oluştururken:** mevcut müşteriyi seç **veya** satır içi **yeni aday müşteri ekle**
+      (ad/telefon/e-posta/adres). **CANLI.**
+- [ ] **Telefonla gelen istek:** admin gelen kutusuna **manuel talep ekleme** (kaynak='telefon'). *(bekliyor)*
+- [ ] **Teklif → satış siparişine dönüşünce** aday → **aktif müşteri** (promote, audit). *(Adım 4 ile)*
+- [x] **Müşteri listesi:** Aday/Pasif **rozeti** + `musteriDurumu` ile filtrelenebilir liste. **CANLI.**
 
 ### CRM (transpalet'ten aktarılacak — işe yarayan kısımlar; büyük plan 33-58 ile)
 - [ ] **Talepler modülünü hizala** — Paspas `teklif_talepleri` ile transpalet `talepler`
