@@ -5,7 +5,7 @@
 // Paspas ERP — Üretim Emirleri liste sayfası
 // =============================================================
 
-import { useEffect, useMemo, useState } from "react";
+import { Component, type ReactNode, useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
@@ -126,12 +126,18 @@ function UretimOlusturGrid({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [aktarilacak, setAktarilacak] = useState<Record<string, string>>({});
   const [manuelRows, setManuelRows] = useState<Array<{ id: string; urunId: string; miktar: string }>>([]);
-  const { data: rows = [], isLoading } = useListSiparisIslemleriAdminQuery({
+  const { data: rowsData, isLoading } = useListSiparisIslemleriAdminQuery({
     gizleTamamlanan: true,
     limit: 500,
     sort: "created_at",
     order: "desc",
   });
+  // `rowsData ?? []` her render'da yeni bir dizi üretirdi; bu dizi aşağıdaki
+  // init-effect'in bağımlılığı olduğundan, "duzenle" modunda effect her render
+  // tekrar çalışıp setState yapıyor → sonsuz render döngüsü → "Maximum update
+  // depth exceeded" (Düzelt'e basınca tüm sayfa çöküyordu). useMemo ile referansı
+  // sabitleyerek döngüyü kırıyoruz.
+  const rows = useMemo(() => rowsData ?? [], [rowsData]);
   const [uretimeAktar, aktarState] = useUretimeAktarAdminMutation();
   const [updateMamul, updateMamulState] = useUpdateMamulUretimEmriAdminMutation();
   const { data: urunData } = useListUrunlerAdminQuery({
@@ -443,6 +449,27 @@ function UretimOlusturGrid({
       </div>
     </div>
   );
+}
+
+// ── Diyalog Hata Sınırı ──────────────────────────────────────
+// Düzelt diyaloğundaki bir çalışma-zamanı hatası tüm sayfayı çökertmesin
+// (Next.js global error boundary yerine burada yakalanıp anlaşılır mesaj gösterilir).
+class DialogErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+          Bu kayıt açılırken beklenmeyen bir hata oluştu. Lütfen pencereyi kapatıp tekrar deneyin;
+          sorun sürerse yazılım ekibine bildirin.
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 // ── Ana Bileşen ───────────────────────────────────────────────
@@ -1182,14 +1209,16 @@ export default function UretimEmirleriClient() {
             <DialogTitle>Üretimi Düzelt</DialogTitle>
           </DialogHeader>
           {editing && (
-            <UretimOlusturGrid
-              mod="duzenle"
-              emri={editing}
-              onCreated={() => {
-                setEditing(null);
-                refetch();
-              }}
-            />
+            <DialogErrorBoundary>
+              <UretimOlusturGrid
+                mod="duzenle"
+                emri={editing}
+                onCreated={() => {
+                  setEditing(null);
+                  refetch();
+                }}
+              />
+            </DialogErrorBoundary>
           )}
         </DialogContent>
       </Dialog>
