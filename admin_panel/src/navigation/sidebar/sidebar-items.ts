@@ -20,6 +20,8 @@ import {
   Factory,
   Fence,
   FileSearch,
+  FileSignature,
+  Inbox,
   BookOpenText,
   FolderTree,
   Presentation,
@@ -67,7 +69,7 @@ export type AdminSidebarRole = PanelRole;
 
 export type AdminNavItemKey = AdminNavKey;
 
-export type AdminNavGroupKey = 'overview' | 'production' | 'logistics' | 'website' | 'system';
+export type AdminNavGroupKey = 'overview' | 'production' | 'logistics' | 'teklif' | 'website' | 'system';
 
 export type AdminNavConfigItem = {
   key: AdminNavItemKey;
@@ -158,15 +160,24 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
       { key: 'hareketler',        url: '/admin/hareketler',        icon: Activity,   roles: ['admin', 'satin_almaci'] },
     ],
   },
+  // ─── Teklif Modülü ───
   {
     id: 4,
+    key: 'teklif',
+    items: [
+      { key: 'teklif_talepleri', url: '/admin/teklif-talepleri', icon: Inbox, roles: ['admin'] },
+      { key: 'teklifler',        url: '/admin/teklifler',        icon: FileSignature, roles: ['admin'] },
+    ],
+  },
+  {
+    id: 5,
     key: 'website',
     items: [
       { key: 'web_sayfasi', url: '/admin/web-sayfasi', icon: PanelsTopLeft, roles: ['admin'] },
     ],
   },
   {
-    id: 5,
+    id: 6,
     key: 'system',
     items: [
       { key: 'site_settings',     url: '/admin/sistem',           icon: Settings,     roles: ['admin'] },
@@ -186,6 +197,7 @@ const FALLBACK_GROUP_LABELS: Record<AdminNavGroupKey, string> = {
   overview:   'Genel',
   production: 'Üretim Süreçleri',
   logistics:  'Lojistik & Stok',
+  teklif:     'Teklif Modülü',
   website:    'Web Sitesi',
   system:     'Sistem Yönetimi',
 };
@@ -232,6 +244,8 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   proje_teklifi:     'Proje Teklifleri',
   web_sayfasi:       'Promats İçerik Yönetimi',
   yazilim_gorevleri: 'Yazılım Görevleri',
+  teklif_talepleri:  'Teklif Talepleri',
+  teklifler:         'Teklifler',
 };
 
 export function buildAdminSidebarItems(

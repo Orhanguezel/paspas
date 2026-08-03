@@ -38,6 +38,7 @@ import { registerMusteriler } from '@/modules/musteriler/router';
 import { registerUrunler } from '@/modules/urunler/router';
 import { registerReceteler } from '@/modules/receteler/router';
 import { registerSatisSiparisleri } from '@/modules/satis_siparisleri/router';
+import { registerTeklifPublic, registerTeklifler } from '@/modules/teklifler/router';
 import { registerUretimEmirleri } from '@/modules/uretim_emirleri/router';
 import { registerMakineHavuzu } from '@/modules/makine_havuzu/router';
 import { registerMakineKapaliAraliklar } from '@/modules/makine_kapali_araliklar/router';
@@ -221,6 +222,7 @@ export async function createApp() {
     await api.register(registerUrunler,           { prefix: '/admin' });
     await api.register(registerReceteler,         { prefix: '/admin' });
     await api.register(registerSatisSiparisleri, { prefix: '/admin' });
+    await api.register(registerTeklifler,        { prefix: '/admin' });
     await api.register(registerUretimEmirleri,   { prefix: '/admin' });
     await api.register(registerMakineHavuzu,     { prefix: '/admin' });
     await api.register(registerMakineKapaliAraliklar, { prefix: '/admin' });
@@ -254,6 +256,7 @@ export async function createApp() {
     await registerSiteSettings(api);
     await registerCategories(api);
     await registerWebPromatsPublic(api);
+    await registerTeklifPublic(api);
 
   }, { prefix: '/api' });
 

@@ -5,6 +5,7 @@
         "overview": "Genel",
         "production": "Üretim Süreçleri",
         "logistics": "Lojistik & Stok",
+        "teklif": "Teklif Modülü",
         "website": "Web Sitesi",
         "system": "Sistem Yönetimi"
       }
@@ -12,6 +13,8 @@
     "dashboard": {
       "items": {
         "dashboard": "Dashboard",
+        "teklif_talepleri": "Teklif Talepleri",
+        "teklifler": "Teklifler",
         "gorevler": "Görevler",
         "urunler": "Ürünler",
         "receteler": "Reçeteler",
@@ -825,6 +828,7 @@
         "overview": "Genel",
         "production": "Üretim Süreçleri",
         "logistics": "Lojistik & Stok",
+        "teklif": "Teklif Modülü",
         "website": "Web Sitesi",
         "system": "Sistem Yönetimi"
       },
@@ -5145,6 +5149,122 @@
         "detail": {
           "notFound": "Sipariş bulunamadı.",
           "kalemler": "Sipariş Kalemleri"
+        }
+      },
+      "teklifler": {
+        "title": "Teklifler",
+        "singular": "Teklif",
+        "newItem": "Yeni Teklif",
+        "editItem": "Teklifi Düzenle",
+        "searchPlaceholder": "Teklif no veya müşteri ara…",
+        "notFound": "Teklif bulunamadı",
+        "deleteTitle": "Teklifi sil?",
+        "statuses": {
+          "hepsi": "Tümü",
+          "taslak": "Taslak",
+          "onay_bekliyor": "Onay Bekliyor",
+          "gonderildi": "Gönderildi",
+          "goruntulendi": "Görüntülendi",
+          "revizyon": "Revizyon",
+          "kabul": "Kabul Edildi",
+          "red": "Reddedildi",
+          "suresi_doldu": "Süresi Doldu"
+        },
+        "columns": {
+          "teklifNo": "Teklif No",
+          "musteri": "Müşteri",
+          "durum": "Durum",
+          "genelToplam": "Genel Toplam",
+          "gecerlilik": "Geçerlilik",
+          "tarih": "Tarih"
+        },
+        "form": {
+          "musteri": "Müşteri *",
+          "musteriPlaceholder": "Müşteri seçin…",
+          "paraBirimi": "Para Birimi",
+          "kdvOrani": "KDV Oranı (%)",
+          "kdvDahil": "Fiyatlara KDV Dahil",
+          "gecerlilikTarihi": "Geçerlilik Tarihi",
+          "iskontoOrani": "İskonto (%)",
+          "nakliye": "Nakliye",
+          "odemeKosullari": "Ödeme Koşulları",
+          "odemeKosullariPlaceholder": "Örn. %50 peşin, %50 teslimde",
+          "teslimKosullari": "Teslim Koşulları",
+          "teslimKosullariPlaceholder": "Örn. Fabrika teslim, 10 iş günü",
+          "aciklama": "Açıklama",
+          "aciklamaPlaceholder": "İsteğe bağlı not",
+          "kalemler": "Teklif Kalemleri",
+          "kalemEkle": "Kalem Ekle",
+          "urun": "Ürün",
+          "urunPlaceholder": "Ürün seçin (opsiyonel)",
+          "kalemAciklama": "Açıklama",
+          "kalemAciklamaPlaceholder": "Kalem açıklaması",
+          "miktar": "Miktar",
+          "birim": "Birim",
+          "fiyat": "Birim Fiyat",
+          "kalemIskonto": "İskonto %",
+          "taslakDisindaBilgi": "Bu teklif taslak durumunda olmadığı için düzenlenemez."
+        },
+        "durumAksiyonlari": {
+          "onayaGonder": "Onaya Gönder",
+          "gonderildiIsaretle": "Gönderildi Olarak İşaretle",
+          "goruntulendiIsaretle": "Görüntülendi Olarak İşaretle",
+          "revizyonaAl": "Revizyona Al",
+          "kabulEt": "Kabul Et",
+          "reddet": "Reddet",
+          "suresiDolduIsaretle": "Süresi Doldu Olarak İşaretle",
+          "taslagaDondur": "Taslağa Döndür",
+          "redNedeni": "Red Nedeni",
+          "redNedeniPlaceholder": "Neden reddedildiğini kısaca yazın",
+          "redNedeniZorunlu": "Red nedeni zorunlu",
+          "durumGuncellendi": "Durum güncellendi",
+          "durumGuncellenemedi": "Durum güncellenemedi"
+        },
+        "detail": {
+          "notFound": "Teklif bulunamadı.",
+          "kalemler": "Teklif Kalemleri",
+          "yazdir": "Yazdır / Önizleme"
+        }
+      },
+      "teklifTalepleri": {
+        "title": "Teklif Talepleri",
+        "singular": "Talep",
+        "searchPlaceholder": "Ad, firma veya e-posta ara…",
+        "notFound": "Talep bulunamadı",
+        "statuses": {
+          "hepsi": "Tümü",
+          "yeni": "Yeni",
+          "inceleniyor": "İnceleniyor",
+          "musteriye_donustu": "Müşteriye Dönüştü",
+          "teklife_donustu": "Teklife Dönüştü",
+          "istenmeyen": "İstenmeyen",
+          "kapandi": "Kapandı"
+        },
+        "columns": {
+          "adFirma": "Ad / Firma",
+          "iletisim": "İletişim",
+          "konu": "Konu",
+          "durum": "Durum",
+          "kaynak": "Kaynak",
+          "tarih": "Tarih"
+        },
+        "detail": {
+          "title": "Talep Detayı",
+          "mesaj": "Mesaj",
+          "seciliUrunler": "Seçili Ürünler",
+          "utmBilgisi": "UTM Bilgisi",
+          "atananKullanici": "Atanan Kullanıcı",
+          "donusturBaslik": "Müşteri + Taslak Teklife Dönüştür",
+          "mevcutMusteri": "Mevcut Müşteri",
+          "yeniMusteri": "Yeni Müşteri",
+          "musteriSec": "Müşteri seçin…",
+          "yeniMusteriAdi": "Firma / Ad *",
+          "yeniMusteriTelefon": "Telefon",
+          "yeniMusteriEmail": "E-Posta",
+          "yeniMusteriAdres": "Adres",
+          "donustur": "Teklife Dönüştür",
+          "donusturuluyor": "Dönüştürülüyor…",
+          "donusturuldu": "Talep teklife dönüştürüldü"
         }
       },
       "uretimEmirleri": {

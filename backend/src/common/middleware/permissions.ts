@@ -14,6 +14,8 @@ export type AdminPermissionKey =
   | 'admin.musteriler'
   | 'admin.satis_siparisleri'
   | 'admin.satis_pazarlama'
+  | 'admin.teklifler'
+  | 'admin.teklif_talepleri'
   | 'admin.uretim_emirleri'
   | 'admin.makine_havuzu'
   | 'admin.is_yukler'
@@ -61,6 +63,8 @@ const ADMIN_PERMISSION_MAP: Record<AdminPermissionKey, AppRole[]> = {
   'admin.musteriler': ['admin', 'sevkiyatci', 'satin_almaci'],
   'admin.satis_siparisleri': ADMIN_AND_SEVKIYATCI,
   'admin.satis_pazarlama': ADMIN_AND_SEVKIYATCI,
+  'admin.teklifler': ADMIN_AND_SEVKIYATCI,
+  'admin.teklif_talepleri': ADMIN_AND_SEVKIYATCI,
   'admin.uretim_emirleri': ADMIN_AND_OPERATOR,
   'admin.makine_havuzu': ['admin', 'operator', 'sevkiyatci'],
   'admin.is_yukler': ADMIN_AND_OPERATOR,
@@ -93,6 +97,8 @@ const MODULE_META: Record<AdminPermissionKey, { label: string; group: string }> 
   'admin.musteriler': { label: 'Musteriler', group: 'ERP' },
   'admin.satis_siparisleri': { label: 'Satis Siparisleri', group: 'ERP' },
   'admin.satis_pazarlama': { label: 'Satis & Pazarlama', group: 'ERP' },
+  'admin.teklifler': { label: 'Teklifler', group: 'Teklif' },
+  'admin.teklif_talepleri': { label: 'Teklif Talepleri', group: 'Teklif' },
   'admin.uretim_emirleri': { label: 'Uretim Emirleri', group: 'ERP' },
   'admin.makine_havuzu': { label: 'Makine Havuzu', group: 'ERP' },
   'admin.is_yukler': { label: 'Makine Is Yukleri', group: 'ERP' },

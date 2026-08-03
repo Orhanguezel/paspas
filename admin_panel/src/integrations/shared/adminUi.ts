@@ -72,11 +72,14 @@ const emptyNav: AdminNavCopy = {
     overview:   '',
     production: '',
     logistics:  '',
+    teklif:     '',
     website:    '',
     system:     '',
   },
   items: {
     dashboard:         '',
+    teklif_talepleri:  '',
+    teklifler:         '',
     gorevler:          '',
     urunler:           '',
     musteriler:        '',
@@ -130,12 +133,15 @@ export function normalizeAdminUiCopy(raw: unknown): AdminUiCopy {
     overview:   uiText(labelsRaw.overview),
     production: uiText(labelsRaw.production),
     logistics:  uiText(labelsRaw.logistics),
+    teklif:     uiText(labelsRaw.teklif),
     website:    uiText(labelsRaw.website),
     system:     uiText(labelsRaw.system),
   };
 
   const items: AdminNavCopy['items'] = {
     dashboard:         uiText(itemsRaw.dashboard),
+    teklif_talepleri:  uiText(itemsRaw.teklif_talepleri),
+    teklifler:         uiText(itemsRaw.teklifler),
     gorevler:          uiText(itemsRaw.gorevler),
     urunler:           uiText(itemsRaw.urunler),
     musteriler:        uiText(itemsRaw.musteriler),

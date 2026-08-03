@@ -103,3 +103,4 @@ export * from '@/integrations/endpoints/admin/erp/tedarikci_admin.endpoints';
 export * from '@/integrations/endpoints/admin/erp/audit_logs_admin.endpoints';
 export * from '@/integrations/endpoints/admin/erp/gorevler_admin.endpoints';
 export * from '@/integrations/endpoints/admin/erp/giris_ayarlari_admin.endpoints';
+export * from '@/integrations/endpoints/admin/erp/teklifler_admin.endpoints';

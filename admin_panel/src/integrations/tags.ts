@@ -253,6 +253,10 @@ export const tags = [
   'TestCenter',
   'PageFeedback',
   'ProjeTeklifiNot',
+  'Teklif',
+  'Teklifler',
+  'TeklifTalep',
+  'TeklifTalepleri',
 ] as const;
 
 export type tag = typeof tags[number];
