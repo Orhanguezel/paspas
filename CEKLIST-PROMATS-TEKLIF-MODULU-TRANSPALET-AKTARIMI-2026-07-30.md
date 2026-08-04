@@ -386,7 +386,7 @@ dönüştürülmesi
 
 ## Faz 5 — Test, veri ve canlıya geçiş
 
-- [ ] **29. Backend birim ve entegrasyon testlerini taşı** — `critical`
+- [x] **29. Backend birim ve entegrasyon testlerini taşı** — `critical`
   - Toplam/KDV/iskonto, durum geçişi, snapshot, numara yarışı, izinler,
     gönderim hatası, token ve sipariş dönüşümü test edilecek.
 
