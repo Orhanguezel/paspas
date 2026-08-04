@@ -47,7 +47,12 @@ test('web talebi admin üzerinden siparişe kadar ilerler', async ({ page, reque
   let offer = await offerRes.json();
   expect(offer.kalemler).toHaveLength(1);
   const lineId = offer.kalemler[0].id;
-  expect((await request.patch(`${API}/admin/teklifler/${offerId}/kalemler/${lineId}`, { data:{ birimFiyat:500 } })).ok()).toBeTruthy();
+  const erpProductsRes = await request.get(`${API}/admin/urunler?limit=1&kategori=urun&isActive=true`);
+  expect(erpProductsRes.ok()).toBeTruthy();
+  const erpProductsBody = await erpProductsRes.json();
+  const erpProduct = (erpProductsBody.items ?? erpProductsBody.data ?? erpProductsBody)[0];
+  expect(erpProduct?.id).toMatch(/^[0-9a-f-]{36}$/i);
+  expect((await request.patch(`${API}/admin/teklifler/${offerId}/kalemler/${lineId}`, { data:{ urunId:erpProduct.id, birimFiyat:500 } })).ok()).toBeTruthy();
   await page.reload();
   await expect(page.getByText('Genel Toplam')).toBeVisible();
   await expect(page.getByText(product.name).first()).toBeVisible();
