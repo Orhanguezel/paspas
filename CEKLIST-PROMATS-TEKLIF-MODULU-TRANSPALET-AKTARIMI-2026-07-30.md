@@ -134,9 +134,11 @@ dönüştürülmesi
   - Para alanları hesap sonunda iki ondalığa yuvarlanır; API/admin DTO ve PDF
     şablonu merkezi motorun saklanan toplamlarını yeniden hesaplamadan kullanır.
 
-- [ ] **11. Teklif numaralandırmasını taşı** — `high`
+- [x] **11. Teklif numaralandırmasını taşı** — `high`
   - Yıllık sayaç transaction/lock ile yarış koşuluna dayanıklı çalışacak.
   - Promats formatı kesinleştirilecek; örnek `TK-2026-0001`.
+  - Lifecycle UAT eşzamanlı 8 üretimin benzersiz, ardışık ve
+    `TK-YYYY-NNNN` biçiminde olduğunu doğrular.
   - Kabul: Paralel oluşturmalarda mükerrer numara üretilmiyor.
 
 - [ ] **12. Revizyon snapshot mekanizmasını düzeltip taşı** — `critical`

@@ -22,7 +22,12 @@ try {
 
   const concurrent = await Promise.all(Array.from({ length: 8 }, () => repoCreateTeklif({ musteriId:customerId, paraBirimi:'TRY', dil:'tr', kdvOrani:20, kdvDahil:false }, user.id)));
   offerIds.push(...concurrent.map((offer) => offer.id));
-  if (new Set(concurrent.map((offer) => offer.teklifNo)).size !== concurrent.length) throw new Error('NUMBER_RACE_FAILED');
+  const numbers = concurrent.map((offer) => {
+    const match = offer.teklifNo.match(new RegExp(`^TK-${new Date().getFullYear()}-(\\d{4,})$`));
+    if (!match) throw new Error(`NUMBER_FORMAT_FAILED_${offer.teklifNo}`);
+    return Number(match[1]);
+  }).sort((a,b) => a-b);
+  if (new Set(numbers).size !== concurrent.length || numbers.some((value,index) => index > 0 && value !== numbers[index-1] + 1)) throw new Error('NUMBER_RACE_FAILED');
 
   const offerId = offerIds[0];
   await repoAddKalem(offerId, { urunId:product.id, aciklama:'Lifecycle ürünü', birim:'adet', miktar:2, birimFiyat:500, iskontoOrani:10 });
@@ -55,7 +60,7 @@ try {
     db.execute("SELECT COUNT(*) count FROM role_permissions WHERE permission_key IN ('admin.teklifler.create','admin.teklif_onay.create')").then(([rows]) => rows),
   ]);
   if (!duplicateBlocked || Number(errorSend.count) !== 1 || Number(permissions.count) < 2) throw new Error('LIFECYCLE_ASSERTION_FAILED');
-  console.log(JSON.stringify({ ok:true, totals:true, transitions:true, immutableSnapshot:true, concurrentNumbers:8, permissions:true, sendFailure:true, publicToken:true, orderConversion:true, duplicateBlocked:true }));
+  console.log(JSON.stringify({ ok:true, totals:true, transitions:true, immutableSnapshot:true, concurrentNumbers:8, numberFormat:`TK-${new Date().getFullYear()}-NNNN`, consecutiveBlock:true, permissions:true, sendFailure:true, publicToken:true, orderConversion:true, duplicateBlocked:true }));
 } finally {
   if (orderId) {
     await db.execute('UPDATE teklifler SET donusen_siparis_id=NULL WHERE donusen_siparis_id=?', [orderId]);
