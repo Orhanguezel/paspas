@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { activityCreateSchema, activityListSchema, communicationCreateSchema, dealCreateSchema, dealMoveSchema, dealProductSchema, dealToOfferSchema, reminderCreateSchema, reminderListSchema, talepToDealSchema } from '../validation';
+import { activityCreateSchema, activityListSchema, communicationCreateSchema, dealCreateSchema, dealMoveSchema, dealPatchSchema, dealProductSchema, dealToOfferSchema, lossReasonCreateSchema, reminderCreateSchema, reminderListSchema, talepToDealSchema } from '../validation';
 
 describe('CRM validation', () => {
   it('fırsat varsayılanlarını güvenli üretir', () => {
@@ -19,6 +19,16 @@ describe('CRM validation', () => {
 
   it('aşama taşıma için UUID ister', () => {
     expect(dealMoveSchema.safeParse({ stageId: 'x' }).success).toBe(false);
+    expect(dealMoveSchema.safeParse({ stageId:crypto.randomUUID(),lostReasonId:'serbest-metin' }).success).toBe(false);
+  });
+
+  it('terminal durum generic güncellemeyle atlanamaz',()=>{
+    expect(dealPatchSchema.safeParse({status:'lost',lostReason:'serbest'}).success).toBe(false);
+  });
+
+  it('kaybetme nedeni kodunu raporlanabilir biçimde sınırlar',()=>{
+    expect(lossReasonCreateSchema.safeParse({code:'rakip_firma',name:'Rakip firma'}).success).toBe(true);
+    expect(lossReasonCreateSchema.safeParse({code:'Rakip Firma',name:'Rakip firma'}).success).toBe(false);
   });
 
   it('fırsat ürününde pozitif miktar ve ürün UUID ister', () => {

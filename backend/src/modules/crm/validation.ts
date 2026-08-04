@@ -15,9 +15,10 @@ export const dealCreateSchema = z.object({
   expectedCloseDate: z.string().date().optional().nullable(), ownerUserId: z.string().uuid().optional().nullable(), source: z.string().max(64).optional().nullable(),
 });
 export const dealPatchSchema = dealCreateSchema.omit({ pipelineId: true, stageId: true, talepId: true }).partial()
-  .extend({ status: status.optional(), lostReason: z.string().trim().max(500).optional().nullable() })
   .refine((v) => Object.keys(v).length > 0, 'En az bir alan gerekli');
-export const dealMoveSchema = z.object({ stageId: z.string().uuid(), lostReason: z.string().trim().max(500).optional() });
+export const dealMoveSchema = z.object({ stageId: z.string().uuid(), lostReasonId: z.string().uuid().optional() });
+export const lossReasonCreateSchema=z.object({code:z.string().trim().regex(/^[a-z0-9_]+$/).max(64),name:z.string().trim().min(1).max(160),sort:z.coerce.number().int().min(0).default(0),isActive:z.boolean().default(true)});
+export const lossReasonPatchSchema=lossReasonCreateSchema.partial().refine(v=>Object.keys(v).length>0,'En az bir alan gerekli');
 export const talepToDealSchema = z.object({
   musteriId: z.string().uuid().optional(),
   yeniMusteri: z.object({ ad: z.string().trim().min(1).max(255), telefon: z.string().max(32).optional(), email: z.string().email().max(255).optional(), adres: z.string().max(500).optional() }).optional(),
