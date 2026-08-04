@@ -371,7 +371,7 @@ dönüştürülmesi
     alanlar olarak korunacak.
   - Kabul: Her iki formdan gelen kayıt admin teklif taleplerinde doğru görünüyor.
 
-- [ ] **27. Ürün detayından teklif isteme akışını tamamla** — `high`
+- [x] **27. Ürün detayından teklif isteme akışını tamamla** — `high`
   - “Bu ürünle ilgileniyorum/Teklif al” CTA’sı iletişim formunu ilgili ürün
     seçili açacak.
   - Birden fazla ürün seçimi kompakt ve mobil uyumlu olacak.
