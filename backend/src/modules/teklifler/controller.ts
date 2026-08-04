@@ -15,12 +15,13 @@ import { emitAutomationEvent } from '@/modules/crm/automation.repository';
 import { writeCrmAudit } from '@/modules/crm/audit';
 import { crmScope } from '@/modules/crm/scope';
 
-import { PdfUnavailableError } from './pdf.service';
+import { PdfUnavailableError, renderPdf, resolveLogoDataUri } from './pdf.service';
+import { renderTeklifHtml, type TeklifPdfInput } from './pdfTemplate';
 import { buildTeklifPdf } from './teklif-pdf';
 import {
   assertTeklifGonderilebilir, repoAddKalem, repoCreateRevizyon, repoCreateTalepPublic,
   repoCreateTeklif, repoDeleteKalem, repoDeleteTeklif, repoDonusturTalep, repoGetTalep,
-  repoGetTeklif, repoListRevizyonlar, repoListTalepler, repoListTeklifler, repoLogGonderim,
+  repoGetTeklif, repoGetRevizyon, repoListRevizyonlar, repoListTalepler, repoListTeklifler, repoLogGonderim,
   repoMarkGonderildi, repoOnaylaIskonto, repoOnayaGonder, repoPatchKalem, repoPatchTalep,
   repoPatchTeklif, repoReddetIskonto, repoSetTeklifDurum, repoTeklifByToken,
   repoTeklifiSipariseDonustur,
@@ -268,6 +269,25 @@ export const createRevizyon: RouteHandler = async (req, reply) => {
 export const listRevizyonlar: RouteHandler = async (req, reply) => {
   const { id } = req.params as { id: string };
   return repoListRevizyonlar(id);
+};
+
+export const getRevizyon: RouteHandler = async (req, reply) => {
+  const {id,revizyonNo}=req.params as {id:string;revizyonNo:string};
+  const dto=await repoGetRevizyon(id,Number(revizyonNo));
+  if(!dto)return reply.code(404).send({error:{message:'revizyon_bulunamadi'}});
+  return dto;
+};
+
+export const getRevizyonPdf: RouteHandler = async (req, reply) => {
+  const {id,revizyonNo}=req.params as {id:string;revizyonNo:string};
+  const dto=await repoGetRevizyon(id,Number(revizyonNo));
+  if(!dto)return reply.code(404).send({error:{message:'revizyon_bulunamadi'}});
+  const snapshot=dto.snapshot as {teklif:TeklifPdfInput['teklif'];musteri:TeklifPdfInput['musteri']};
+  const [firma,logoUrl]=await Promise.all([getErpCompanyProfile(),getErpBrandingLogoUrl()]);
+  const pdf=await renderPdf(renderTeklifHtml({teklif:snapshot.teklif,musteri:snapshot.musteri,firma,logoDataUri:await resolveLogoDataUri(logoUrl)}));
+  reply.header('Content-Type','application/pdf');
+  reply.header('Content-Disposition',`inline; filename="${snapshot.teklif.teklifNo}-R${revizyonNo}.pdf"`);
+  return reply.send(pdf);
 };
 
 // ── Kalemler ─────────────────────────────────────────────────

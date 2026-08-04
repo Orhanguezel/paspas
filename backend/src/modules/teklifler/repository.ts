@@ -32,6 +32,7 @@ import {
   teklifRowToDto,
   teklifTalepleri,
   teklifTalepRowToDto,
+  teklifSablonlari,
 } from './schema';
 import type {
   KalemCreateBody, KalemPatchBody, TalepDonusturBody, TalepListQuery, TalepPatchBody,
@@ -409,13 +410,18 @@ export async function repoCreateRevizyon(
   const dto = await repoGetTeklif(id);
   if (!dto) return null;
 
-  const maxNo = await db.select({ m: sql<number>`COALESCE(MAX(${teklifRevizyonlari.revizyon_no}), 0)` })
+  const [musteriSnapshot, sablonSnapshot] = await Promise.all([
+    db.select({ id:musteriler.id, kod:musteriler.kod, ad:musteriler.ad, ilgiliKisi:musteriler.ilgili_kisi, telefon:musteriler.telefon, email:musteriler.email, adres:musteriler.adres })
+      .from(musteriler).where(eq(musteriler.id,row.musteri_id)).limit(1).then((rows)=>rows[0]??null),
+    db.select().from(teklifSablonlari).where(eq(teklifSablonlari.varsayilan,1)).limit(1).then((rows)=>rows[0]??null),
+  ]);
+  const maxNo = await db.select({ m: sql<number>`COALESCE(MAX(${teklifRevizyonlari.revizyon_no}), -1)` })
     .from(teklifRevizyonlari).where(eq(teklifRevizyonlari.teklif_id, id));
   const nextNo = Number(maxNo[0]?.m ?? 0) + 1;
 
   await db.insert(teklifRevizyonlari).values({
     id: randomUUID(), teklif_id: id, revizyon_no: nextNo,
-    snapshot: dto, neden, created_by: userId,
+    snapshot: { teklif:dto, musteri:musteriSnapshot, pdfSablon:sablonSnapshot }, neden, created_by: userId,
   });
   await db.update(teklifler).set({ durum: 'taslak' }).where(eq(teklifler.id, id));
   return repoGetTeklif(id);
@@ -425,6 +431,11 @@ export async function repoListRevizyonlar(id: string): Promise<ReturnType<typeof
   const rows = await db.select().from(teklifRevizyonlari)
     .where(eq(teklifRevizyonlari.teklif_id, id)).orderBy(desc(teklifRevizyonlari.revizyon_no));
   return rows.map((r) => teklifRevizyonRowToDto(r));
+}
+
+export async function repoGetRevizyon(id: string, revizyonNo: number) {
+  const rows=await db.select().from(teklifRevizyonlari).where(and(eq(teklifRevizyonlari.teklif_id,id),eq(teklifRevizyonlari.revizyon_no,revizyonNo))).limit(1);
+  return rows[0]?teklifRevizyonRowToDto(rows[0],true):null;
 }
 
 /**

@@ -51,6 +51,18 @@ try {
   if (before !== after) throw new Error('SNAPSHOT_MUTATED');
 
   await repoSetTeklifDurum(offerId, 'gonderildi', undefined, 'sevkiyatci');
+  await repoCreateRevizyon(offerId, 'Lifecycle R1 UAT', user.id);
+  const [revisionNumbers]=await db.execute('SELECT revizyon_no FROM teklif_revizyonlari WHERE teklif_id=? ORDER BY revizyon_no',[offerId]);
+  if(JSON.stringify(revisionNumbers.map((row)=>row.revizyon_no))!==JSON.stringify([0,1]))throw new Error('REVISION_SEQUENCE_FAILED');
+  const [[snapshotCoverage]]=await db.execute("SELECT JSON_EXTRACT(snapshot,'$.musteri.adres') adres,JSON_EXTRACT(snapshot,'$.pdfSablon.id') sablon FROM teklif_revizyonlari WHERE teklif_id=? AND revizyon_no=0",[offerId]);
+  if(snapshotCoverage.adres===undefined||!snapshotCoverage.sablon)throw new Error('REVISION_SNAPSHOT_COVERAGE_FAILED');
+  const login=await fetch(`${process.env.UAT_API_BASE||'http://127.0.0.1:8078/api'}/auth/token`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:process.env.ADMIN_EMAIL,password:process.env.ADMIN_PASSWORD})});
+  const access=(await login.json()).access_token;const auth={authorization:`Bearer ${access}`};
+  const revisionDetail=await fetch(`${process.env.UAT_API_BASE||'http://127.0.0.1:8078/api'}/admin/teklifler/${offerId}/revizyonlar/0`,{headers:auth});
+  const revisionPdf=await fetch(`${process.env.UAT_API_BASE||'http://127.0.0.1:8078/api'}/admin/teklifler/${offerId}/revizyonlar/0/pdf`,{headers:auth});
+  if(!revisionDetail.ok||!(await revisionDetail.json()).snapshot||!revisionPdf.ok||!revisionPdf.headers.get('content-type')?.includes('application/pdf'))throw new Error('REVISION_HTTP_FAILED');
+  await repoPatchTeklif(offerId,{aciklama:'R1 sonrası taslak'});
+  await repoSetTeklifDurum(offerId, 'gonderildi', undefined, 'sevkiyatci');
   await repoSetTeklifDurum(offerId, 'kabul', undefined, 'admin');
   const order = await repoTeklifiSipariseDonustur(offerId); orderId = order.siparisId;
   let duplicateBlocked = false;
@@ -60,7 +72,7 @@ try {
     db.execute("SELECT COUNT(*) count FROM role_permissions WHERE permission_key IN ('admin.teklifler.create','admin.teklif_onay.create')").then(([rows]) => rows),
   ]);
   if (!duplicateBlocked || Number(errorSend.count) !== 1 || Number(permissions.count) < 2) throw new Error('LIFECYCLE_ASSERTION_FAILED');
-  console.log(JSON.stringify({ ok:true, totals:true, transitions:true, immutableSnapshot:true, concurrentNumbers:8, numberFormat:`TK-${new Date().getFullYear()}-NNNN`, consecutiveBlock:true, permissions:true, sendFailure:true, publicToken:true, orderConversion:true, duplicateBlocked:true }));
+  console.log(JSON.stringify({ ok:true, totals:true, transitions:true, immutableSnapshot:true, revisionSequence:'R0,R1',snapshotCoverage:true,revisionDetail:true,revisionPdf:true,concurrentNumbers:8, numberFormat:`TK-${new Date().getFullYear()}-NNNN`, consecutiveBlock:true, permissions:true, sendFailure:true, publicToken:true, orderConversion:true, duplicateBlocked:true }));
 } finally {
   if (orderId) {
     await db.execute('UPDATE teklifler SET donusen_siparis_id=NULL WHERE donusen_siparis_id=?', [orderId]);

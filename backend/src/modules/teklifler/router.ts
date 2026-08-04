@@ -9,7 +9,7 @@ import { makeAdminPermissionGuard } from '@/common/middleware/permissions';
 import { requireOwnLead, requireOwnOffer } from '@/modules/crm/scope';
 
 import {
-  addKalem, createRevizyon, createTalepPublic, createTeklif, deleteKalem, deleteTeklif,
+  addKalem, createRevizyon, createTalepPublic, createTeklif, deleteKalem, deleteTeklif, getRevizyon, getRevizyonPdf,
   donusturTalep, getFirmaProfili, getTalep, getTeklif, getTeklifPdf, gonderTeklif,
   listRevizyonlar, listTalepler, listTeklifler, onayaGonder, onaylaIskonto, patchKalem,
   publicTeklifByToken, reddetIskonto, setTeklifDurum, sipariseDonustur, updateTalep, updateTeklif,
@@ -37,6 +37,8 @@ export async function registerTeklifler(app: FastifyInstance): Promise<void> {
   app.post(`${T}/:id/onay-reddet`, { preHandler: onayGuard }, reddetIskonto);
   app.post(`${T}/:id/revizyon`, { preHandler: [guard,requireOwnOffer] }, createRevizyon);
   app.get(`${T}/:id/revizyonlar`, { preHandler: [guard,requireOwnOffer] }, listRevizyonlar);
+  app.get(`${T}/:id/revizyonlar/:revizyonNo`, { preHandler: [guard,requireOwnOffer] }, getRevizyon);
+  app.get(`${T}/:id/revizyonlar/:revizyonNo/pdf`, { preHandler: [guard,requireOwnOffer] }, getRevizyonPdf);
   app.post(`${T}/:id/kalemler`, { preHandler: [guard,requireOwnOffer] }, addKalem);
   app.patch(`${T}/:id/kalemler/:kalemId`, { preHandler: [guard,requireOwnOffer] }, patchKalem);
   app.delete(`${T}/:id/kalemler/:kalemId`, { preHandler: [guard,requireOwnOffer] }, deleteKalem);

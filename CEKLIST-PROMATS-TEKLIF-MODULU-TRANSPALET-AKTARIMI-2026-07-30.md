@@ -141,12 +141,14 @@ dönüştürülmesi
     `TK-YYYY-NNNN` biçiminde olduğunu doğrular.
   - Kabul: Paralel oluşturmalarda mükerrer numara üretilmiyor.
 
-- [ ] **12. Revizyon snapshot mekanizmasını düzeltip taşı** — `critical`
+- [x] **12. Revizyon snapshot mekanizmasını düzeltip taşı** — `critical`
   - R0 ilk teklif olarak korunacak; sonraki değişiklikler R1, R2 şeklinde yeni
     değişmez snapshot üretecek.
   - Snapshot müşteri, kalem, fiyat, toplam, koşul, dil ve PDF şablon verisini
     kapsayacak.
   - Kabul: Her revizyon ayrı görüntülenip yeniden PDF üretilebiliyor.
+  - Revizyon detay ve PDF endpointleri `/revizyonlar/:revizyonNo` ve
+    `/revizyonlar/:revizyonNo/pdf`; sıra ilk gönderilmiş hal için R0'dan başlar.
 
 - [ ] **13. İskonto onay akışını Paspas rollerine bağla** — `high`
   - `admin.teklif`, `admin.teklif_onay` benzeri izinler eklenecek.
