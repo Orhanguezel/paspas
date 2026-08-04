@@ -216,7 +216,7 @@ dönüştürülmesi
     veya bildirim üretilecek.
   - Kabul: Hatırlatma tek kez çalışıyor ve gönderim sonucu kaydediliyor.
 
-- [ ] **41. CRM iletişim geçmişini Paspas mail/mesaj yapısına bağla** — `high`
+- [x] **41. CRM iletişim geçmişini Paspas mail/mesaj yapısına bağla** — `high`
   - Gelen/giden e-posta, WhatsApp bağlantısı, telefon notu ve manuel iletişim
     kaydı müşteri ve fırsat zaman çizelgesinde gösterilecek.
   - SMTP hataları ve gönderim kimlikleri kayıt altında tutulacak.
