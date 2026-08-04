@@ -10,12 +10,12 @@ const db = await mysql.createConnection({
 try {
   const [leadResult, offerResult, conversionResult] = await Promise.all([
     db.execute(`SELECT COUNT(*) kaydedilenTalep,
-      SUM(durum='teklife_donustu') teklifeDonusenTalep
+      COALESCE(SUM(durum='teklife_donustu'),0) teklifeDonusenTalep
       FROM teklif_talepleri WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? HOUR)`, [hours]),
     db.execute(`SELECT COUNT(*) olusturulanTeklif,
-      SUM(gonderim_at IS NOT NULL) gonderilenTeklif,
-      SUM(ilk_goruntuleme_at IS NOT NULL) goruntulenenTeklif,
-      SUM(durum='kabul') kabulEdilenTeklif
+      COALESCE(SUM(gonderim_at IS NOT NULL),0) gonderilenTeklif,
+      COALESCE(SUM(ilk_goruntuleme_at IS NOT NULL),0) goruntulenenTeklif,
+      COALESCE(SUM(durum='kabul'),0) kabulEdilenTeklif
       FROM teklifler WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? HOUR)`, [hours]),
     db.execute(`SELECT COUNT(*) sipariseDonusenTeklif FROM teklifler
       WHERE donusen_siparis_id IS NOT NULL AND updated_at >= DATE_SUB(NOW(), INTERVAL ? HOUR)`, [hours]),

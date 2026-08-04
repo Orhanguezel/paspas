@@ -11,7 +11,7 @@
 5. Admin: typecheck/build, standalone static/public kopyaları, `paspas-panel` restart.
 6. Public web: `/var/www/promats-com-tr/frontend` içinde typecheck/build, standalone
    static/public kopyaları, `PORT=3012 pm2 restart promats-web --update-env`.
-7. `8078/health`, admin `/login` ve `https://promats.com.tr/tr/iletisim` için HTTP 200 doğrula.
+7. `8078/health`, admin `/admin` ve `https://promats.com.tr/tr/iletisim` için HTTP 200 doğrula.
 8. İşaretli UAT kaydıyla Playwright teklif akışını çalıştır; testin `finally/afterAll`
    temizliğinin başarılı olduğunu doğrula.
 9. `node backend/scripts/monitor-teklif-production.mjs 24` ve PM2 error loglarını izle.
