@@ -11,10 +11,10 @@ try{
   const auth=await call('/auth/token',{method:'POST',body:{email:process.env.ADMIN_EMAIL,password:process.env.ADMIN_PASSWORD}});const token=auth.access_token;
   const marker=`E2E-TEKLIF-SNAPSHOT-${Date.now()}`;
   const offer=await call('/admin/teklifler',{method:'POST',token,expected:201,body:{yeniMusteri:{ad:marker},paraBirimi:'TRY'}});offerId=offer.id;customerId=offer.musteriId;
-  const withProduct=await call(`/admin/teklifler/${offerId}/kalemler`,{method:'POST',token,body:{urunId:product.id,aciklama:'ERP ürün snapshot UAT',miktar:2,birimFiyat:0,iskontoOrani:0}});
+  const withProduct=await call(`/admin/teklifler/${offerId}/kalemler`,{method:'POST',token,expected:201,body:{urunId:product.id,aciklama:'ERP ürün snapshot UAT',miktar:2,birimFiyat:0,iskontoOrani:0}});
   const productLine=withProduct.kalemler.find(x=>x.urunId===product.id);
   if(!productLine||productLine.urunKod!==product.kod||productLine.urunAd!==product.ad||productLine.birim!==(product.birim||'adet')||productLine.birimFiyat!==Number(product.birim_fiyat))throw new Error('PRODUCT_SNAPSHOT_FAILED');
-  const withManual=await call(`/admin/teklifler/${offerId}/kalemler`,{method:'POST',token,body:{aciklama:'Manuel hizmet kalemi',birim:'hizmet',miktar:1,birimFiyat:125,iskontoOrani:0}});
+  const withManual=await call(`/admin/teklifler/${offerId}/kalemler`,{method:'POST',token,expected:201,body:{aciklama:'Manuel hizmet kalemi',birim:'hizmet',miktar:1,birimFiyat:125,iskontoOrani:0}});
   const manual=withManual.kalemler.find(x=>x.aciklama==='Manuel hizmet kalemi');if(!manual||manual.urunId!==null||manual.birimFiyat!==125)throw new Error('MANUAL_LINE_FAILED');
   await db.execute("UPDATE teklifler SET durum='gonderildi' WHERE id=?",[offerId]);
   await db.execute('UPDATE urunler SET ad=? WHERE id=?',[`${product.ad} [UAT-DEGISIK]`,product.id]);productChanged=true;
