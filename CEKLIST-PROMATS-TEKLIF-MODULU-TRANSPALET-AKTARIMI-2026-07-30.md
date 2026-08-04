@@ -52,12 +52,14 @@ dönüştürülmesi
   - Kabul: Taşınacak, uyarlanacak ve çıkarılacak her alan açıkça listelenmiş.
   - Tam matris: `docs/TEKLIF-KAYNAK-HEDEF-UYUMLULUK-MATRISI.md`.
 
-- [ ] **2. Promats teklif kapsamını Fuar Teklif Modülü’nden ayır** — `high`
+- [x] **2. Promats teklif kapsamını Fuar Teklif Modülü’nden ayır** — `high`
   - Promats web teklif modülü yurtiçi/standart teklif ve web lead yönetimine
     odaklanacak.
   - Fuar modülündeki palet, koli, CBM, konteyner, proforma ve çeki listesi bu
     aktarımın zorunlu V1 kapsamına alınmayacak.
   - Kabul: İki modülün veri sahipliği ve gelecekteki entegrasyon sınırı belli.
+  - Sahiplik ve API/referans sınırı
+    `YAZILIMCI-NOTLARI-FUAR-TEKLIF-MODULU-2026-07-30.md` içinde kayıtlı.
 
 - [ ] **3. Teklif durum makinesi ve iş kurallarını kesinleştir** — `critical`
   - Durumlar: `talep`, `taslak`, `onay_bekliyor`, `gonderildi`,

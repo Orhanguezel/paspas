@@ -37,6 +37,24 @@ görev** vardır: **20 kritik**, **18 yüksek**, **4 normal**.
 - Çeki listesi teklif verisini kopyalayan bağımsız bir giriş ekranı değil,
   seçilen teklif revizyonundan üretilen bağlı bir belge olmalıdır.
 
+## Promats standart teklif ile sahiplik sınırı
+
+| Veri/süreç | Sahip | Entegrasyon kuralı |
+|---|---|---|
+| Web talebi, yurtiçi/standart fiyat teklifi, KDV, genel iskonto, Promats PDF, görüntülenme, kabul/red | Paspas Promats Teklif | Fuar uygulaması bu tabloları doğrudan yazmaz. |
+| CRM talep, müşteri, fırsat, aktivite ve satış siparişi bağlantısı | Paspas CRM/ERP | Ana kimlikler Paspas'tan gelir; Fuar yalnız açık API ile referans taşır. |
+| İhracat ürün fiyatları, takım/koli/palet dönüşümü, MOQ, net/brüt ağırlık | Fuar Teklif | Promats V1 hesap motoruna ve kalem şemasına eklenmez. |
+| CBM, konteyner/TIR doluluğu, karayolu/denizyolu navlunu, EXW/FOB/CIF | Fuar Teklif | Ayrı tanım ve hesaplama motorunun sahibidir. |
+| Proforma, packing/çeki listesi ve bunların PDF/Excel çıktıları | Fuar Teklif | Yalnız Fuar teklifinin değişmez revizyonundan üretilir. |
+
+Gelecekteki entegrasyon doğrudan ortak tablo kullanımıyla değil, sürümlü API ve
+değişmez harici referanslarla yapılır. Paylaşılabilecek anahtarlar Paspas
+`musteri_id`, `urun_id`, `satis_siparisi_id` ve Fuar `teklif_id/revizyon_no`
+değerleridir. Paspas standart teklif numarası ile Fuar teklif numarası ayrı
+sayaç/namespace kullanır. Bir Fuar teklifi siparişe dönüştüğünde hesap ve belge
+snapshot'ı Fuar'da kalır; Paspas'a yalnız onaylı sipariş kalemleri ve kaynak
+referansı aktarılır.
+
 ## Önerilen uygulama sırası
 
 1. Bağımsız altyapı, kullanıcı erişimi ve temel tanımlar.
