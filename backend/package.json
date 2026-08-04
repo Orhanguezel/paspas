@@ -14,6 +14,7 @@
     "test:integration": "NODE_ENV=test RUN_DB_INTEGRATION=1 bun test",
     "test:all": "NODE_ENV=test bun test && NODE_ENV=test RUN_DB_INTEGRATION=1 bun test",
     "test:crm": "bun run build && node scripts/test-crm-suite.mjs",
+    "test:teklif": "bun test src/modules/teklifler/__tests__/teklifler.test.ts && bun run build && node scripts/uat-teklif-lifecycle.mjs",
     "db:seed:test": "NODE_ENV=test bun src/db/seed/index.ts",
     "db:seed:test:fresh": "NODE_ENV=test ALLOW_DROP=true bun src/db/seed/index.ts",
     "db:seed:test:nodrop": "NODE_ENV=test bun src/db/seed/index.ts --no-drop"
