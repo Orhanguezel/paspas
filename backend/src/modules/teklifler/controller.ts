@@ -18,6 +18,7 @@ import { crmScope } from '@/modules/crm/scope';
 import { PdfUnavailableError, renderPdf, resolveLogoDataUri } from './pdf.service';
 import { renderTeklifHtml, type TeklifPdfInput } from './pdfTemplate';
 import { buildTeklifPdf } from './teklif-pdf';
+import { notifyOfferAdmins } from './maintenance';
 import {
   assertTeklifGonderilebilir, repoAddKalem, repoCreateRevizyon, repoCreateTalepPublic,
   repoCreateTeklif, repoDeleteKalem, repoDeleteTeklif, repoDonusturTalep, repoGetTalep,
@@ -149,6 +150,7 @@ export const publicTeklifByToken: RouteHandler = async (req, reply) => {
   try {
     const built = await buildTeklifPdf(found.id);
     if (!built) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
+    if(found.firstViewed){const after=await repoGetTeklif(found.id);await crmAudit(req,'CRM_OFFER_FIRST_VIEWED','offers',found.id,null,after);}
     reply.header('Content-Type', 'application/pdf');
     reply.header('Content-Disposition', `inline; filename="${built.teklifNo}.pdf"`);
     return reply.send(built.pdf);
@@ -192,6 +194,7 @@ export const createTeklif: RouteHandler = async (req, reply) => {
   const parsed = teklifCreateSchema.safeParse(req.body);
   if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
   const dto = await repoCreateTeklif(parsed.data, userIdOf(req));
+  await crmAudit(req,'CRM_OFFER_CREATED','offers',dto.id,null,dto);
   return reply.code(201).send(dto);
 };
 
@@ -200,9 +203,9 @@ export const updateTeklif: RouteHandler = async (req, reply) => {
   const parsed = teklifPatchSchema.safeParse(req.body);
   if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
   try {
-    const dto = await repoPatchTeklif(id, parsed.data);
+    const before=await repoGetTeklif(id),dto = await repoPatchTeklif(id, parsed.data);
     if (!dto) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
-    return dto;
+    await crmAudit(req,'CRM_OFFER_UPDATED','offers',id,before,dto);return dto;
   } catch (err) { return mapError(reply, err); }
 };
 
@@ -233,7 +236,7 @@ export const setTeklifDurum: RouteHandler = async (req, reply) => {
   try {
     const before=await repoGetTeklif(id),dto = await repoSetTeklifDurum(id, parsed.data.durum, parsed.data.redNedeni, roleOf(req),userIdOf(req),parsed.data.kararNedeni);
     if (!dto) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
-    if(parsed.data.durum==='kabul'){await emitAutomationEvent('offer_accepted','offer',id,userIdOf(req),{},`offer_accepted:${id}`);await crmAudit(req,'CRM_OFFER_ACCEPTED','offers',id,before,dto);}return dto;
+    if(parsed.data.durum==='kabul'){await emitAutomationEvent('offer_accepted','offer',id,userIdOf(req),{},`offer_accepted:${id}`);await crmAudit(req,'CRM_OFFER_ACCEPTED','offers',id,before,dto);}else if(parsed.data.durum==='red')await crmAudit(req,'CRM_OFFER_REJECTED','offers',id,before,dto);return dto;
   } catch (err) { return mapError(reply, err); }
 };
 
@@ -246,6 +249,7 @@ export const onayaGonder: RouteHandler = async (req, reply) => {
     const dto = await repoOnayaGonder(id, roleOf(req));
     if (!dto) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
     await crmAudit(req,'CRM_OFFER_DISCOUNT_APPROVAL_REQUESTED','offers',id,before,dto);
+    await notifyOfferAdmins('İskonto onayı bekliyor',`${dto.teklifNo} numaralı teklif yönetici onayı bekliyor.`,'teklif_onay').catch(error=>req.log.warn({error},'teklif_onay_bildirimi_failed'));
     return dto;
   } catch (err) { return mapError(reply, err); }
 };
@@ -279,9 +283,9 @@ export const createRevizyon: RouteHandler = async (req, reply) => {
   const parsed = revizyonSchema.safeParse(req.body);
   if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
   try {
-    const dto = await repoCreateRevizyon(id, parsed.data.neden, userIdOf(req));
+    const before=await repoGetTeklif(id),dto = await repoCreateRevizyon(id, parsed.data.neden, userIdOf(req));
     if (!dto) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
-    return reply.code(201).send(dto);
+    await crmAudit(req,'CRM_OFFER_REVISION_CREATED','offers',id,before,dto);return reply.code(201).send(dto);
   } catch (err) { return mapError(reply, err); }
 };
 
@@ -399,6 +403,6 @@ export const createTalepPublic: RouteHandler = async (req, reply) => {
 
   const ipHash = createHash('sha256').update(ip).digest('hex').slice(0, 64);
   const { id, created } = await repoCreateTalepPublic(parsed.data, ipHash, idempotencyKey);
-  if (created) await emitAutomationEvent('lead_created','lead',id,null,{source:'web'},`lead_created:${id}`);
+  if (created){await emitAutomationEvent('lead_created','lead',id,null,{source:'web'},`lead_created:${id}`);await notifyOfferAdmins('Yeni web teklif talebi',`${parsed.data.ad}${parsed.data.firma?` · ${parsed.data.firma}`:''} yeni teklif talebi gönderdi.`,'teklif_talebi').catch(error=>req.log.warn({error},'teklif_talep_bildirimi_failed'));await writeCrmAudit({actorUserId:null,action:'CRM_LEAD_CREATED',resource:'leads',resourceId:id,after:{source:'web',dil:parsed.data.dil}});}
   return reply.code(created ? 201 : 200).send({ ok: true, id, duplicate: !created });
 };

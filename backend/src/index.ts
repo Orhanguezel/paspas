@@ -2,6 +2,7 @@
 import { createApp } from './app';
 import { env } from '@/core/env';
 import { startShiftAutoCloseScheduler, stopShiftAutoCloseScheduler } from '@/modules/operator/shift_scheduler';
+import { startOfferExpiryScheduler, stopOfferExpiryScheduler } from '@/modules/teklifler/scheduler';
 
 async function main() {
   const app: any = await createApp();
@@ -18,9 +19,11 @@ async function main() {
       }
     },
   });
+  startOfferExpiryScheduler((info)=>info.error?app.log.error({error:info.error},'offer_expiry_scheduler_error'):info.expired>0?app.log.info({expired:info.expired},'offer_expiry_scheduler_completed'):undefined);
 
   const shutdown = async () => {
     stopShiftAutoCloseScheduler();
+    stopOfferExpiryScheduler();
     await app.close();
     process.exit(0);
   };

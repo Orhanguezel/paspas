@@ -7,11 +7,13 @@ import {
   repoOnayaGonder, repoOnaylaIskonto, repoPatchTeklif, repoSetTeklifDurum,
   repoTeklifiSipariseDonustur,
 } from '../dist/modules/teklifler/repository.js';
+import { expireDueOffers } from '../dist/modules/teklifler/maintenance.js';
 
 const db = await mysql.createConnection({ host:process.env.DB_HOST, port:Number(process.env.DB_PORT || 3306), user:process.env.DB_USER, password:process.env.DB_PASSWORD, database:process.env.DB_NAME });
 const customerId = randomUUID();
 const offerIds = [];
 let orderId;
+let notificationOfferNo;
 try {
   const [[user], [product]] = await Promise.all([
     db.query('SELECT id FROM users WHERE is_active=1 ORDER BY created_at LIMIT 1').then(([rows]) => rows),
@@ -39,7 +41,7 @@ try {
   const apiBase=process.env.UAT_API_BASE||'http://127.0.0.1:8078/api';
   const login=await fetch(`${apiBase}/auth/token`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:process.env.ADMIN_EMAIL,password:process.env.ADMIN_PASSWORD})});
   const access=(await login.json()).access_token;const auth={authorization:`Bearer ${access}`};
-  await repoOnayaGonder(offerId, 'sevkiyatci');
+  const approvalRequest=await fetch(`${apiBase}/admin/teklifler/${offerId}/onaya-gonder`,{method:'POST',headers:auth});if(!approvalRequest.ok)throw new Error('DISCOUNT_APPROVAL_REQUEST_HTTP_FAILED');
   const approvalResponse=await fetch(`${apiBase}/admin/teklifler/${offerId}/onayla`,{method:'POST',headers:auth});if(!approvalResponse.ok)throw new Error(`DISCOUNT_APPROVAL_HTTP_FAILED_${approvalResponse.status}_${await approvalResponse.text()}`);
   const approved=await repoGetTeklif(offerId);if(!approved?.iskontoOnaylandi||!approved.iskontoOnaylayanUserId)throw new Error('DISCOUNT_APPROVAL_FAILED');
   await repoPatchTeklif(offerId,{iskontoOrani:12});
@@ -53,6 +55,7 @@ try {
   await repoSetTeklifDurum(offerId, 'gonderildi', undefined, 'sevkiyatci');
   await repoLogGonderim(offerId, 'email', 'uat@example.invalid', 'hata', 'UAT kontrollü gönderim hatası', user.id);
   const sent = await repoGetTeklif(offerId);
+  notificationOfferNo=sent?.teklifNo;
   if (!sent?.goruntulemeToken || !sent.goruntulemeTokenExpiresAt) throw new Error('TOKEN_FAILED');
   const firstPublic=await fetch(`${apiBase}/web/promats/teklif/${sent.goruntulemeToken}`);
   if(!firstPublic.ok||!firstPublic.headers.get('content-type')?.includes('application/pdf'))throw new Error('TOKEN_PUBLIC_PDF_FAILED');
@@ -85,7 +88,7 @@ try {
   await repoPatchTeklif(offerId,{aciklama:'R1 sonrası taslak'});
   await repoAddKalem(offerId,{urunId:product.id,aciklama:'Seçilmeyecek lifecycle ürünü',birim:'adet',miktar:1,birimFiyat:25,iskontoOrani:0});
   await repoSetTeklifDurum(offerId, 'gonderildi', undefined, 'sevkiyatci');
-  await repoSetTeklifDurum(offerId, 'kabul', undefined, 'admin',user.id,'Müşteri yazılı kabul verdi');
+  const acceptResponse=await fetch(`${apiBase}/admin/teklifler/${offerId}/durum`,{method:'POST',headers:{...auth,'content-type':'application/json'},body:JSON.stringify({durum:'kabul',kararNedeni:'Müşteri yazılı kabul verdi'})});if(!acceptResponse.ok)throw new Error('OFFER_ACCEPT_HTTP_FAILED');
   const order = await repoTeklifiSipariseDonustur(offerId,[primaryKalemId]); orderId = order.siparisId;
   let duplicateBlocked = false;
   try { await repoTeklifiSipariseDonustur(offerId); } catch (error) { duplicateBlocked = error instanceof Error && error.message === 'teklif_zaten_donustu'; }
@@ -94,20 +97,25 @@ try {
     db.execute("SELECT COUNT(*) count FROM role_permissions WHERE permission_key IN ('admin.teklifler.create','admin.teklif_onay.create')").then(([rows]) => rows),
   ]);
   await repoSetTeklifDurum(offerIds[1],'gonderildi',undefined,'admin',user.id);
-  await repoSetTeklifDurum(offerIds[1],'red','Lifecycle müşteri reddi','admin',user.id);
-  const [[decisionCounts],[orderLink],[orderItems]]=await Promise.all([
+  const rejectResponse=await fetch(`${apiBase}/admin/teklifler/${offerIds[1]}/durum`,{method:'POST',headers:{...auth,'content-type':'application/json'},body:JSON.stringify({durum:'red',redNedeni:'Lifecycle müşteri reddi'})});if(!rejectResponse.ok)throw new Error('OFFER_REJECT_HTTP_FAILED');
+  await repoPatchTeklif(offerIds[2],{gecerlilikTarihi:'2020-01-01'});await repoSetTeklifDurum(offerIds[2],'gonderildi',undefined,'admin',user.id);const expiredCount=await expireDueOffers();
+  const [[decisionCounts],[orderLink],[orderItems],[expiredOffer],[lifecycleAudit],[approvalNotifications]]=await Promise.all([
     db.execute("SELECT SUM(karar='kabul') accepted,SUM(karar='red') rejected FROM teklif_kararlari WHERE teklif_id IN (?,?)",[offerId,offerIds[1]]).then(([rows])=>rows),
     db.execute('SELECT id FROM teklifler WHERE id=? AND donusen_siparis_id=?',[offerId,orderId]).then(([rows])=>rows),
     db.execute('SELECT COUNT(*) count FROM siparis_kalemleri WHERE siparis_id=?',[orderId]).then(([rows])=>rows),
+    db.execute("SELECT durum FROM teklifler WHERE id=?",[offerIds[2]]).then(([rows])=>rows),
+    db.execute("SELECT COUNT(*) count FROM admin_audit_logs WHERE resource_id IN (?,?,?) AND action IN ('CRM_OFFER_FIRST_VIEWED','CRM_OFFER_REVISION_CREATED','CRM_OFFER_ACCEPTED','CRM_OFFER_REJECTED','CRM_OFFER_EXPIRED')",[offerId,offerIds[1],offerIds[2]]).then(([rows])=>rows),
+    db.execute("SELECT COUNT(*) count FROM notifications WHERE type='teklif_onay' AND message LIKE ?",[`%${sent.teklifNo}%`]).then(([rows])=>rows),
   ]);
-  if (!duplicateBlocked || Number(errorSend.count) !== 1 || Number(permissions.count) < 2||Number(decisionCounts.accepted)!==1||Number(decisionCounts.rejected)!==1||!orderLink.id||Number(orderItems.count)!==1) throw new Error('LIFECYCLE_ASSERTION_FAILED');
-  console.log(JSON.stringify({ ok:true, totals:true, transitions:true,discountApproval:true,approvalResetOnChange:true,approvalAudit:true, immutableSnapshot:true, revisionSequence:'R0,R1',snapshotCoverage:true,revisionDetail:true,revisionPdf:true,revisionPdfBytes:revisionPdfBytes.length,concurrentNumbers:8, numberFormat:`TK-${new Date().getFullYear()}-NNNN`, consecutiveBlock:true, permissions:true, sendFailure:true, publicToken:true,tokenFirstView:true,tokenRevocation:true,tokenRefresh:true,tokenExpiry:true,decisionHistory:true,selectedOrderItems:true,twoWayOrderLink:true, orderConversion:true, duplicateBlocked:true }));
+  if (!duplicateBlocked || Number(errorSend.count) !== 1 || Number(permissions.count) < 2||Number(decisionCounts.accepted)!==1||Number(decisionCounts.rejected)!==1||!orderLink.id||Number(orderItems.count)!==1||expiredCount<1||expiredOffer.durum!=='suresi_doldu'||Number(lifecycleAudit.count)<4||Number(approvalNotifications.count)<1) throw new Error('LIFECYCLE_ASSERTION_FAILED');
+  console.log(JSON.stringify({ ok:true, totals:true, transitions:true,discountApproval:true,approvalResetOnChange:true,approvalAudit:true, immutableSnapshot:true, revisionSequence:'R0,R1',snapshotCoverage:true,revisionDetail:true,revisionPdf:true,revisionPdfBytes:revisionPdfBytes.length,concurrentNumbers:8, numberFormat:`TK-${new Date().getFullYear()}-NNNN`, consecutiveBlock:true, permissions:true, sendFailure:true, publicToken:true,tokenFirstView:true,tokenRevocation:true,tokenRefresh:true,tokenExpiry:true,decisionHistory:true,selectedOrderItems:true,twoWayOrderLink:true,lifecycleAudit:true,adminNotification:true,offerExpiry:true, orderConversion:true, duplicateBlocked:true }));
 } finally {
   if (orderId) {
     await db.execute('UPDATE teklifler SET donusen_siparis_id=NULL WHERE donusen_siparis_id=?', [orderId]);
     await db.execute('DELETE FROM satis_siparisleri WHERE id=?', [orderId]);
   }
   if (offerIds.length) {
+    if(notificationOfferNo)await db.query("DELETE FROM notifications WHERE type='teklif_onay' AND message LIKE ?",[`%${notificationOfferNo}%`]);
     await db.query(`DELETE FROM admin_audit_logs WHERE resource_id IN (${offerIds.map(() => '?').join(',')})`,offerIds);
     await db.query(`DELETE FROM teklifler WHERE id IN (${offerIds.map(() => '?').join(',')})`, offerIds);
   }

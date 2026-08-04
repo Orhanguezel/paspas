@@ -257,7 +257,7 @@ export async function repoMarkGonderildi(teklifId: string): Promise<void> {
 }
 
 /** Public token ile teklifi bul; ilk görüntülemeyi işaretle + durum→goruntulendi. */
-export async function repoTeklifByToken(token: string): Promise<{ id: string } | null> {
+export async function repoTeklifByToken(token: string): Promise<{ id: string; firstViewed: boolean } | null> {
   const rows = await db.select({ id: teklifler.id, durum: teklifler.durum, ilk: teklifler.ilk_goruntuleme_at })
     .from(teklifler).where(and(
       eq(teklifler.goruntuleme_token, token),
@@ -270,7 +270,7 @@ export async function repoTeklifByToken(token: string): Promise<{ id: string } |
   if (!row.ilk) set.ilk_goruntuleme_at = new Date();
   if (row.durum === 'gonderildi') set.durum = 'goruntulendi';
   if (Object.keys(set).length > 0) await db.update(teklifler).set(set).where(eq(teklifler.id, row.id));
-  return { id: row.id };
+  return { id: row.id, firstViewed: !row.ilk };
 }
 
 export async function repoRefreshPublicToken(id: string, days: number): Promise<ReturnType<typeof teklifRowToDto> | null> {
