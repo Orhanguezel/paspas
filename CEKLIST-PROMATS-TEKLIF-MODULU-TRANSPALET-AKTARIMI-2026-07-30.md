@@ -125,12 +125,14 @@ dönüştürülmesi
   - `scripts/uat-teklif-line-snapshot-api.mjs` ERP ürün ve manuel kalemi,
     gönderim sonrası değişmez snapshot'ı ve düzenleme kilidini doğrular.
 
-- [ ] **10. Merkezi toplam hesaplama motorunu uyarlа** — `critical`
+- [x] **10. Merkezi toplam hesaplama motorunu uyarlа** — `critical`
   - Miktar × fiyat, satır indirimi, genel indirim, nakliye, KDV dahil/haric ve
     genel toplam tek backend fonksiyonunda hesaplanacak.
   - Decimal/yuvarlama politikası açık olacak; istemciden gelen toplamlar
     güvenilir kabul edilmeyecek.
   - Kabul: API, admin ekranı ve PDF aynı sonucu veriyor.
+  - Para alanları hesap sonunda iki ondalığa yuvarlanır; API/admin DTO ve PDF
+    şablonu merkezi motorun saklanan toplamlarını yeniden hesaplamadan kullanır.
 
 - [ ] **11. Teklif numaralandırmasını taşı** — `high`
   - Yıllık sayaç transaction/lock ile yarış koşuluna dayanıklı çalışacak.

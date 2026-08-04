@@ -8,6 +8,7 @@ import {
 } from '../repository';
 import { teklifRevizyonRowToDto } from '../schema';
 import { talepPublicSchema, teklifCreateSchema } from '../validation';
+import { renderTeklifHtml } from '../pdfTemplate';
 
 describe('Teklif toplam motoru', () => {
   it('satır ve genel iskontoyu, nakliyeyi ve hariç KDVyi hesaplar', () => {
@@ -30,6 +31,26 @@ describe('Teklif toplam motoru', () => {
   it('parasal sonuçları iki haneye yuvarlar', () => {
     expect(hesaplaToplamlar([{ miktar: 3, birimFiyat: 0.1 }], 0, 0, 20, false))
       .toEqual({ araToplam: 0.3, iskontoTutari: 0, kdvTutari: 0.06, genelToplam: 0.36 });
+  });
+
+  it('backend toplamlarını PDF şablonunda yeniden hesaplamadan gösterir', () => {
+    const totals = hesaplaToplamlar([
+      { miktar: 2, birimFiyat: 500, iskontoOrani: 10 },
+      { miktar: 1, birimFiyat: 200 },
+    ], 5, 50, 20, false);
+    const html = renderTeklifHtml({
+      teklif: {
+        teklifNo:'TK-UAT',durum:'taslak',paraBirimi:'TRY',...totals,iskontoOrani:5,
+        kdvOrani:20,kdvDahil:false,nakliye:50,gecerlilikTarihi:null,createdAt:new Date(),
+        odemeKosullari:null,teslimKosullari:null,aciklama:null,musteriAd:'UAT',kalemler:[],
+      },
+      musteri:null, logoDataUri:null,
+      firma:{companyName:'Promats',legalName:null,taxOffice:null,taxNumber:null,phone:null,email:null,website:null,address:null,district:null,city:null,iban:null,bankName:null},
+    });
+    expect(html).toContain('₺1.100,00');
+    expect(html).toContain('₺55,00');
+    expect(html).toContain('₺219,00');
+    expect(html).toContain('₺1.314,00');
   });
 });
 
