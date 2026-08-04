@@ -358,7 +358,7 @@ dönüştürülmesi
 
 ## Faz 4 — Promats frontend
 
-- [ ] **25. Teklif formu veri sözleşmesini yenile** — `critical`
+- [x] **25. Teklif formu veri sözleşmesini yenile** — `critical`
   - İletişim formundaki konu, ürün seçimi ve mesaj metne gömülmek yerine yapısal
     JSON alanlarıyla gönderilecek.
   - Dil, kaynak sayfa, ürün slug/ID, UTM ve KVKK onayı eklenecek.
