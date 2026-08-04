@@ -56,7 +56,7 @@ export async function getDealErpFlow(dealId: string) {
      WHERE dt.firsat_id=? ORDER BY ss.created_at`, [dealId],
   );
   const [production] = await pool.execute<Row[]>(
-    `SELECT DISTINCT ue.id,ue.emir_no,ue.durum,ue.planlanan_miktar,ue.uretilen_miktar,ue.baslangic_tarihi,ue.bitis_tarihi,sk.siparis_id
+    `SELECT DISTINCT ue.id,ue.emir_no,ue.durum,ue.planlanan_miktar,ue.uretilen_miktar,ue.baslangic_tarihi,ue.bitis_tarihi,ue.created_at,ue.updated_at,sk.siparis_id
      FROM crm_deal_teklifleri dt JOIN teklifler t ON t.id=dt.teklif_id
      JOIN siparis_kalemleri sk ON sk.siparis_id=t.donusen_siparis_id
      JOIN uretim_emri_siparis_kalemleri uesk ON uesk.siparis_kalem_id=sk.id
@@ -64,7 +64,7 @@ export async function getDealErpFlow(dealId: string) {
      WHERE dt.firsat_id=? ORDER BY ue.created_at`, [dealId],
   );
   const [shipments] = await pool.execute<Row[]>(
-    `SELECT DISTINCT se.id,se.sevk_emri_no,se.durum,se.miktar,se.tarih,se.siparis_id,se.kaynak_uretim_emri_id
+    `SELECT DISTINCT se.id,se.sevk_emri_no,se.durum,se.miktar,se.tarih,se.siparis_id,se.kaynak_uretim_emri_id,se.created_at,se.updated_at
      FROM crm_deal_teklifleri dt JOIN teklifler t ON t.id=dt.teklif_id
      JOIN sevk_emirleri se ON se.siparis_id=t.donusen_siparis_id
      WHERE dt.firsat_id=? ORDER BY se.created_at`, [dealId],
