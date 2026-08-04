@@ -247,7 +247,7 @@ dönüştürülmesi
     raporlanacak.
   - Kabul: Tarih, sorumlu, pipeline ve kaynak filtreleri backendde çalışıyor.
 
-- [ ] **46. Kaydedilmiş CRM görünümlerini taşı** — `normal`
+- [x] **46. Kaydedilmiş CRM görünümlerini taşı** — `normal`
   - Kullanıcılar fırsat ve aktivite filtrelerini adlandırıp saklayabilecek,
     varsayılan görünüm belirleyebilecek ve silebilecek.
   - Kabul: Görünümler kullanıcıya özel ve yetki sınırları içinde.
