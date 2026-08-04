@@ -30,6 +30,9 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never', outputFolder: './e2e/.report' }]],
   use: {
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:3000',
+    launchOptions: process.env.PLAYWRIGHT_CHROME_PATH
+      ? { executablePath: process.env.PLAYWRIGHT_CHROME_PATH }
+      : undefined,
     trace: 'retain-on-failure',
     video: 'retain-on-failure',
     screenshot: 'only-on-failure',
