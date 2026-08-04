@@ -257,7 +257,7 @@ dönüştürülmesi
     teklif oluşturma/gönderme/kabul ve sipariş dönüşümü audit edilecek.
   - Kabul: Kim, ne zaman, hangi eski/yeni değerle işlem yaptı izlenebiliyor.
 
-- [ ] **48. CRM rol ve izinlerini Paspas’a ekle** — `critical`
+- [x] **48. CRM rol ve izinlerini Paspas’a ekle** — `critical`
   - Dashboard, talep, fırsat, aktivite, pipeline yönetimi, teklif, teklif onayı,
     rapor ve otomasyon izinleri ayrı tanımlanacak.
   - Satış temsilcisi yalnız kendi kayıtlarını; yönetici ekip kayıtlarını
