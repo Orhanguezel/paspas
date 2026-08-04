@@ -29,7 +29,7 @@ import {
 import {
   gonderSchema, kalemCreateSchema, kalemPatchSchema, onayReddetSchema, publicLinkSchema, revizyonSchema,
   talepDonusturSchema, talepListQuerySchema, talepPatchSchema, talepPublicSchema,
-  teklifCreateSchema, teklifDurumSchema, teklifListQuerySchema, teklifPatchSchema,
+  sipariseDonusturSchema, teklifCreateSchema, teklifDurumSchema, teklifListQuerySchema, teklifPatchSchema,
 } from './validation';
 
 function userIdOf(req: { user?: unknown }): string | null {
@@ -217,8 +217,10 @@ export const deleteTeklif: RouteHandler = async (req, reply) => {
 
 export const sipariseDonustur: RouteHandler = async (req, reply) => {
   const { id } = req.params as { id: string };
+  const parsed=sipariseDonusturSchema.safeParse(req.body ?? {});
+  if(!parsed.success)return reply.code(400).send({error:{message:'gecersiz_istek_govdesi',issues:parsed.error.flatten()}});
   try {
-    const before=await repoGetTeklif(id),result = await repoTeklifiSipariseDonustur(id);
+    const before=await repoGetTeklif(id),result = await repoTeklifiSipariseDonustur(id,parsed.data.kalemIds);
     await emitAutomationEvent('order_created','order',result.siparisId,userIdOf(req),{offerId:id},`order_created:${result.siparisId}`);
     await crmAudit(req,'CRM_ORDER_CREATED','orders',result.siparisId,null,{...result,offerBefore:before});return reply.code(201).send(result);
   } catch (err) { return mapError(reply, err); }
@@ -229,7 +231,7 @@ export const setTeklifDurum: RouteHandler = async (req, reply) => {
   const parsed = teklifDurumSchema.safeParse(req.body);
   if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
   try {
-    const before=await repoGetTeklif(id),dto = await repoSetTeklifDurum(id, parsed.data.durum, parsed.data.redNedeni, roleOf(req));
+    const before=await repoGetTeklif(id),dto = await repoSetTeklifDurum(id, parsed.data.durum, parsed.data.redNedeni, roleOf(req),userIdOf(req),parsed.data.kararNedeni);
     if (!dto) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
     if(parsed.data.durum==='kabul'){await emitAutomationEvent('offer_accepted','offer',id,userIdOf(req),{},`offer_accepted:${id}`);await crmAudit(req,'CRM_OFFER_ACCEPTED','offers',id,before,dto);}return dto;
   } catch (err) { return mapError(reply, err); }

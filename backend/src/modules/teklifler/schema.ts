@@ -112,6 +112,15 @@ export const teklifGonderimleri = mysqlTable('teklif_gonderimleri', {
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const teklifKararlari = mysqlTable('teklif_kararlari', {
+  id: char('id', { length: 36 }).primaryKey().notNull(),
+  teklif_id: char('teklif_id', { length: 36 }).notNull(),
+  karar: varchar('karar', { length: 16 }).notNull(),
+  neden: varchar('neden', { length: 500 }),
+  created_by: char('created_by', { length: 36 }),
+  created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const teklifSablonlari = mysqlTable('teklif_sablonlari', {
   id: char('id', { length: 36 }).primaryKey().notNull(),
   ad: varchar('ad', { length: 160 }).notNull(),
@@ -129,6 +138,7 @@ export type TeklifTalepRow = typeof teklifTalepleri.$inferSelect;
 export type TeklifGonderimRow = typeof teklifGonderimleri.$inferSelect;
 export type TeklifRevizyonRow = typeof teklifRevizyonlari.$inferSelect;
 export type TeklifSablonRow = typeof teklifSablonlari.$inferSelect;
+export type TeklifKararRow = typeof teklifKararlari.$inferSelect;
 
 // ── DTO dönüşümleri (camelCase, Paspas konvansiyonu) ─────────
 
@@ -176,6 +186,10 @@ export function teklifGonderimRowToDto(row: TeklifGonderimRow) {
   };
 }
 
+export function teklifKararRowToDto(row: TeklifKararRow) {
+  return { id:row.id, karar:row.karar, neden:row.neden ?? null, createdBy:row.created_by ?? null, createdAt:row.created_at };
+}
+
 export function teklifRowToDto(
   row: TeklifRow,
   extras?: {
@@ -185,6 +199,7 @@ export function teklifRowToDto(
     kalemler?: ReturnType<typeof teklifKalemRowToDto>[];
     gonderimler?: ReturnType<typeof teklifGonderimRowToDto>[];
     revizyonlar?: ReturnType<typeof teklifRevizyonRowToDto>[];
+    kararlar?: ReturnType<typeof teklifKararRowToDto>[];
   },
 ) {
   return {
@@ -226,6 +241,7 @@ export function teklifRowToDto(
     kalemler: extras?.kalemler ?? [],
     gonderimler: extras?.gonderimler ?? [],
     revizyonlar: extras?.revizyonlar ?? [],
+    kararlar: extras?.kararlar ?? [],
   };
 }
 

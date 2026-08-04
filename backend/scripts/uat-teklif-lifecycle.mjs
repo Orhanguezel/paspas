@@ -30,7 +30,8 @@ try {
   if (new Set(numbers).size !== concurrent.length || numbers.some((value,index) => index > 0 && value !== numbers[index-1] + 1)) throw new Error('NUMBER_RACE_FAILED');
 
   const offerId = offerIds[0];
-  await repoAddKalem(offerId, { urunId:product.id, aciklama:'Lifecycle ürünü', birim:'adet', miktar:2, birimFiyat:500, iskontoOrani:10 });
+  const primaryOffer=await repoAddKalem(offerId, { urunId:product.id, aciklama:'Lifecycle ürünü', birim:'adet', miktar:2, birimFiyat:500, iskontoOrani:10 });
+  const primaryKalemId=primaryOffer?.kalemler.find((item)=>item.aciklama==='Lifecycle ürünü')?.id;if(!primaryKalemId)throw new Error('PRIMARY_ITEM_MISSING');
   await repoPatchTeklif(offerId, { iskontoOrani:11, nakliye:50 });
   const priced = await repoGetTeklif(offerId);
   if (priced?.araToplam !== 900 || priced.iskontoTutari !== 99 || priced.kdvTutari !== 170.2 || priced.genelToplam !== 1021.2) throw new Error('TOTALS_FAILED');
@@ -82,17 +83,25 @@ try {
   const revisionPdfBytes=Buffer.from(await revisionPdf.arrayBuffer());
   if(!revisionDetail.ok||!(await revisionDetail.json()).snapshot||!revisionPdf.ok||!revisionPdf.headers.get('content-type')?.includes('application/pdf')||revisionPdfBytes.length<10_000||revisionPdfBytes.subarray(0,5).toString()!=='%PDF-')throw new Error('REVISION_HTTP_FAILED');
   await repoPatchTeklif(offerId,{aciklama:'R1 sonrası taslak'});
+  await repoAddKalem(offerId,{urunId:product.id,aciklama:'Seçilmeyecek lifecycle ürünü',birim:'adet',miktar:1,birimFiyat:25,iskontoOrani:0});
   await repoSetTeklifDurum(offerId, 'gonderildi', undefined, 'sevkiyatci');
-  await repoSetTeklifDurum(offerId, 'kabul', undefined, 'admin');
-  const order = await repoTeklifiSipariseDonustur(offerId); orderId = order.siparisId;
+  await repoSetTeklifDurum(offerId, 'kabul', undefined, 'admin',user.id,'Müşteri yazılı kabul verdi');
+  const order = await repoTeklifiSipariseDonustur(offerId,[primaryKalemId]); orderId = order.siparisId;
   let duplicateBlocked = false;
   try { await repoTeklifiSipariseDonustur(offerId); } catch (error) { duplicateBlocked = error instanceof Error && error.message === 'teklif_zaten_donustu'; }
   const [[errorSend], [permissions]] = await Promise.all([
     db.execute("SELECT COUNT(*) count FROM teklif_gonderimleri WHERE teklif_id=? AND durum='hata'", [offerId]).then(([rows]) => rows),
     db.execute("SELECT COUNT(*) count FROM role_permissions WHERE permission_key IN ('admin.teklifler.create','admin.teklif_onay.create')").then(([rows]) => rows),
   ]);
-  if (!duplicateBlocked || Number(errorSend.count) !== 1 || Number(permissions.count) < 2) throw new Error('LIFECYCLE_ASSERTION_FAILED');
-  console.log(JSON.stringify({ ok:true, totals:true, transitions:true,discountApproval:true,approvalResetOnChange:true,approvalAudit:true, immutableSnapshot:true, revisionSequence:'R0,R1',snapshotCoverage:true,revisionDetail:true,revisionPdf:true,revisionPdfBytes:revisionPdfBytes.length,concurrentNumbers:8, numberFormat:`TK-${new Date().getFullYear()}-NNNN`, consecutiveBlock:true, permissions:true, sendFailure:true, publicToken:true,tokenFirstView:true,tokenRevocation:true,tokenRefresh:true,tokenExpiry:true, orderConversion:true, duplicateBlocked:true }));
+  await repoSetTeklifDurum(offerIds[1],'gonderildi',undefined,'admin',user.id);
+  await repoSetTeklifDurum(offerIds[1],'red','Lifecycle müşteri reddi','admin',user.id);
+  const [[decisionCounts],[orderLink],[orderItems]]=await Promise.all([
+    db.execute("SELECT SUM(karar='kabul') accepted,SUM(karar='red') rejected FROM teklif_kararlari WHERE teklif_id IN (?,?)",[offerId,offerIds[1]]).then(([rows])=>rows),
+    db.execute('SELECT id FROM teklifler WHERE id=? AND donusen_siparis_id=?',[offerId,orderId]).then(([rows])=>rows),
+    db.execute('SELECT COUNT(*) count FROM satis_siparis_kalemleri WHERE siparis_id=?',[orderId]).then(([rows])=>rows),
+  ]);
+  if (!duplicateBlocked || Number(errorSend.count) !== 1 || Number(permissions.count) < 2||Number(decisionCounts.accepted)!==1||Number(decisionCounts.rejected)!==1||!orderLink.id||Number(orderItems.count)!==1) throw new Error('LIFECYCLE_ASSERTION_FAILED');
+  console.log(JSON.stringify({ ok:true, totals:true, transitions:true,discountApproval:true,approvalResetOnChange:true,approvalAudit:true, immutableSnapshot:true, revisionSequence:'R0,R1',snapshotCoverage:true,revisionDetail:true,revisionPdf:true,revisionPdfBytes:revisionPdfBytes.length,concurrentNumbers:8, numberFormat:`TK-${new Date().getFullYear()}-NNNN`, consecutiveBlock:true, permissions:true, sendFailure:true, publicToken:true,tokenFirstView:true,tokenRevocation:true,tokenRefresh:true,tokenExpiry:true,decisionHistory:true,selectedOrderItems:true,twoWayOrderLink:true, orderConversion:true, duplicateBlocked:true }));
 } finally {
   if (orderId) {
     await db.execute('UPDATE teklifler SET donusen_siparis_id=NULL WHERE donusen_siparis_id=?', [orderId]);

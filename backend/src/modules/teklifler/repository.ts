@@ -24,6 +24,8 @@ import {
   type TeklifTalepRow,
   teklifGonderimleri,
   teklifGonderimRowToDto,
+  teklifKararlari,
+  teklifKararRowToDto,
   teklifKalemleri,
   teklifKalemRowToDto,
   teklifler,
@@ -218,11 +220,12 @@ export async function repoListTeklifler(q: TeklifListQuery): Promise<{ items: Re
 export async function repoGetTeklif(id: string): Promise<ReturnType<typeof teklifRowToDto> | null> {
   const row = await getTeklifRow(id);
   if (!row) return null;
-  const [kalemler, musteriAd, gonderimler, revizyonlar] = await Promise.all([
+  const [kalemler, musteriAd, gonderimler, revizyonlar, kararlar] = await Promise.all([
     getKalemRows(id),
     getMusteriAd(row.musteri_id),
     db.select().from(teklifGonderimleri).where(eq(teklifGonderimleri.teklif_id, id)).orderBy(desc(teklifGonderimleri.created_at)),
     db.select().from(teklifRevizyonlari).where(eq(teklifRevizyonlari.teklif_id, id)).orderBy(desc(teklifRevizyonlari.revizyon_no)),
+    db.select().from(teklifKararlari).where(eq(teklifKararlari.teklif_id,id)).orderBy(desc(teklifKararlari.created_at)),
   ]);
   return teklifRowToDto(row, {
     musteriAd,
@@ -230,6 +233,7 @@ export async function repoGetTeklif(id: string): Promise<ReturnType<typeof tekli
     kalemler: kalemler.map(teklifKalemRowToDto),
     gonderimler: gonderimler.map(teklifGonderimRowToDto),
     revizyonlar: revizyonlar.map((r) => teklifRevizyonRowToDto(r)),
+    kararlar: kararlar.map(teklifKararRowToDto),
   });
 }
 
@@ -372,7 +376,7 @@ export async function repoDeleteTeklif(id: string): Promise<boolean> {
 }
 
 export async function repoSetTeklifDurum(
-  id: string, durum: string, redNedeni: string | undefined, actorRole: string,
+  id: string, durum: string, redNedeni: string | undefined, actorRole: string, actorUserId: string | null = null, kararNedeni?: string,
 ): Promise<ReturnType<typeof teklifRowToDto> | null> {
   const row = await getTeklifRow(id);
   if (!row) return null;
@@ -380,10 +384,15 @@ export async function repoSetTeklifDurum(
   // 'gonderildi' hedefi — hem generic durum hem /gonder üzerinden ulaşılabilir;
   // iskonto onay kapısı her iki yoldan da geçerli olsun.
   if (durum === 'gonderildi') assertIskontoOnayiEngelYok(row, actorRole);
-  await db.update(teklifler).set({
-    durum,
-    red_nedeni: durum === 'red' ? (redNedeni ?? null) : row.red_nedeni,
-  }).where(eq(teklifler.id, id));
+  await db.transaction(async (tx) => {
+    await tx.update(teklifler).set({
+      durum,
+      red_nedeni: durum === 'red' ? (redNedeni ?? null) : row.red_nedeni,
+    }).where(eq(teklifler.id, id));
+    if ((durum === 'kabul' || durum === 'red') && durum !== row.durum) {
+      await tx.insert(teklifKararlari).values({ id:randomUUID(), teklif_id:id, karar:durum, neden:durum === 'red' ? redNedeni : (kararNedeni ?? null), created_by:actorUserId });
+    }
+  });
   return repoGetTeklif(id);
 }
 
@@ -470,7 +479,7 @@ export async function repoGetRevizyon(id: string, revizyonNo: number) {
  * - Müşteri **aday** ise otomatik **aktif** müşteriye yükseltilir (V1.5 promote).
  */
 export async function repoTeklifiSipariseDonustur(
-  teklifId: string,
+  teklifId: string, selectedKalemIds?: string[],
 ): Promise<{ siparisId: string; siparisNo: string }> {
   const t = await getTeklifRow(teklifId);
   if (!t) throw new Error('teklif_bulunamadi');
@@ -478,7 +487,8 @@ export async function repoTeklifiSipariseDonustur(
   if (t.donusen_siparis_id) throw new Error('teklif_zaten_donustu');
 
   const kalemler = await getKalemRows(teklifId);
-  const urunlu = kalemler.filter((k) => k.urun_id);
+  const selected = selectedKalemIds ? new Set(selectedKalemIds) : null;
+  const urunlu = kalemler.filter((k) => k.urun_id && (!selected || selected.has(k.id)));
   if (urunlu.length === 0) throw new Error('urun_esmesi_gerekli');
 
   const siparisNo = await repoGetNextSiparisNo();

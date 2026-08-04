@@ -71,6 +71,11 @@ export const teklifPatchSchema = z.object({
 export const teklifDurumSchema = z.object({
   durum: z.enum(TEKLIF_DURUMLARI),
   redNedeni: z.string().trim().max(500).optional(),
+  kararNedeni: z.string().trim().max(500).optional(),
+}).refine((v) => v.durum !== 'red' || !!v.redNedeni, { message: 'Red nedeni zorunlu', path: ['redNedeni'] });
+
+export const sipariseDonusturSchema = z.object({
+  kalemIds: z.array(z.string().uuid()).min(1).max(500).optional(),
 });
 
 export const gonderSchema = z.object({
