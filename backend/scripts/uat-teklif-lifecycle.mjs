@@ -98,7 +98,7 @@ try {
   const [[decisionCounts],[orderLink],[orderItems]]=await Promise.all([
     db.execute("SELECT SUM(karar='kabul') accepted,SUM(karar='red') rejected FROM teklif_kararlari WHERE teklif_id IN (?,?)",[offerId,offerIds[1]]).then(([rows])=>rows),
     db.execute('SELECT id FROM teklifler WHERE id=? AND donusen_siparis_id=?',[offerId,orderId]).then(([rows])=>rows),
-    db.execute('SELECT COUNT(*) count FROM satis_siparis_kalemleri WHERE siparis_id=?',[orderId]).then(([rows])=>rows),
+    db.execute('SELECT COUNT(*) count FROM siparis_kalemleri WHERE siparis_id=?',[orderId]).then(([rows])=>rows),
   ]);
   if (!duplicateBlocked || Number(errorSend.count) !== 1 || Number(permissions.count) < 2||Number(decisionCounts.accepted)!==1||Number(decisionCounts.rejected)!==1||!orderLink.id||Number(orderItems.count)!==1) throw new Error('LIFECYCLE_ASSERTION_FAILED');
   console.log(JSON.stringify({ ok:true, totals:true, transitions:true,discountApproval:true,approvalResetOnChange:true,approvalAudit:true, immutableSnapshot:true, revisionSequence:'R0,R1',snapshotCoverage:true,revisionDetail:true,revisionPdf:true,revisionPdfBytes:revisionPdfBytes.length,concurrentNumbers:8, numberFormat:`TK-${new Date().getFullYear()}-NNNN`, consecutiveBlock:true, permissions:true, sendFailure:true, publicToken:true,tokenFirstView:true,tokenRevocation:true,tokenRefresh:true,tokenExpiry:true,decisionHistory:true,selectedOrderItems:true,twoWayOrderLink:true, orderConversion:true, duplicateBlocked:true }));
