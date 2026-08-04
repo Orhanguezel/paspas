@@ -3,6 +3,7 @@ import { makeAdminPermissionGuard } from '@/common/middleware/permissions';
 import { dealCreate, dealDelete, dealGet, dealMove, deals, dealUpdate, pipelines, talepConvert, products, productCreate, productUpdate, productDelete, needUpdate, dealToOffer } from './controller';
 import { activities, activityCreate, activityDelete, activityGet, activityTimeline, activityUpdate } from './controller';
 import { reminderCancel, reminderCreate, reminders, remindersGenerate, remindersProcess } from './controller';
+import { communicationCreate, communications } from './controller';
 
 export async function registerCrm(app: FastifyInstance) {
   const read = makeAdminPermissionGuard('admin.crm_firsatlar');
@@ -32,4 +33,6 @@ export async function registerCrm(app: FastifyInstance) {
   app.post('/crm/hatirlatmalar/isle', { preHandler: activity }, remindersProcess);
   app.post('/crm/hatirlatmalar/otomatik-uret', { preHandler: activity }, remindersGenerate);
   app.delete('/crm/hatirlatmalar/:id', { preHandler: activity }, reminderCancel);
+  app.get('/crm/iletisimler', { preHandler: activity }, communications);
+  app.post('/crm/iletisimler', { preHandler: activity }, communicationCreate);
 }

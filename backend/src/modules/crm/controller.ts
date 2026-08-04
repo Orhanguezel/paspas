@@ -5,6 +5,8 @@ import { activityCreateSchema, activityListSchema, activityPatchSchema } from '.
 import { createActivity, deleteActivity, getActivity, listActivities, timeline, updateActivity } from './activities.repository';
 import { cancelReminder, createReminder, createStaleStageReminders, listReminders, processDueReminders } from './reminders.repository';
 import { reminderCreateSchema, reminderListSchema } from './validation';
+import { createCommunication, listCommunications } from './communications.repository';
+import { communicationCreateSchema, communicationListSchema } from './validation';
 
 function userId(req: FastifyRequest) { return ((req as { user?: { sub?: string } }).user?.sub) ?? null; }
 function error(reply: FastifyReply, err: unknown) {
@@ -37,3 +39,5 @@ export const reminderCreate:RouteHandler=async(req,reply)=>{const p=reminderCrea
 export const reminderCancel:RouteHandler=async(req,reply)=>{const uid=userId(req);if(!uid)return reply.code(401).send({error:{message:'yetkisiz'}});return(await cancelReminder((req.params as{id:string}).id,uid))?reply.code(204).send():reply.code(404).send({error:{message:'hatirlatma_bulunamadi'}});};
 export const remindersProcess:RouteHandler=async(req,reply)=>{const uid=userId(req);if(!uid)return reply.code(401).send({error:{message:'yetkisiz'}});const generated=await createStaleStageReminders();return reply.send({generated,...await processDueReminders(uid)});};
 export const remindersGenerate:RouteHandler=async(_req,reply)=>reply.send(await createStaleStageReminders());
+export const communications:RouteHandler=async(req,reply)=>{const p=communicationListSchema.safeParse(req.query);if(!p.success)return reply.code(400).send({error:{message:'gecersiz_sorgu_parametreleri',issues:p.error.flatten()}});const r=await listCommunications(p.data);reply.header('x-total-count',String(r.total));return reply.send(r.items);};
+export const communicationCreate:RouteHandler=async(req,reply)=>{const p=communicationCreateSchema.safeParse(req.body);if(!p.success)return reply.code(400).send({error:{message:'gecersiz_istek_govdesi',issues:p.error.flatten()}});try{return reply.code(201).send(await createCommunication(p.data,userId(req)));}catch(e){return error(reply,e);}};

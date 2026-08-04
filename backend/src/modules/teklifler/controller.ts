@@ -10,6 +10,7 @@ import type { RouteHandler } from 'fastify';
 import { getErpBrandingLogoUrl, getErpCompanyProfile } from '@/modules/siteSettings/service';
 import { sendMailWithAttachments } from '@/modules/mail/service';
 import { scheduleOfferFollowup } from '@/modules/crm/reminders.repository';
+import { recordOfferCommunication } from '@/modules/crm/communications.repository';
 
 import { PdfUnavailableError } from './pdf.service';
 import { buildTeklifPdf } from './teklif-pdf';
@@ -100,7 +101,7 @@ export const gonderTeklif: RouteHandler = async (req, reply) => {
     try {
       const built = await buildTeklifPdf(id);
       if (!built) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
-      await sendMailWithAttachments(
+      const info = await sendMailWithAttachments(
         {
           to: aliciEmail as string,
           subject: `Teklif ${teklif.teklifNo}${teklif.musteriAd ? ` — ${teklif.musteriAd}` : ''}`,
@@ -110,10 +111,12 @@ export const gonderTeklif: RouteHandler = async (req, reply) => {
         [{ filename: `${built.teklifNo}.pdf`, content: built.pdf, contentType: 'application/pdf' }],
       );
       await repoLogGonderim(id, 'email', aliciEmail ?? null, 'basarili', null, userId);
+      await recordOfferCommunication(id,'email','sent',aliciEmail??null,userId,String(info.messageId??'')||null,null).catch((logErr)=>req.log.error({err:logErr},'crm_iletisim_hatasi_kaydedilemedi'));
       await repoMarkGonderildi(id);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'gonderim_hatasi';
       await repoLogGonderim(id, 'email', aliciEmail ?? null, 'hata', msg.slice(0, 900), userId);
+      await recordOfferCommunication(id,'email','failed',aliciEmail??null,userId,null,msg.slice(0,900)).catch((logErr)=>req.log.error({err:logErr},'crm_iletisim_hatasi_kaydedilemedi'));
       if (err instanceof PdfUnavailableError) return reply.code(503).send({ error: { message: 'pdf_servisi_kullanilamiyor' } });
       req.log.error({ err: msg }, 'teklif_email_gonderim_hatasi');
       return reply.code(502).send({ error: { message: 'eposta_gonderilemedi', detail: msg } });
@@ -121,6 +124,7 @@ export const gonderTeklif: RouteHandler = async (req, reply) => {
   } else {
     // whatsapp_link / manuel — sadece kaydı tut + gönderildi işaretle
     await repoLogGonderim(id, kanal, null, 'basarili', null, userId);
+    await recordOfferCommunication(id,kanal==='whatsapp_link'?'whatsapp':'manual','sent',null,userId,null,null).catch((logErr)=>req.log.error({err:logErr},'crm_iletisim_hatasi_kaydedilemedi'));
     await repoMarkGonderildi(id);
   }
 

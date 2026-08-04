@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { activityCreateSchema, activityListSchema, dealCreateSchema, dealMoveSchema, dealProductSchema, dealToOfferSchema, reminderCreateSchema, reminderListSchema, talepToDealSchema } from '../validation';
+import { activityCreateSchema, activityListSchema, communicationCreateSchema, dealCreateSchema, dealMoveSchema, dealProductSchema, dealToOfferSchema, reminderCreateSchema, reminderListSchema, talepToDealSchema } from '../validation';
 
 describe('CRM validation', () => {
   it('fırsat varsayılanlarını güvenli üretir', () => {
@@ -47,5 +47,10 @@ describe('CRM validation', () => {
 
   it('geciken hatırlatma sorgusunu dönüştürür', () => {
     expect(reminderListSchema.parse({overdue:'true'}).overdue).toBe(true);
+  });
+
+  it('iletişim kaydında CRM kaynağını zorunlu tutar', () => {
+    expect(communicationCreateSchema.safeParse({channel:'phone',direction:'incoming',body:'Aradı'}).success).toBe(false);
+    expect(communicationCreateSchema.safeParse({customerId:crypto.randomUUID(),channel:'phone',direction:'incoming',body:'Aradı'}).success).toBe(true);
   });
 });
