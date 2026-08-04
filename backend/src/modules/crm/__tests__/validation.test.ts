@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { activityCreateSchema, activityListSchema, automationEmitSchema, automationRuleCreateSchema, communicationCreateSchema, dealCreateSchema, dealMoveSchema, dealPatchSchema, dealProductSchema, dealToOfferSchema, lossReasonCreateSchema, reminderCreateSchema, reminderListSchema, talepToDealSchema } from '../validation';
+import { activityCreateSchema, activityListSchema, automationEmitSchema, automationRuleCreateSchema, communicationCreateSchema, dashboardQuerySchema, dealCreateSchema, dealMoveSchema, dealPatchSchema, dealProductSchema, dealToOfferSchema, lossReasonCreateSchema, reminderCreateSchema, reminderListSchema, talepToDealSchema } from '../validation';
 
 describe('CRM validation', () => {
   it('fırsat varsayılanlarını güvenli üretir', () => {
@@ -68,5 +68,10 @@ describe('CRM validation', () => {
     expect(automationRuleCreateSchema.safeParse({name:'Takip',triggerType:'deal_created',actionType:'create_task'}).success).toBe(true);
     expect(automationRuleCreateSchema.safeParse({name:'Sil',triggerType:'deal_created',actionType:'delete_record'}).success).toBe(false);
     expect(automationEmitSchema.safeParse({triggerType:'shipment_completed',entityType:'shipment',entityId:crypto.randomUUID()}).success).toBe(true);
+  });
+
+  it('dashboard ters tarih aralığını reddeder',()=>{
+    expect(dashboardQuerySchema.safeParse({dateFrom:'2026-08-05',dateTo:'2026-08-04'}).success).toBe(false);
+    expect(dashboardQuerySchema.safeParse({dateFrom:'2026-08-04',dateTo:'2026-08-05'}).success).toBe(true);
   });
 });
