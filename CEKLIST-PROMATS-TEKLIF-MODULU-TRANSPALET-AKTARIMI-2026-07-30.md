@@ -178,12 +178,15 @@ dönüştürülmesi
     görüntülenme yalnız bir kez kaydedilir. Canlı UAT ilk görüntüleme, iptal,
     token rotasyonu, süre sonu ve başarısız gönderim senaryolarını doğruladı.
 
-- [ ] **16. Kabul/red ve siparişe dönüştürme akışını uyarlа** — `critical`
+- [x] **16. Kabul/red ve siparişe dönüştürme akışını uyarlа** — `critical`
   - Kabul/red nedeni ve zamanı saklanacak.
   - Kabul edilmiş teklif seçilen kalemlerle Paspas satış siparişine
     dönüştürülebilecek.
   - Aynı teklif ikinci kez siparişe dönüştürülemeyecek.
   - Kabul: Teklif–sipariş bağı iki yönde izlenebiliyor.
+  - Kabul/red kararları neden, kullanıcı ve zamanla değişmez geçmişte tutulur.
+    Dönüşüm opsiyonel kalem seçimini uygular; transaction kilidi ikinci dönüşümü
+    engeller. Canlı UAT karar geçmişini, tek seçili kalemi ve iki yönlü bağı doğruladı.
 
 - [ ] **17. Audit, bildirim ve süre sonu işlerini ekle** — `high`
   - Oluşturma, fiyat/iskonto değişikliği, onay, gönderim, görüntülenme,
