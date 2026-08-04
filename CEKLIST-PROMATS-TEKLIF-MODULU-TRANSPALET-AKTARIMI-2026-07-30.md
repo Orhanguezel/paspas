@@ -305,7 +305,7 @@ dönüştürülmesi
   - Duruma göre alanlar kilitlenecek; yalnız izin verilen eylemler görünecek.
   - Kabul: Taslak eksiksiz düzenleniyor; gönderilmiş sürüm değiştirilemiyor.
 
-- [ ] **22. PDF önizleme, gönderim ve revizyon geçmişi UI’ını taşı** — `high`
+- [x] **22. PDF önizleme, gönderim ve revizyon geçmişi UI’ını taşı** — `high`
   - PDF önizleme, indir, e-posta gönder, WhatsApp bağlantısı kopyala, onaya
     gönder, onayla/reddet, revizyon oluştur ve kabul/red eylemleri olacak.
   - Gönderim hataları kullanıcıya anlaşılır gösterilecek.
