@@ -72,12 +72,14 @@ dönüştürülmesi
 
 ## Faz 2 — Backend ve veritabanı
 
-- [ ] **4. Teklif şeması için güvenli migration oluştur** — `critical`
+- [x] **4. Teklif şeması için güvenli migration oluştur** — `critical`
   - Yıllık sayaç, teklifler, kalemler, revizyonlar, gönderimler ve şablonlar
     oluşturulacak.
   - Paspas müşteri, ürün, sipariş ve storage foreign keyleri kullanılacak.
   - Migration tekrar çalıştırılabilir ve mevcut veriyi bozmadan geri
     doğrulanabilir olacak.
+  - `220`, `222`, `223` ve `239` migrationları sayaç, teklif, kalem, revizyon,
+    gönderim, talep ve şablon tablolarını idempotent olarak kurar.
 
 - [ ] **5. Web teklif talepleri tablosunu oluştur** — `critical`
   - Alanlar: kaynak sayfa, dil, ad/şirket, e-posta, telefon, konu, mesaj,

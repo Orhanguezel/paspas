@@ -108,11 +108,23 @@ export const teklifGonderimleri = mysqlTable('teklif_gonderimleri', {
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const teklifSablonlari = mysqlTable('teklif_sablonlari', {
+  id: char('id', { length: 36 }).primaryKey().notNull(),
+  ad: varchar('ad', { length: 160 }).notNull(),
+  dil: varchar('dil', { length: 8 }).notNull().default('tr'),
+  logo_asset_id: char('logo_asset_id', { length: 36 }),
+  ayarlar: json('ayarlar'),
+  varsayilan: tinyint('varsayilan', { unsigned: true }).notNull().default(0),
+  created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updated_at: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
+});
+
 export type TeklifRow = typeof teklifler.$inferSelect;
 export type TeklifKalemRow = typeof teklifKalemleri.$inferSelect;
 export type TeklifTalepRow = typeof teklifTalepleri.$inferSelect;
 export type TeklifGonderimRow = typeof teklifGonderimleri.$inferSelect;
 export type TeklifRevizyonRow = typeof teklifRevizyonlari.$inferSelect;
+export type TeklifSablonRow = typeof teklifSablonlari.$inferSelect;
 
 // ── DTO dönüşümleri (camelCase, Paspas konvansiyonu) ─────────
 
