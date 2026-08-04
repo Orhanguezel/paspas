@@ -44,12 +44,13 @@ dönüştürülmesi
 
 ## Faz 1 — Analiz ve veri sözleşmesi
 
-- [ ] **1. Kaynak–hedef uyumluluk matrisi hazırla** — `critical`
+- [x] **1. Kaynak–hedef uyumluluk matrisi hazırla** — `critical`
   - Transpalet tabloları, servisleri, endpointleri ve admin bileşenleri
     Paspas karşılıklarıyla eşleştirilecek.
   - `musteriler`, `urunler`, `satis_siparisleri`, `storage_assets`, kullanıcı
     ve rol alanlarındaki farklar yazılı hale getirilecek.
   - Kabul: Taşınacak, uyarlanacak ve çıkarılacak her alan açıkça listelenmiş.
+  - Tam matris: `docs/TEKLIF-KAYNAK-HEDEF-UYUMLULUK-MATRISI.md`.
 
 - [ ] **2. Promats teklif kapsamını Fuar Teklif Modülü’nden ayır** — `high`
   - Promats web teklif modülü yurtiçi/standart teklif ve web lead yönetimine
