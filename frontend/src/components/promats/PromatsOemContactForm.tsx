@@ -56,7 +56,7 @@ export default function PromatsOemContactForm({ labels, success, error }: Props)
         kvkkOnay: form.get('kvkk') === 'on', website: String(form.get('website') ?? ''),
         search: typeof window !== 'undefined' ? window.location.search : '',
       });
-      const res = await fetch(`${API_BASE}/web/promats/teklif-talebi`, {
+      const res = await fetch(`${API_BASE}/teklif-talebi`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
