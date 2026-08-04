@@ -227,7 +227,7 @@ dönüştürülmesi
   - Kazanıldı/kaybedildi aşamalarına geçişte gerekli alanlar doğrulanacak.
   - Kabul: Kaybedilen fırsat neden olmadan kapatılamıyor; raporlara yansıyor.
 
-- [ ] **43. CRM otomasyon motorunu uyarlа** — `high`
+- [x] **43. CRM otomasyon motorunu uyarlа** — `high`
   - Talep oluştu, fırsat oluştu, aşama değişti, teklif gönderildi/kabul edildi,
     takip gecikti, sipariş oluştu ve sevkiyat tamamlandı tetikleyicileri
     değerlendirilecek.
