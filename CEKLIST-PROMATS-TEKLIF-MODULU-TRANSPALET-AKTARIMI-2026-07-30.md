@@ -150,10 +150,12 @@ dönüştürülmesi
   - Revizyon detay ve PDF endpointleri `/revizyonlar/:revizyonNo` ve
     `/revizyonlar/:revizyonNo/pdf`; sıra ilk gönderilmiş hal için R0'dan başlar.
 
-- [ ] **13. İskonto onay akışını Paspas rollerine bağla** — `high`
+- [x] **13. İskonto onay akışını Paspas rollerine bağla** — `high`
   - `admin.teklif`, `admin.teklif_onay` benzeri izinler eklenecek.
   - Rol bazlı iskonto limiti ayarlardan yönetilecek.
   - Kabul: Limit üstü teklif onaysız gönderilemiyor; onay/red audit kaydı var.
+  - Lifecycle UAT onay, red, audit, oran değişiminde onay sıfırlama ve yeniden
+    onayı; unit testler dört rol limitini doğrular.
 
 - [ ] **14. Teklif PDF servisini Promats markasına uyarla** — `critical`
   - Daima/transpalet metin ve teknik alanları kaldırılacak.

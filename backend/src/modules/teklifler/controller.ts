@@ -227,8 +227,10 @@ export const setTeklifDurum: RouteHandler = async (req, reply) => {
 export const onayaGonder: RouteHandler = async (req, reply) => {
   const { id } = req.params as { id: string };
   try {
+    const before=await repoGetTeklif(id);
     const dto = await repoOnayaGonder(id, roleOf(req));
     if (!dto) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
+    await crmAudit(req,'CRM_OFFER_DISCOUNT_APPROVAL_REQUESTED','offers',id,before,dto);
     return dto;
   } catch (err) { return mapError(reply, err); }
 };
@@ -236,9 +238,10 @@ export const onayaGonder: RouteHandler = async (req, reply) => {
 export const onaylaIskonto: RouteHandler = async (req, reply) => {
   const { id } = req.params as { id: string };
   try {
+    const before=await repoGetTeklif(id);
     const dto = await repoOnaylaIskonto(id, userIdOf(req));
     if (!dto) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
-    return dto;
+    await crmAudit(req,'CRM_OFFER_DISCOUNT_APPROVED','offers',id,before,dto);return dto;
   } catch (err) { return mapError(reply, err); }
 };
 
@@ -247,9 +250,10 @@ export const reddetIskonto: RouteHandler = async (req, reply) => {
   const parsed = onayReddetSchema.safeParse(req.body);
   if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
   try {
+    const before=await repoGetTeklif(id);
     const dto = await repoReddetIskonto(id, parsed.data.neden);
     if (!dto) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
-    return dto;
+    await crmAudit(req,'CRM_OFFER_DISCOUNT_REJECTED','offers',id,before,dto);return dto;
   } catch (err) { return mapError(reply, err); }
 };
 

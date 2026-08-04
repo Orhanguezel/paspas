@@ -35,8 +35,20 @@ try {
   const priced = await repoGetTeklif(offerId);
   if (priced?.araToplam !== 900 || priced.iskontoTutari !== 99 || priced.kdvTutari !== 170.2 || priced.genelToplam !== 1021.2) throw new Error('TOTALS_FAILED');
 
+  const apiBase=process.env.UAT_API_BASE||'http://127.0.0.1:8078/api';
+  const login=await fetch(`${apiBase}/auth/token`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:process.env.ADMIN_EMAIL,password:process.env.ADMIN_PASSWORD})});
+  const access=(await login.json()).access_token;const auth={authorization:`Bearer ${access}`,'content-type':'application/json'};
   await repoOnayaGonder(offerId, 'sevkiyatci');
-  await repoOnaylaIskonto(offerId, user.id);
+  if(!(await fetch(`${apiBase}/admin/teklifler/${offerId}/onayla`,{method:'POST',headers:auth})).ok)throw new Error('DISCOUNT_APPROVAL_HTTP_FAILED');
+  const approved=await repoGetTeklif(offerId);if(!approved?.iskontoOnaylandi||!approved.iskontoOnaylayanUserId)throw new Error('DISCOUNT_APPROVAL_FAILED');
+  await repoPatchTeklif(offerId,{iskontoOrani:12});
+  const resetApproval=await repoGetTeklif(offerId);if(resetApproval?.iskontoOnaylandi||resetApproval?.iskontoOnaylayanUserId||resetApproval?.iskontoOnayAt)throw new Error('DISCOUNT_APPROVAL_RESET_FAILED');
+  await repoOnayaGonder(offerId,'sevkiyatci');
+  if(!(await fetch(`${apiBase}/admin/teklifler/${offerId}/onay-reddet`,{method:'POST',headers:auth,body:JSON.stringify({neden:'Lifecycle audit red UAT'})})).ok)throw new Error('DISCOUNT_REJECTION_HTTP_FAILED');
+  await repoOnayaGonder(offerId,'sevkiyatci');
+  if(!(await fetch(`${apiBase}/admin/teklifler/${offerId}/onayla`,{method:'POST',headers:auth})).ok)throw new Error('DISCOUNT_REAPPROVAL_HTTP_FAILED');
+  const [[approvalAudit]]=await db.execute("SELECT COUNT(*) count FROM admin_audit_logs WHERE resource_id=? AND action IN ('CRM_OFFER_DISCOUNT_APPROVED','CRM_OFFER_DISCOUNT_REJECTED')",[offerId]);
+  if(Number(approvalAudit.count)!==3)throw new Error('DISCOUNT_AUDIT_FAILED');
   await repoSetTeklifDurum(offerId, 'gonderildi', undefined, 'sevkiyatci');
   await repoLogGonderim(offerId, 'email', 'uat@example.invalid', 'hata', 'UAT kontrollü gönderim hatası', user.id);
   const sent = await repoGetTeklif(offerId);
@@ -56,10 +68,8 @@ try {
   if(JSON.stringify(revisionNumbers.map((row)=>row.revizyon_no))!==JSON.stringify([0,1]))throw new Error('REVISION_SEQUENCE_FAILED');
   const [[snapshotCoverage]]=await db.execute("SELECT JSON_EXTRACT(snapshot,'$.musteri.adres') adres,JSON_EXTRACT(snapshot,'$.pdfSablon.id') sablon FROM teklif_revizyonlari WHERE teklif_id=? AND revizyon_no=0",[offerId]);
   if(snapshotCoverage.adres===undefined||!snapshotCoverage.sablon)throw new Error('REVISION_SNAPSHOT_COVERAGE_FAILED');
-  const login=await fetch(`${process.env.UAT_API_BASE||'http://127.0.0.1:8078/api'}/auth/token`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:process.env.ADMIN_EMAIL,password:process.env.ADMIN_PASSWORD})});
-  const access=(await login.json()).access_token;const auth={authorization:`Bearer ${access}`};
-  const revisionDetail=await fetch(`${process.env.UAT_API_BASE||'http://127.0.0.1:8078/api'}/admin/teklifler/${offerId}/revizyonlar/0`,{headers:auth});
-  const revisionPdf=await fetch(`${process.env.UAT_API_BASE||'http://127.0.0.1:8078/api'}/admin/teklifler/${offerId}/revizyonlar/0/pdf`,{headers:auth});
+  const revisionDetail=await fetch(`${apiBase}/admin/teklifler/${offerId}/revizyonlar/0`,{headers:auth});
+  const revisionPdf=await fetch(`${apiBase}/admin/teklifler/${offerId}/revizyonlar/0/pdf`,{headers:auth});
   if(!revisionDetail.ok||!(await revisionDetail.json()).snapshot||!revisionPdf.ok||!revisionPdf.headers.get('content-type')?.includes('application/pdf'))throw new Error('REVISION_HTTP_FAILED');
   await repoPatchTeklif(offerId,{aciklama:'R1 sonrası taslak'});
   await repoSetTeklifDurum(offerId, 'gonderildi', undefined, 'sevkiyatci');
@@ -72,13 +82,16 @@ try {
     db.execute("SELECT COUNT(*) count FROM role_permissions WHERE permission_key IN ('admin.teklifler.create','admin.teklif_onay.create')").then(([rows]) => rows),
   ]);
   if (!duplicateBlocked || Number(errorSend.count) !== 1 || Number(permissions.count) < 2) throw new Error('LIFECYCLE_ASSERTION_FAILED');
-  console.log(JSON.stringify({ ok:true, totals:true, transitions:true, immutableSnapshot:true, revisionSequence:'R0,R1',snapshotCoverage:true,revisionDetail:true,revisionPdf:true,concurrentNumbers:8, numberFormat:`TK-${new Date().getFullYear()}-NNNN`, consecutiveBlock:true, permissions:true, sendFailure:true, publicToken:true, orderConversion:true, duplicateBlocked:true }));
+  console.log(JSON.stringify({ ok:true, totals:true, transitions:true,discountApproval:true,approvalResetOnChange:true,approvalAudit:true, immutableSnapshot:true, revisionSequence:'R0,R1',snapshotCoverage:true,revisionDetail:true,revisionPdf:true,concurrentNumbers:8, numberFormat:`TK-${new Date().getFullYear()}-NNNN`, consecutiveBlock:true, permissions:true, sendFailure:true, publicToken:true, orderConversion:true, duplicateBlocked:true }));
 } finally {
   if (orderId) {
     await db.execute('UPDATE teklifler SET donusen_siparis_id=NULL WHERE donusen_siparis_id=?', [orderId]);
     await db.execute('DELETE FROM satis_siparisleri WHERE id=?', [orderId]);
   }
-  if (offerIds.length) await db.query(`DELETE FROM teklifler WHERE id IN (${offerIds.map(() => '?').join(',')})`, offerIds);
+  if (offerIds.length) {
+    await db.query(`DELETE FROM admin_audit_logs WHERE resource_id IN (${offerIds.map(() => '?').join(',')})`,offerIds);
+    await db.query(`DELETE FROM teklifler WHERE id IN (${offerIds.map(() => '?').join(',')})`, offerIds);
+  }
   await db.execute('DELETE FROM musteriler WHERE id=?', [customerId]);
   await db.end(); await pool.end();
 }

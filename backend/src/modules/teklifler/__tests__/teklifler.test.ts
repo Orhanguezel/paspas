@@ -73,6 +73,7 @@ describe('Teklif durum ve iskonto kapıları', () => {
     expect(iskontoOnayGerekli(10, 'sevkiyatci')).toBe(false);
     expect(iskontoOnayGerekli(10.01, 'sevkiyatci')).toBe(true);
     expect(iskontoOnayGerekli(0.01, 'operator')).toBe(true);
+    expect(iskontoOnayGerekli(0.01, 'satin_almaci')).toBe(true);
   });
 
   it('onaysız limit üstü gönderimi engeller', () => {
