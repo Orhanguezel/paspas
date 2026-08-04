@@ -117,7 +117,7 @@ export default function PromatsContactForm({ labels, formClassName, products = [
         telefon: String(form.get('phone') ?? ''),
         mesaj: String(form.get('message') ?? ''),
       };
-      const res = await fetch(`${API_BASE}${isQuote ? '/web/promats/teklif-talebi' : '/contact'}`, {
+      const res = await fetch(`${API_BASE}${isQuote ? '/teklif-talebi' : '/contact'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
