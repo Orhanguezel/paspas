@@ -12,7 +12,7 @@ import {
   addKalem, createRevizyon, createTalepPublic, createTeklif, deleteKalem, deleteTeklif, getRevizyon, getRevizyonPdf,
   donusturTalep, getFirmaProfili, getTalep, getTeklif, getTeklifPdf, gonderTeklif,
   listRevizyonlar, listTalepler, listTeklifler, onayaGonder, onaylaIskonto, patchKalem,
-  publicTeklifByToken, reddetIskonto, setTeklifDurum, sipariseDonustur, updateTalep, updateTeklif,
+  publicTeklifByToken, reddetIskonto, setTeklifDurum, sipariseDonustur, updatePublicTeklifLink, updateTalep, updateTeklif,
 } from './controller';
 
 export async function registerTeklifler(app: FastifyInstance): Promise<void> {
@@ -32,6 +32,7 @@ export async function registerTeklifler(app: FastifyInstance): Promise<void> {
   app.post(`${T}/:id/durum`, { preHandler: [guard,requireOwnOffer] }, setTeklifDurum);
   app.post(`${T}/:id/siparise-donustur`, { preHandler: [guard,requireOwnOffer] }, sipariseDonustur);
   app.post(`${T}/:id/gonder`, { preHandler: [guard,requireOwnOffer] }, gonderTeklif);
+  app.post(`${T}/:id/public-link`, { preHandler: [guard,requireOwnOffer] }, updatePublicTeklifLink);
   app.post(`${T}/:id/onaya-gonder`, { preHandler: [guard,requireOwnOffer] }, onayaGonder);
   app.post(`${T}/:id/onayla`, { preHandler: onayGuard }, onaylaIskonto);
   app.post(`${T}/:id/onay-reddet`, { preHandler: onayGuard }, reddetIskonto);

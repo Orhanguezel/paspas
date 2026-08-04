@@ -86,6 +86,8 @@ export interface TeklifDto {
   redNedeni: string | null;
   donusenSiparisId: string | null;
   goruntulemeToken: string | null;
+  goruntulemeTokenExpiresAt: string | null;
+  goruntulemeTokenRevokedAt: string | null;
   gonderimAt: string | null;
   ilkGoruntulemeAt: string | null;
   createdAt: string;
@@ -346,6 +348,8 @@ export function normalizeTeklif(raw: unknown): TeklifDto {
     redNedeni:     r.redNedeni != null ? toStr(r.redNedeni) : null,
     donusenSiparisId: r.donusenSiparisId != null ? toStr(r.donusenSiparisId) : null,
     goruntulemeToken: r.goruntulemeToken != null ? toStr(r.goruntulemeToken) : null,
+    goruntulemeTokenExpiresAt: r.goruntulemeTokenExpiresAt != null ? toStr(r.goruntulemeTokenExpiresAt) : null,
+    goruntulemeTokenRevokedAt: r.goruntulemeTokenRevokedAt != null ? toStr(r.goruntulemeTokenRevokedAt) : null,
     gonderimAt:    r.gonderimAt != null ? toStr(r.gonderimAt) : null,
     ilkGoruntulemeAt: r.ilkGoruntulemeAt != null ? toStr(r.ilkGoruntulemeAt) : null,
     createdAt:     toStr(r.createdAt),

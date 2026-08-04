@@ -157,6 +157,12 @@ export const tekliflerAdminApi = baseApi.injectEndpoints({
       ],
     }),
 
+    updateTeklifPublicLinkAdmin: b.mutation<TeklifDto, { id: string; body: { islem: 'yenile'; gun?: number } | { islem: 'iptal' } }>({
+      query: ({ id, body }) => ({ url: `${BASE}/${id}/public-link`, method: 'POST', body }),
+      transformResponse: (res: unknown) => normalizeTeklif(res),
+      invalidatesTags: (_r, _e, { id }) => [{ type: 'Teklif', id }],
+    }),
+
     convertTeklifToSiparisAdmin: b.mutation<{ siparisId: string; siparisNo: string }, string>({
       query: (id) => ({ url: `${BASE}/${id}/siparise-donustur`, method: 'POST' }),
       invalidatesTags: (_r, _e, id) => [
@@ -250,6 +256,7 @@ export const {
   useReddetIskontoAdminMutation,
   useCreateTeklifRevizyonAdminMutation,
   useGonderTeklifAdminMutation,
+  useUpdateTeklifPublicLinkAdminMutation,
   useConvertTeklifToSiparisAdminMutation,
   useAddTeklifKalemAdminMutation,
   usePatchTeklifKalemAdminMutation,

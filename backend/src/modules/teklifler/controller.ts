@@ -23,11 +23,11 @@ import {
   repoCreateTeklif, repoDeleteKalem, repoDeleteTeklif, repoDonusturTalep, repoGetTalep,
   repoGetTeklif, repoGetRevizyon, repoListRevizyonlar, repoListTalepler, repoListTeklifler, repoLogGonderim,
   repoMarkGonderildi, repoOnaylaIskonto, repoOnayaGonder, repoPatchKalem, repoPatchTalep,
-  repoPatchTeklif, repoReddetIskonto, repoSetTeklifDurum, repoTeklifByToken,
+  repoPatchTeklif, repoReddetIskonto, repoRefreshPublicToken, repoRevokePublicToken, repoSetTeklifDurum, repoTeklifByToken,
   repoTeklifiSipariseDonustur,
 } from './repository';
 import {
-  gonderSchema, kalemCreateSchema, kalemPatchSchema, onayReddetSchema, revizyonSchema,
+  gonderSchema, kalemCreateSchema, kalemPatchSchema, onayReddetSchema, publicLinkSchema, revizyonSchema,
   talepDonusturSchema, talepListQuerySchema, talepPatchSchema, talepPublicSchema,
   teklifCreateSchema, teklifDurumSchema, teklifListQuerySchema, teklifPatchSchema,
 } from './validation';
@@ -156,6 +156,19 @@ export const publicTeklifByToken: RouteHandler = async (req, reply) => {
     if (err instanceof PdfUnavailableError) return reply.code(503).send({ error: { message: 'pdf_servisi_kullanilamiyor' } });
     throw err;
   }
+};
+
+export const updatePublicTeklifLink: RouteHandler = async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const parsed = publicLinkSchema.safeParse(req.body);
+  if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
+  const before = await repoGetTeklif(id);
+  if (!before) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
+  const updated = parsed.data.islem === 'yenile'
+    ? await repoRefreshPublicToken(id, parsed.data.gun)
+    : await repoRevokePublicToken(id);
+  await crmAudit(req, parsed.data.islem === 'yenile' ? 'CRM_OFFER_PUBLIC_LINK_REFRESHED' : 'CRM_OFFER_PUBLIC_LINK_REVOKED', 'offers', id, before, updated);
+  return updated;
 };
 
 // ── Teklif ───────────────────────────────────────────────────

@@ -205,8 +205,8 @@ export async function convertDealToOffer(dealId:string,body:{dil:string;kdvOrani
     const [numbers]=await connection.execute<Row[]>('SELECT LAST_INSERT_ID() no'); const teklifNo=`TK-${year}-${String(numbers[0].no).padStart(4,'0')}`;
     const teklifId=randomUUID(); const paraBirimi=String(deal.currency||items[0].para_birimi||'TRY');
     const araToplam=items.reduce((sum,x)=>sum+Number(x.miktar)*Number(x.birim_fiyat??0),0); const kdv=araToplam*body.kdvOrani/100;
-    await connection.execute(`INSERT INTO teklifler(id,teklif_no,musteri_id,durum,dil,para_birimi,ara_toplam,kdv_orani,kdv_tutari,genel_toplam,aciklama,goruntuleme_token,created_by)
-      VALUES(?,?,?,'taslak',?,?,?,?,?,?,?,?,?)`,[teklifId,teklifNo,deal.musteri_id,body.dil,paraBirimi,araToplam,body.kdvOrani,kdv,araToplam+kdv,`CRM fırsatı: ${deal.title}`,randomUUID(),userId]);
+    await connection.execute(`INSERT INTO teklifler(id,teklif_no,musteri_id,durum,dil,para_birimi,ara_toplam,kdv_orani,kdv_tutari,genel_toplam,aciklama,goruntuleme_token,goruntuleme_token_expires_at,created_by)
+      VALUES(?,?,?,'taslak',?,?,?,?,?,?,?,?,DATE_ADD(CURRENT_TIMESTAMP,INTERVAL 30 DAY),?)`,[teklifId,teklifNo,deal.musteri_id,body.dil,paraBirimi,araToplam,body.kdvOrani,kdv,araToplam+kdv,`CRM fırsatı: ${deal.title}`,randomUUID(),userId]);
     for(const item of items)await connection.execute(`INSERT INTO teklif_kalemleri(id,teklif_id,urun_id,urun_kod,urun_ad,aciklama,birim,miktar,birim_fiyat,iskonto_orani,satir_toplam,sira)
       VALUES(?,?,?,?,?,?,?,?,?,0,?,?)`,[randomUUID(),teklifId,item.urun_id,item.urun_kodu,item.urun_adi,item.aciklama??item.urun_adi,item.birim??'adet',item.miktar,item.birim_fiyat??0,Number(item.miktar)*Number(item.birim_fiyat??0),item.sira]);
     await connection.execute('INSERT INTO crm_deal_teklifleri(firsat_id,teklif_id) VALUES(?,?)',[dealId,teklifId]);

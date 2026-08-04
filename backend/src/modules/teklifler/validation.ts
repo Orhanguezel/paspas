@@ -78,6 +78,11 @@ export const gonderSchema = z.object({
   aliciEmail: z.string().trim().email().max(255).optional(),
 }).refine((v) => v.kanal !== 'email' || !!v.aliciEmail, { message: 'E-posta gönderimi için alıcı e-posta zorunlu' });
 
+export const publicLinkSchema = z.discriminatedUnion('islem', [
+  z.object({ islem: z.literal('yenile'), gun: z.coerce.number().int().min(1).max(90).default(30) }),
+  z.object({ islem: z.literal('iptal') }),
+]);
+
 export const onayReddetSchema = z.object({
   neden: z.string().trim().min(1, 'Red nedeni zorunlu').max(500),
 });

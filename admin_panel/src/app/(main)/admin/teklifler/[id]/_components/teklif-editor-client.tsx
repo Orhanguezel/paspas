@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, RefreshCcw, Plus, Pencil, Trash2, Printer, FileDown, ShoppingCart, Mail, Share2, Save,
+  ArrowLeft, RefreshCcw, Plus, Pencil, Trash2, Printer, FileDown, ShoppingCart, Mail, Share2, Save, Link2Off,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
@@ -44,6 +44,7 @@ import {
   useUpdateTeklifAdminMutation,
   useSetTeklifDurumAdminMutation,
   useGonderTeklifAdminMutation,
+  useUpdateTeklifPublicLinkAdminMutation,
   useOnayaGonderTeklifAdminMutation,
   useOnaylaIskontoAdminMutation,
   useReddetIskontoAdminMutation,
@@ -124,6 +125,7 @@ export default function TeklifEditorClient({ id }: { id: string }) {
   const [setDurum, setDurumState] = useSetTeklifDurumAdminMutation();
   const [convert, convertState] = useConvertTeklifToSiparisAdminMutation();
   const [gonder, gonderState] = useGonderTeklifAdminMutation();
+  const [updatePublicLink, publicLinkState] = useUpdateTeklifPublicLinkAdminMutation();
   const [onayaGonder, onayaGonderState] = useOnayaGonderTeklifAdminMutation();
   const [onaylaIskonto, onaylaState] = useOnaylaIskontoAdminMutation();
   const [reddetIskonto, reddetState] = useReddetIskontoAdminMutation();
@@ -198,10 +200,11 @@ export default function TeklifEditorClient({ id }: { id: string }) {
     }
   }
 
-  async function handleWhatsapp(token: string | null) {
-    if (!token) { toast.error('Görüntüleme linki henüz yok.'); return; }
-    const link = publicLink(token);
+  async function handleWhatsapp() {
     try {
+      const refreshed = await updatePublicLink({ id, body: { islem: 'yenile', gun: 30 } }).unwrap();
+      if (!refreshed.goruntulemeToken) throw new Error('token_yenilenemedi');
+      const link = publicLink(refreshed.goruntulemeToken);
       await gonder({ id, body: { kanal: 'whatsapp_link' } }).unwrap();
       await refetch();
       let copied = true;
@@ -212,6 +215,14 @@ export default function TeklifEditorClient({ id }: { id: string }) {
       const message = apiErrorMessage(err);
       toast.error(GONDERIM_HATALARI[message ?? ''] ?? 'WhatsApp bağlantısı kaydedilemedi.');
     }
+  }
+
+  async function handlePublicLink(islem: 'yenile' | 'iptal') {
+    try {
+      await updatePublicLink({ id, body: islem === 'yenile' ? { islem, gun: 30 } : { islem } }).unwrap();
+      await refetch();
+      toast.success(islem === 'yenile' ? '30 günlük yeni public bağlantı oluşturuldu.' : 'Public bağlantı iptal edildi.');
+    } catch (err: unknown) { toast.error(apiErrorMessage(err) ?? 'Public bağlantı güncellenemedi.'); }
   }
 
   async function handleConvert() {
@@ -538,13 +549,20 @@ export default function TeklifEditorClient({ id }: { id: string }) {
             <Button size="sm" onClick={handleGonderEmail} disabled={gonderState.isLoading}>
               <Mail className="mr-1 size-4" /> E-posta ile Gönder (PDF)
             </Button>
-            <Button size="sm" variant="outline" onClick={() => handleWhatsapp(data.goruntulemeToken)} disabled={gonderState.isLoading}>
+            <Button size="sm" variant="outline" onClick={handleWhatsapp} disabled={gonderState.isLoading || publicLinkState.isLoading}>
               <Share2 className="mr-1 size-4" /> WhatsApp linki
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => handlePublicLink('yenile')} disabled={publicLinkState.isLoading}>
+              <RefreshCcw className="mr-1 size-4" /> Linki yenile
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => handlePublicLink('iptal')} disabled={publicLinkState.isLoading || !!data.goruntulemeTokenRevokedAt}>
+              <Link2Off className="mr-1 size-4" /> Linki iptal et
             </Button>
           </div>
           {data.goruntulemeToken && (
             <p className="break-all text-xs text-muted-foreground">
               Public görüntüleme linki: <span className="font-mono">{publicLink(data.goruntulemeToken)}</span>
+              {' · '}{data.goruntulemeTokenRevokedAt ? 'İptal edildi' : data.goruntulemeTokenExpiresAt ? `${new Date(data.goruntulemeTokenExpiresAt).toLocaleString('tr-TR')} tarihine kadar geçerli` : 'Süre bilgisi yok'}
             </p>
           )}
           {data.ilkGoruntulemeAt && (

@@ -5,7 +5,7 @@ import { pool } from '../dist/db/client.js';
 import {
   repoAddKalem, repoCreateRevizyon, repoCreateTeklif, repoGetTeklif, repoLogGonderim,
   repoOnayaGonder, repoOnaylaIskonto, repoPatchTeklif, repoSetTeklifDurum,
-  repoTeklifByToken, repoTeklifiSipariseDonustur,
+  repoTeklifiSipariseDonustur,
 } from '../dist/modules/teklifler/repository.js';
 
 const db = await mysql.createConnection({ host:process.env.DB_HOST, port:Number(process.env.DB_PORT || 3306), user:process.env.DB_USER, password:process.env.DB_PASSWORD, database:process.env.DB_NAME });
@@ -52,7 +52,16 @@ try {
   await repoSetTeklifDurum(offerId, 'gonderildi', undefined, 'sevkiyatci');
   await repoLogGonderim(offerId, 'email', 'uat@example.invalid', 'hata', 'UAT kontrollü gönderim hatası', user.id);
   const sent = await repoGetTeklif(offerId);
-  if (!sent?.goruntulemeToken || !(await repoTeklifByToken(sent.goruntulemeToken))) throw new Error('TOKEN_FAILED');
+  if (!sent?.goruntulemeToken || !sent.goruntulemeTokenExpiresAt) throw new Error('TOKEN_FAILED');
+  const firstPublic=await fetch(`${apiBase}/web/promats/teklif/${sent.goruntulemeToken}`);
+  if(!firstPublic.ok||!firstPublic.headers.get('content-type')?.includes('application/pdf'))throw new Error('TOKEN_PUBLIC_PDF_FAILED');
+  const firstViewed=await repoGetTeklif(offerId);if(!firstViewed?.ilkGoruntulemeAt||firstViewed.durum!=='goruntulendi')throw new Error('TOKEN_FIRST_VIEW_FAILED');
+  const revokedResponse=await fetch(`${apiBase}/admin/teklifler/${offerId}/public-link`,{method:'POST',headers:{...auth,'content-type':'application/json'},body:JSON.stringify({islem:'iptal'})});
+  if(!revokedResponse.ok||(await fetch(`${apiBase}/web/promats/teklif/${sent.goruntulemeToken}`)).status!==404)throw new Error('TOKEN_REVOKE_FAILED');
+  const refreshResponse=await fetch(`${apiBase}/admin/teklifler/${offerId}/public-link`,{method:'POST',headers:{...auth,'content-type':'application/json'},body:JSON.stringify({islem:'yenile',gun:1})});
+  const refreshed=await refreshResponse.json();if(!refreshResponse.ok||!refreshed.goruntulemeToken||refreshed.goruntulemeToken===sent.goruntulemeToken||refreshed.goruntulemeTokenRevokedAt)throw new Error('TOKEN_REFRESH_FAILED');
+  await db.execute('UPDATE teklifler SET goruntuleme_token_expires_at=DATE_SUB(CURRENT_TIMESTAMP,INTERVAL 1 SECOND) WHERE id=?',[offerId]);
+  if((await fetch(`${apiBase}/web/promats/teklif/${refreshed.goruntulemeToken}`)).status!==404)throw new Error('TOKEN_EXPIRY_FAILED');
 
   await repoCreateRevizyon(offerId, 'Lifecycle snapshot UAT', user.id);
   const [[revision]] = await db.execute('SELECT snapshot FROM teklif_revizyonlari WHERE teklif_id=? ORDER BY revizyon_no DESC LIMIT 1', [offerId]);
@@ -83,7 +92,7 @@ try {
     db.execute("SELECT COUNT(*) count FROM role_permissions WHERE permission_key IN ('admin.teklifler.create','admin.teklif_onay.create')").then(([rows]) => rows),
   ]);
   if (!duplicateBlocked || Number(errorSend.count) !== 1 || Number(permissions.count) < 2) throw new Error('LIFECYCLE_ASSERTION_FAILED');
-  console.log(JSON.stringify({ ok:true, totals:true, transitions:true,discountApproval:true,approvalResetOnChange:true,approvalAudit:true, immutableSnapshot:true, revisionSequence:'R0,R1',snapshotCoverage:true,revisionDetail:true,revisionPdf:true,revisionPdfBytes:revisionPdfBytes.length,concurrentNumbers:8, numberFormat:`TK-${new Date().getFullYear()}-NNNN`, consecutiveBlock:true, permissions:true, sendFailure:true, publicToken:true, orderConversion:true, duplicateBlocked:true }));
+  console.log(JSON.stringify({ ok:true, totals:true, transitions:true,discountApproval:true,approvalResetOnChange:true,approvalAudit:true, immutableSnapshot:true, revisionSequence:'R0,R1',snapshotCoverage:true,revisionDetail:true,revisionPdf:true,revisionPdfBytes:revisionPdfBytes.length,concurrentNumbers:8, numberFormat:`TK-${new Date().getFullYear()}-NNNN`, consecutiveBlock:true, permissions:true, sendFailure:true, publicToken:true,tokenFirstView:true,tokenRevocation:true,tokenRefresh:true,tokenExpiry:true, orderConversion:true, duplicateBlocked:true }));
 } finally {
   if (orderId) {
     await db.execute('UPDATE teklifler SET donusen_siparis_id=NULL WHERE donusen_siparis_id=?', [orderId]);

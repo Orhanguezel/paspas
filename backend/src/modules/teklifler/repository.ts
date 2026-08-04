@@ -6,7 +6,7 @@
 import { randomUUID } from 'node:crypto';
 import type { RowDataPacket } from 'mysql2';
 
-import { and, asc, desc, eq, gte, inArray, like, lt, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, inArray, isNull, like, lt, or, sql } from 'drizzle-orm';
 
 import { db, pool } from '@/db/client';
 import { users } from '@/modules/auth/schema';
@@ -255,7 +255,11 @@ export async function repoMarkGonderildi(teklifId: string): Promise<void> {
 /** Public token ile teklifi bul; ilk görüntülemeyi işaretle + durum→goruntulendi. */
 export async function repoTeklifByToken(token: string): Promise<{ id: string } | null> {
   const rows = await db.select({ id: teklifler.id, durum: teklifler.durum, ilk: teklifler.ilk_goruntuleme_at })
-    .from(teklifler).where(eq(teklifler.goruntuleme_token, token)).limit(1);
+    .from(teklifler).where(and(
+      eq(teklifler.goruntuleme_token, token),
+      gt(teklifler.goruntuleme_token_expires_at, new Date()),
+      isNull(teklifler.goruntuleme_token_revoked_at),
+    )).limit(1);
   const row = rows[0];
   if (!row) return null;
   const set: Partial<TeklifRow> = {};
@@ -263,6 +267,25 @@ export async function repoTeklifByToken(token: string): Promise<{ id: string } |
   if (row.durum === 'gonderildi') set.durum = 'goruntulendi';
   if (Object.keys(set).length > 0) await db.update(teklifler).set(set).where(eq(teklifler.id, row.id));
   return { id: row.id };
+}
+
+export async function repoRefreshPublicToken(id: string, days: number): Promise<ReturnType<typeof teklifRowToDto> | null> {
+  const row = await getTeklifRow(id);
+  if (!row) return null;
+  await db.update(teklifler).set({
+    goruntuleme_token: randomUUID(),
+    goruntuleme_token_expires_at: new Date(Date.now() + days * 86_400_000),
+    goruntuleme_token_revoked_at: null,
+    ilk_goruntuleme_at: null,
+  }).where(eq(teklifler.id, id));
+  return repoGetTeklif(id);
+}
+
+export async function repoRevokePublicToken(id: string): Promise<ReturnType<typeof teklifRowToDto> | null> {
+  const row = await getTeklifRow(id);
+  if (!row) return null;
+  await db.update(teklifler).set({ goruntuleme_token_revoked_at: new Date() }).where(eq(teklifler.id, id));
+  return repoGetTeklif(id);
 }
 
 export async function repoCreateTeklif(body: TeklifCreateBody, userId: string | null): Promise<ReturnType<typeof teklifRowToDto>> {
@@ -295,6 +318,7 @@ export async function repoCreateTeklif(body: TeklifCreateBody, userId: string | 
     kdv_dahil: body.kdvDahil ? 1 : 0,
     gecerlilik_tarihi: body.gecerlilikTarihi ? new Date(body.gecerlilikTarihi) : null,
     goruntuleme_token: randomUUID(),
+    goruntuleme_token_expires_at: new Date(Date.now() + 30 * 86_400_000),
     created_by: userId,
   });
   const dto = await repoGetTeklif(id);
@@ -689,7 +713,7 @@ export async function repoDonusturTalep(
     if(!musteriId&&body.yeniMusteri){musteriId=randomUUID();const kod=`MUS-WEB-${musteriId.replaceAll('-','').slice(0,12).toUpperCase()}`;await connection.execute("INSERT INTO musteriler(id,tur,musteri_durumu,kod,ad,telefon,email,adres,is_active)VALUES(?,'musteri','aday',?,?,?,?,?,1)",[musteriId,kod,body.yeniMusteri.ad,body.yeniMusteri.telefon??null,body.yeniMusteri.email??null,body.yeniMusteri.adres??null]);}
     if(!musteriId)throw new Error('musteri_gerekli');
     const year=new Date().getFullYear();await connection.execute('INSERT INTO teklif_no_sayaclari(yil,son_no)VALUES(?,LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE son_no=LAST_INSERT_ID(son_no+1)',[year]);const[numbers]=await connection.execute<RowDataPacket[]>('SELECT LAST_INSERT_ID() no');const teklifNo=`TK-${year}-${String(numbers[0].no).padStart(4,'0')}`;
-    const teklifId=randomUUID();await connection.execute("INSERT INTO teklifler(id,teklif_no,musteri_id,talep_id,durum,dil,para_birimi,aciklama,goruntuleme_token,created_by)VALUES(?,?,?,?,'taslak',?,?,?,?,?)",[teklifId,teklifNo,musteriId,talepId,talep.dil??'tr',body.paraBirimi,talep.mesaj??null,randomUUID(),userId]);
+    const teklifId=randomUUID();await connection.execute("INSERT INTO teklifler(id,teklif_no,musteri_id,talep_id,durum,dil,para_birimi,aciklama,goruntuleme_token,goruntuleme_token_expires_at,created_by)VALUES(?,?,?,?,'taslak',?,?,?,?,DATE_ADD(CURRENT_TIMESTAMP,INTERVAL 30 DAY),?)",[teklifId,teklifNo,musteriId,talepId,talep.dil??'tr',body.paraBirimi,talep.mesaj??null,randomUUID(),userId]);
     const selected=Array.isArray(talep.secili_urunler)?talep.secili_urunler:[];let aktarilanKalemSayisi=0;
     for(const raw of selected){const item=raw&&typeof raw==='object'?raw as Record<string,unknown>:{};const ref=typeof item.urunId==='string'?item.urunId:null;let product:RowDataPacket|undefined;if(ref){const[products]=await connection.execute<RowDataPacket[]>('SELECT id,kod,ad,birim FROM urunler WHERE id=? AND is_active=1 LIMIT 1',[ref]);product=products[0];}const ad=String(item.ad??product?.ad??item.slug??'Web ürün önerisi').slice(0,255),miktar=Math.max(1,Number(item.miktar??1)||1);await connection.execute('INSERT INTO teklif_kalemleri(id,teklif_id,urun_id,urun_kod,urun_ad,aciklama,birim,miktar,birim_fiyat,iskonto_orani,satir_toplam,sira)VALUES(?,?,?,?,?,?,?,?,0,0,0,?)',[randomUUID(),teklifId,product?.id??null,product?.kod??null,product?.ad??ad,ad,product?.birim??'adet',miktar,aktarilanKalemSayisi]);aktarilanKalemSayisi++;}
     await connection.execute("UPDATE teklif_talepleri SET durum='teklife_donustu',musteri_id=?,teklif_id=? WHERE id=?",[musteriId,teklifId,talepId]);
