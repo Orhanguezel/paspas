@@ -252,7 +252,7 @@ dönüştürülmesi
     varsayılan görünüm belirleyebilecek ve silebilecek.
   - Kabul: Görünümler kullanıcıya özel ve yetki sınırları içinde.
 
-- [ ] **47. CRM audit olaylarını Paspas audit sistemine bağla** — `critical`
+- [x] **47. CRM audit olaylarını Paspas audit sistemine bağla** — `critical`
   - Talep dönüşümü, fırsat oluşturma/güncelleme/aşama değişimi, ürün değişimi,
     teklif oluşturma/gönderme/kabul ve sipariş dönüşümü audit edilecek.
   - Kabul: Kim, ne zaman, hangi eski/yeni değerle işlem yaptı izlenebiliyor.
