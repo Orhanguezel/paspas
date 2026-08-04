@@ -30,7 +30,7 @@ test('web talebi admin üzerinden siparişe kadar ilerler', async ({ page, reque
   expect(intakeRes.status()).toBe(201);
 
   await page.goto('/admin/teklif-talepleri');
-  await expect(page).toHaveTitle(/Paspas|Admin/i);
+  await expect(page).toHaveTitle(/Paspas|Promats|Admin/i);
   await page.getByPlaceholder(/Ad, firma veya e-posta ara/i).fill(marker);
   const leadRow = page.getByRole('row').filter({ hasText:marker });
   await expect(leadRow).toBeVisible();
