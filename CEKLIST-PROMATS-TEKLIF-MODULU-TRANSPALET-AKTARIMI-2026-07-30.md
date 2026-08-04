@@ -264,7 +264,7 @@ dönüştürülmesi
     görebilecek şekilde veri kapsamı kararlaştırılacak.
   - Kabul: UI gizlemesine bağlı kalmadan API seviyesinde erişim engelleniyor.
 
-- [ ] **49. Fırsat → teklif → sipariş → üretim/sevkiyat bağlarını kur** — `critical`
+- [x] **49. Fırsat → teklif → sipariş → üretim/sevkiyat bağlarını kur** — `critical`
   - Fırsattan teklif; kabul edilmiş tekliften satış siparişi üretilecek.
   - CRM detayında sipariş, üretim ve sevkiyat durumları salt-okunur
     gösterilecek.
