@@ -19,7 +19,7 @@ import { Separator } from '@/components/ui/separator';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
 
 import { useListUsersAdminQuery } from '@/integrations/endpoints/admin/users/auth_admin.endpoints';
-import { usePatchTeklifTalebiAdminMutation } from '@/integrations/endpoints/admin/erp/teklifler_admin.endpoints';
+import { useGetTeklifTalebiAdminQuery, usePatchTeklifTalebiAdminMutation } from '@/integrations/endpoints/admin/erp/teklifler_admin.endpoints';
 import type { TalepDto, TalepDurum } from '@/integrations/shared/erp/teklifler.types';
 import { TALEP_DURUM_BADGE } from '@/integrations/shared/erp/teklifler.types';
 import TalepDonusturDialog from './talep-donustur-dialog';
@@ -33,10 +33,12 @@ interface Props {
   onClose: () => void;
 }
 
-export default function TalepDetaySheet({ talep, onClose }: Props) {
+export default function TalepDetaySheet({ talep: initialTalep, onClose }: Props) {
   const { t } = useLocaleContext();
   const [donusturOpen, setDonusturOpen] = useState(false);
-  const { data: usersData } = useListUsersAdminQuery(undefined, { skip: !talep });
+  const { data: freshTalep } = useGetTeklifTalebiAdminQuery(initialTalep?.id ?? '', { skip: !initialTalep });
+  const talep = freshTalep ?? initialTalep;
+  const { data: usersData } = useListUsersAdminQuery(undefined, { skip: !initialTalep });
   const [patchTalep, patchState] = usePatchTeklifTalebiAdminMutation();
 
   if (!talep) return null;
@@ -56,7 +58,7 @@ export default function TalepDetaySheet({ talep, onClose }: Props) {
   async function handleAssign(userId: string) {
     if (!talep) return;
     try {
-      await patchTalep({ id: talep.id, body: { atananUserId: userId === 'none' ? undefined : userId } }).unwrap();
+      await patchTalep({ id: talep.id, body: { atananUserId: userId === 'none' ? null : userId } }).unwrap();
       toast.success(t('admin.erp.common.updated', { item: t('admin.erp.teklifTalepleri.singular') }));
     } catch (err: any) {
       toast.error(err?.data?.error?.message ?? t('admin.erp.common.operationFailed'));

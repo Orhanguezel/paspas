@@ -97,10 +97,15 @@ export const kalemPatchSchema = kalemCreateSchema.partial().refine(
 export const talepListQuerySchema = z.object({
   q: z.string().trim().optional(),
   durum: z.enum(TALEP_DURUMLARI).optional(),
+  durumGrubu: z.enum(['yeni', 'inceleniyor', 'donusturuldu', 'spam']).optional(),
+  dil: z.string().trim().min(2).max(8).optional(),
+  konu: z.string().trim().max(200).optional(),
+  dateFrom: z.string().date().optional(),
+  dateTo: z.string().date().optional(),
   ownerUserId: z.string().uuid().optional(),
   limit: z.coerce.number().int().min(1).max(500).default(100),
   offset: z.coerce.number().int().min(0).default(0),
-});
+}).refine((v) => !v.dateFrom || !v.dateTo || v.dateFrom <= v.dateTo, { message: 'Başlangıç tarihi bitişten sonra olamaz' });
 
 export const talepPatchSchema = z.object({
   durum: z.enum(TALEP_DURUMLARI).optional(),

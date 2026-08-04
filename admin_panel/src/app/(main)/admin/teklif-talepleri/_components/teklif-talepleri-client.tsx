@@ -6,7 +6,7 @@
 // =============================================================
 
 import { useState } from 'react';
-import { RefreshCcw, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCcw, Search } from 'lucide-react';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
 
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { useListTeklifTalepleriAdminQuery } from '@/integrations/endpoints/admin/erp/teklifler_admin.endpoints';
+import { useListUsersAdminQuery } from '@/integrations/endpoints/admin/users/auth_admin.endpoints';
 import type { TalepDto, TalepDurum } from '@/integrations/shared/erp/teklifler.types';
 import { TALEP_DURUM_BADGE } from '@/integrations/shared/erp/teklifler.types';
 import TalepDetaySheet from './talep-detay-sheet';
@@ -28,20 +29,40 @@ import TalepDetaySheet from './talep-detay-sheet';
 const DURUM_VALUES: TalepDurum[] = [
   'yeni', 'inceleniyor', 'musteriye_donustu', 'teklife_donustu', 'istenmeyen', 'kapandi',
 ];
+const PAGE_SIZE = 50;
+type DurumGrubu = 'hepsi' | 'yeni' | 'inceleniyor' | 'donusturuldu' | 'spam';
 
 export default function TeklifTalepleriClient() {
   const { t } = useLocaleContext();
   const [search, setSearch] = useState('');
   const [durum, setDurum] = useState<TalepDurum | 'hepsi'>('hepsi');
+  const [durumGrubu, setDurumGrubu] = useState<DurumGrubu>('hepsi');
+  const [dil, setDil] = useState('hepsi');
+  const [konu, setKonu] = useState('');
+  const [ownerUserId, setOwnerUserId] = useState('hepsi');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<TalepDto | null>(null);
 
   const params = {
     ...(search ? { q: search } : {}),
     ...(durum !== 'hepsi' ? { durum } : {}),
+    ...(durumGrubu !== 'hepsi' ? { durumGrubu } : {}),
+    ...(dil !== 'hepsi' ? { dil } : {}),
+    ...(konu ? { konu } : {}),
+    ...(ownerUserId !== 'hepsi' ? { ownerUserId } : {}),
+    ...(dateFrom ? { dateFrom } : {}),
+    ...(dateTo ? { dateTo } : {}),
+    limit: PAGE_SIZE,
+    offset,
   };
 
   const { data, isLoading, isFetching, refetch } = useListTeklifTalepleriAdminQuery(params);
+  const { data: users = [] } = useListUsersAdminQuery();
   const items = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const userName = (id: string | null) => users.find((u) => u.id === id)?.full_name || users.find((u) => u.id === id)?.email || 'Atanmamış';
 
   return (
     <div className="space-y-4">
@@ -58,18 +79,24 @@ export default function TeklifTalepleriClient() {
       </div>
 
       {/* Filtreler */}
-      <div className="flex flex-wrap gap-3">
+      <div className="grid gap-3 rounded-md border bg-muted/20 p-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="relative flex-1 min-w-48 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
             className="pl-9"
             placeholder={t('admin.erp.teklifTalepleri.searchPlaceholder')}
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setOffset(0); }}
           />
         </div>
-        <Select value={durum} onValueChange={(v) => setDurum(v as TalepDurum | 'hepsi')}>
-          <SelectTrigger className="w-48">
+        <Select value={durumGrubu} onValueChange={(v) => { setDurumGrubu(v as DurumGrubu); setDurum('hepsi'); setOffset(0); }}>
+          <SelectTrigger><SelectValue placeholder="Gelen kutusu" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="hepsi">Tüm kutular</SelectItem><SelectItem value="yeni">Yeni</SelectItem><SelectItem value="inceleniyor">İnceleniyor</SelectItem><SelectItem value="donusturuldu">Dönüştürüldü</SelectItem><SelectItem value="spam">Spam</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={durum} onValueChange={(v) => { setDurum(v as TalepDurum | 'hepsi'); setDurumGrubu('hepsi'); setOffset(0); }}>
+          <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -79,6 +106,12 @@ export default function TeklifTalepleriClient() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={ownerUserId} onValueChange={(v) => { setOwnerUserId(v); setOffset(0); }}><SelectTrigger><SelectValue placeholder="Sorumlu" /></SelectTrigger><SelectContent><SelectItem value="hepsi">Tüm sorumlular</SelectItem>{users.map((u) => <SelectItem key={u.id} value={u.id}>{u.full_name || u.email || u.id}</SelectItem>)}</SelectContent></Select>
+        <Select value={dil} onValueChange={(v) => { setDil(v); setOffset(0); }}><SelectTrigger><SelectValue placeholder="Dil" /></SelectTrigger><SelectContent><SelectItem value="hepsi">Tüm diller</SelectItem><SelectItem value="tr">Türkçe</SelectItem><SelectItem value="en">English</SelectItem><SelectItem value="de">Deutsch</SelectItem></SelectContent></Select>
+        <Input placeholder="Konu filtrele" value={konu} onChange={(e) => { setKonu(e.target.value); setOffset(0); }} />
+        <Input type="date" aria-label="Başlangıç tarihi" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setOffset(0); }} />
+        <Input type="date" aria-label="Bitiş tarihi" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setOffset(0); }} />
+        <Button variant="ghost" onClick={() => { setSearch(''); setDurum('hepsi'); setDurumGrubu('hepsi'); setDil('hepsi'); setKonu(''); setOwnerUserId('hepsi'); setDateFrom(''); setDateTo(''); setOffset(0); }}>Filtreleri temizle</Button>
       </div>
 
       <div className="rounded-md border">
@@ -90,20 +123,21 @@ export default function TeklifTalepleriClient() {
               <TableHead>{t('admin.erp.teklifTalepleri.columns.konu')}</TableHead>
               <TableHead>{t('admin.erp.teklifTalepleri.columns.durum')}</TableHead>
               <TableHead>{t('admin.erp.teklifTalepleri.columns.kaynak')}</TableHead>
+              <TableHead>Sorumlu / Dil</TableHead>
               <TableHead>{t('admin.erp.teklifTalepleri.columns.tarih')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading && Array.from({ length: 5 }).map((_, i) => (
               <TableRow key={i}>
-                {Array.from({ length: 6 }).map((__, j) => (
+                {Array.from({ length: 7 }).map((__, j) => (
                   <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                 ))}
               </TableRow>
             ))}
             {!isLoading && items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                   {t('admin.erp.teklifTalepleri.notFound')}
                 </TableCell>
               </TableRow>
@@ -125,6 +159,7 @@ export default function TeklifTalepleriClient() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">{talep.kaynakSayfa || '—'}</TableCell>
+                <TableCell className="text-xs"><div>{userName(talep.atananUserId)}</div><div className="uppercase text-muted-foreground">{talep.dil}</div></TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {talep.createdAt ? talep.createdAt.slice(0, 10) : '—'}
                 </TableCell>
@@ -132,6 +167,12 @@ export default function TeklifTalepleriClient() {
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="flex items-center justify-end gap-2 text-sm">
+        <span className="text-muted-foreground">{total ? `${offset + 1}-${Math.min(offset + PAGE_SIZE, total)} / ${total}` : '0 / 0'}</span>
+        <Button variant="outline" size="icon" disabled={offset === 0 || isFetching} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}><ChevronLeft className="size-4" /></Button>
+        <Button variant="outline" size="icon" disabled={offset + PAGE_SIZE >= total || isFetching} onClick={() => setOffset(offset + PAGE_SIZE)}><ChevronRight className="size-4" /></Button>
       </div>
 
       <TalepDetaySheet talep={selected} onClose={() => setSelected(null)} />

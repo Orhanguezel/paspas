@@ -5,7 +5,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, desc, eq, like, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, like, lt, or, sql } from 'drizzle-orm';
 
 import { db, pool } from '@/db/client';
 import type { AppRole } from '@/common/middleware/roles';
@@ -558,8 +558,16 @@ export async function repoDeleteKalem(teklifId: string, kalemId: string): Promis
 export async function repoListTalepler(q: TalepListQuery): Promise<{ items: ReturnType<typeof teklifTalepRowToDto>[]; total: number }> {
   const conds = [];
   if (q.durum) conds.push(eq(teklifTalepleri.durum, q.durum));
+  if (q.durumGrubu) {
+    const groups = { yeni:['yeni'], inceleniyor:['inceleniyor'], donusturuldu:['musteriye_donustu','teklife_donustu','kapandi'], spam:['istenmeyen'] } as const;
+    conds.push(inArray(teklifTalepleri.durum, [...groups[q.durumGrubu]]));
+  }
+  if (q.dil) conds.push(eq(teklifTalepleri.dil, q.dil));
+  if (q.konu) conds.push(like(teklifTalepleri.konu, `%${q.konu}%`));
+  if (q.dateFrom) conds.push(gte(teklifTalepleri.created_at, new Date(`${q.dateFrom}T00:00:00`)));
+  if (q.dateTo) conds.push(lt(teklifTalepleri.created_at, new Date(new Date(`${q.dateTo}T00:00:00`).getTime() + 86_400_000)));
   if (q.ownerUserId) conds.push(eq(teklifTalepleri.atanan_user_id, q.ownerUserId));
-  if (q.q) conds.push(or(like(teklifTalepleri.ad, `%${q.q}%`), like(teklifTalepleri.firma, `%${q.q}%`), like(teklifTalepleri.email, `%${q.q}%`)));
+  if (q.q) conds.push(or(like(teklifTalepleri.ad, `%${q.q}%`), like(teklifTalepleri.firma, `%${q.q}%`), like(teklifTalepleri.email, `%${q.q}%`), like(teklifTalepleri.telefon, `%${q.q}%`), like(teklifTalepleri.konu, `%${q.q}%`)));
   const where = conds.length ? and(...conds) : undefined;
 
   const [rows, countRes] = await Promise.all([

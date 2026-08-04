@@ -201,7 +201,7 @@ export interface TalepListResponse {
 
 export interface TalepPatchPayload {
   durum?: TalepDurum;
-  atananUserId?: string;
+  atananUserId?: string | null;
 }
 
 export interface TalepDonusturPayload {

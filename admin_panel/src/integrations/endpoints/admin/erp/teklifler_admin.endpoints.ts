@@ -41,6 +41,12 @@ export interface TeklifListParams {
 export interface TalepListParams {
   q?: string;
   durum?: TalepDurum;
+  durumGrubu?: 'yeni' | 'inceleniyor' | 'donusturuldu' | 'spam';
+  dil?: string;
+  konu?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  ownerUserId?: string;
   limit?: number;
   offset?: number;
 }
