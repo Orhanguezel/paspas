@@ -241,7 +241,7 @@ dönüştürülmesi
   - Bütün KPI’lar ortak durum tanımlarını kullanacak.
   - Kabul: Dashboard değerleri kaynak listelerin filtreli toplamlarıyla aynı.
 
-- [ ] **45. CRM rapor servislerini taşı** — `normal`
+- [x] **45. CRM rapor servislerini taşı** — `normal`
   - Dönüşüm hunisi, aşamada bekleme, kullanıcı performansı, kaynak performansı,
     teklif kabul oranı, kaybetme nedenleri, ürün satışı ve satış döngüsü süresi
     raporlanacak.
