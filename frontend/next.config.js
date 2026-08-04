@@ -31,7 +31,8 @@ const PROMATS_BASE_PATH = process.env.PROMATS_BASE_PATH || '';
 
 const nextConfig = {
   turbopack: {},
-  ...(PROMATS_BASE_PATH ? { basePath: PROMATS_BASE_PATH, output: 'standalone' } : {}),
+  output: 'standalone',
+  ...(PROMATS_BASE_PATH ? { basePath: PROMATS_BASE_PATH } : {}),
   reactStrictMode: true,
   trailingSlash: false,
   compress: true,
