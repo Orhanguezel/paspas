@@ -170,6 +170,9 @@ export function setAccessCookie(reply: FastifyReply, token: string, req?: Fastif
   const base = { ...cookieBase(req), maxAge: ACCESS_MAX_AGE };
   reply.setCookie("access_token", token, base);
   reply.setCookie("accessToken", token, base);
+  // Readable presence marker for optional widgets on the public Promats site.
+  // It carries no credential; the real JWT remains httpOnly.
+  reply.setCookie("promats_auth", "1", { ...base, httpOnly: false });
 }
 
 export function setRefreshCookie(reply: FastifyReply, token: string, req?: FastifyRequest) {
@@ -182,6 +185,7 @@ function clearAuthCookies(reply: FastifyReply, req?: FastifyRequest) {
   const base = { path: "/", ...(domain ? { domain } : {}) };
   reply.clearCookie("access_token", base);
   reply.clearCookie("accessToken", base);
+  reply.clearCookie("promats_auth", base);
   reply.clearCookie("refresh_token", base);
 }
 

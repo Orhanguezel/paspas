@@ -31,6 +31,12 @@ function authHeaders(extra?: HeadersInit): HeadersInit {
   };
 }
 
+function hasDevNoteCredentials(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (window.localStorage.getItem('mh_access_token')) return true;
+  return document.cookie.split(';').some((cookie) => cookie.trim() === 'promats_auth=1');
+}
+
 function pageTitleFallback(pathname: string): string {
   const last = pathname.split('/').filter(Boolean).at(-1) || 'promats';
   return last.replaceAll('-', ' ');
@@ -164,7 +170,7 @@ export default function DevNote({ section, title }: { section: string; title?: s
   const [authorized, setAuthorized] = useState(false);
 
   const reload = useCallback(async () => {
-    if (!enabled) return;
+    if (!enabled || !hasDevNoteCredentials()) return;
     setFetching(true);
     try {
       const result = await fetchThreads(pagePath);
@@ -184,7 +190,7 @@ export default function DevNote({ section, title }: { section: string; title?: s
   }, [section, title]);
 
   useEffect(() => {
-    if (enabled) void reload();
+    if (enabled && hasDevNoteCredentials()) void reload();
   }, [enabled, reload]);
 
   if (!enabled || !authorized) return null;
