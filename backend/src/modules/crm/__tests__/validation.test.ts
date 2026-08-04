@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { dealCreateSchema, dealMoveSchema, dealProductSchema, dealToOfferSchema, talepToDealSchema } from '../validation';
+import { activityCreateSchema, activityListSchema, dealCreateSchema, dealMoveSchema, dealProductSchema, dealToOfferSchema, talepToDealSchema } from '../validation';
 
 describe('CRM validation', () => {
   it('fırsat varsayılanlarını güvenli üretir', () => {
@@ -28,5 +28,14 @@ describe('CRM validation', () => {
 
   it('taslak teklif varsayılanlarını üretir', () => {
     expect(dealToOfferSchema.parse({})).toEqual({ dil: 'tr', kdvOrani: 20 });
+  });
+
+  it('aktivite kaynağını tür ve kayıt olarak birlikte ister', () => {
+    expect(activityCreateSchema.safeParse({ type:'call',subject:'Ara',refType:'firsat' }).success).toBe(false);
+    expect(activityCreateSchema.safeParse({ type:'call',subject:'Ara',refType:'firsat',refId:crypto.randomUUID() }).success).toBe(true);
+  });
+
+  it('aktivite liste boolean sorgusunu dönüştürür', () => {
+    expect(activityListSchema.parse({ done:'false' }).done).toBe(false);
   });
 });

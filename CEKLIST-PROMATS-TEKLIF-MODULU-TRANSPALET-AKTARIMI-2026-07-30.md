@@ -203,7 +203,7 @@ dönüştürülmesi
     özellikleri ve gerekirse serbest ihtiyaç notları kullanılacak.
   - Kabul: Fırsat ürünleri taslak teklife snapshot olarak aktarılabiliyor.
 
-- [ ] **39. CRM aktiviteleri ve zaman çizelgesini taşı** — `critical`
+- [x] **39. CRM aktiviteleri ve zaman çizelgesini taşı** — `critical`
   - Arama, toplantı, e-posta, WhatsApp, not ve görev aktiviteleri müşteri,
     talep, fırsat, teklif veya siparişe bağlanabilecek.
   - Planlanan tarih, sonuç, sonraki işlem, süre, tamamlanma ve sorumlu

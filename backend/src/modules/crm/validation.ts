@@ -32,6 +32,19 @@ export const dealProductPatchSchema = dealProductSchema.partial().refine((v) => 
 export const dealNeedSchema = z.object({ ihtiyacNotu: z.string().trim().max(5000).optional().nullable(), teslimBeklentisi: z.string().date().optional().nullable() });
 export const dealToOfferSchema = z.object({ dil: z.enum(['tr','en','de']).default('tr'), kdvOrani: z.coerce.number().min(0).max(100).default(20) });
 
+const activityType = z.enum(['call','meeting','email','whatsapp','note','task']);
+const activityRef = z.enum(['musteri','talep','firsat','teklif','siparis']);
+export const activityListSchema = z.object({
+  refType: activityRef.optional(), refId: z.string().uuid().optional(), type: activityType.optional(), done: z.preprocess((v)=>v==='true'||v==='1'?true:v==='false'||v==='0'?false:v,z.boolean()).optional(),
+  ownerUserId: z.string().uuid().optional(), limit:z.coerce.number().int().min(1).max(500).default(100),offset:z.coerce.number().int().min(0).default(0),
+}).refine((v)=>!v.refId||Boolean(v.refType),'refId için refType gerekli');
+const activityBaseSchema = z.object({
+  refType:activityRef.optional().nullable(),refId:z.string().uuid().optional().nullable(),type:activityType,subject:z.string().trim().min(1).max(255),body:z.string().max(5000).optional().nullable(),
+  result:z.string().max(500).optional().nullable(),nextActionAt:z.string().datetime().optional().nullable(),durationMinutes:z.coerce.number().int().min(0).optional().nullable(),plannedStartAt:z.string().datetime().optional().nullable(),dueAt:z.string().datetime().optional().nullable(),ownerUserId:z.string().uuid().optional().nullable(),
+});
+export const activityCreateSchema=activityBaseSchema.refine((v)=>Boolean(v.refType)===Boolean(v.refId),'Kaynak türü ve kaydı birlikte gerekli');
+export const activityPatchSchema=activityBaseSchema.partial().extend({done:z.boolean().optional()}).refine((v)=>Object.keys(v).length>0,'En az bir alan gerekli');
+
 export type DealList = z.infer<typeof dealListSchema>;
 export type DealCreate = z.infer<typeof dealCreateSchema>;
 export type DealPatch = z.infer<typeof dealPatchSchema>;

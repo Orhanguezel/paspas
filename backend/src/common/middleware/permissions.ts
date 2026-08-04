@@ -19,6 +19,7 @@ export type AdminPermissionKey =
   | 'admin.teklif_onay'
   | 'admin.crm_firsatlar'
   | 'admin.crm_pipeline'
+  | 'admin.crm_aktiviteler'
   | 'admin.uretim_emirleri'
   | 'admin.makine_havuzu'
   | 'admin.is_yukler'
@@ -83,6 +84,7 @@ const ADMIN_PERMISSION_MAP: Record<AdminPermissionKey, AppRole[]> = {
   'admin.teklif_onay': ADMIN_ONLY,
   'admin.crm_firsatlar': ADMIN_AND_SEVKIYATCI,
   'admin.crm_pipeline': ADMIN_ONLY,
+  'admin.crm_aktiviteler': ADMIN_AND_SEVKIYATCI,
   'admin.uretim_emirleri': ADMIN_AND_OPERATOR,
   'admin.makine_havuzu': ['admin', 'operator', 'sevkiyatci'],
   'admin.is_yukler': ADMIN_AND_OPERATOR,
@@ -120,6 +122,7 @@ const MODULE_META: Record<AdminPermissionKey, { label: string; group: string }> 
   'admin.teklif_onay': { label: 'Teklif İskonto Onayı', group: 'Teklif' },
   'admin.crm_firsatlar': { label: 'CRM Fırsatlar', group: 'CRM' },
   'admin.crm_pipeline': { label: 'CRM Pipeline Yönetimi', group: 'CRM' },
+  'admin.crm_aktiviteler': { label: 'CRM Aktiviteler', group: 'CRM' },
   'admin.uretim_emirleri': { label: 'Uretim Emirleri', group: 'ERP' },
   'admin.makine_havuzu': { label: 'Makine Havuzu', group: 'ERP' },
   'admin.is_yukler': { label: 'Makine Is Yukleri', group: 'ERP' },
