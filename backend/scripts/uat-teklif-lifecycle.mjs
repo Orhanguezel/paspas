@@ -70,7 +70,8 @@ try {
   if(snapshotCoverage.adres===undefined||!snapshotCoverage.sablon)throw new Error('REVISION_SNAPSHOT_COVERAGE_FAILED');
   const revisionDetail=await fetch(`${apiBase}/admin/teklifler/${offerId}/revizyonlar/0`,{headers:auth});
   const revisionPdf=await fetch(`${apiBase}/admin/teklifler/${offerId}/revizyonlar/0/pdf`,{headers:auth});
-  if(!revisionDetail.ok||!(await revisionDetail.json()).snapshot||!revisionPdf.ok||!revisionPdf.headers.get('content-type')?.includes('application/pdf'))throw new Error('REVISION_HTTP_FAILED');
+  const revisionPdfBytes=Buffer.from(await revisionPdf.arrayBuffer());
+  if(!revisionDetail.ok||!(await revisionDetail.json()).snapshot||!revisionPdf.ok||!revisionPdf.headers.get('content-type')?.includes('application/pdf')||revisionPdfBytes.length<10_000||revisionPdfBytes.subarray(0,5).toString()!=='%PDF-')throw new Error('REVISION_HTTP_FAILED');
   await repoPatchTeklif(offerId,{aciklama:'R1 sonrası taslak'});
   await repoSetTeklifDurum(offerId, 'gonderildi', undefined, 'sevkiyatci');
   await repoSetTeklifDurum(offerId, 'kabul', undefined, 'admin');
@@ -82,7 +83,7 @@ try {
     db.execute("SELECT COUNT(*) count FROM role_permissions WHERE permission_key IN ('admin.teklifler.create','admin.teklif_onay.create')").then(([rows]) => rows),
   ]);
   if (!duplicateBlocked || Number(errorSend.count) !== 1 || Number(permissions.count) < 2) throw new Error('LIFECYCLE_ASSERTION_FAILED');
-  console.log(JSON.stringify({ ok:true, totals:true, transitions:true,discountApproval:true,approvalResetOnChange:true,approvalAudit:true, immutableSnapshot:true, revisionSequence:'R0,R1',snapshotCoverage:true,revisionDetail:true,revisionPdf:true,concurrentNumbers:8, numberFormat:`TK-${new Date().getFullYear()}-NNNN`, consecutiveBlock:true, permissions:true, sendFailure:true, publicToken:true, orderConversion:true, duplicateBlocked:true }));
+  console.log(JSON.stringify({ ok:true, totals:true, transitions:true,discountApproval:true,approvalResetOnChange:true,approvalAudit:true, immutableSnapshot:true, revisionSequence:'R0,R1',snapshotCoverage:true,revisionDetail:true,revisionPdf:true,revisionPdfBytes:revisionPdfBytes.length,concurrentNumbers:8, numberFormat:`TK-${new Date().getFullYear()}-NNNN`, consecutiveBlock:true, permissions:true, sendFailure:true, publicToken:true, orderConversion:true, duplicateBlocked:true }));
 } finally {
   if (orderId) {
     await db.execute('UPDATE teklifler SET donusen_siparis_id=NULL WHERE donusen_siparis_id=?', [orderId]);
