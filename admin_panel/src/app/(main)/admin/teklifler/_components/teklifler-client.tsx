@@ -72,7 +72,7 @@ export default function TekliflerClient() {
     } catch (err: any) {
       const message = err?.data?.error?.message;
       toast.error(
-        message === 'sadece_taslak_duzenlenir'
+        message === 'sadece_taslak_silinir'
           ? t('admin.erp.teklifler.form.taslakDisindaBilgi')
           : (message ?? t('admin.erp.common.deleteFailed')),
       );
@@ -114,7 +114,7 @@ export default function TekliflerClient() {
             onChange={(e) => {setSearch(e.target.value);setOffset(0);}}
           />
         </div>
-        <Select value={durum} onValueChange={(v) => setDurum(v as TeklifDurum | 'hepsi')}>
+        <Select value={durum} onValueChange={(v) => { setDurum(v as TeklifDurum | 'hepsi'); setOffset(0); }}>
           <SelectTrigger className="w-48">
             <SelectValue />
           </SelectTrigger>
