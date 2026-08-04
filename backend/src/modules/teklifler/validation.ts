@@ -91,7 +91,7 @@ export const revizyonSchema = z.object({
 export const kalemCreateSchema = z.object({
   urunId: z.string().uuid().optional().nullable(),
   aciklama: z.string().trim().min(1, 'Açıklama zorunlu').max(500),
-  birim: z.string().trim().max(16).default('adet'),
+  birim: z.string().trim().max(16).optional(),
   miktar: z.coerce.number().positive('Pozitif olmalı').max(99_999_999.9999),
   birimFiyat: z.coerce.number().min(0).max(999_999_999_999.99).default(0),
   iskontoOrani: z.coerce.number().min(0).max(100).default(0),
