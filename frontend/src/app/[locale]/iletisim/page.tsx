@@ -110,8 +110,11 @@ export default async function ContactPage({
                   products: t(settings, 'İlgilenilen Ürün Grubu'),
                   subject: t(settings, 'Konu Başlığı'),
                 }}
-                products={products.map((product) => ({ slug: product.slug, name: product.name }))}
-                defaultProduct={products.find((product) => product.slug === query.product)?.name}
+                products={products.map((product) => ({ id: String(product.id), slug: product.slug, name: product.name }))}
+                defaultProduct={products.find((product) => product.slug === query.product)?.slug}
+                locale={locale}
+                sourcePage={`/${locale}/iletisim`}
+                quoteSubjectValues={[t(settings, 'Teklif Talebi'), t(settings, 'OEM & Private Label')]}
                 subjectOptions={[
                   t(settings, 'Ürün Bilgisi'),
                   t(settings, 'Teklif Talebi'),

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { getPublicApiBaseUrl } from '@/lib/site-config';
+import { buildTeklifTalepPayload } from '@/lib/promats/teklif-talebi';
 
 type Props = {
   labels: {
@@ -16,9 +17,12 @@ type Props = {
     products?: string;
     subject?: string;
   };
-  products?: { slug: string; name: string }[];
+  products?: { id?: string; slug: string; name: string }[];
   defaultProduct?: string;
   subjectOptions?: string[];
+  quoteSubjectValues?: string[];
+  locale?: string;
+  sourcePage?: string;
   /**
    * Yerleşim varyantı. DOM aynı kalır; iki sütunlu düzen (üretim sayfası) CSS grid ile
    * kurulur, böylece ikinci bir form bileşeni çoğaltmak gerekmez.
@@ -28,12 +32,12 @@ type Props = {
 
 const API_BASE = getPublicApiBaseUrl().replace(/\/+$/, '');
 
-export default function PromatsContactForm({ labels, formClassName, products = [], defaultProduct, subjectOptions = [] }: Props) {
+export default function PromatsContactForm({ labels, formClassName, products = [], defaultProduct, subjectOptions = [], quoteSubjectValues = [], locale = 'tr', sourcePage = '/iletisim' }: Props) {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   // İlgilenilen ürün grubu: çoklu seçim, kapalı kutu + checkbox (müşteri notu a1bf78c3).
   // Native <select multiple> yerine dışarı tıklayınca kapanan checkbox paneli.
   const [productsOpen, setProductsOpen] = useState(false);
-  const [selectedProductNames, setSelectedProductNames] = useState<string[]>(
+  const [selectedProductSlugs, setSelectedProductSlugs] = useState<string[]>(
     defaultProduct ? [defaultProduct] : [],
   );
   const productsRef = useRef<HTMLDivElement>(null);
@@ -56,34 +60,45 @@ export default function PromatsContactForm({ labels, formClassName, products = [
     };
   }, [productsOpen]);
 
-  function toggleProduct(name: string, checked: boolean): void {
-    setSelectedProductNames((prev) => (checked ? [...prev, name] : prev.filter((n) => n !== name)));
+  function toggleProduct(slug: string, checked: boolean): void {
+    setSelectedProductSlugs((prev) => (checked ? [...prev, slug] : prev.filter((item) => item !== slug)));
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const selectedProducts = selectedProductNames;
+    const subject = String(form.get('subject') ?? '').trim();
+    const selectedProducts = products.filter((product) => selectedProductSlugs.includes(product.slug));
+    const isQuote = quoteSubjectValues.includes(subject);
     setStatus('sending');
     try {
-      const res = await fetch(`${API_BASE}/contact`, {
+      const body = isQuote ? buildTeklifTalepPayload({
+        kaynakSayfa: sourcePage,
+        dil: (['tr', 'en', 'de'].includes(locale) ? locale : 'tr') as 'tr' | 'en' | 'de',
+        ad: String(form.get('name') ?? '').trim(),
+        email: String(form.get('email') ?? '').trim() || undefined,
+        telefon: String(form.get('phone') ?? '').trim() || undefined,
+        konu: subject || undefined,
+        mesaj: String(form.get('message') ?? '').trim() || undefined,
+        seciliUrunler: selectedProducts.map((product) => ({ urunId: product.id, slug: product.slug, ad: product.name })),
+        kvkkOnay: form.get('kvkk') === 'on',
+        website: String(form.get('website') ?? ''),
+        search: typeof window !== 'undefined' ? window.location.search : '',
+      }) : {
+        ad: String(form.get('name') ?? ''),
+        eposta: String(form.get('email') ?? ''),
+        telefon: String(form.get('phone') ?? ''),
+        mesaj: String(form.get('message') ?? ''),
+      };
+      const res = await fetch(`${API_BASE}${isQuote ? '/web/promats/teklif-talebi' : '/contact'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ad: String(form.get('name') ?? ''),
-          eposta: String(form.get('email') ?? ''),
-          telefon: String(form.get('phone') ?? ''),
-          mesaj: [
-            form.get('subject') ? `${labels.subject}: ${String(form.get('subject'))}` : '',
-            selectedProducts.length ? `${labels.products}: ${selectedProducts.join(', ')}` : '',
-            String(form.get('message') ?? ''),
-          ].filter(Boolean).join('\n'),
-        }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error('contact_failed');
       setStatus('sent');
       event.currentTarget.reset();
-      setSelectedProductNames([]);
+      setSelectedProductSlugs([]);
     } catch {
       setStatus('error');
     }
@@ -113,14 +128,14 @@ export default function PromatsContactForm({ labels, formClassName, products = [
             <button
               type="button"
               id="promats-products-toggle"
-              className={`form-control promats-multiselect-toggle ${selectedProductNames.length ? '' : 'is-placeholder'}`}
+              className={`form-control promats-multiselect-toggle ${selectedProductSlugs.length ? '' : 'is-placeholder'}`}
               onClick={() => setProductsOpen((v) => !v)}
               aria-haspopup="listbox"
               aria-expanded={productsOpen}
             >
               <span className="promats-multiselect-value">
-                {selectedProductNames.length
-                  ? `${selectedProductNames.length} ${labels.products?.toLocaleLowerCase('tr-TR') ?? ''} seçildi`
+                {selectedProductSlugs.length
+                  ? `${selectedProductSlugs.length} ${labels.products?.toLocaleLowerCase('tr-TR') ?? ''} seçildi`
                   : labels.products}
               </span>
               <span className="promats-multiselect-caret" aria-hidden="true" />
@@ -132,8 +147,8 @@ export default function PromatsContactForm({ labels, formClassName, products = [
                     <input
                       type="checkbox"
                       value={product.name}
-                      checked={selectedProductNames.includes(product.name)}
-                      onChange={(e) => toggleProduct(product.name, e.target.checked)}
+                      checked={selectedProductSlugs.includes(product.slug)}
+                      onChange={(e) => toggleProduct(product.slug, e.target.checked)}
                     />
                     <span>{product.name}</span>
                   </label>
@@ -141,17 +156,17 @@ export default function PromatsContactForm({ labels, formClassName, products = [
               </div>
             ) : null}
           </div>
-          {selectedProductNames.length ? (
+          {selectedProductSlugs.length ? (
             <div className="promats-multiselect-tags">
-              {selectedProductNames.map((name) => (
+              {selectedProductSlugs.map((slug) => (
                 <button
-                  key={name}
+                  key={slug}
                   type="button"
                   className="promats-multiselect-tag"
-                  onClick={() => toggleProduct(name, false)}
-                  aria-label={`${name} kaldır`}
+                  onClick={() => toggleProduct(slug, false)}
+                  aria-label={`${products.find((product) => product.slug === slug)?.name ?? slug} kaldır`}
                 >
-                  {name}<span aria-hidden="true"> ×</span>
+                  {products.find((product) => product.slug === slug)?.name ?? slug}<span aria-hidden="true"> ×</span>
                 </button>
               ))}
             </div>
@@ -169,6 +184,16 @@ export default function PromatsContactForm({ labels, formClassName, products = [
       <div className="form-group">
         <label className="sr-only" htmlFor="promats-contact-message">{labels.message}</label>
         <textarea id="promats-contact-message" className="form-control" cols={30} name="message" placeholder={labels.message} rows={10} />
+      </div>
+      <div className="d-none" aria-hidden="true">
+        <label htmlFor="promats-contact-website">Website</label>
+        <input id="promats-contact-website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+      </div>
+      <div className="form-group form-check">
+        <input id="promats-contact-kvkk" className="form-check-input" name="kvkk" type="checkbox" required />
+        <label className="form-check-label small" htmlFor="promats-contact-kvkk">
+          {locale === 'en' ? 'I have read and accept the privacy notice.' : 'KVKK aydınlatma metnini okudum ve kabul ediyorum.'}
+        </label>
       </div>
       <div className="form-group float-right">
         <button className="btn btn-yellow px-4 contact_btn" type="submit" disabled={status === 'sending'}>
