@@ -235,7 +235,7 @@ dönüştürülmesi
     sorumlu atama etkinleştirilecek.
   - Kabul: Otomasyon tekrar çalıştığında aynı görevi/bildirimi çoğaltmıyor.
 
-- [ ] **44. CRM dashboard özet servisini taşı** — `high`
+- [x] **44. CRM dashboard özet servisini taşı** — `high`
   - Açık talep, aktif fırsat, pipeline tutarı, gönderilen/kabul edilen teklif,
     geciken takip, kazanma oranı ve beklenen gelir KPI’ları eklenecek.
   - Bütün KPI’lar ortak durum tanımlarını kullanacak.
