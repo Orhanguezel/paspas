@@ -8,10 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
 import { useGetMusteriAdminQuery } from '@/integrations/endpoints/admin/erp/musteriler_admin.endpoints';
 import { useListSatisSiparisleriAdminQuery } from '@/integrations/endpoints/admin/erp/satis_siparisleri_admin.endpoints';
+import { useListTekliflerAdminQuery, useListTeklifTalepleriAdminQuery } from '@/integrations/endpoints/admin/erp/teklifler_admin.endpoints';
 import { SIPARIS_DURUM_LABELS, SIPARIS_DURUM_COLORS } from '@/integrations/shared/erp/satis_siparisleri.types';
+import { TALEP_DURUM_BADGE, TALEP_DURUM_LABELS, TEKLIF_DURUM_BADGE, TEKLIF_DURUM_LABELS } from '@/integrations/shared/erp/teklifler.types';
 
 interface Props {
   id: string;
@@ -21,6 +24,8 @@ export default function MusteriDetayClient({ id }: Props) {
   const { t } = useLocaleContext();
   const { data: musteri, isLoading, refetch } = useGetMusteriAdminQuery(id);
   const { data: siparisler } = useListSatisSiparisleriAdminQuery({ musteriId: id });
+  const { data: teklifler } = useListTekliflerAdminQuery({ musteriId: id, limit: 100 });
+  const { data: talepler } = useListTeklifTalepleriAdminQuery({ musteriId: id, limit: 100 });
 
   if (isLoading) {
     return (
@@ -158,6 +163,47 @@ export default function MusteriDetayClient({ id }: Props) {
         </Card>
       </div>
 
+      <Tabs defaultValue="teklifler" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="teklifler">Teklifler ({teklifler?.total ?? 0})</TabsTrigger>
+          <TabsTrigger value="talepler">Talepler ({talepler?.total ?? 0})</TabsTrigger>
+          <TabsTrigger value="siparisler">Siparişler ({items.length})</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="teklifler">
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Teklif Geçmişi</CardTitle></CardHeader>
+            <CardContent>
+              {(teklifler?.items.length ?? 0) === 0 ? <p className="py-4 text-center text-sm text-muted-foreground">Bu müşteriye ait teklif yok.</p> : (
+                <Table><TableHeader><TableRow><TableHead>Teklif No</TableHead><TableHead>Revizyon</TableHead><TableHead>Durum</TableHead><TableHead>Toplam</TableHead><TableHead>Güncelleme</TableHead><TableHead className="w-20" /></TableRow></TableHeader>
+                  <TableBody>{teklifler?.items.map((teklif) => <TableRow key={teklif.id}>
+                    <TableCell className="font-mono">{teklif.teklifNo}</TableCell><TableCell>R{teklif.revizyonNo}</TableCell>
+                    <TableCell><Badge variant={TEKLIF_DURUM_BADGE[teklif.durum]}>{TEKLIF_DURUM_LABELS[teklif.durum]}</Badge></TableCell>
+                    <TableCell>{teklif.genelToplam.toLocaleString('tr-TR')} {teklif.paraBirimi}</TableCell><TableCell>{new Date(teklif.updatedAt).toLocaleDateString('tr-TR')}</TableCell>
+                    <TableCell><Button variant="ghost" size="icon" asChild><Link href={`/admin/teklifler/${teklif.id}`}><ExternalLink className="size-4" /></Link></Button></TableCell>
+                  </TableRow>)}</TableBody></Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="talepler">
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Teklif Talepleri</CardTitle></CardHeader>
+            <CardContent>
+              {(talepler?.items.length ?? 0) === 0 ? <p className="py-4 text-center text-sm text-muted-foreground">Bu müşteriyle eşleşen talep yok.</p> : (
+                <Table><TableHeader><TableRow><TableHead>Tarih</TableHead><TableHead>Konu</TableHead><TableHead>Kaynak</TableHead><TableHead>Durum</TableHead><TableHead className="w-20" /></TableRow></TableHeader>
+                  <TableBody>{talepler?.items.map((talep) => <TableRow key={talep.id}>
+                    <TableCell>{new Date(talep.createdAt).toLocaleDateString('tr-TR')}</TableCell><TableCell>{talep.konu ?? '—'}</TableCell><TableCell>{talep.kaynakSayfa ?? '—'}</TableCell>
+                    <TableCell><Badge variant={TALEP_DURUM_BADGE[talep.durum]}>{TALEP_DURUM_LABELS[talep.durum]}</Badge></TableCell>
+                    <TableCell>{talep.teklifId && <Button variant="ghost" size="icon" asChild><Link href={`/admin/teklifler/${talep.teklifId}`}><ExternalLink className="size-4" /></Link></Button>}</TableCell>
+                  </TableRow>)}</TableBody></Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="siparisler">
       <Card>
         <CardHeader>
           <CardTitle className="text-sm">{t('admin.erp.musteriler.summary.publicSignals')}</CardTitle>
@@ -186,6 +232,8 @@ export default function MusteriDetayClient({ id }: Props) {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
 
       <Card>
         <CardHeader>

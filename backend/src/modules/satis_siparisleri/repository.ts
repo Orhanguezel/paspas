@@ -11,6 +11,7 @@ import { urunler } from '@/modules/urunler/schema';
 import { sevkiyatKalemleri } from '@/modules/operator/schema';
 import { uretimEmirleri, uretimEmriSiparisKalemleri } from '@/modules/uretim_emirleri/schema';
 import { hareketler } from '@/modules/hareketler/schema';
+import { teklifler, teklifRevizyonlari } from '@/modules/teklifler/schema';
 import { transitionMultipleKalemDurum, canEditSiparis, canDeleteSiparis, canCloseSiparis } from './kalem-durum.service';
 import type { CreateBody, IslemlerQuery, ListQuery, PatchBody } from './validation';
 
@@ -369,6 +370,19 @@ export async function repoGetById(id: string): Promise<DetailResult | null> {
     .where(eq(siparisKalemleri.siparis_id, id))
     .orderBy(asc(siparisKalemleri.sira));
   return { siparis, items };
+}
+
+export async function repoGetKaynakTeklif(siparisId: string): Promise<{ id: string; teklifNo: string; revizyonNo: number } | null> {
+  const rows = await db.select({
+    id: teklifler.id,
+    teklifNo: teklifler.teklif_no,
+    revizyonNo: sql<number>`COALESCE(MAX(${teklifRevizyonlari.revizyon_no}), 0)`,
+  }).from(teklifler)
+    .leftJoin(teklifRevizyonlari, eq(teklifRevizyonlari.teklif_id, teklifler.id))
+    .where(eq(teklifler.donusen_siparis_id, siparisId))
+    .groupBy(teklifler.id, teklifler.teklif_no)
+    .limit(1);
+  return rows[0] ? { ...rows[0], revizyonNo: Number(rows[0].revizyonNo) } : null;
 }
 
 export async function repoCreate(data: CreateBody): Promise<DetailResult> {

@@ -128,7 +128,7 @@ export default function SiparisDetayClient({ id }: { id: string }) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Card className="p-3">
           <p className="text-xs text-muted-foreground">{t('admin.erp.satisSiparisleri.columns.musteriId')}</p>
-          <p className="font-semibold truncate">{data.musteriAd ?? '—'}</p>
+          <Link href={`/admin/musteriler/${data.musteriId}`} className="font-semibold truncate text-primary hover:underline">{data.musteriAd ?? '—'}</Link>
           {(data.musteriIskonto > 0 || data.ekstraIndirimOrani > 0) && (
             <p className="text-xs text-muted-foreground">
               {data.musteriIskonto > 0 && `Müş. İsk. %${NUM(data.musteriIskonto, 2)}`}
@@ -147,6 +147,18 @@ export default function SiparisDetayClient({ id }: { id: string }) {
           <p className="text-xs text-muted-foreground">KDV hariç {TRY(indirimSonrasi)}</p>
         </Card>
       </div>
+
+      {data.kaynakTeklif && (
+        <Card className="flex flex-wrap items-center justify-between gap-3 border-primary/30 p-4">
+          <div>
+            <p className="text-xs text-muted-foreground">Kaynak teklif</p>
+            <p className="font-semibold">{data.kaynakTeklif.teklifNo} · R{data.kaynakTeklif.revizyonNo}</p>
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/admin/teklifler/${data.kaynakTeklif.id}`}>Teklifi Aç</Link>
+          </Button>
+        </Card>
+      )}
 
       {data.aciklama && (
         <p className="text-sm text-muted-foreground">{data.aciklama}</p>

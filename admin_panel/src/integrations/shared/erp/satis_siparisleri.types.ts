@@ -75,6 +75,7 @@ export interface SatisSiparisDto {
   kilitli: boolean;
   createdAt: string;
   updatedAt: string;
+  kaynakTeklif: { id: string; teklifNo: string; revizyonNo: number } | null;
   items?: SiparisKalemDto[];
 }
 
@@ -238,6 +239,11 @@ export function normalizeSatisSiparis(raw: unknown): SatisSiparisDto {
     kilitli:       toBool(r.kilitli, false),
     createdAt:     toStr(r.createdAt),
     updatedAt:     toStr(r.updatedAt),
+    kaynakTeklif: isRecord(r.kaynakTeklif) ? {
+      id: toStr(r.kaynakTeklif.id),
+      teklifNo: toStr(r.kaynakTeklif.teklifNo),
+      revizyonNo: toNum(r.kaynakTeklif.revizyonNo),
+    } : null,
     items:         Array.isArray(r.items) ? (r.items as unknown[]).map(normalizeSiparisKalem) : undefined,
   };
 }

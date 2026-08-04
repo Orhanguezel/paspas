@@ -49,6 +49,7 @@ export interface TeklifListParams {
 
 export interface TalepListParams {
   q?: string;
+  musteriId?: string;
   durum?: TalepDurum;
   durumGrubu?: 'yeni' | 'inceleniyor' | 'donusturuldu' | 'spam';
   dil?: string;

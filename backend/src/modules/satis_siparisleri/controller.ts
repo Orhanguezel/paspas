@@ -5,6 +5,7 @@ import {
   repoCreate,
   repoDelete,
   repoGetById,
+  repoGetKaynakTeklif,
   repoGetKalemSevkMiktarlari,
   repoGetKalemUretilenMiktarlari,
   repoGetNextSiparisNo,
@@ -75,6 +76,7 @@ export const getSatisSiparisi: RouteHandler = async (req, reply) => {
     const detail = await repoGetById(id);
     if (!detail) return reply.code(404).send({ error: { message: 'satis_siparisi_bulunamadi' } });
     const dto = siparisRowToDto(detail.siparis);
+    const kaynakTeklif = await repoGetKaynakTeklif(id);
     const ozet = (await repoGetSiparisOzetleri([id])).get(id) ?? {
       kalemSayisi: 0, toplamMiktar: 0, aktarilanMiktar: 0, kalanMiktar: 0,
       uretimPlanlananMiktar: 0, uretimTamamlananMiktar: 0, sevkEdilenMiktar: 0, kilitli: false,
@@ -82,6 +84,7 @@ export const getSatisSiparisi: RouteHandler = async (req, reply) => {
     Object.assign(dto, ozet, {
       uretimDurumu: computeUretimDurumu(ozet),
       sevkDurumu: computeSevkDurumu(ozet),
+      kaynakTeklif,
     });
     const [kalemSevkMap, kalemUretilenMap] = await Promise.all([
       repoGetKalemSevkMiktarlari(id),

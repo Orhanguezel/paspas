@@ -105,6 +105,7 @@ export const kalemPatchSchema = kalemCreateSchema.partial().refine(
 
 export const talepListQuerySchema = z.object({
   q: z.string().trim().optional(),
+  musteriId: z.string().uuid().optional(),
   durum: z.enum(TALEP_DURUMLARI).optional(),
   durumGrubu: z.enum(['yeni', 'inceleniyor', 'donusturuldu', 'spam']).optional(),
   dil: z.string().trim().min(2).max(8).optional(),

@@ -95,6 +95,7 @@ export type SatisSiparisDto = {
   kilitli: boolean;
   createdAt: Date | string;
   updatedAt: Date | string;
+  kaynakTeklif?: { id: string; teklifNo: string; revizyonNo: number } | null;
   items?: SiparisKalemDto[];
 };
 

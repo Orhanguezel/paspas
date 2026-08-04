@@ -577,6 +577,7 @@ export async function repoDeleteKalem(teklifId: string, kalemId: string): Promis
 
 export async function repoListTalepler(q: TalepListQuery): Promise<{ items: ReturnType<typeof teklifTalepRowToDto>[]; total: number }> {
   const conds = [];
+  if (q.musteriId) conds.push(eq(teklifTalepleri.musteri_id, q.musteriId));
   if (q.durum) conds.push(eq(teklifTalepleri.durum, q.durum));
   if (q.durumGrubu) {
     const groups = { yeni:['yeni'], inceleniyor:['inceleniyor'], donusturuldu:['musteriye_donustu','teklife_donustu','kapandi'], spam:['istenmeyen'] } as const;
