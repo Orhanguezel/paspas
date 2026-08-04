@@ -11,6 +11,7 @@ type Kalem = {
 export type TeklifPdfInput = {
   teklif: {
     teklifNo: string; durum: string; paraBirimi: string;
+    dil?: string; revizyonNo?: number;
     araToplam: number; iskontoOrani: number; iskontoTutari: number;
     kdvOrani: number; kdvDahil: boolean; kdvTutari: number; nakliye: number; genelToplam: number;
     gecerlilikTarihi: string | null; createdAt: unknown;
@@ -33,20 +34,30 @@ function esc(v: string | null | undefined): string {
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string
   ));
 }
-function money(n: number, cur: string): string {
-  try { return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: cur || 'TRY' }).format(n); }
-  catch { return `${n.toLocaleString('tr-TR')} ${cur}`; }
+type PdfLanguage = 'tr' | 'en' | 'de';
+const TEXT = {
+  tr: { locale:'tr-TR', offer:'TEKLİF', offerNo:'Teklif No', date:'Tarih', validity:'Geçerlilik', currency:'Para Birimi', dear:'Sayın', summary:'Teklif Özeti', lines:'Kalem sayısı', quantity:'Toplam adet', vat:'KDV', included:'Dahil', excluded:'Hariç', product:'Ürün / Açıklama', qty:'Miktar', unitPrice:'Birim Fiyat', discountShort:'İsk.', amount:'Tutar', empty:'Kalem bulunmuyor.', subtotal:'Ara Toplam', discount:'İskonto', freight:'Nakliye', vatBase:'KDV Matrahı', grandTotal:'Genel Toplam', paymentInfo:'Ödeme Bilgileri', bank:'Banka', accountTitle:'Hesap Ünvanı', terms:'Koşullar', payment:'Ödeme', delivery:'Teslim', revision:'Revizyon', validUntil:(date:string)=>`Bu teklif <b style="color:var(--ink)">${date}</b> tarihine kadar geçerlidir. Fiyatlar ve teslim süreleri bu tarihten sonra değişebilir.`, noValidity:'Bu teklifin geçerlilik süresi belirtilmemiştir.', snapshot:'Teklif kalemleri, hazırlandığı andaki ürün bilgileriyle sabitlenmiştir.', tag:'Otomotiv Paspas Üretim' },
+  en: { locale:'en-GB', offer:'QUOTATION', offerNo:'Quotation No', date:'Date', validity:'Valid Until', currency:'Currency', dear:'Customer', summary:'Quotation Summary', lines:'Line items', quantity:'Total quantity', vat:'VAT', included:'Included', excluded:'Excluded', product:'Product / Description', qty:'Quantity', unitPrice:'Unit Price', discountShort:'Disc.', amount:'Amount', empty:'No line items.', subtotal:'Subtotal', discount:'Discount', freight:'Freight', vatBase:'VAT Base', grandTotal:'Grand Total', paymentInfo:'Payment Details', bank:'Bank', accountTitle:'Account Name', terms:'Terms', payment:'Payment', delivery:'Delivery', revision:'Revision', validUntil:(date:string)=>`This quotation is valid until <b style="color:var(--ink)">${date}</b>. Prices and delivery times may change after this date.`, noValidity:'No validity date has been specified for this quotation.', snapshot:'Line items are fixed using the product information available when this quotation was prepared.', tag:'Automotive Mat Manufacturing' },
+  de: { locale:'de-DE', offer:'ANGEBOT', offerNo:'Angebotsnr.', date:'Datum', validity:'Gültig bis', currency:'Währung', dear:'Kunde', summary:'Angebotsübersicht', lines:'Positionen', quantity:'Gesamtmenge', vat:'MwSt.', included:'Inkl.', excluded:'Exkl.', product:'Produkt / Beschreibung', qty:'Menge', unitPrice:'Einzelpreis', discountShort:'Rabatt', amount:'Betrag', empty:'Keine Positionen.', subtotal:'Zwischensumme', discount:'Rabatt', freight:'Fracht', vatBase:'MwSt.-Basis', grandTotal:'Gesamtsumme', paymentInfo:'Zahlungsinformationen', bank:'Bank', accountTitle:'Kontoinhaber', terms:'Bedingungen', payment:'Zahlung', delivery:'Lieferung', revision:'Revision', validUntil:(date:string)=>`Dieses Angebot ist bis zum <b style="color:var(--ink)">${date}</b> gültig. Preise und Lieferzeiten können sich danach ändern.`, noValidity:'Für dieses Angebot wurde keine Gültigkeitsdauer angegeben.', snapshot:'Die Positionen basieren auf den Produktinformationen zum Zeitpunkt der Angebotserstellung.', tag:'Herstellung von Automatten' },
+} as const;
+function language(value: string | undefined): PdfLanguage { return value === 'en' || value === 'de' ? value : 'tr'; }
+function money(n: number, cur: string, locale: string): string {
+  try { return new Intl.NumberFormat(locale, { style: 'currency', currency: cur || 'TRY' }).format(n); }
+  catch { return `${n.toLocaleString(locale)} ${cur}`; }
 }
-function qty(n: number): string { return n.toLocaleString('tr-TR', { maximumFractionDigits: 4 }); }
-function dateTr(v: unknown): string {
+function qty(n: number, locale: string): string { return n.toLocaleString(locale, { maximumFractionDigits: 4 }); }
+function formatDate(v: unknown, locale: string): string {
   if (!v) return '—';
   const d = v instanceof Date ? v : new Date(String(v));
   if (Number.isNaN(d.getTime())) return String(v).slice(0, 10);
-  return d.toLocaleDateString('tr-TR');
+  return d.toLocaleDateString(locale);
 }
 
 export function renderTeklifHtml(input: TeklifPdfInput): string {
   const { teklif: t, musteri, firma, logoDataUri } = input;
+  const lang = language(t.dil);
+  const text = TEXT[lang];
+  const locale = text.locale;
   const cur = t.paraBirimi || 'TRY';
   const firmaAd = firma.companyName || firma.legalName || 'Firma';
   const firmaAdres = [firma.address, [firma.district, firma.city].filter(Boolean).join(' / ')].filter(Boolean).join(', ');
@@ -59,44 +70,44 @@ export function renderTeklifHtml(input: TeklifPdfInput): string {
 
   const logoBlok = logoDataUri
     ? `<img class="logo" src="${logoDataUri}" alt="${esc(firmaAd)}" />`
-    : `<div class="wordmark"><span class="mark"></span><div><div class="name">${esc(firmaAd)}</div><div class="tag">Otomotiv Paspas Üretim</div></div></div>`;
+    : `<div class="wordmark"><span class="mark"></span><div><div class="name">${esc(firmaAd)}</div><div class="tag">${text.tag}</div></div></div>`;
 
   const satirlar = kalemler.length === 0
-    ? `<tr><td class="l" colspan="6" style="padding:24px 0;text-align:center;color:var(--muted)">Kalem bulunmuyor.</td></tr>`
+    ? `<tr><td class="l" colspan="6" style="padding:24px 0;text-align:center;color:var(--muted)">${text.empty}</td></tr>`
     : kalemler.map((k, i) => `
       <tr>
         <td class="l idx">${i + 1}</td>
         <td class="l"><div class="desc">${esc(k.aciklama)}</div>${(k.urunKod || k.birim) ? `<div class="code">${esc([k.urunKod, k.birim].filter(Boolean).join(' · '))}</div>` : ''}</td>
-        <td>${qty(k.miktar)} <span class="unit">${esc(k.birim || 'ad.')}</span></td>
-        <td>${money(k.birimFiyat, cur)}</td>
+        <td>${qty(k.miktar, locale)} <span class="unit">${esc(k.birim || 'ad.')}</span></td>
+        <td>${money(k.birimFiyat, cur, locale)}</td>
         <td>${k.iskontoOrani > 0 ? `%${k.iskontoOrani}` : '—'}</td>
-        <td class="amt">${money(k.satirToplam, cur)}</td>
+        <td class="amt">${money(k.satirToplam, cur, locale)}</td>
       </tr>`).join('');
 
   const iskontoRow = t.iskontoTutari > 0
-    ? `<div class="r disc"><dt>İskonto (%${t.iskontoOrani})</dt><dd>−${money(t.iskontoTutari, cur)}</dd></div>` : '';
+    ? `<div class="r disc"><dt>${text.discount} (%${t.iskontoOrani})</dt><dd>−${money(t.iskontoTutari, cur, locale)}</dd></div>` : '';
   const nakliyeRow = t.nakliye > 0
-    ? `<div class="r"><dt>Nakliye</dt><dd>${money(t.nakliye, cur)}</dd></div>` : '';
+    ? `<div class="r"><dt>${text.freight}</dt><dd>${money(t.nakliye, cur, locale)}</dd></div>` : '';
   const matrahRow = (t.iskontoTutari > 0 || t.nakliye > 0)
-    ? `<div class="r"><dt>KDV Matrahı</dt><dd>${money(matrah, cur)}</dd></div>` : '';
+    ? `<div class="r"><dt>${text.vatBase}</dt><dd>${money(matrah, cur, locale)}</dd></div>` : '';
 
   const payBlok = (firma.iban || firma.bankName) ? `
     <div class="pay">
-      <div class="eyebrow">Ödeme Bilgileri</div>
-      ${firma.bankName ? `<div class="row"><span class="lbl">Banka</span><span class="val">${esc(firma.bankName)}</span></div>` : ''}
+      <div class="eyebrow">${text.paymentInfo}</div>
+      ${firma.bankName ? `<div class="row"><span class="lbl">${text.bank}</span><span class="val">${esc(firma.bankName)}</span></div>` : ''}
       ${firma.iban ? `<div class="row"><span class="lbl">IBAN</span><span class="val iban">${esc(firma.iban)}</span></div>` : ''}
-      <div class="row"><span class="lbl">Hesap Ünvanı</span><span class="val">${esc(firma.legalName || firmaAd)}</span></div>
+      <div class="row"><span class="lbl">${text.accountTitle}</span><span class="val">${esc(firma.legalName || firmaAd)}</span></div>
     </div>` : '';
 
   const termsBlok = (t.odemeKosullari || t.teslimKosullari || t.aciklama) ? `
     <div class="terms">
-      <div class="eyebrow">Koşullar</div>
-      ${t.odemeKosullari ? `<p><b>Ödeme:</b> ${esc(t.odemeKosullari)}</p>` : ''}
-      ${t.teslimKosullari ? `<p><b>Teslim:</b> ${esc(t.teslimKosullari)}</p>` : ''}
+      <div class="eyebrow">${text.terms}</div>
+      ${t.odemeKosullari ? `<p><b>${text.payment}:</b> ${esc(t.odemeKosullari)}</p>` : ''}
+      ${t.teslimKosullari ? `<p><b>${text.delivery}:</b> ${esc(t.teslimKosullari)}</p>` : ''}
       ${t.aciklama ? `<p>${esc(t.aciklama)}</p>` : ''}
     </div>` : '';
 
-  return `<!doctype html><html lang="tr"><head><meta charset="utf-8" />
+  return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8" />
 <style>
   :root { --ink:#17191e; --muted:#626a75; --faint:#8b929c; --line:#dfe3e9; --line2:#b9c0c9;
     --accent:#0d4657; --accent-ink:#0a3543; --accent-soft:#eef4f6;
@@ -158,43 +169,44 @@ export function renderTeklifHtml(input: TeklifPdfInput): string {
   <div class="head">
     ${logoBlok}
     <div class="doc">
-      <div class="kicker">TEKLİF</div>
+      <div class="kicker">${text.offer}</div>
       <dl class="meta">
-        <div><dt>Teklif No</dt><dd>${esc(t.teklifNo)}</dd></div>
-        <div><dt>Tarih</dt><dd>${dateTr(t.createdAt)}</dd></div>
-        <div><dt>Geçerlilik</dt><dd>${dateTr(t.gecerlilikTarihi)}</dd></div>
-        <div><dt>Para Birimi</dt><dd>${esc(cur)}</dd></div>
+        <div><dt>${text.offerNo}</dt><dd>${esc(t.teklifNo)}</dd></div>
+        <div><dt>${text.revision}</dt><dd>R${Number(t.revizyonNo ?? 0)}</dd></div>
+        <div><dt>${text.date}</dt><dd>${formatDate(t.createdAt, locale)}</dd></div>
+        <div><dt>${text.validity}</dt><dd>${formatDate(t.gecerlilikTarihi, locale)}</dd></div>
+        <div><dt>${text.currency}</dt><dd>${esc(cur)}</dd></div>
       </dl>
     </div>
   </div>
   <div class="rule"></div>
   <div class="parties">
     <div>
-      <div class="eyebrow">Sayın</div>
+      <div class="eyebrow">${text.dear}</div>
       <div class="who">${esc(musteriAd)}</div>
       <div class="pline">${musteri?.adres ? esc(musteri.adres) + '<br/>' : ''}${esc([musteri?.telefon, musteri?.email].filter(Boolean).join(' · '))}</div>
     </div>
     <div>
-      <div class="eyebrow">Teklif Özeti</div>
+      <div class="eyebrow">${text.summary}</div>
       <dl class="kv">
-        <div><dt>Kalem sayısı</dt><dd>${kalemler.length}</dd></div>
-        <div><dt>Toplam adet</dt><dd>${qty(toplamAdet)}</dd></div>
-        <div><dt>KDV</dt><dd>%${t.kdvOrani} · ${t.kdvDahil ? 'Dahil' : 'Hariç'}</dd></div>
+        <div><dt>${text.lines}</dt><dd>${kalemler.length}</dd></div>
+        <div><dt>${text.quantity}</dt><dd>${qty(toplamAdet, locale)}</dd></div>
+        <div><dt>${text.vat}</dt><dd>%${t.kdvOrani} · ${t.kdvDahil ? text.included : text.excluded}</dd></div>
       </dl>
     </div>
   </div>
   <table class="items">
-    <thead><tr><th class="l">#</th><th class="l">Ürün / Açıklama</th><th>Miktar</th><th>Birim Fiyat</th><th>İsk.</th><th>Tutar</th></tr></thead>
+    <thead><tr><th class="l">#</th><th class="l">${text.product}</th><th>${text.qty}</th><th>${text.unitPrice}</th><th>${text.discountShort}</th><th>${text.amount}</th></tr></thead>
     <tbody>${satirlar}</tbody>
   </table>
   <div class="totrow"><dl class="totals">
-    <div class="r"><dt>Ara Toplam</dt><dd>${money(t.araToplam, cur)}</dd></div>
+    <div class="r"><dt>${text.subtotal}</dt><dd>${money(t.araToplam, cur, locale)}</dd></div>
     ${iskontoRow}${nakliyeRow}${matrahRow}
-    <div class="r"><dt>KDV (%${t.kdvOrani}${t.kdvDahil ? ' — dahil' : ''})</dt><dd>${money(t.kdvTutari, cur)}</dd></div>
-    <div class="grand"><dt>Genel Toplam</dt><dd>${money(t.genelToplam, cur)}</dd></div>
+    <div class="r"><dt>${text.vat} (%${t.kdvOrani}${t.kdvDahil ? ` — ${text.included.toLowerCase()}` : ''})</dt><dd>${money(t.kdvTutari, cur, locale)}</dd></div>
+    <div class="grand"><dt>${text.grandTotal}</dt><dd>${money(t.genelToplam, cur, locale)}</dd></div>
   </dl></div>
   <div class="lower">${payBlok}${termsBlok}</div>
-  <p class="validity">${t.gecerlilikTarihi ? `Bu teklif <b style="color:var(--ink)">${dateTr(t.gecerlilikTarihi)}</b> tarihine kadar geçerlidir. Fiyatlar ve teslim süreleri bu tarihten sonra değişebilir.` : 'Bu teklifin geçerlilik süresi belirtilmemiştir.'} Teklif kalemleri, hazırlandığı andaki ürün bilgileriyle sabitlenmiştir.</p>
+  <p class="validity">${t.gecerlilikTarihi ? text.validUntil(formatDate(t.gecerlilikTarihi, locale)) : text.noValidity} ${text.snapshot}</p>
   <div class="foot">
     <div>${firma.legalName ? `<b>${esc(firma.legalName)}</b><br/>` : ''}${esc([firmaAdres, vknSatiri].filter(Boolean).join(' · '))}</div>
     <div class="r">${esc(firmaAd)}${firma.website ? ' · ' + esc(firma.website) : ''}<br/>${esc(firmaIletisim)}</div>

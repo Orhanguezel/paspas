@@ -52,6 +52,25 @@ describe('Teklif toplam motoru', () => {
     expect(html).toContain('₺219,00');
     expect(html).toContain('₺1.314,00');
   });
+
+  it('PDF dilini ve revizyon numarasını teklif verisinden üretir', () => {
+    const base = {
+      teklifNo:'TK-2026-0042',durum:'taslak',paraBirimi:'EUR',revizyonNo:2,
+      araToplam:100,iskontoOrani:0,iskontoTutari:0,kdvOrani:20,kdvDahil:false,
+      kdvTutari:20,nakliye:0,genelToplam:120,gecerlilikTarihi:'2026-08-31',
+      createdAt:new Date('2026-08-05T00:00:00Z'),odemeKosullari:null,
+      teslimKosullari:null,aciklama:null,musteriAd:'Example GmbH',kalemler:[],
+    };
+    const company = {companyName:'Promats',legalName:null,taxOffice:null,taxNumber:null,phone:null,email:null,website:null,address:null,district:null,city:null,iban:null,bankName:null};
+    const en = renderTeklifHtml({ teklif:{...base,dil:'en'}, musteri:null, firma:company, logoDataUri:null });
+    const de = renderTeklifHtml({ teklif:{...base,dil:'de'}, musteri:null, firma:company, logoDataUri:null });
+    expect(en).toContain('<html lang="en">');
+    expect(en).toContain('QUOTATION');
+    expect(en).toContain('<dt>Revision</dt><dd>R2</dd>');
+    expect(de).toContain('<html lang="de">');
+    expect(de).toContain('ANGEBOT');
+    expect(de).toContain('Gesamtsumme');
+  });
 });
 
 describe('Teklif durum ve iskonto kapıları', () => {

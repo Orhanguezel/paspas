@@ -226,6 +226,7 @@ export async function repoGetTeklif(id: string): Promise<ReturnType<typeof tekli
   ]);
   return teklifRowToDto(row, {
     musteriAd,
+    revizyonNo: Number(revizyonlar[0]?.revizyon_no ?? 0),
     kalemler: kalemler.map(teklifKalemRowToDto),
     gonderimler: gonderimler.map(teklifGonderimRowToDto),
     revizyonlar: revizyonlar.map((r) => teklifRevizyonRowToDto(r)),
