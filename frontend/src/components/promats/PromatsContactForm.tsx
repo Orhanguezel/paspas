@@ -35,6 +35,10 @@ const API_BASE = getPublicApiBaseUrl().replace(/\/+$/, '');
 
 export default function PromatsContactForm({ labels, formClassName, products = [], defaultProduct, defaultSubject, subjectOptions = [], quoteSubjectValues = [], locale = 'tr', sourcePage = '/iletisim' }: Props) {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [referenceId, setReferenceId] = useState<string>();
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState<string>();
+  const submittingRef = useRef(false);
   // İlgilenilen ürün grubu: çoklu seçim, kapalı kutu + checkbox (müşteri notu a1bf78c3).
   // Native <select multiple> yerine dışarı tıklayınca kapanan checkbox paneli.
   const [productsOpen, setProductsOpen] = useState(false);
@@ -65,13 +69,35 @@ export default function PromatsContactForm({ labels, formClassName, products = [
     setSelectedProductSlugs((prev) => (checked ? [...prev, slug] : prev.filter((item) => item !== slug)));
   }
 
+  function trackQuoteEvent(event: 'quote_request_submit' | 'quote_request_success' | 'quote_request_error', details: Record<string, string | number> = {}): void {
+    if (typeof window === 'undefined' || window.__analyticsConsentGranted !== true) return;
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ event, source_page: sourcePage, language: locale, ...details });
+  }
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    if (submittingRef.current) return;
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const subject = String(form.get('subject') ?? '').trim();
     const selectedProducts = products.filter((product) => selectedProductSlugs.includes(product.slug));
     const isQuote = quoteSubjectValues.includes(subject);
+    const required = locale === 'en' ? 'This field is required.' : 'Bu alan zorunludur.';
+    const errors: Record<string, string> = {};
+    if (!String(form.get('name') ?? '').trim()) errors.name = required;
+    if (subjectOptions.length && !subject) errors.subject = required;
+    if (!String(form.get('phone') ?? '').trim()) errors.phone = required;
+    const email = String(form.get('email') ?? '').trim();
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) errors.email = locale === 'en' ? 'Enter a valid email address.' : 'Geçerli bir e-posta adresi giriniz.';
+    if (form.get('kvkk') !== 'on') errors.kvkk = required;
+    setFieldErrors(errors);
+    setSubmitError(undefined);
+    setReferenceId(undefined);
+    if (Object.keys(errors).length) return;
+    submittingRef.current = true;
     setStatus('sending');
+    if (isQuote) trackQuoteEvent('quote_request_submit', { product_count: selectedProducts.length, request_type: subject });
     try {
       const body = isQuote ? buildTeklifTalepPayload({
         kaynakSayfa: sourcePage,
@@ -96,22 +122,33 @@ export default function PromatsContactForm({ labels, formClassName, products = [
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error('contact_failed');
+      const response = await res.json().catch(() => ({})) as { id?: string; error?: { message?: string } };
+      if (!res.ok) throw new Error(response.error?.message || `http_${res.status}`);
       setStatus('sent');
-      event.currentTarget.reset();
+      setReferenceId(response.id);
+      if (isQuote) trackQuoteEvent('quote_request_success', { product_count: selectedProducts.length, request_type: subject });
+      formElement.reset();
       setSelectedProductSlugs([]);
-    } catch {
+    } catch (error) {
       setStatus('error');
+      const code = error instanceof Error ? error.message : 'contact_failed';
+      setSubmitError(code === 'cok_fazla_istek'
+        ? (locale === 'en' ? 'Too many requests. Please wait a minute and try again.' : 'Çok fazla istek gönderildi. Lütfen bir dakika bekleyip yeniden deneyin.')
+        : labels.error);
+      if (isQuote) trackQuoteEvent('quote_request_error', { product_count: selectedProducts.length, request_type: subject, error_code: code });
+    } finally {
+      submittingRef.current = false;
     }
   }
 
   return (
-    <form onSubmit={onSubmit} className={formClassName}>
-      {status === 'sent' ? <div className="alert alert-success">{labels.success}</div> : null}
-      {status === 'error' ? <div className="alert alert-danger">{labels.error}</div> : null}
+    <form onSubmit={onSubmit} className={formClassName} noValidate>
+      {status === 'sent' ? <div className="alert alert-success" role="status">{labels.success}{referenceId ? ` ${locale === 'en' ? 'Reference' : 'Referans'}: ${referenceId}` : ''}</div> : null}
+      {status === 'error' ? <div className="alert alert-danger" role="alert">{submitError ?? labels.error}</div> : null}
       <div className="form-group">
         <label className="sr-only" htmlFor="promats-contact-name">{labels.name}</label>
         <input id="promats-contact-name" className="form-control" name="name" placeholder={labels.name} required type="text" />
+        {fieldErrors.name ? <small className="text-danger">{fieldErrors.name}</small> : null}
       </div>
       {subjectOptions.length ? (
         <div className="form-group">
@@ -120,6 +157,7 @@ export default function PromatsContactForm({ labels, formClassName, products = [
             <option value="" disabled>{labels.subject}</option>
             {subjectOptions.map((option) => <option key={option} value={option}>{option}</option>)}
           </select>
+          {fieldErrors.subject ? <small className="text-danger">{fieldErrors.subject}</small> : null}
         </div>
       ) : null}
       {products.length ? (
@@ -177,10 +215,12 @@ export default function PromatsContactForm({ labels, formClassName, products = [
       <div className="form-group">
         <label className="sr-only" htmlFor="promats-contact-email">{labels.email}</label>
         <input id="promats-contact-email" className="form-control" name="email" placeholder={labels.email} type="email" />
+        {fieldErrors.email ? <small className="text-danger">{fieldErrors.email}</small> : null}
       </div>
       <div className="form-group">
         <label className="sr-only" htmlFor="promats-contact-phone">{labels.phone}</label>
         <input id="promats-contact-phone" className="form-control" name="phone" placeholder={labels.phone} required type="text" />
+        {fieldErrors.phone ? <small className="text-danger">{fieldErrors.phone}</small> : null}
       </div>
       <div className="form-group">
         <label className="sr-only" htmlFor="promats-contact-message">{labels.message}</label>
@@ -195,6 +235,7 @@ export default function PromatsContactForm({ labels, formClassName, products = [
         <label className="form-check-label small" htmlFor="promats-contact-kvkk">
           {locale === 'en' ? 'I have read and accept the privacy notice.' : 'KVKK aydınlatma metnini okudum ve kabul ediyorum.'}
         </label>
+        {fieldErrors.kvkk ? <small className="text-danger d-block">{fieldErrors.kvkk}</small> : null}
       </div>
       <div className="form-group float-right">
         <button className="btn btn-yellow px-4 contact_btn" type="submit" disabled={status === 'sending'}>

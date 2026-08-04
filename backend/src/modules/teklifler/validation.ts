@@ -146,7 +146,7 @@ export const talepPublicSchema = z.object({
   utm: z.record(z.string(), z.string().max(255)).optional(),
   kvkkOnay: z.boolean().default(false),
   // Honeypot — botlar doldurur, gerçek kullanıcı boş bırakır
-  website: z.string().max(0).optional(),
+  website: z.string().max(500).optional(),
 }).refine((v) => !!(v.email || v.telefon), { message: 'E-posta veya telefon zorunlu' });
 
 // Talebi müşteri + taslak teklife dönüştür
