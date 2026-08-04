@@ -25,6 +25,5 @@ CREATE TABLE IF NOT EXISTS `crm_communications` (
   CONSTRAINT `fk_crm_comm_user` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `chk_crm_comm_channel` CHECK (`channel` IN ('email','whatsapp','phone','manual')),
   CONSTRAINT `chk_crm_comm_direction` CHECK (`direction` IN ('incoming','outgoing')),
-  CONSTRAINT `chk_crm_comm_status` CHECK (`status` IN ('logged','sent','failed')),
-  CONSTRAINT `chk_crm_comm_reference` CHECK (`customer_id` IS NOT NULL OR `deal_id` IS NOT NULL OR `offer_id` IS NOT NULL)
+  CONSTRAINT `chk_crm_comm_status` CHECK (`status` IN ('logged','sent','failed'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
