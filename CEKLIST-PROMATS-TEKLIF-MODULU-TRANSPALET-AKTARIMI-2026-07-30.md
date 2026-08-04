@@ -61,12 +61,14 @@ dönüştürülmesi
   - Sahiplik ve API/referans sınırı
     `YAZILIMCI-NOTLARI-FUAR-TEKLIF-MODULU-2026-07-30.md` içinde kayıtlı.
 
-- [ ] **3. Teklif durum makinesi ve iş kurallarını kesinleştir** — `critical`
+- [x] **3. Teklif durum makinesi ve iş kurallarını kesinleştir** — `critical`
   - Durumlar: `talep`, `taslak`, `onay_bekliyor`, `gonderildi`,
     `goruntulendi`, `revizyon`, `kabul`, `red`, `suresi_doldu`.
   - Geçişler backend tarafından doğrulanacak; UI yalnız izin verilen eylemleri
     gösterecek.
   - Kabul: Geçersiz durum atlamaları API seviyesinde `409` ile engelleniyor.
+  - Otomatik kabul: `scripts/uat-teklif-status-api.mjs` geçersiz
+    `taslak→kabul` isteğinin `409` döndürdüğünü ve kaydı değiştirmediğini sınar.
 
 ## Faz 2 — Backend ve veritabanı
 

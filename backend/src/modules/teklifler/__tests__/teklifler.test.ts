@@ -43,6 +43,8 @@ describe('Teklif durum ve iskonto kapıları', () => {
   it('terminal veya atlamalı geçişleri reddeder', () => {
     expect(() => assertGecis('taslak', 'kabul')).toThrow('gecersiz_teklif_gecisi');
     expect(() => assertGecis('kabul', 'taslak')).toThrow('gecersiz_teklif_gecisi');
+    expect(() => assertGecis('red', 'gonderildi')).toThrow('gecersiz_teklif_gecisi');
+    expect(() => assertGecis('suresi_doldu', 'kabul')).toThrow('gecersiz_teklif_gecisi');
   });
 
   it('rol limitlerini uygular', () => {
