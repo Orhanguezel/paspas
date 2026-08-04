@@ -270,7 +270,7 @@ dönüştürülmesi
     gösterilecek.
   - Kabul: Bağlantılar çift yönlü, tekrarsız ve mevcut ERP kayıtlarını bozmuyor.
 
-- [ ] **50. CRM backend test paketini taşı ve uyarlа** — `critical`
+- [x] **50. CRM backend test paketini taşı ve uyarlа** — `critical`
   - Pipeline, aşama sırası, dönüşüm transactionı, aktiviteler, hatırlatmalar,
     otomasyon idempotency, yetki/RLS, dashboard tutarlılığı, raporlar ve
     ERP çapraz akışları test edilecek.
