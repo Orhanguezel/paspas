@@ -188,12 +188,16 @@ dönüştürülmesi
     Dönüşüm opsiyonel kalem seçimini uygular; transaction kilidi ikinci dönüşümü
     engeller. Canlı UAT karar geçmişini, tek seçili kalemi ve iki yönlü bağı doğruladı.
 
-- [ ] **17. Audit, bildirim ve süre sonu işlerini ekle** — `high`
+- [x] **17. Audit, bildirim ve süre sonu işlerini ekle** — `high`
   - Oluşturma, fiyat/iskonto değişikliği, onay, gönderim, görüntülenme,
     revizyon, kabul, red ve dönüşüm audit loguna yazılacak.
   - Yeni web talebi ve onay bekleyen teklif yöneticilere bildirilecek.
   - Geçerlilik tarihi geçen gönderilmiş teklifler zamanlanmış işle
     `suresi_doldu` yapılacak.
+  - Teklif oluşturma/değişiklik, onay, gönderim, ilk görüntüleme, revizyon,
+    kabul/red, sipariş dönüşümü ve süre sonu auditlenir. Yeni web talebi ve
+    iskonto onayı yöneticilere bildirilir; 5 dakikalık scheduler gönderilmiş veya
+    görüntülenmiş süresi dolan teklifleri kapatır. Canlı UAT üç alanı doğruladı.
 
 ## Faz 2B — CRM backend ve veri modeli
 
