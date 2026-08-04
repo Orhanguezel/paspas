@@ -39,7 +39,7 @@ const API_BASE = getPublicApiBaseUrl().replace(/\/+$/, '');
 export default function PromatsOemContactForm({ labels, success, error }: Props) {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const submittingRef = useRef(false);
-  const idempotencyKeyRef = useRef<string>();
+  const idempotencyKeyRef = useRef<string | undefined>(undefined);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();

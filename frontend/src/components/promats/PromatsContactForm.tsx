@@ -39,7 +39,7 @@ export default function PromatsContactForm({ labels, formClassName, products = [
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string>();
   const submittingRef = useRef(false);
-  const idempotencyKeyRef = useRef<string>();
+  const idempotencyKeyRef = useRef<string | undefined>(undefined);
   // İlgilenilen ürün grubu: çoklu seçim, kapalı kutu + checkbox (müşteri notu a1bf78c3).
   // Native <select multiple> yerine dışarı tıklayınca kapanan checkbox paneli.
   const [productsOpen, setProductsOpen] = useState(false);
