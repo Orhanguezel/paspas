@@ -117,6 +117,15 @@ export default function TalepDetaySheet({ talep: initialTalep, onClose }: Props)
               </div>
             )}
 
+            {talep.formDetaylari && (
+              <div className="grid grid-cols-2 gap-3 rounded-md border p-3 text-sm">
+                <div><p className="text-xs text-muted-foreground">Ülke</p><p>{talep.formDetaylari.ulke || '—'}</p></div>
+                <div><p className="text-xs text-muted-foreground">Ürün ilgisi</p><p>{talep.formDetaylari.urunIlgisi || '—'}</p></div>
+                <div><p className="text-xs text-muted-foreground">Tahmini miktar</p><p>{talep.formDetaylari.miktar || '—'}</p></div>
+                <div><p className="text-xs text-muted-foreground">Web sitesi</p>{talep.formDetaylari.websiteUrl ? <a className="text-primary hover:underline" href={talep.formDetaylari.websiteUrl} target="_blank" rel="noreferrer">{talep.formDetaylari.websiteUrl}</a> : <p>—</p>}</div>
+              </div>
+            )}
+
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1">{t('admin.erp.teklifTalepleri.detail.mesaj')}</p>
               <p className="text-sm whitespace-pre-line">{talep.mesaj || '—'}</p>

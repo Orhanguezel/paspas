@@ -3,6 +3,7 @@ import type { Product } from '@/lib/promats/api';
 import { localeHref as href } from '@/lib/promats/links';
 
 import PromatsImage from './PromatsImage';
+import PromatsOemContactForm from './PromatsOemContactForm';
 import { PmHero, PmSectionHeading, PmStats, type PmStat } from './PromatsModernShell';
 
 type Card = { title: string; body: string };
@@ -270,6 +271,24 @@ export function PromatsOemPage({ locale, products, content: c }: { locale: strin
               </details>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="pm-section pm-section--panel position-relative" id="oem-inquiry">
+        <DevNote section="oem-inquiry" title="OEM Inquiry Form" />
+        <div className="container">
+          <PmSectionHeading line1="OEM INQUIRY" line2="Tell Us About Your Project" intro="Share your requirements and our export team will contact you with the right production solution." />
+          <PromatsOemContactForm
+            labels={{
+              company: 'Company', companyPh: 'Company', country: 'Country', countryPh: 'Country', phone: 'Phone', phonePh: 'Phone',
+              website: 'Website', websitePh: 'Website', productInterest: 'Product interest', productInterestPh: 'Select product interest',
+              quantity: 'Estimated quantity', quantityPh: 'Estimated quantity', email: 'E-mail', emailPh: 'E-mail', message: 'Project details',
+              messagePh: 'Project details', submit: 'Send inquiry', sending: 'Sending…', note: 'Fields are used only to prepare and follow up your quotation.',
+              interestOptions: c.series.items.map((item) => item.name),
+            }}
+            success="Your OEM quotation request has been received."
+            error="Your request could not be sent. Please try again."
+          />
         </div>
       </section>
 

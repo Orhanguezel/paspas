@@ -188,6 +188,7 @@ export interface TalepDto {
   telefon: string | null;
   konu: string | null;
   mesaj: string | null;
+  formDetaylari: { ulke?: string; websiteUrl?: string; urunIlgisi?: string; miktar?: string } | null;
   seciliUrunler: TalepSeciliUrunDto[];
   utm: Record<string, unknown> | null;
   kvkkOnay: boolean;
@@ -404,6 +405,12 @@ export function normalizeTalep(raw: unknown): TalepDto {
     telefon:       r.telefon != null ? toStr(r.telefon) : null,
     konu:          r.konu != null ? toStr(r.konu) : null,
     mesaj:         r.mesaj != null ? toStr(r.mesaj) : null,
+    formDetaylari: isRecord(r.formDetaylari) ? {
+      ulke: r.formDetaylari.ulke != null ? toStr(r.formDetaylari.ulke) : undefined,
+      websiteUrl: r.formDetaylari.websiteUrl != null ? toStr(r.formDetaylari.websiteUrl) : undefined,
+      urunIlgisi: r.formDetaylari.urunIlgisi != null ? toStr(r.formDetaylari.urunIlgisi) : undefined,
+      miktar: r.formDetaylari.miktar != null ? toStr(r.formDetaylari.miktar) : undefined,
+    } : null,
     seciliUrunler,
     utm:           isRecord(r.utm) ? r.utm : null,
     kvkkOnay:      toBool(r.kvkkOnay),

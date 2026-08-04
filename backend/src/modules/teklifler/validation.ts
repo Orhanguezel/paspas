@@ -132,6 +132,12 @@ export const talepPublicSchema = z.object({
   telefon: z.string().trim().max(48).optional(),
   konu: z.string().trim().max(200).optional(),
   mesaj: z.string().trim().max(4000).optional(),
+  formDetaylari: z.object({
+    ulke: z.string().trim().max(120).optional(),
+    websiteUrl: z.string().trim().url().max(500).optional().or(z.literal('')),
+    urunIlgisi: z.string().trim().max(255).optional(),
+    miktar: z.string().trim().max(120).optional(),
+  }).optional(),
   seciliUrunler: z.array(z.object({
     urunId: z.string().max(64).optional(),
     slug: z.string().max(200).optional(),

@@ -618,10 +618,10 @@ export async function repoCreateTalepPublic(body: TalepPublicBody, ipHash: strin
     await connection.beginTransaction();
     await connection.execute(
       `INSERT INTO teklif_talepleri
-       (id,kaynak_sayfa,dil,ad,firma,email,telefon,konu,mesaj,secili_urunler,utm,kvkk_onay,durum,ip_hash)
-       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,\'yeni\',?)`,
+       (id,kaynak_sayfa,dil,ad,firma,email,telefon,konu,mesaj,form_detaylari,secili_urunler,utm,kvkk_onay,durum,ip_hash)
+       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,\'yeni\',?)`,
       [id,body.kaynakSayfa??null,body.dil,body.ad,body.firma??null,body.email??null,body.telefon??null,body.konu??null,body.mesaj??null,
-       body.seciliUrunler ? JSON.stringify(body.seciliUrunler) : null,body.utm ? JSON.stringify(body.utm) : null,body.kvkkOnay?1:0,ipHash],
+       body.formDetaylari ? JSON.stringify(body.formDetaylari) : null,body.seciliUrunler ? JSON.stringify(body.seciliUrunler) : null,body.utm ? JSON.stringify(body.utm) : null,body.kvkkOnay?1:0,ipHash],
     );
     await connection.execute(
       `INSERT INTO crm_talep_detaylari(talep_id,source,channel,product_interest,campaign)

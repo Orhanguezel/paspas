@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { getPublicApiBaseUrl } from '@/lib/site-config';
+import { buildTeklifTalepPayload } from '@/lib/promats/teklif-talebi';
 
 type FormLabels = {
   company: string;
@@ -35,27 +36,6 @@ type Props = {
 
 const API_BASE = getPublicApiBaseUrl().replace(/\/+$/, '');
 
-// Zengin OEM alanlarini mevcut /contact kontratina (ad/eposta/telefon/mesaj) sigdirir;
-// ekstra alanlar mesaj govdesine paketlenir — backend degismeden lead yakalanir.
-function buildMessage(form: FormData, labels: FormLabels): string {
-  const lines: string[] = [];
-  const country = String(form.get('country') ?? '').trim();
-  const website = String(form.get('website') ?? '').trim();
-  const interest = String(form.get('productInterest') ?? '').trim();
-  const quantity = String(form.get('quantity') ?? '').trim();
-  const email = String(form.get('email') ?? '').trim();
-  const message = String(form.get('message') ?? '').trim();
-
-  if (country) lines.push(`${labels.country}: ${country}`);
-  if (email) lines.push(`${labels.email}: ${email}`);
-  if (website) lines.push(`${labels.website}: ${website}`);
-  if (interest) lines.push(`${labels.productInterest}: ${interest}`);
-  if (quantity) lines.push(`${labels.quantity}: ${quantity}`);
-  if (lines.length) lines.push('---');
-  if (message) lines.push(message);
-  return lines.join('\n');
-}
-
 export default function PromatsOemContactForm({ labels, success, error }: Props) {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
@@ -65,15 +45,21 @@ export default function PromatsOemContactForm({ labels, success, error }: Props)
     const form = new FormData(currentForm);
     setStatus('sending');
     try {
-      const res = await fetch(`${API_BASE}/contact`, {
+      const interest = String(form.get('productInterest') ?? '').trim();
+      const payload = buildTeklifTalepPayload({
+        kaynakSayfa: '/en/oem-manufacturing', dil: 'en',
+        ad: String(form.get('company') ?? '').trim(), firma: String(form.get('company') ?? '').trim(),
+        email: String(form.get('email') ?? '').trim(), telefon: String(form.get('phone') ?? '').trim(),
+        konu: 'OEM & Private Label', mesaj: String(form.get('message') ?? '').trim(),
+        formDetaylari: { ulke: String(form.get('country') ?? '').trim(), websiteUrl: String(form.get('websiteUrl') ?? '').trim(), urunIlgisi: interest, miktar: String(form.get('quantity') ?? '').trim() },
+        seciliUrunler: interest ? [{ slug: interest.toLocaleLowerCase('en').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), ad: interest }] : [],
+        kvkkOnay: form.get('kvkk') === 'on', website: String(form.get('website') ?? ''),
+        search: typeof window !== 'undefined' ? window.location.search : '',
+      });
+      const res = await fetch(`${API_BASE}/web/promats/teklif-talebi`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ad: String(form.get('company') ?? ''),
-          eposta: String(form.get('email') ?? ''),
-          telefon: String(form.get('phone') ?? ''),
-          mesaj: buildMessage(form, labels),
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('contact_failed');
       setStatus('sent');
@@ -113,7 +99,7 @@ export default function PromatsOemContactForm({ labels, success, error }: Props)
       <div className="row">
         <div className="col-md-6 form-group">
           <label className="sr-only" htmlFor="oem-website">{labels.website}</label>
-          <input id="oem-website" className="form-control" name="website" placeholder={labels.website} type="url" />
+          <input id="oem-website" className="form-control" name="websiteUrl" placeholder={labels.website} type="url" />
         </div>
         <div className="col-md-6 form-group">
           <label className="sr-only" htmlFor="oem-quantity">{labels.quantity}</label>
@@ -137,6 +123,12 @@ export default function PromatsOemContactForm({ labels, success, error }: Props)
       </div>
 
       <p className="oem-form-note text-muted small">{labels.note}</p>
+
+      <div className="d-none" aria-hidden="true"><input name="website" type="text" tabIndex={-1} autoComplete="off" /></div>
+      <div className="form-group form-check">
+        <input id="oem-kvkk" className="form-check-input" name="kvkk" type="checkbox" required />
+        <label className="form-check-label small" htmlFor="oem-kvkk">I have read and accept the privacy notice.</label>
+      </div>
 
       <div className="form-group">
         <button className="btn btn-yellow px-4 text-white contact_btn" type="submit" disabled={status === 'sending'}>

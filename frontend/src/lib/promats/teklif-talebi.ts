@@ -13,6 +13,7 @@ export type TeklifTalepPayload = {
   telefon?: string;
   konu?: string;
   mesaj?: string;
+  formDetaylari?: { ulke?: string; websiteUrl?: string; urunIlgisi?: string; miktar?: string };
   seciliUrunler: TeklifTalepUrun[];
   utm?: Record<string, string>;
   kvkkOnay: boolean;
