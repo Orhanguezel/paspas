@@ -115,3 +115,68 @@ export async function convertTalepToDeal(talepId: string, body: TalepToDeal, use
     await connection.commit(); return { talepId, musteriId, dealId };
   } catch (error) { await connection.rollback(); throw error; } finally { connection.release(); }
 }
+
+export async function listDealProducts(dealId: string) {
+  const [rows] = await pool.execute<Row[]>(
+    `SELECT f.*,u.kod urun_kodu,u.ad urun_adi,u.birim
+     FROM firsat_urunleri f JOIN urunler u ON u.id=f.urun_id WHERE f.firsat_id=? ORDER BY f.sira,f.created_at`, [dealId],
+  );
+  return rows;
+}
+
+async function recalcDealAmount(dealId: string) {
+  await pool.execute(
+    `UPDATE crm_deals d SET d.amount=(SELECT COALESCE(SUM(f.miktar*COALESCE(f.birim_fiyat,0)),0) FROM firsat_urunleri f WHERE f.firsat_id=d.id) WHERE d.id=?`, [dealId],
+  );
+}
+
+export async function createDealProduct(dealId: string, body: { urunId:string;miktar:number;birimFiyat?:number|null;paraBirimi:string;aciklama?:string|null;sira:number }) {
+  if (!await getDeal(dealId)) throw new Error('firsat_bulunamadi');
+  const id=randomUUID();
+  await pool.execute('INSERT INTO firsat_urunleri(id,firsat_id,urun_id,miktar,birim_fiyat,para_birimi,aciklama,sira) VALUES(?,?,?,?,?,?,?,?)', [id,dealId,body.urunId,body.miktar,body.birimFiyat??null,body.paraBirimi,body.aciklama??null,body.sira]);
+  await recalcDealAmount(dealId); return (await listDealProducts(dealId)).find((x)=>x.id===id);
+}
+
+export async function updateDealProduct(dealId:string,id:string,body:Record<string,unknown>) {
+  const map:Record<string,unknown>={urun_id:body.urunId,miktar:body.miktar,birim_fiyat:body.birimFiyat,para_birimi:body.paraBirimi,aciklama:body.aciklama,sira:body.sira};
+  const entries=Object.entries(map).filter(([,v])=>v!==undefined);
+  const [result]=await pool.execute<ResultSetHeader>(`UPDATE firsat_urunleri SET ${entries.map(([k])=>`${k}=?`).join(',')} WHERE id=? AND firsat_id=?`,[...entries.map(([,v])=>v),id,dealId]);
+  if(!result.affectedRows)return null; await recalcDealAmount(dealId); return (await listDealProducts(dealId)).find((x)=>x.id===id)??null;
+}
+
+export async function deleteDealProduct(dealId:string,id:string) {
+  const [result]=await pool.execute<ResultSetHeader>('DELETE FROM firsat_urunleri WHERE id=? AND firsat_id=?',[id,dealId]);
+  if(result.affectedRows)await recalcDealAmount(dealId); return result.affectedRows>0;
+}
+
+export async function upsertDealNeed(dealId:string,body:{ihtiyacNotu?:string|null;teslimBeklentisi?:string|null}) {
+  if (!await getDeal(dealId)) throw new Error('firsat_bulunamadi');
+  await pool.execute(`INSERT INTO crm_deal_ihtiyaclari(firsat_id,ihtiyac_notu,teslim_beklentisi) VALUES(?,?,?)
+    ON DUPLICATE KEY UPDATE ihtiyac_notu=VALUES(ihtiyac_notu),teslim_beklentisi=VALUES(teslim_beklentisi)`,[dealId,body.ihtiyacNotu??null,body.teslimBeklentisi??null]);
+  const [rows]=await pool.execute<Row[]>('SELECT * FROM crm_deal_ihtiyaclari WHERE firsat_id=?',[dealId]); return rows[0];
+}
+
+export async function convertDealToOffer(dealId:string,body:{dil:string;kdvOrani:number},userId:string|null) {
+  const connection=await pool.getConnection();
+  try{
+    await connection.beginTransaction();
+    const [deals]=await connection.execute<Row[]>('SELECT * FROM crm_deals WHERE id=? FOR UPDATE',[dealId]); const deal=deals[0];
+    if(!deal)throw new Error('firsat_bulunamadi'); if(!deal.musteri_id)throw new Error('firsat_musterisi_gerekli');
+    const [linked]=await connection.execute<Row[]>('SELECT teklif_id FROM crm_deal_teklifleri WHERE firsat_id=?',[dealId]);
+    if(linked[0])throw new Error('firsat_zaten_teklife_donustu');
+    const [items]=await connection.execute<Row[]>(`SELECT f.*,u.kod urun_kodu,u.ad urun_adi,u.birim
+      FROM firsat_urunleri f JOIN urunler u ON u.id=f.urun_id WHERE f.firsat_id=? ORDER BY f.sira FOR UPDATE`,[dealId]);
+    if(!items.length)throw new Error('firsat_urunu_gerekli');
+    const year=new Date().getFullYear();
+    await connection.execute('INSERT INTO teklif_no_sayaclari(yil,son_no) VALUES(?,LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE son_no=LAST_INSERT_ID(son_no+1)',[year]);
+    const [numbers]=await connection.execute<Row[]>('SELECT LAST_INSERT_ID() no'); const teklifNo=`TK-${year}-${String(numbers[0].no).padStart(4,'0')}`;
+    const teklifId=randomUUID(); const paraBirimi=String(deal.currency||items[0].para_birimi||'TRY');
+    const araToplam=items.reduce((sum,x)=>sum+Number(x.miktar)*Number(x.birim_fiyat??0),0); const kdv=araToplam*body.kdvOrani/100;
+    await connection.execute(`INSERT INTO teklifler(id,teklif_no,musteri_id,durum,dil,para_birimi,ara_toplam,kdv_orani,kdv_tutari,genel_toplam,aciklama,goruntuleme_token,created_by)
+      VALUES(?,?,?,'taslak',?,?,?,?,?,?,?,?,?)`,[teklifId,teklifNo,deal.musteri_id,body.dil,paraBirimi,araToplam,body.kdvOrani,kdv,araToplam+kdv,`CRM fırsatı: ${deal.title}`,randomUUID(),userId]);
+    for(const item of items)await connection.execute(`INSERT INTO teklif_kalemleri(id,teklif_id,urun_id,urun_kod,urun_ad,aciklama,birim,miktar,birim_fiyat,iskonto_orani,satir_toplam,sira)
+      VALUES(?,?,?,?,?,?,?,?,?,0,?,?)`,[randomUUID(),teklifId,item.urun_id,item.urun_kodu,item.urun_adi,item.aciklama??item.urun_adi,item.birim??'adet',item.miktar,item.birim_fiyat??0,Number(item.miktar)*Number(item.birim_fiyat??0),item.sira]);
+    await connection.execute('INSERT INTO crm_deal_teklifleri(firsat_id,teklif_id) VALUES(?,?)',[dealId,teklifId]);
+    await connection.commit(); return {dealId,teklifId,teklifNo};
+  }catch(error){await connection.rollback();throw error;}finally{connection.release();}
+}

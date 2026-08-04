@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { dealCreateSchema, dealMoveSchema, talepToDealSchema } from '../validation';
+import { dealCreateSchema, dealMoveSchema, dealProductSchema, dealToOfferSchema, talepToDealSchema } from '../validation';
 
 describe('CRM validation', () => {
   it('fırsat varsayılanlarını güvenli üretir', () => {
@@ -19,5 +19,14 @@ describe('CRM validation', () => {
 
   it('aşama taşıma için UUID ister', () => {
     expect(dealMoveSchema.safeParse({ stageId: 'x' }).success).toBe(false);
+  });
+
+  it('fırsat ürününde pozitif miktar ve ürün UUID ister', () => {
+    expect(dealProductSchema.safeParse({ urunId: crypto.randomUUID(), miktar: 2 }).success).toBe(true);
+    expect(dealProductSchema.safeParse({ urunId: crypto.randomUUID(), miktar: 0 }).success).toBe(false);
+  });
+
+  it('taslak teklif varsayılanlarını üretir', () => {
+    expect(dealToOfferSchema.parse({})).toEqual({ dil: 'tr', kdvOrani: 20 });
   });
 });

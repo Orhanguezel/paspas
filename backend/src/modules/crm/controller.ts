@@ -1,11 +1,11 @@
 import type { FastifyReply, FastifyRequest, RouteHandler } from 'fastify';
-import { createDeal, deleteDeal, getDeal, listDeals, listPipelines, moveDeal, updateDeal, convertTalepToDeal } from './repository';
-import { dealCreateSchema, dealListSchema, dealMoveSchema, dealPatchSchema, talepToDealSchema } from './validation';
+import { createDeal, deleteDeal, getDeal, listDeals, listPipelines, moveDeal, updateDeal, convertTalepToDeal, listDealProducts, createDealProduct, updateDealProduct, deleteDealProduct, upsertDealNeed, convertDealToOffer } from './repository';
+import { dealCreateSchema, dealListSchema, dealMoveSchema, dealPatchSchema, talepToDealSchema, dealProductSchema, dealProductPatchSchema, dealNeedSchema, dealToOfferSchema } from './validation';
 
 function userId(req: FastifyRequest) { return ((req as { user?: { sub?: string } }).user?.sub) ?? null; }
 function error(reply: FastifyReply, err: unknown) {
   const message = err instanceof Error ? err.message : 'sunucu_hatasi';
-  const status: Record<string, number> = { talep_bulunamadi:404, asama_bulunamadi:404, musteri_gerekli:400, asama_pipeline_uyumsuz:400, kaybetme_nedeni_gerekli:400, varsayilan_pipeline_bulunamadi:409, talep_zaten_firsata_donustu:409 };
+  const status: Record<string, number> = { talep_bulunamadi:404, firsat_bulunamadi:404, asama_bulunamadi:404, musteri_gerekli:400, firsat_musterisi_gerekli:400, firsat_urunu_gerekli:400, asama_pipeline_uyumsuz:400, kaybetme_nedeni_gerekli:400, varsayilan_pipeline_bulunamadi:409, talep_zaten_firsata_donustu:409, firsat_zaten_teklife_donustu:409 };
   return reply.code(status[message] ?? 500).send({ error: { message } });
 }
 export const pipelines: RouteHandler = async (_req, reply) => reply.send(await listPipelines());
@@ -16,4 +16,9 @@ export const dealUpdate: RouteHandler = async (req, reply) => { const p=dealPatc
 export const dealMove: RouteHandler = async (req, reply) => { const p=dealMoveSchema.safeParse(req.body); if(!p.success)return reply.code(400).send({error:{message:'gecersiz_istek_govdesi',issues:p.error.flatten()}}); try{const r=await moveDeal((req.params as {id:string}).id,p.data.stageId,p.data.lostReason);return r?reply.send(r):reply.code(404).send({error:{message:'firsat_bulunamadi'}});}catch(e){return error(reply,e);} };
 export const dealDelete: RouteHandler = async (req, reply) => (await deleteDeal((req.params as {id:string}).id))?reply.code(204).send():reply.code(404).send({error:{message:'firsat_bulunamadi'}});
 export const talepConvert: RouteHandler = async (req, reply) => { const p=talepToDealSchema.safeParse(req.body); if(!p.success)return reply.code(400).send({error:{message:'gecersiz_istek_govdesi',issues:p.error.flatten()}}); try{return reply.code(201).send(await convertTalepToDeal((req.params as {id:string}).id,p.data,userId(req)));}catch(e){return error(reply,e);} };
-
+export const products: RouteHandler=async(req,reply)=>reply.send(await listDealProducts((req.params as {id:string}).id));
+export const productCreate:RouteHandler=async(req,reply)=>{const p=dealProductSchema.safeParse(req.body);if(!p.success)return reply.code(400).send({error:{message:'gecersiz_istek_govdesi',issues:p.error.flatten()}});try{return reply.code(201).send(await createDealProduct((req.params as {id:string}).id,p.data));}catch(e){return error(reply,e);}};
+export const productUpdate:RouteHandler=async(req,reply)=>{const p=dealProductPatchSchema.safeParse(req.body);if(!p.success)return reply.code(400).send({error:{message:'gecersiz_istek_govdesi',issues:p.error.flatten()}});const {id,productId}=req.params as {id:string;productId:string};const r=await updateDealProduct(id,productId,p.data);return r?reply.send(r):reply.code(404).send({error:{message:'firsat_urunu_bulunamadi'}});};
+export const productDelete:RouteHandler=async(req,reply)=>{const {id,productId}=req.params as {id:string;productId:string};return(await deleteDealProduct(id,productId))?reply.code(204).send():reply.code(404).send({error:{message:'firsat_urunu_bulunamadi'}});};
+export const needUpdate:RouteHandler=async(req,reply)=>{const p=dealNeedSchema.safeParse(req.body);if(!p.success)return reply.code(400).send({error:{message:'gecersiz_istek_govdesi',issues:p.error.flatten()}});try{return reply.send(await upsertDealNeed((req.params as {id:string}).id,p.data));}catch(e){return error(reply,e);}};
+export const dealToOffer:RouteHandler=async(req,reply)=>{const p=dealToOfferSchema.safeParse(req.body??{});if(!p.success)return reply.code(400).send({error:{message:'gecersiz_istek_govdesi',issues:p.error.flatten()}});try{return reply.code(201).send(await convertDealToOffer((req.params as {id:string}).id,p.data,userId(req)));}catch(e){return error(reply,e);}};

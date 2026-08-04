@@ -197,7 +197,7 @@ dönüştürülmesi
     bütün değişiklikler geri alınacak.
   - Kabul: Dönüşüm zincirinde sahipsiz veya yinelenen kayıt kalmıyor.
 
-- [ ] **38. Fırsat ürünleri ve teknik ihtiyaç bağlantısını uyarlа** — `high`
+- [x] **38. Fırsat ürünleri ve teknik ihtiyaç bağlantısını uyarlа** — `high`
   - Fırsata ürün, miktar, tahmini fiyat ve not eklenebilecek.
   - Transpalet’e özel teker/teknik ihtiyaç alanları çıkarılacak; Promats ürün
     özellikleri ve gerekirse serbest ihtiyaç notları kullanılacak.

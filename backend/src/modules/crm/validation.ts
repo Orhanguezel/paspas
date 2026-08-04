@@ -24,6 +24,14 @@ export const talepToDealSchema = z.object({
   title: z.string().trim().min(1).max(255).optional(), ownerUserId: z.string().uuid().optional(), amount: z.coerce.number().min(0).default(0), currency: currency.default('TRY'),
 }).refine((v) => Boolean(v.musteriId || v.yeniMusteri), 'Mevcut veya yeni müşteri gerekli');
 
+export const dealProductSchema = z.object({
+  urunId: z.string().uuid(), miktar: z.coerce.number().positive(), birimFiyat: z.coerce.number().min(0).optional().nullable(),
+  paraBirimi: currency.default('TRY'), aciklama: z.string().trim().max(500).optional().nullable(), sira: z.coerce.number().int().min(0).default(0),
+});
+export const dealProductPatchSchema = dealProductSchema.partial().refine((v) => Object.keys(v).length > 0, 'En az bir alan gerekli');
+export const dealNeedSchema = z.object({ ihtiyacNotu: z.string().trim().max(5000).optional().nullable(), teslimBeklentisi: z.string().date().optional().nullable() });
+export const dealToOfferSchema = z.object({ dil: z.enum(['tr','en','de']).default('tr'), kdvOrani: z.coerce.number().min(0).max(100).default(20) });
+
 export type DealList = z.infer<typeof dealListSchema>;
 export type DealCreate = z.infer<typeof dealCreateSchema>;
 export type DealPatch = z.infer<typeof dealPatchSchema>;
