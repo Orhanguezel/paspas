@@ -44,6 +44,8 @@ const activityBaseSchema = z.object({
 });
 export const activityCreateSchema=activityBaseSchema.refine((v)=>Boolean(v.refType)===Boolean(v.refId),'Kaynak türü ve kaydı birlikte gerekli');
 export const activityPatchSchema=activityBaseSchema.partial().extend({done:z.boolean().optional()}).refine((v)=>Object.keys(v).length>0,'En az bir alan gerekli');
+export const reminderCreateSchema=z.object({sourceType:z.enum(['activity','deal','offer','order']),sourceId:z.string().uuid(),remindAt:z.string().datetime(),channel:z.enum(['app','email']).default('app'),title:z.string().trim().min(1).max(255),message:z.string().trim().min(1).max(1000)});
+export const reminderListSchema=z.object({status:z.enum(['pending','processing','sent','failed','cancelled']).optional(),overdue:z.preprocess((v)=>v==='true'||v==='1'?true:v==='false'||v==='0'?false:v,z.boolean()).optional(),limit:z.coerce.number().int().min(1).max(500).default(100),offset:z.coerce.number().int().min(0).default(0)});
 
 export type DealList = z.infer<typeof dealListSchema>;
 export type DealCreate = z.infer<typeof dealCreateSchema>;

@@ -9,6 +9,7 @@ import type { RouteHandler } from 'fastify';
 
 import { getErpBrandingLogoUrl, getErpCompanyProfile } from '@/modules/siteSettings/service';
 import { sendMailWithAttachments } from '@/modules/mail/service';
+import { scheduleOfferFollowup } from '@/modules/crm/reminders.repository';
 
 import { PdfUnavailableError } from './pdf.service';
 import { buildTeklifPdf } from './teklif-pdf';
@@ -27,7 +28,8 @@ import {
 } from './validation';
 
 function userIdOf(req: { user?: unknown }): string | null {
-  return (req.user as { id?: string } | undefined)?.id ?? null;
+  const user=req.user as { id?: string; sub?: string } | undefined;
+  return user?.id ?? user?.sub ?? null;
 }
 function roleOf(req: { user?: unknown }): string {
   return (req.user as { role?: string } | undefined)?.role ?? 'operator';
@@ -121,6 +123,8 @@ export const gonderTeklif: RouteHandler = async (req, reply) => {
     await repoLogGonderim(id, kanal, null, 'basarili', null, userId);
     await repoMarkGonderildi(id);
   }
+
+  if (userId) await scheduleOfferFollowup(id,userId).catch((err)=>req.log.error({err},'teklif_takip_hatirlatmasi_olusturulamadi'));
 
   return repoGetTeklif(id);
 };

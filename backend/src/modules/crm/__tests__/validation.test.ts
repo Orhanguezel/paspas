@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { activityCreateSchema, activityListSchema, dealCreateSchema, dealMoveSchema, dealProductSchema, dealToOfferSchema, talepToDealSchema } from '../validation';
+import { activityCreateSchema, activityListSchema, dealCreateSchema, dealMoveSchema, dealProductSchema, dealToOfferSchema, reminderCreateSchema, reminderListSchema, talepToDealSchema } from '../validation';
 
 describe('CRM validation', () => {
   it('fırsat varsayılanlarını güvenli üretir', () => {
@@ -37,5 +37,15 @@ describe('CRM validation', () => {
 
   it('aktivite liste boolean sorgusunu dönüştürür', () => {
     expect(activityListSchema.parse({ done:'false' }).done).toBe(false);
+  });
+
+  it('hatırlatma kaynağı, zamanı ve kanalını doğrular', () => {
+    const valid={sourceType:'deal',sourceId:crypto.randomUUID(),remindAt:new Date().toISOString(),title:'Takip',message:'Müşteriyi ara'};
+    expect(reminderCreateSchema.parse(valid).channel).toBe('app');
+    expect(reminderCreateSchema.safeParse({...valid,sourceType:'customer'}).success).toBe(false);
+  });
+
+  it('geciken hatırlatma sorgusunu dönüştürür', () => {
+    expect(reminderListSchema.parse({overdue:'true'}).overdue).toBe(true);
   });
 });

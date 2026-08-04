@@ -3,11 +3,13 @@ import { createDeal, deleteDeal, getDeal, listDeals, listPipelines, moveDeal, up
 import { dealCreateSchema, dealListSchema, dealMoveSchema, dealPatchSchema, talepToDealSchema, dealProductSchema, dealProductPatchSchema, dealNeedSchema, dealToOfferSchema } from './validation';
 import { activityCreateSchema, activityListSchema, activityPatchSchema } from './validation';
 import { createActivity, deleteActivity, getActivity, listActivities, timeline, updateActivity } from './activities.repository';
+import { cancelReminder, createReminder, createStaleStageReminders, listReminders, processDueReminders } from './reminders.repository';
+import { reminderCreateSchema, reminderListSchema } from './validation';
 
 function userId(req: FastifyRequest) { return ((req as { user?: { sub?: string } }).user?.sub) ?? null; }
 function error(reply: FastifyReply, err: unknown) {
   const message = err instanceof Error ? err.message : 'sunucu_hatasi';
-  const status: Record<string, number> = { talep_bulunamadi:404, firsat_bulunamadi:404, aktivite_kaynagi_bulunamadi:404, asama_bulunamadi:404, gecersiz_aktivite_kaynagi:400, musteri_gerekli:400, firsat_musterisi_gerekli:400, firsat_urunu_gerekli:400, asama_pipeline_uyumsuz:400, kaybetme_nedeni_gerekli:400, varsayilan_pipeline_bulunamadi:409, talep_zaten_firsata_donustu:409, firsat_zaten_teklife_donustu:409 };
+  const status: Record<string, number> = { hatirlatma_kaynagi_bulunamadi:404, gecersiz_hatirlatma_kaynagi:400, talep_bulunamadi:404, firsat_bulunamadi:404, aktivite_kaynagi_bulunamadi:404, asama_bulunamadi:404, gecersiz_aktivite_kaynagi:400, musteri_gerekli:400, firsat_musterisi_gerekli:400, firsat_urunu_gerekli:400, asama_pipeline_uyumsuz:400, kaybetme_nedeni_gerekli:400, varsayilan_pipeline_bulunamadi:409, talep_zaten_firsata_donustu:409, firsat_zaten_teklife_donustu:409 };
   return reply.code(status[message] ?? 500).send({ error: { message } });
 }
 export const pipelines: RouteHandler = async (_req, reply) => reply.send(await listPipelines());
@@ -30,3 +32,8 @@ export const activityCreate:RouteHandler=async(req,reply)=>{const p=activityCrea
 export const activityUpdate:RouteHandler=async(req,reply)=>{const p=activityPatchSchema.safeParse(req.body);if(!p.success)return reply.code(400).send({error:{message:'gecersiz_istek_govdesi',issues:p.error.flatten()}});try{const r=await updateActivity((req.params as{id:string}).id,p.data);return r?reply.send(r):reply.code(404).send({error:{message:'aktivite_bulunamadi'}});}catch(e){return error(reply,e);}};
 export const activityDelete:RouteHandler=async(req,reply)=>(await deleteActivity((req.params as{id:string}).id))?reply.code(204).send():reply.code(404).send({error:{message:'aktivite_bulunamadi'}});
 export const activityTimeline:RouteHandler=async(req,reply)=>{const{refType,refId}=req.params as{refType:string;refId:string};try{return reply.send(await timeline(refType,refId));}catch(e){return error(reply,e);}};
+export const reminders:RouteHandler=async(req,reply)=>{const p=reminderListSchema.safeParse(req.query);if(!p.success)return reply.code(400).send({error:{message:'gecersiz_sorgu_parametreleri',issues:p.error.flatten()}});const uid=userId(req);if(!uid)return reply.code(401).send({error:{message:'yetkisiz'}});const r=await listReminders(uid,p.data);reply.header('x-total-count',String(r.total));return reply.send(r.items);};
+export const reminderCreate:RouteHandler=async(req,reply)=>{const p=reminderCreateSchema.safeParse(req.body);if(!p.success)return reply.code(400).send({error:{message:'gecersiz_istek_govdesi',issues:p.error.flatten()}});const uid=userId(req);if(!uid)return reply.code(401).send({error:{message:'yetkisiz'}});try{return reply.code(201).send(await createReminder(uid,p.data));}catch(e){return error(reply,e);}};
+export const reminderCancel:RouteHandler=async(req,reply)=>{const uid=userId(req);if(!uid)return reply.code(401).send({error:{message:'yetkisiz'}});return(await cancelReminder((req.params as{id:string}).id,uid))?reply.code(204).send():reply.code(404).send({error:{message:'hatirlatma_bulunamadi'}});};
+export const remindersProcess:RouteHandler=async(req,reply)=>{const uid=userId(req);if(!uid)return reply.code(401).send({error:{message:'yetkisiz'}});const generated=await createStaleStageReminders();return reply.send({generated,...await processDueReminders(uid)});};
+export const remindersGenerate:RouteHandler=async(_req,reply)=>reply.send(await createStaleStageReminders());
