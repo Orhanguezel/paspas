@@ -168,11 +168,15 @@ dönüştürülmesi
     teklif/revizyon numarası, Promats firma-müşteri-kalem-toplam-koşul bilgileri
     basılır. Canlı Chromium UAT `%PDF-` imzalı 104.854 bayt R0 PDF üretti.
 
-- [ ] **15. Gönderim ve görüntülenme takibini taşı** — `critical`
+- [x] **15. Gönderim ve görüntülenme takibini taşı** — `critical`
   - E-posta, WhatsApp bağlantısı ve manuel gönderim kaydedilecek.
   - Her deneme kanal, alıcı, durum ve hata bilgisiyle saklanacak.
   - Süreli public token PDF’i açtığında ilk görüntülenme zamanı kaydedilecek.
   - Kabul: Başarısız e-posta teklifi gönderilmiş saymıyor; tekrar denenebiliyor.
+  - E-posta/WhatsApp/manuel denemeleri sonuç ve hatayla saklanır. Public token
+    1–90 gün süreyle yenilenebilir ve anında iptal edilebilir; ilk başarılı
+    görüntülenme yalnız bir kez kaydedilir. Canlı UAT ilk görüntüleme, iptal,
+    token rotasyonu, süre sonu ve başarısız gönderim senaryolarını doğruladı.
 
 - [ ] **16. Kabul/red ve siparişe dönüştürme akışını uyarlа** — `critical`
   - Kabul/red nedeni ve zamanı saklanacak.
