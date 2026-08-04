@@ -35,7 +35,7 @@ export default async function ContactPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ product?: string }>;
+  searchParams: Promise<{ product?: string; requestType?: string }>;
 }) {
   const { locale } = await params;
   const query = await searchParams;
@@ -46,6 +46,8 @@ export default async function ContactPage({
   ]);
   const { address, phone, email } = siteConfig.contact;
   const contactMapEmbedUrl = settings.contact_map_embed_url;
+  const selectedProduct = products.find((product) => product.slug === query.product);
+  const quoteSubject = t(settings, 'Teklif Talebi');
 
   // İletişim hero metni (docx R3 d25090ff). Sayfa açılınca ortada harita yerine
   // en başta iletişim kutusu gelsin. Editoryal pazarlama kopyası; locale bazlı.
@@ -81,7 +83,7 @@ export default async function ContactPage({
           </ul>
         </div>
       </section>
-      <section className="section8_bg position-relative">
+      <section className="section8_bg position-relative" id="iletisimform">
         <DevNote section="contact-form" title="İletişim Formu" />
         <div className="container">
           <div className="row">
@@ -111,13 +113,14 @@ export default async function ContactPage({
                   subject: t(settings, 'Konu Başlığı'),
                 }}
                 products={products.map((product) => ({ id: String(product.id), slug: product.slug, name: product.name }))}
-                defaultProduct={products.find((product) => product.slug === query.product)?.slug}
+                defaultProduct={selectedProduct?.slug}
+                defaultSubject={query.requestType === 'quote' && selectedProduct ? quoteSubject : undefined}
                 locale={locale}
-                sourcePage={`/${locale}/iletisim`}
-                quoteSubjectValues={[t(settings, 'Teklif Talebi'), t(settings, 'OEM & Private Label')]}
+                sourcePage={selectedProduct ? `/${locale}/urunler/${selectedProduct.slug}` : `/${locale}/iletisim`}
+                quoteSubjectValues={[quoteSubject, t(settings, 'OEM & Private Label')]}
                 subjectOptions={[
                   t(settings, 'Ürün Bilgisi'),
-                  t(settings, 'Teklif Talebi'),
+                  quoteSubject,
                   t(settings, 'OEM & Private Label'),
                   t(settings, 'İş Ortaklığı'),
                 ]}
@@ -127,7 +130,7 @@ export default async function ContactPage({
         </div>
       </section>
       {contactMapEmbedUrl ? (
-        <section className="contact_us promats-contact-map-section position-relative" id="iletisimform">
+        <section className="contact_us promats-contact-map-section position-relative">
           <DevNote section="contact-map" title="İletişim Harita" />
           <div className="promats-contact-map-wrap"><iframe
             allowFullScreen

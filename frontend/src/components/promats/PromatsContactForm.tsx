@@ -19,6 +19,7 @@ type Props = {
   };
   products?: { id?: string; slug: string; name: string }[];
   defaultProduct?: string;
+  defaultSubject?: string;
   subjectOptions?: string[];
   quoteSubjectValues?: string[];
   locale?: string;
@@ -32,7 +33,7 @@ type Props = {
 
 const API_BASE = getPublicApiBaseUrl().replace(/\/+$/, '');
 
-export default function PromatsContactForm({ labels, formClassName, products = [], defaultProduct, subjectOptions = [], quoteSubjectValues = [], locale = 'tr', sourcePage = '/iletisim' }: Props) {
+export default function PromatsContactForm({ labels, formClassName, products = [], defaultProduct, defaultSubject, subjectOptions = [], quoteSubjectValues = [], locale = 'tr', sourcePage = '/iletisim' }: Props) {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   // İlgilenilen ürün grubu: çoklu seçim, kapalı kutu + checkbox (müşteri notu a1bf78c3).
   // Native <select multiple> yerine dışarı tıklayınca kapanan checkbox paneli.
@@ -115,7 +116,7 @@ export default function PromatsContactForm({ labels, formClassName, products = [
       {subjectOptions.length ? (
         <div className="form-group">
           <label htmlFor="promats-contact-subject">{labels.subject}</label>
-          <select id="promats-contact-subject" className="form-control" name="subject" required defaultValue="">
+          <select id="promats-contact-subject" className="form-control" name="subject" required defaultValue={defaultSubject ?? ''}>
             <option value="" disabled>{labels.subject}</option>
             {subjectOptions.map((option) => <option key={option} value={option}>{option}</option>)}
           </select>

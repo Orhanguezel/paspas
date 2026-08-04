@@ -312,7 +312,7 @@ export default function PromatsProductDetail({ locale, product, related, setting
                 <strong>{t(settings, 'Bu ürünle ilgileniyor musunuz?')}</strong>
                 <span>{product.name}</span>
               </div>
-              <a className="btn btn-yellow" href={href(locale, `/iletisim?product=${encodeURIComponent(product.slug)}`)}>
+              <a className="btn btn-yellow" href={href(locale, `/iletisim?product=${encodeURIComponent(product.slug)}&requestType=quote#iletisimform`)}>
                 {t(settings, 'Bu ürünle ilgileniyorum')}
               </a>
             </div>
