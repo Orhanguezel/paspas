@@ -394,11 +394,14 @@ dönüştürülmesi
   - Web talebi → admin gelen kutusu → müşteri eşleme → taslak → PDF → gönderim
     → görüntülenme → kabul → sipariş akışı Playwright ile doğrulanacak.
 
-- [ ] **31. Eski bildirim-only akışını geriye uyumlu geçir** — `high`
+- [x] **31. Eski bildirim-only akışını geriye uyumlu geçir** — `high`
   - Yeni endpoint canlıya çıkmadan mevcut `/web/promats/contact`
     kaldırılmayacak.
   - Geçiş sonrasında genel iletişim çalışmaya devam edecek; teklif konusu yeni
     kayıt akışına yönlenecek.
+  - Canlı kabul (2026-08-04): Genel iletişimin `/contact`, teklif konusu ve OEM
+    formunun `/teklif-talebi` rotasını kullandığı Playwright ile doğrulandı
+    (4/4 geçti); API ve web health kontrolleri `200` döndü.
 
 - [ ] **32. Production migration, smoke test ve izleme yap** — `critical`
   - DB yedeği, migration, backend/admin/frontend deploy sırası ve rollback
