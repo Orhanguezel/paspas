@@ -316,7 +316,7 @@ dönüştürülmesi
     teklif/revizyon bağlantısı gösterilecek.
   - Kabul: Kullanıcı müşteri → teklif → sipariş zincirinde gezinebiliyor.
 
-- [ ] **24. Menü, roller ve görünürlükleri ekle** — `high`
+- [x] **24. Menü, roller ve görünürlükleri ekle** — `high`
   - Sidebar’da `Teklif Talepleri` ve `Teklifler` ayrı menüler olacak.
   - Görüntüleme, düzenleme, onay ve gönderim yetkileri ayrı kontrol edilecek.
   - Kabul: Yetkisiz kullanıcı route ve API seviyesinde erişemiyor.
