@@ -157,13 +157,16 @@ dönüştürülmesi
   - Lifecycle UAT onay, red, audit, oran değişiminde onay sıfırlama ve yeniden
     onayı; unit testler dört rol limitini doğrular.
 
-- [ ] **14. Teklif PDF servisini Promats markasına uyarla** — `critical`
+- [x] **14. Teklif PDF servisini Promats markasına uyarla** — `critical`
   - Daima/transpalet metin ve teknik alanları kaldırılacak.
   - Promats logo, firma bilgileri, müşteri, ürünler, toplamlar, teslim/ödeme
     koşulları, geçerlilik ve revizyon numarası basılacak.
   - TR/EN; gerekiyorsa DE şablonları DB üzerinden yönetilecek.
   - Kabul: PDF ekran toplamlarıyla aynı, A4 baskıya uygun ve production’da
     Puppeteer/Chromium ile üretilebilir.
+  - TR/EN/DE metin ve yerel para/tarih biçimleri teklif dilinden seçilir;
+    teklif/revizyon numarası, Promats firma-müşteri-kalem-toplam-koşul bilgileri
+    basılır. Canlı Chromium UAT `%PDF-` imzalı 104.854 bayt R0 PDF üretti.
 
 - [ ] **15. Gönderim ve görüntülenme takibini taşı** — `critical`
   - E-posta, WhatsApp bağlantısı ve manuel gönderim kaydedilecek.
