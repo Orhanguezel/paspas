@@ -19,11 +19,17 @@ bun install
 echo "==> tam temiz build (.next cache dahil)"
 rm -rf .next
 
+echo "==> .env.production.promats-root -> .env.production"
+# .env.production git'te SUBPATH TEST build'i icin takip ediliyor (PROMATS_BASE_PATH=/promats) —
+# git reset --hard her deploy'da onu geri getirir. Kok domain degerleri ayri dosyada tutulup
+# build'den hemen once kopyalanir, boylece iki checkout'un env'i birbirini ezmez.
+cp .env.production.promats-root .env.production
+
 echo "==> build (standalone, basePath yok — kok domain)"
 # .env.production: NEXT_PUBLIC_API_URL=https://promats.com.tr/api/web/promats (client bundle icin)
 # API_BASE_URL=http://127.0.0.1:8078/api/web/promats (server-only — build/SSR sirasinda kendi
 # domain'ine HTTPS self-fetch yapmasin diye; sertifika/nginx her zaman hazir olmayabilir).
-set -a; [ -f .env.production ] && source .env.production; set +a
+set -a; source .env.production; set +a
 bun run build
 
 echo "==> standalone'i tamamla (Next.js static + public)"
