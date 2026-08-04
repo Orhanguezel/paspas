@@ -551,12 +551,33 @@ export async function repoPatchKalem(teklifId: string, kalemId: string, body: Ka
   if (!kalem) throw new Error('kalem_bulunamadi');
 
   const miktar = body.miktar ?? Number(kalem.miktar);
-  const birimFiyat = body.birimFiyat ?? Number(kalem.birim_fiyat);
+  let birimFiyat = body.birimFiyat ?? Number(kalem.birim_fiyat);
   const iskontoOrani = body.iskontoOrani ?? Number(kalem.iskonto_orani);
+  let urunId = kalem.urun_id;
+  let urunKod = kalem.urun_kod;
+  let urunAd = kalem.urun_ad;
+  let birim = body.birim ?? kalem.birim;
+  if (body.urunId !== undefined) {
+    urunId = body.urunId ?? null;
+    urunKod = null;
+    urunAd = null;
+    if (body.urunId) {
+      const [product] = await db.select({ kod:urunler.kod, ad:urunler.ad, birim:urunler.birim, fiyat:urunler.birim_fiyat })
+        .from(urunler).where(and(eq(urunler.id, body.urunId), eq(urunler.is_active, 1))).limit(1);
+      if (!product) throw new Error('urun_bulunamadi');
+      urunKod = product.kod;
+      urunAd = product.ad;
+      birim = body.birim ?? product.birim ?? 'adet';
+      if ((body.birimFiyat ?? 0) === 0 && product.fiyat != null) birimFiyat = Number(product.fiyat);
+    }
+  }
 
   await db.update(teklifKalemleri).set({
+    urun_id: urunId,
+    urun_kod: urunKod,
+    urun_ad: urunAd,
     aciklama: body.aciklama ?? kalem.aciklama,
-    birim: body.birim ?? kalem.birim,
+    birim,
     miktar: String(miktar),
     birim_fiyat: String(birimFiyat),
     iskonto_orani: String(iskontoOrani),
