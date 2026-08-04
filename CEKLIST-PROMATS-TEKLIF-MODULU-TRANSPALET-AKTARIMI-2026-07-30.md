@@ -210,7 +210,7 @@ dönüştürülmesi
     kullanıcı alanları korunacak.
   - Kabul: İlgili kaydın tüm aktiviteleri tek kronolojik zaman çizelgesinde.
 
-- [ ] **40. Hatırlatma ve geciken takip altyapısını taşı** — `high`
+- [x] **40. Hatırlatma ve geciken takip altyapısını taşı** — `high`
   - Kullanıcı, kaynak türü/kaydı, hatırlatma zamanı ve kanal bilgisi tutulacak.
   - Teklif gönderimi sonrası takip ve aşamada uzun bekleme için otomatik görev
     veya bildirim üretilecek.
