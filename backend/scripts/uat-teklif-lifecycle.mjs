@@ -39,7 +39,7 @@ try {
   const login=await fetch(`${apiBase}/auth/token`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:process.env.ADMIN_EMAIL,password:process.env.ADMIN_PASSWORD})});
   const access=(await login.json()).access_token;const auth={authorization:`Bearer ${access}`,'content-type':'application/json'};
   await repoOnayaGonder(offerId, 'sevkiyatci');
-  if(!(await fetch(`${apiBase}/admin/teklifler/${offerId}/onayla`,{method:'POST',headers:auth})).ok)throw new Error('DISCOUNT_APPROVAL_HTTP_FAILED');
+  const approvalResponse=await fetch(`${apiBase}/admin/teklifler/${offerId}/onayla`,{method:'POST',headers:auth});if(!approvalResponse.ok)throw new Error(`DISCOUNT_APPROVAL_HTTP_FAILED_${approvalResponse.status}_${await approvalResponse.text()}`);
   const approved=await repoGetTeklif(offerId);if(!approved?.iskontoOnaylandi||!approved.iskontoOnaylayanUserId)throw new Error('DISCOUNT_APPROVAL_FAILED');
   await repoPatchTeklif(offerId,{iskontoOrani:12});
   const resetApproval=await repoGetTeklif(offerId);if(resetApproval?.iskontoOnaylandi||resetApproval?.iskontoOnaylayanUserId||resetApproval?.iskontoOnayAt)throw new Error('DISCOUNT_APPROVAL_RESET_FAILED');
