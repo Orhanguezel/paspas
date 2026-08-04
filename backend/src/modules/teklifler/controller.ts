@@ -11,6 +11,7 @@ import { getErpBrandingLogoUrl, getErpCompanyProfile } from '@/modules/siteSetti
 import { sendMailWithAttachments } from '@/modules/mail/service';
 import { scheduleOfferFollowup } from '@/modules/crm/reminders.repository';
 import { recordOfferCommunication } from '@/modules/crm/communications.repository';
+import { emitAutomationEvent } from '@/modules/crm/automation.repository';
 
 import { PdfUnavailableError } from './pdf.service';
 import { buildTeklifPdf } from './teklif-pdf';
@@ -129,6 +130,7 @@ export const gonderTeklif: RouteHandler = async (req, reply) => {
   }
 
   if (userId) await scheduleOfferFollowup(id,userId).catch((err)=>req.log.error({err},'teklif_takip_hatirlatmasi_olusturulamadi'));
+  await emitAutomationEvent('offer_sent','offer',id,userId,{},`offer_sent:${id}`);
 
   return repoGetTeklif(id);
 };
@@ -198,6 +200,7 @@ export const sipariseDonustur: RouteHandler = async (req, reply) => {
   const { id } = req.params as { id: string };
   try {
     const result = await repoTeklifiSipariseDonustur(id);
+    await emitAutomationEvent('order_created','order',result.siparisId,userIdOf(req),{offerId:id},`order_created:${result.siparisId}`);
     return reply.code(201).send(result);
   } catch (err) { return mapError(reply, err); }
 };
@@ -209,7 +212,7 @@ export const setTeklifDurum: RouteHandler = async (req, reply) => {
   try {
     const dto = await repoSetTeklifDurum(id, parsed.data.durum, parsed.data.redNedeni, roleOf(req));
     if (!dto) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
-    return dto;
+    if(parsed.data.durum==='kabul')await emitAutomationEvent('offer_accepted','offer',id,userIdOf(req),{},`offer_accepted:${id}`);return dto;
   } catch (err) { return mapError(reply, err); }
 };
 
@@ -348,5 +351,6 @@ export const createTalepPublic: RouteHandler = async (req, reply) => {
 
   const ipHash = createHash('sha256').update(ip).digest('hex').slice(0, 64);
   const { id } = await repoCreateTalepPublic(parsed.data, ipHash);
+  await emitAutomationEvent('lead_created','lead',id,null,{source:'web'},`lead_created:${id}`);
   return reply.code(201).send({ ok: true, id });
 };

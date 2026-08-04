@@ -4,6 +4,7 @@ import { and, asc, desc, eq, gt, gte, inArray, like, lte, notInArray, or, sql } 
 import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
+import { emitAutomationEvent } from '@/modules/crm/automation.repository';
 import { repoCloseWorkflowTasks, repoUpsertWorkflowTask } from '@/modules/gorevler/repository';
 import { hareketler } from '@/modules/hareketler/schema';
 import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/schema';
@@ -675,6 +676,7 @@ export async function repoPatchSevkEmri(id: string, patch: SevkEmriPatch, operat
   const row = await repoGetSevkEmriById(id);
   if (row) {
     await syncSevkEmriWorkflowTasks(row, operatorUserId);
+    if(isShip)await emitAutomationEvent('shipment_completed','shipment',id,operatorUserId,{orderId:existing.siparisId??null},`shipment_completed:${id}`);
   }
   return row;
 }

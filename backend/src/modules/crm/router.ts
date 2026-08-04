@@ -5,6 +5,7 @@ import { activities, activityCreate, activityDelete, activityGet, activityTimeli
 import { reminderCancel, reminderCreate, reminders, remindersGenerate, remindersProcess } from './controller';
 import { communicationCreate, communications } from './controller';
 import { lossReasonCreate, lossReasonDelete, lossReasons, lossReasonUpdate } from './controller';
+import { automationEmit, automationRuleActive, automationRuleCreate, automationRules } from './controller';
 
 export async function registerCrm(app: FastifyInstance) {
   const read = makeAdminPermissionGuard('admin.crm_firsatlar');
@@ -40,4 +41,8 @@ export async function registerCrm(app: FastifyInstance) {
   app.post('/crm/kaybetme-nedenleri', { preHandler: read }, lossReasonCreate);
   app.patch('/crm/kaybetme-nedenleri/:id', { preHandler: read }, lossReasonUpdate);
   app.delete('/crm/kaybetme-nedenleri/:id', { preHandler: read }, lossReasonDelete);
+  app.get('/crm/otomasyonlar', { preHandler: read }, automationRules);
+  app.post('/crm/otomasyonlar', { preHandler: read }, automationRuleCreate);
+  app.patch('/crm/otomasyonlar/:id/aktif', { preHandler: read }, automationRuleActive);
+  app.post('/crm/otomasyonlar/olay', { preHandler: read }, automationEmit);
 }

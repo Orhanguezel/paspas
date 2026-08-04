@@ -9,6 +9,8 @@ import { createCommunication, listCommunications } from './communications.reposi
 import { communicationCreateSchema, communicationListSchema } from './validation';
 import { createLossReason, deleteLossReason, listLossReasons, updateLossReason } from './loss-reasons.repository';
 import { lossReasonCreateSchema, lossReasonPatchSchema } from './validation';
+import { createAutomationRule, emitAutomationEvent, listAutomationRules, setAutomationRuleActive } from './automation.repository';
+import { automationEmitSchema, automationRuleCreateSchema } from './validation';
 
 function userId(req: FastifyRequest) { return ((req as { user?: { sub?: string } }).user?.sub) ?? null; }
 function error(reply: FastifyReply, err: unknown) {
@@ -47,3 +49,7 @@ export const lossReasons:RouteHandler=async(req,reply)=>reply.send(await listLos
 export const lossReasonCreate:RouteHandler=async(req,reply)=>{const p=lossReasonCreateSchema.safeParse(req.body);if(!p.success)return reply.code(400).send({error:{message:'gecersiz_istek_govdesi',issues:p.error.flatten()}});try{return reply.code(201).send(await createLossReason(p.data));}catch(e){return error(reply,e);}};
 export const lossReasonUpdate:RouteHandler=async(req,reply)=>{const p=lossReasonPatchSchema.safeParse(req.body);if(!p.success)return reply.code(400).send({error:{message:'gecersiz_istek_govdesi',issues:p.error.flatten()}});try{const r=await updateLossReason((req.params as{id:string}).id,p.data);return r?reply.send(r):reply.code(404).send({error:{message:'kaybetme_nedeni_bulunamadi'}});}catch(e){return error(reply,e);}};
 export const lossReasonDelete:RouteHandler=async(req,reply)=>{try{return(await deleteLossReason((req.params as{id:string}).id))?reply.code(204).send():reply.code(404).send({error:{message:'kaybetme_nedeni_bulunamadi'}});}catch(e){return error(reply,e);}};
+export const automationRules:RouteHandler=async(_req,reply)=>reply.send(await listAutomationRules());
+export const automationRuleCreate:RouteHandler=async(req,reply)=>{const p=automationRuleCreateSchema.safeParse(req.body);if(!p.success)return reply.code(400).send({error:{message:'gecersiz_istek_govdesi',issues:p.error.flatten()}});return reply.code(201).send({id:await createAutomationRule(p.data)});};
+export const automationRuleActive:RouteHandler=async(req,reply)=>{const active=(req.body as{isActive?:unknown})?.isActive;if(typeof active!=='boolean')return reply.code(400).send({error:{message:'gecersiz_istek_govdesi'}});return(await setAutomationRuleActive((req.params as{id:string}).id,active))?reply.code(204).send():reply.code(404).send({error:{message:'otomasyon_kurali_bulunamadi'}});};
+export const automationEmit:RouteHandler=async(req,reply)=>{const p=automationEmitSchema.safeParse(req.body);if(!p.success)return reply.code(400).send({error:{message:'gecersiz_istek_govdesi',issues:p.error.flatten()}});return reply.send(await emitAutomationEvent(p.data.triggerType,p.data.entityType,p.data.entityId,userId(req),p.data.payload,p.data.eventKey));};

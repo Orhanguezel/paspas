@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { pool } from '@/db/client';
 import type { DealCreate, DealList, DealPatch, TalepToDeal } from './validation';
+import { emitAutomationEvent } from './automation.repository';
 
 type Row = RowDataPacket & Record<string, unknown>;
 
@@ -53,6 +54,7 @@ export async function createDeal(body: DealCreate, userId: string | null) {
      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [id,pipelineId,stageId,body.musteriId??null,body.talepId??null,body.title,body.amount,body.currency,body.probability??stage[0].probability,body.expectedCloseDate??null,body.ownerUserId??userId,body.source??null,userId],
   );
+  await emitAutomationEvent('deal_created','deal',id,userId,{},`deal_created:${id}`);
   return getDeal(id);
 }
 
@@ -66,12 +68,12 @@ export async function updateDeal(id: string, body: DealPatch) {
 export async function moveDeal(id: string, stageId: string, lostReasonId: string | undefined) {
   const [stages] = await pool.execute<Row[]>('SELECT pipeline_id,probability,is_won,is_lost FROM crm_stages WHERE id=?', [stageId]);
   const stage = stages[0]; if (!stage) throw new Error('asama_bulunamadi');
-  const [deals]=await pool.execute<Row[]>('SELECT musteri_id FROM crm_deals WHERE id=?',[id]);if(!deals[0])return null;
+  const [deals]=await pool.execute<Row[]>('SELECT musteri_id,stage_id,updated_at FROM crm_deals WHERE id=?',[id]);if(!deals[0])return null;if(String(deals[0].stage_id)===stageId)return getDeal(id);
   let lostReason:string|null=null;if(Number(stage.is_lost)===1){if(!lostReasonId)throw new Error('kaybetme_nedeni_gerekli');const[reasons]=await pool.execute<Row[]>('SELECT name FROM crm_loss_reasons WHERE id=? AND is_active=1',[lostReasonId]);if(!reasons[0])throw new Error('kaybetme_nedeni_gecersiz');lostReason=String(reasons[0].name);}
   if(Number(stage.is_won)===1&&!deals[0].musteri_id)throw new Error('kazanilan_firsat_musterisi_gerekli');
   const status = Number(stage.is_won) === 1 ? 'won' : Number(stage.is_lost) === 1 ? 'lost' : 'open';
   const [result] = await pool.execute<ResultSetHeader>('UPDATE crm_deals SET pipeline_id=?,stage_id=?,probability=?,status=?,lost_reason=?,lost_reason_id=?,closed_at=? WHERE id=?', [stage.pipeline_id,stageId,stage.probability,status,status==='lost'?lostReason:null,status==='lost'?lostReasonId:null,status==='won'||status==='lost'?new Date():null,id]);
-  return result.affectedRows ? getDeal(id) : null;
+  if(!result.affectedRows)return null;await emitAutomationEvent('stage_changed','deal',id,null,{fromStageId:deals[0].stage_id,toStageId:stageId},`stage_changed:${id}:${deals[0].updated_at}:${stageId}`);return getDeal(id);
 }
 
 export async function deleteDeal(id: string) {
