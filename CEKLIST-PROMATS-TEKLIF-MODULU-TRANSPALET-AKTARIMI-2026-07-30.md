@@ -299,7 +299,7 @@ dönüştürülmesi
   - Kaydedilmiş filtreler ve sayfalama eklenecek.
   - Kabul: Büyük listede tüm filtreler backend üzerinden çalışıyor.
 
-- [ ] **21. Teklif editörünü Paspas ürün/müşteri seçicileriyle kur** — `critical`
+- [x] **21. Teklif editörünü Paspas ürün/müşteri seçicileriyle kur** — `critical`
   - Müşteri, ürün, miktar, fiyat, indirim, KDV, nakliye, para birimi, dil,
     ödeme/teslim koşulları ve geçerlilik yönetilecek.
   - Duruma göre alanlar kilitlenecek; yalnız izin verilen eylemler görünecek.

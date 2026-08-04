@@ -24,7 +24,10 @@ try {
   try { await repoPatchTeklif(offerId, { dil: 'de' }); } catch (error) { headerLocked = error instanceof Error && error.message === 'sadece_taslak_duzenlenir'; }
   try { await repoAddKalem(offerId, { aciklama: 'Yasak', miktar: 1 }); } catch (error) { lineLocked = error instanceof Error && error.message === 'sadece_taslak_duzenlenir'; }
   const completeDraft = draft?.musteriId === secondCustomerId && draft.dil === 'en' && draft.paraBirimi === 'EUR' && draft.kdvOrani === 18 && draft.iskontoOrani === 5 && draft.nakliye === 125 && draft.odemeKosullari === '30 gün' && draft.teslimKosullari === 'Depo teslim' && draft.kalemler?.[0]?.miktar === 3;
-  if (!completeDraft || !headerLocked || !lineLocked) throw new Error('TEKLIF_EDITOR_UAT_FAILED');
+  if (!completeDraft || !headerLocked || !lineLocked) {
+    console.error(JSON.stringify({ draft, headerLocked, lineLocked }));
+    throw new Error('TEKLIF_EDITOR_UAT_FAILED');
+  }
   console.log(JSON.stringify({ ok: true, customerSelector: true, language: true, completeDraft: true, sentImmutable: true }));
 } finally {
   await db.execute('DELETE FROM teklifler WHERE id=?', [offerId]);
