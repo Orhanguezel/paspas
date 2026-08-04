@@ -143,28 +143,43 @@ export async function ensureProfileRow(
 const ACCESS_MAX_AGE = 60 * 15; // 15 dk
 const REFRESH_MAX_AGE = 60 * 60 * 24 * 7; // 7 gün
 
-function cookieBase() {
+// promats.com.tr + panel.promats.com.tr ayri origin'ler (merge sonrasi domain ayrimi) —
+// cookie'yi ust domain'e yayarak DevNote gibi promats.com.tr'deki widget'lar panel.promats.com.tr'de
+// alinan admin oturumunu kullanabilsin. Diger host'larda (panel.avrasyaotomotiv.net vb.) davranis
+// degismez: domain verilmez, host-only cookie.
+function cookieDomainFor(req?: FastifyRequest): string | undefined {
+  if (!req) return undefined;
+  const bareHost = getHost(req).split(":")[0]!.toLowerCase();
+  return bareHost === "promats.com.tr" || bareHost.endsWith(".promats.com.tr")
+    ? ".promats.com.tr"
+    : undefined;
+}
+
+function cookieBase(req?: FastifyRequest) {
+  const domain = cookieDomainFor(req);
   return {
     httpOnly: true,
     sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
     path: "/",
+    ...(domain ? { domain } : {}),
   };
 }
 
-export function setAccessCookie(reply: FastifyReply, token: string) {
-  const base = { ...cookieBase(), maxAge: ACCESS_MAX_AGE };
+export function setAccessCookie(reply: FastifyReply, token: string, req?: FastifyRequest) {
+  const base = { ...cookieBase(req), maxAge: ACCESS_MAX_AGE };
   reply.setCookie("access_token", token, base);
   reply.setCookie("accessToken", token, base);
 }
 
-export function setRefreshCookie(reply: FastifyReply, token: string) {
-  const base = { ...cookieBase(), maxAge: REFRESH_MAX_AGE };
+export function setRefreshCookie(reply: FastifyReply, token: string, req?: FastifyRequest) {
+  const base = { ...cookieBase(req), maxAge: REFRESH_MAX_AGE };
   reply.setCookie("refresh_token", token, base);
 }
 
-function clearAuthCookies(reply: FastifyReply) {
-  const base = { path: "/" };
+function clearAuthCookies(reply: FastifyReply, req?: FastifyRequest) {
+  const domain = cookieDomainFor(req);
+  const base = { path: "/", ...(domain ? { domain } : {}) };
   reply.clearCookie("access_token", base);
   reply.clearCookie("accessToken", base);
   reply.clearCookie("refresh_token", base);
@@ -362,8 +377,8 @@ export function makeAuthController(app: FastifyInstance) {
       const role: Role = assignedRole;
       const { access, refresh } = await issueTokens(app, u, role);
 
-      setAccessCookie(reply, access);
-      setRefreshCookie(reply, refresh);
+      setAccessCookie(reply, access, req);
+      setRefreshCookie(reply, refresh, req);
 
       return reply.send({
         access_token: access,
@@ -413,8 +428,8 @@ export function makeAuthController(app: FastifyInstance) {
       const role = await getPrimaryRole(u.id);
       const { access, refresh } = await issueTokens(app, u, role);
 
-      setAccessCookie(reply, access);
-      setRefreshCookie(reply, refresh);
+      setAccessCookie(reply, access, req);
+      setRefreshCookie(reply, refresh, req);
 
       return reply.send({
         access_token: access,
@@ -487,8 +502,8 @@ export function makeAuthController(app: FastifyInstance) {
       );
       const newRaw = await rotateRefresh(raw, u.id);
 
-      setAccessCookie(reply, access);
-      setRefreshCookie(reply, newRaw);
+      setAccessCookie(reply, access, req);
+      setRefreshCookie(reply, newRaw, req);
 
       return reply.send({
         access_token: access,
@@ -763,7 +778,7 @@ export function makeAuthController(app: FastifyInstance) {
       });
     },
 
-    logout: async (_req: FastifyRequest, reply: FastifyReply) => {
+    logout: async (req: FastifyRequest, reply: FastifyReply) => {
       const raw = (
         (reply.request?.cookies as
           | Record<string, string | undefined>
@@ -776,7 +791,7 @@ export function makeAuthController(app: FastifyInstance) {
           .set({ revoked_at: new Date() })
           .where(eq(refresh_tokens.id, jti));
       }
-      clearAuthCookies(reply);
+      clearAuthCookies(reply, req);
       return reply.status(204).send();
     },
 
