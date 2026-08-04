@@ -102,10 +102,12 @@ dönüştürülmesi
   - Endpoint 32 KiB body limiti ve `X-Idempotency-Key` ile aynı ağ isteğinin
     yeniden gönderiminde mevcut kayıt kimliğini döndürür.
 
-- [ ] **7. İletişim mesajı ile teklif talebini ayır** — `high`
+- [x] **7. İletişim mesajı ile teklif talebini ayır** — `high`
   - Genel iletişim, destek ve iş ortaklığı mesajları iletişim akışında kalacak.
   - `Teklif Talebi` ve OEM fiyat talebi teklif gelen kutusuna düşecek.
   - Kabul: Konu seçimine göre doğru kayıt türü oluşuyor.
+  - Canlı yönlendirme testi genel iletişim için `/contact`; `Teklif Talebi` ve
+    `OEM & Private Label` için `/teklif-talebi` rotasını doğrular.
 
 - [ ] **8. Teklif CRUD ve listeleme API’lerini taşı** — `critical`
   - Liste, detay, oluşturma, yalnız taslakta güncelleme ve yalnız taslakta silme
