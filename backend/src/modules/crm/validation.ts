@@ -54,6 +54,10 @@ export const automationRuleCreateSchema=z.object({name:z.string().trim().min(1).
 export const automationEmitSchema=z.object({triggerType:z.enum(['lead_created','deal_created','stage_changed','offer_sent','offer_accepted','followup_overdue','order_created','shipment_completed']),entityType:z.enum(['lead','deal','offer','order','shipment']),entityId:z.string().uuid(),eventKey:z.string().trim().min(1).max(190).optional(),payload:z.record(z.string(),z.unknown()).default({})});
 export const dashboardQuerySchema=z.object({ownerUserId:z.string().uuid().optional(),pipelineId:z.string().uuid().optional(),dateFrom:z.string().date().optional(),dateTo:z.string().date().optional()}).refine(v=>!v.dateFrom||!v.dateTo||v.dateFrom<=v.dateTo,'Başlangıç tarihi bitişten sonra olamaz');
 export const reportQuerySchema=dashboardQuerySchema.and(z.object({source:z.string().trim().max(64).optional()}));
+const savedFilters=z.record(z.string(),z.unknown()).refine(v=>JSON.stringify(v).length<=10000,'Filtre çok büyük');
+export const savedViewCreateSchema=z.object({viewType:z.enum(['deals','activities']),name:z.string().trim().min(1).max(160),filters:savedFilters.default({}),isDefault:z.boolean().default(false)});
+export const savedViewPatchSchema=z.object({name:z.string().trim().min(1).max(160).optional(),filters:savedFilters.optional(),isDefault:z.boolean().optional()}).refine(v=>Object.keys(v).length>0,'En az bir alan gerekli');
+export const savedViewListSchema=z.object({viewType:z.enum(['deals','activities']).optional()});
 
 export type DealList = z.infer<typeof dealListSchema>;
 export type DealCreate = z.infer<typeof dealCreateSchema>;

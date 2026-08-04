@@ -8,6 +8,7 @@ import { lossReasonCreate, lossReasonDelete, lossReasons, lossReasonUpdate } fro
 import { automationEmit, automationRuleActive, automationRuleCreate, automationRules } from './controller';
 import { dashboard } from './controller';
 import { reports } from './controller';
+import { savedViewCreate, savedViewDelete, savedViews, savedViewUpdate } from './controller';
 
 export async function registerCrm(app: FastifyInstance) {
   const read = makeAdminPermissionGuard('admin.crm_firsatlar');
@@ -49,4 +50,8 @@ export async function registerCrm(app: FastifyInstance) {
   app.post('/crm/otomasyonlar/olay', { preHandler: read }, automationEmit);
   app.get('/crm/dashboard', { preHandler: read }, dashboard);
   app.get('/crm/raporlar', { preHandler: read }, reports);
+  app.get('/crm/gorunumler', { preHandler: read }, savedViews);
+  app.post('/crm/gorunumler', { preHandler: read }, savedViewCreate);
+  app.patch('/crm/gorunumler/:id', { preHandler: read }, savedViewUpdate);
+  app.delete('/crm/gorunumler/:id', { preHandler: read }, savedViewDelete);
 }

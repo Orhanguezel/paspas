@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { activityCreateSchema, activityListSchema, automationEmitSchema, automationRuleCreateSchema, communicationCreateSchema, dashboardQuerySchema, dealCreateSchema, dealMoveSchema, dealPatchSchema, dealProductSchema, dealToOfferSchema, lossReasonCreateSchema, reminderCreateSchema, reminderListSchema, reportQuerySchema, talepToDealSchema } from '../validation';
+import { activityCreateSchema, activityListSchema, automationEmitSchema, automationRuleCreateSchema, communicationCreateSchema, dashboardQuerySchema, dealCreateSchema, dealMoveSchema, dealPatchSchema, dealProductSchema, dealToOfferSchema, lossReasonCreateSchema, reminderCreateSchema, reminderListSchema, reportQuerySchema, savedViewCreateSchema, talepToDealSchema } from '../validation';
 
 describe('CRM validation', () => {
   it('fırsat varsayılanlarını güvenli üretir', () => {
@@ -78,5 +78,11 @@ describe('CRM validation', () => {
   it('rapor filtresinde kaynak uzunluğunu ve tarihleri doğrular',()=>{
     expect(reportQuerySchema.safeParse({source:'web',dateFrom:'2026-01-01',dateTo:'2026-12-31'}).success).toBe(true);
     expect(reportQuerySchema.safeParse({source:'x'.repeat(65)}).success).toBe(false);
+  });
+
+  it('kaydedilmiş görünüm türünü ve filtre boyutunu doğrular',()=>{
+    expect(savedViewCreateSchema.safeParse({viewType:'deals',name:'Benim fırsatlarım',filters:{status:'open'}}).success).toBe(true);
+    expect(savedViewCreateSchema.safeParse({viewType:'orders',name:'Siparişler'}).success).toBe(false);
+    expect(savedViewCreateSchema.safeParse({viewType:'activities',name:'Büyük',filters:{q:'x'.repeat(10001)}}).success).toBe(false);
   });
 });
