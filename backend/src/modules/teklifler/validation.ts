@@ -22,6 +22,7 @@ export const teklifListQuerySchema = z.object({
   q: z.string().trim().optional(),
   durum: z.enum(TEKLIF_DURUMLARI).optional(),
   musteriId: z.string().uuid().optional(),
+  ownerUserId: z.string().uuid().optional(),
   limit: z.coerce.number().int().min(1).max(500).default(100),
   offset: z.coerce.number().int().min(0).default(0),
 });
@@ -96,6 +97,7 @@ export const kalemPatchSchema = kalemCreateSchema.partial().refine(
 export const talepListQuerySchema = z.object({
   q: z.string().trim().optional(),
   durum: z.enum(TALEP_DURUMLARI).optional(),
+  ownerUserId: z.string().uuid().optional(),
   limit: z.coerce.number().int().min(1).max(500).default(100),
   offset: z.coerce.number().int().min(0).default(0),
 });

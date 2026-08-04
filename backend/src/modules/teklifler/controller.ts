@@ -13,6 +13,7 @@ import { scheduleOfferFollowup } from '@/modules/crm/reminders.repository';
 import { recordOfferCommunication } from '@/modules/crm/communications.repository';
 import { emitAutomationEvent } from '@/modules/crm/automation.repository';
 import { writeCrmAudit } from '@/modules/crm/audit';
+import { crmScope } from '@/modules/crm/scope';
 
 import { PdfUnavailableError } from './pdf.service';
 import { buildTeklifPdf } from './teklif-pdf';
@@ -159,7 +160,7 @@ export const publicTeklifByToken: RouteHandler = async (req, reply) => {
 export const listTeklifler: RouteHandler = async (req, reply) => {
   const parsed = teklifListQuerySchema.safeParse(req.query);
   if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_sorgu_parametreleri', issues: parsed.error.flatten() } });
-  const { items, total } = await repoListTeklifler(parsed.data);
+  const scope=crmScope(req),query=scope.isTeam?parsed.data:{...parsed.data,ownerUserId:scope.userId??undefined};const { items, total } = await repoListTeklifler(query);
   reply.header('x-total-count', String(total));
   return items;
 };
@@ -300,7 +301,7 @@ export const deleteKalem: RouteHandler = async (req, reply) => {
 export const listTalepler: RouteHandler = async (req, reply) => {
   const parsed = talepListQuerySchema.safeParse(req.query);
   if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_sorgu_parametreleri', issues: parsed.error.flatten() } });
-  const { items, total } = await repoListTalepler(parsed.data);
+  const scope=crmScope(req),query=scope.isTeam?parsed.data:{...parsed.data,ownerUserId:scope.userId??undefined};const { items, total } = await repoListTalepler(query);
   reply.header('x-total-count', String(total));
   return items;
 };
@@ -316,7 +317,7 @@ export const updateTalep: RouteHandler = async (req, reply) => {
   const { id } = req.params as { id: string };
   const parsed = talepPatchSchema.safeParse(req.body);
   if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
-  const dto = await repoPatchTalep(id, parsed.data);
+  const scope=crmScope(req),body=scope.isTeam?parsed.data:{...parsed.data,atananUserId:scope.userId};const dto = await repoPatchTalep(id, body);
   if (!dto) return reply.code(404).send({ error: { message: 'talep_bulunamadi' } });
   return dto;
 };

@@ -20,6 +20,10 @@ export type AdminPermissionKey =
   | 'admin.crm_firsatlar'
   | 'admin.crm_pipeline'
   | 'admin.crm_aktiviteler'
+  | 'admin.crm_dashboard'
+  | 'admin.crm_talepler'
+  | 'admin.crm_raporlar'
+  | 'admin.crm_otomasyon'
   | 'admin.uretim_emirleri'
   | 'admin.makine_havuzu'
   | 'admin.is_yukler'
@@ -85,6 +89,10 @@ const ADMIN_PERMISSION_MAP: Record<AdminPermissionKey, AppRole[]> = {
   'admin.crm_firsatlar': ADMIN_AND_SEVKIYATCI,
   'admin.crm_pipeline': ADMIN_ONLY,
   'admin.crm_aktiviteler': ADMIN_AND_SEVKIYATCI,
+  'admin.crm_dashboard': ADMIN_AND_SEVKIYATCI,
+  'admin.crm_talepler': ADMIN_AND_SEVKIYATCI,
+  'admin.crm_raporlar': ADMIN_AND_SEVKIYATCI,
+  'admin.crm_otomasyon': ADMIN_ONLY,
   'admin.uretim_emirleri': ADMIN_AND_OPERATOR,
   'admin.makine_havuzu': ['admin', 'operator', 'sevkiyatci'],
   'admin.is_yukler': ADMIN_AND_OPERATOR,
@@ -123,6 +131,10 @@ const MODULE_META: Record<AdminPermissionKey, { label: string; group: string }> 
   'admin.crm_firsatlar': { label: 'CRM Fırsatlar', group: 'CRM' },
   'admin.crm_pipeline': { label: 'CRM Pipeline Yönetimi', group: 'CRM' },
   'admin.crm_aktiviteler': { label: 'CRM Aktiviteler', group: 'CRM' },
+  'admin.crm_dashboard': { label: 'CRM Dashboard', group: 'CRM' },
+  'admin.crm_talepler': { label: 'CRM Talepler', group: 'CRM' },
+  'admin.crm_raporlar': { label: 'CRM Raporlar', group: 'CRM' },
+  'admin.crm_otomasyon': { label: 'CRM Otomasyon', group: 'CRM' },
   'admin.uretim_emirleri': { label: 'Uretim Emirleri', group: 'ERP' },
   'admin.makine_havuzu': { label: 'Makine Havuzu', group: 'ERP' },
   'admin.is_yukler': { label: 'Makine Is Yukleri', group: 'ERP' },

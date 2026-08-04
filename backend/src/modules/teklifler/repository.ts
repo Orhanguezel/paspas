@@ -181,6 +181,7 @@ export async function repoListTeklifler(q: TeklifListQuery): Promise<{ items: Re
   const conds = [];
   if (q.durum) conds.push(eq(teklifler.durum, q.durum));
   if (q.musteriId) conds.push(eq(teklifler.musteri_id, q.musteriId));
+  if (q.ownerUserId) conds.push(eq(teklifler.created_by, q.ownerUserId));
   if (q.q) conds.push(or(like(teklifler.teklif_no, `%${q.q}%`), like(musteriler.ad, `%${q.q}%`)));
   const where = conds.length ? and(...conds) : undefined;
 
@@ -548,6 +549,7 @@ export async function repoDeleteKalem(teklifId: string, kalemId: string): Promis
 export async function repoListTalepler(q: TalepListQuery): Promise<{ items: ReturnType<typeof teklifTalepRowToDto>[]; total: number }> {
   const conds = [];
   if (q.durum) conds.push(eq(teklifTalepleri.durum, q.durum));
+  if (q.ownerUserId) conds.push(eq(teklifTalepleri.atanan_user_id, q.ownerUserId));
   if (q.q) conds.push(or(like(teklifTalepleri.ad, `%${q.q}%`), like(teklifTalepleri.firma, `%${q.q}%`), like(teklifTalepleri.email, `%${q.q}%`)));
   const where = conds.length ? and(...conds) : undefined;
 
