@@ -311,7 +311,7 @@ dönüştürülmesi
   - Gönderim hataları kullanıcıya anlaşılır gösterilecek.
   - Kabul: Her eylem sonrası liste ve detay durumu yenileniyor.
 
-- [ ] **23. Müşteri ve satış siparişi ekranlarına teklif sekmesi ekle** — `high`
+- [x] **23. Müşteri ve satış siparişi ekranlarına teklif sekmesi ekle** — `high`
   - Müşteri detayında talepler ve teklif geçmişi; sipariş detayında kaynak
     teklif/revizyon bağlantısı gösterilecek.
   - Kabul: Kullanıcı müşteri → teklif → sipariş zincirinde gezinebiliyor.
