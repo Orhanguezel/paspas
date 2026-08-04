@@ -17,6 +17,7 @@ export const teklifNoSayaclari = mysqlTable('teklif_no_sayaclari', {
 export const teklifTalepleri = mysqlTable('teklif_talepleri', {
   id: char('id', { length: 36 }).primaryKey().notNull(),
   kaynak_sayfa: varchar('kaynak_sayfa', { length: 255 }),
+  referrer: varchar('referrer', { length: 1000 }),
   dil: varchar('dil', { length: 8 }).notNull().default('tr'),
   ad: varchar('ad', { length: 160 }).notNull(),
   firma: varchar('firma', { length: 200 }),
@@ -227,6 +228,7 @@ export function teklifTalepRowToDto(row: TeklifTalepRow) {
   return {
     id: row.id,
     kaynakSayfa: row.kaynak_sayfa ?? null,
+    referrer: row.referrer ?? null,
     dil: row.dil,
     ad: row.ad,
     firma: row.firma ?? null,

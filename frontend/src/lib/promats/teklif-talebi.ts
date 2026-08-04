@@ -6,6 +6,7 @@ export type TeklifTalepUrun = {
 
 export type TeklifTalepPayload = {
   kaynakSayfa: string;
+  referrer?: string;
   dil: 'tr' | 'en' | 'de';
   ad: string;
   firma?: string;

@@ -101,6 +101,7 @@ export default function PromatsContactForm({ labels, formClassName, products = [
     try {
       const body = isQuote ? buildTeklifTalepPayload({
         kaynakSayfa: sourcePage,
+        referrer: typeof document !== 'undefined' ? document.referrer.slice(0, 1000) : undefined,
         dil: (['tr', 'en', 'de'].includes(locale) ? locale : 'tr') as 'tr' | 'en' | 'de',
         ad: String(form.get('name') ?? '').trim(),
         email: String(form.get('email') ?? '').trim() || undefined,

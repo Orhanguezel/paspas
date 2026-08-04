@@ -48,6 +48,7 @@ export default function PromatsOemContactForm({ labels, success, error }: Props)
       const interest = String(form.get('productInterest') ?? '').trim();
       const payload = buildTeklifTalepPayload({
         kaynakSayfa: '/en/oem-manufacturing', dil: 'en',
+        referrer: typeof document !== 'undefined' ? document.referrer.slice(0, 1000) : undefined,
         ad: String(form.get('company') ?? '').trim(), firma: String(form.get('company') ?? '').trim(),
         email: String(form.get('email') ?? '').trim(), telefon: String(form.get('phone') ?? '').trim(),
         konu: 'OEM & Private Label', mesaj: String(form.get('message') ?? '').trim(),

@@ -81,13 +81,15 @@ dönüştürülmesi
   - `220`, `222`, `223` ve `239` migrationları sayaç, teklif, kalem, revizyon,
     gönderim, talep ve şablon tablolarını idempotent olarak kurar.
 
-- [ ] **5. Web teklif talepleri tablosunu oluştur** — `critical`
+- [x] **5. Web teklif talepleri tablosunu oluştur** — `critical`
   - Alanlar: kaynak sayfa, dil, ad/şirket, e-posta, telefon, konu, mesaj,
     seçilen ürünler, UTM/referrer, KVKK onayı, durum, sorumlu, müşteri ve teklif
     bağlantısı, oluşturulma zamanı.
   - Durumlar: `yeni`, `inceleniyor`, `musteriye_donustu`,
     `teklife_donustu`, `istenmeyen`, `kapandi`.
   - Kabul: Her web gönderimi tekil ve izlenebilir kayıt oluşturuyor.
+  - `220`, `225`, `235` ve `240` migrationları temel kayıt, CRM detayı, OEM
+    form detayları ve referrer izini birlikte saklar.
 
 - [ ] **6. Public teklif talebi endpointini geliştir** — `critical`
   - Yeni endpoint mevcut `/web/promats/contact`tan ayrılacak veya açık bir

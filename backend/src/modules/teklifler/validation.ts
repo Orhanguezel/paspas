@@ -125,6 +125,7 @@ export const talepPatchSchema = z.object({
 // Public web intake — spam/boyut korumalı
 export const talepPublicSchema = z.object({
   kaynakSayfa: z.string().trim().max(255).optional(),
+  referrer: z.string().trim().max(1000).optional(),
   dil: dilEnum.default('tr'),
   ad: z.string().trim().min(1, 'Ad zorunlu').max(160),
   firma: z.string().trim().max(200).optional(),
