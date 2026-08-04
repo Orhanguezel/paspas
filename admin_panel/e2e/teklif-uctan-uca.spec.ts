@@ -37,8 +37,9 @@ test('web talebi admin üzerinden siparişe kadar ilerler', async ({ page, reque
   await leadRow.click();
   await expect(page.getByText('Playwright uçtan uca teklif testi')).toBeVisible();
   await page.getByRole('button', { name:/Müşteri \+ Taslak Teklife Dönüştür/i }).click();
-  await expect(page.getByRole('dialog')).toContainText(marker);
-  await page.getByRole('dialog').getByRole('button', { name:'Teklife Dönüştür' }).click();
+  const conversionDialog = page.getByRole('dialog');
+  await expect(conversionDialog.locator('input').first()).toHaveValue(marker);
+  await conversionDialog.getByRole('button', { name:'Teklife Dönüştür' }).click();
   await expect(page).toHaveURL(/\/admin\/teklifler\/[0-9a-f-]+/);
 
   const offerId = page.url().split('/').pop()!;
