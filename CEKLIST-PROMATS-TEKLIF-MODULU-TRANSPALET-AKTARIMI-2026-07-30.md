@@ -279,7 +279,7 @@ dönüştürülmesi
 
 ## Faz 3 — Admin panel
 
-- [ ] **18. Teklif Talepleri gelen kutusunu oluştur** — `critical`
+- [x] **18. Teklif Talepleri gelen kutusunu oluştur** — `critical`
   - Yeni/inceleniyor/dönüştürüldü/spam filtreleri; arama, tarih, dil, konu ve
     sorumlu filtreleri olacak.
   - Detayda form içeriği, seçilen ürünler, kaynak URL ve UTM bilgileri
