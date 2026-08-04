@@ -364,7 +364,7 @@ dönüştürülmesi
   - Dil, kaynak sayfa, ürün slug/ID, UTM ve KVKK onayı eklenecek.
   - Kabul: Backend alanları ayrıştırmadan doğrudan saklayabiliyor.
 
-- [ ] **26. İletişim ve OEM teklif formlarını yeni endpoint’e bağla** — `critical`
+- [x] **26. İletişim ve OEM teklif formlarını yeni endpoint’e bağla** — `critical`
   - `Teklif Talebi` seçilince teklif endpointi; diğer konularda iletişim
     endpointi kullanılacak.
   - OEM formunun şirket, ülke, web sitesi, ürün ilgisi ve miktar alanları ayrı
