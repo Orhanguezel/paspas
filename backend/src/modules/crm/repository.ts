@@ -34,12 +34,42 @@ export async function listDeals(q: DealList) {
   return { items, total: Number(counts[0]?.count ?? 0) };
 }
 
-export async function getDeal(id: string) {
+export async function getDeal(id: string): Promise<(Record<string, unknown> & { id: string; erpAkisi: Awaited<ReturnType<typeof getDealErpFlow>> }) | null> {
   const [rows] = await pool.execute<Row[]>(
     `SELECT d.*,m.ad musteri_adi,p.name pipeline_name,s.name stage_name,s.renk stage_color
      FROM crm_deals d LEFT JOIN musteriler m ON m.id=d.musteri_id JOIN crm_pipelines p ON p.id=d.pipeline_id JOIN crm_stages s ON s.id=d.stage_id WHERE d.id=?`, [id],
   );
-  return rows[0] ?? null;
+  if (!rows[0]) return null;
+  return { ...(rows[0] as Record<string, unknown>), id: String(rows[0].id), erpAkisi: await getDealErpFlow(id) };
+}
+
+export async function getDealErpFlow(dealId: string) {
+  const [offers] = await pool.execute<Row[]>(
+    `SELECT t.id,t.teklif_no,t.durum,t.para_birimi,t.genel_toplam,t.donusen_siparis_id,t.created_at,t.updated_at
+     FROM crm_deal_teklifleri dt JOIN teklifler t ON t.id=dt.teklif_id
+     WHERE dt.firsat_id=? ORDER BY t.created_at`, [dealId],
+  );
+  const [orders] = await pool.execute<Row[]>(
+    `SELECT ss.id,ss.siparis_no,ss.durum,ss.siparis_tarihi,ss.termin_tarihi,ss.created_at,ss.updated_at,t.id teklif_id
+     FROM crm_deal_teklifleri dt JOIN teklifler t ON t.id=dt.teklif_id
+     JOIN satis_siparisleri ss ON ss.id=t.donusen_siparis_id
+     WHERE dt.firsat_id=? ORDER BY ss.created_at`, [dealId],
+  );
+  const [production] = await pool.execute<Row[]>(
+    `SELECT DISTINCT ue.id,ue.emir_no,ue.durum,ue.planlanan_miktar,ue.uretilen_miktar,ue.baslangic_tarihi,ue.bitis_tarihi,sk.siparis_id
+     FROM crm_deal_teklifleri dt JOIN teklifler t ON t.id=dt.teklif_id
+     JOIN siparis_kalemleri sk ON sk.siparis_id=t.donusen_siparis_id
+     JOIN uretim_emri_siparis_kalemleri uesk ON uesk.siparis_kalem_id=sk.id
+     JOIN uretim_emirleri ue ON ue.id=uesk.uretim_emri_id
+     WHERE dt.firsat_id=? ORDER BY ue.created_at`, [dealId],
+  );
+  const [shipments] = await pool.execute<Row[]>(
+    `SELECT DISTINCT se.id,se.sevk_emri_no,se.durum,se.miktar,se.tarih,se.siparis_id,se.kaynak_uretim_emri_id
+     FROM crm_deal_teklifleri dt JOIN teklifler t ON t.id=dt.teklif_id
+     JOIN sevk_emirleri se ON se.siparis_id=t.donusen_siparis_id
+     WHERE dt.firsat_id=? ORDER BY se.created_at`, [dealId],
+  );
+  return { offers, orders, production, shipments };
 }
 
 export async function createDeal(body: DealCreate, userId: string | null) {

@@ -457,6 +457,15 @@ export async function repoTeklifiSipariseDonustur(
 
     await tx.update(teklifler).set({ donusen_siparis_id: siparisId }).where(eq(teklifler.id, teklifId));
 
+    // CRM bağlantılı teklif sipariş olduğunda aynı transaction içinde fırsatı kazanıldı yap.
+    // Pipeline'ın kendi kazanıldı aşaması kullanılır; bağlantısız teklifler etkilenmez.
+    await tx.execute(sql`
+      UPDATE crm_deals d
+      JOIN crm_deal_teklifleri dt ON dt.firsat_id=d.id AND dt.teklif_id=${teklifId}
+      JOIN crm_stages won ON won.pipeline_id=d.pipeline_id AND won.is_won=1
+      SET d.stage_id=won.id,d.status='won',d.probability=100,d.lost_reason=NULL,d.lost_reason_id=NULL,d.closed_at=CURRENT_TIMESTAMP
+    `);
+
     // Aday müşteri → aktif (teklif siparişe dönüştü, artık gerçek müşteri)
     await tx.update(musteriler)
       .set({ musteri_durumu: 'aktif' })
