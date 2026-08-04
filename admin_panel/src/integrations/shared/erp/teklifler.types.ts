@@ -61,6 +61,9 @@ export interface TeklifDto {
   teklifNo: string;
   musteriId: string;
   musteriAd: string | null;
+  ownerUserId: string | null;
+  ownerName: string | null;
+  revizyonNo: number;
   talepId: string | null;
   durum: TeklifDurum;
   dil: string;
@@ -316,6 +319,9 @@ export function normalizeTeklif(raw: unknown): TeklifDto {
     teklifNo:      toStr(r.teklifNo),
     musteriId:     toStr(r.musteriId),
     musteriAd:     r.musteriAd != null ? toStr(r.musteriAd) : null,
+    ownerUserId:   r.ownerUserId != null ? toStr(r.ownerUserId) : null,
+    ownerName:     r.ownerName != null ? toStr(r.ownerName) : null,
+    revizyonNo:    toNum(r.revizyonNo),
     talepId:       r.talepId != null ? toStr(r.talepId) : null,
     durum:         (toStr(r.durum, 'taslak')) as TeklifDurum,
     dil:           toStr(r.dil, 'tr'),

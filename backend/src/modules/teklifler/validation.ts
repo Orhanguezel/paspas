@@ -23,9 +23,17 @@ export const teklifListQuerySchema = z.object({
   durum: z.enum(TEKLIF_DURUMLARI).optional(),
   musteriId: z.string().uuid().optional(),
   ownerUserId: z.string().uuid().optional(),
+  paraBirimi: paraBirimiEnum.optional(),
+  dil: dilEnum.optional(),
+  dateFrom: z.string().date().optional(),
+  dateTo: z.string().date().optional(),
+  gecerlilikFrom: z.string().date().optional(),
+  gecerlilikTo: z.string().date().optional(),
+  sort: z.enum(['created_at','updated_at','gecerlilik_tarihi','genel_toplam','teklif_no']).default('updated_at'),
+  order: z.enum(['asc','desc']).default('desc'),
   limit: z.coerce.number().int().min(1).max(500).default(100),
   offset: z.coerce.number().int().min(0).default(0),
-});
+}).refine((v)=>!v.dateFrom||!v.dateTo||v.dateFrom<=v.dateTo,{message:'Geçersiz tarih aralığı'}).refine((v)=>!v.gecerlilikFrom||!v.gecerlilikTo||v.gecerlilikFrom<=v.gecerlilikTo,{message:'Geçersiz geçerlilik aralığı'});
 
 // Mevcut müşteri seç VEYA satır içi yeni "aday müşteri" ekle
 const yeniMusteriSchema = z.object({

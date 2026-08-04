@@ -34,6 +34,15 @@ export interface TeklifListParams {
   q?: string;
   durum?: TeklifDurum;
   musteriId?: string;
+  ownerUserId?: string;
+  paraBirimi?: 'TRY'|'USD'|'EUR';
+  dil?: 'tr'|'en'|'de';
+  dateFrom?: string;
+  dateTo?: string;
+  gecerlilikFrom?: string;
+  gecerlilikTo?: string;
+  sort?: 'created_at'|'updated_at'|'gecerlilik_tarihi'|'genel_toplam'|'teklif_no';
+  order?: 'asc'|'desc';
   limit?: number;
   offset?: number;
 }

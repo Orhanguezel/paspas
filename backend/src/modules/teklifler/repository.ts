@@ -9,6 +9,7 @@ import type { RowDataPacket } from 'mysql2';
 import { and, asc, desc, eq, gte, inArray, like, lt, or, sql } from 'drizzle-orm';
 
 import { db, pool } from '@/db/client';
+import { users } from '@/modules/auth/schema';
 import type { AppRole } from '@/common/middleware/roles';
 import { TEKLIF_ISKONTO_LIMITLERI } from '@/common/middleware/permissions';
 import { repoCreate as musteriRepoCreate } from '@/modules/musteriler/repository';
@@ -183,15 +184,24 @@ export async function repoListTeklifler(q: TeklifListQuery): Promise<{ items: Re
   if (q.durum) conds.push(eq(teklifler.durum, q.durum));
   if (q.musteriId) conds.push(eq(teklifler.musteri_id, q.musteriId));
   if (q.ownerUserId) conds.push(eq(teklifler.created_by, q.ownerUserId));
+  if (q.paraBirimi) conds.push(eq(teklifler.para_birimi, q.paraBirimi));
+  if (q.dil) conds.push(eq(teklifler.dil, q.dil));
+  if(q.dateFrom)conds.push(gte(teklifler.created_at,new Date(`${q.dateFrom}T00:00:00`)));
+  if(q.dateTo)conds.push(lt(teklifler.created_at,new Date(new Date(`${q.dateTo}T00:00:00`).getTime()+86_400_000)));
+  if(q.gecerlilikFrom)conds.push(gte(teklifler.gecerlilik_tarihi,new Date(`${q.gecerlilikFrom}T00:00:00`)));
+  if(q.gecerlilikTo)conds.push(lt(teklifler.gecerlilik_tarihi,new Date(new Date(`${q.gecerlilikTo}T00:00:00`).getTime()+86_400_000)));
   if (q.q) conds.push(or(like(teklifler.teklif_no, `%${q.q}%`), like(musteriler.ad, `%${q.q}%`)));
   const where = conds.length ? and(...conds) : undefined;
 
+  const sortColumns={created_at:teklifler.created_at,updated_at:teklifler.updated_at,gecerlilik_tarihi:teklifler.gecerlilik_tarihi,genel_toplam:teklifler.genel_toplam,teklif_no:teklifler.teklif_no};
+  const orderBy=q.order==='asc'?asc(sortColumns[q.sort]):desc(sortColumns[q.sort]);
   const [rows, countRes] = await Promise.all([
-    db.select({ t: teklifler, musteriAd: musteriler.ad })
+    db.select({ t: teklifler, musteriAd: musteriler.ad, ownerName: users.full_name, ownerEmail:users.email, revizyonNo:sql<number>`COALESCE((SELECT MAX(r.revizyon_no) FROM teklif_revizyonlari r WHERE r.teklif_id=${teklifler.id}),0)` })
       .from(teklifler)
       .leftJoin(musteriler, eq(musteriler.id, teklifler.musteri_id))
+      .leftJoin(users,eq(users.id,teklifler.created_by))
       .where(where)
-      .orderBy(desc(teklifler.created_at))
+      .orderBy(orderBy)
       .limit(q.limit).offset(q.offset),
     db.select({ c: sql<number>`count(*)` }).from(teklifler)
       .leftJoin(musteriler, eq(musteriler.id, teklifler.musteri_id))
@@ -199,7 +209,7 @@ export async function repoListTeklifler(q: TeklifListQuery): Promise<{ items: Re
   ]);
 
   return {
-    items: rows.map((r) => teklifRowToDto(r.t, { musteriAd: r.musteriAd })),
+    items: rows.map((r) => teklifRowToDto(r.t, { musteriAd: r.musteriAd,ownerName:r.ownerName??r.ownerEmail,revizyonNo:Number(r.revizyonNo) })),
     total: Number(countRes[0]?.c ?? 0),
   };
 }

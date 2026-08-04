@@ -163,6 +163,8 @@ export function teklifRowToDto(
   row: TeklifRow,
   extras?: {
     musteriAd?: string | null;
+    ownerName?: string | null;
+    revizyonNo?: number;
     kalemler?: ReturnType<typeof teklifKalemRowToDto>[];
     gonderimler?: ReturnType<typeof teklifGonderimRowToDto>[];
     revizyonlar?: ReturnType<typeof teklifRevizyonRowToDto>[];
@@ -173,6 +175,9 @@ export function teklifRowToDto(
     teklifNo: row.teklif_no,
     musteriId: row.musteri_id,
     musteriAd: extras?.musteriAd ?? null,
+    ownerUserId: row.created_by ?? null,
+    ownerName: extras?.ownerName ?? null,
+    revizyonNo: extras?.revizyonNo ?? 0,
     talepId: row.talep_id ?? null,
     durum: row.durum,
     dil: row.dil,
