@@ -117,11 +117,13 @@ dönüştürülmesi
   - `scripts/uat-teklif-crud-api.mjs` CRUD, yetki, filtreler ve yalnız-taslak
     güncelleme/silme kapılarını gerçek HTTP katmanında doğrular.
 
-- [ ] **9. Teklif kalemleri ve ürün snapshot’ını uygula** — `critical`
+- [x] **9. Teklif kalemleri ve ürün snapshot’ını uygula** — `critical`
   - Ürün seçimi yanında manuel açıklama kalemine izin verilecek.
   - Ürün adı/kodu, birim, açıklama, fiyat ve gerekli teknik bilgiler teklif
     anında snapshot olarak saklanacak.
   - Kabul: Ürün kartı değiştiğinde gönderilmiş teklif değişmiyor.
+  - `scripts/uat-teklif-line-snapshot-api.mjs` ERP ürün ve manuel kalemi,
+    gönderim sonrası değişmez snapshot'ı ve düzenleme kilidini doğrular.
 
 - [ ] **10. Merkezi toplam hesaplama motorunu uyarlа** — `critical`
   - Miktar × fiyat, satır indirimi, genel indirim, nakliye, KDV dahil/haric ve
