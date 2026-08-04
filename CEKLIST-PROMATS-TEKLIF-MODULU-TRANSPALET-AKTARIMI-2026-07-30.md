@@ -176,14 +176,14 @@ dönüştürülmesi
   - Varsayılan Promats satış pipeline’ı başlangıç verisi oluşturulacak.
   - Kabul: Birden fazla pipeline ve yönetilebilir aşama sırası destekleniyor.
 
-- [ ] **35. Talep/lead veri modelini CRM ile birleştir** — `critical`
+- [x] **35. Talep/lead veri modelini CRM ile birleştir** — `critical`
   - Web teklif talepleri ayrı ve kopuk tablo olmak yerine CRM talep kaynağı
     olarak tasarlanacak veya güvenli birebir bağ kurulacak.
   - Kaynak, kanal, ürün ilgisi, kampanya/UTM, sorumlu, öncelik, durum,
     müşteri/fırsat ilişkisi ve dönüşüm zamanı saklanacak.
   - Kabul: Aynı web kaydı ikinci kez fırsata dönüştürülemiyor.
 
-- [ ] **36. CRM fırsat veri modelini ve API’lerini taşı** — `critical`
+- [x] **36. CRM fırsat veri modelini ve API’lerini taşı** — `critical`
   - Pipeline/aşama, müşteri, talep, yetkili, başlık, durum, tahmini tutar, para
     birimi, sorumlu, olasılık, beklenen kapanış ve kaybetme nedeni alanları
     uyarlanacak.
@@ -191,7 +191,7 @@ dönüştürülmesi
     Paspas yetki standardına bağlanacak.
   - Kabul: Fırsatın bütün temel işlemleri audit kaydıyla yapılabiliyor.
 
-- [ ] **37. Talep → müşteri → fırsat dönüşümünü transaction ile kur** — `critical`
+- [x] **37. Talep → müşteri → fırsat dönüşümünü transaction ile kur** — `critical`
   - Talep mevcut müşteriye eşlenebilecek veya yeni müşteri oluşturabilecek.
   - Fırsat ve ilk aktivite aynı işlemde oluşturulacak; kısmi başarısızlıkta
     bütün değişiklikler geri alınacak.

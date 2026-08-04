@@ -573,22 +573,28 @@ export async function repoPatchTalep(id: string, body: TalepPatchBody): Promise<
 
 export async function repoCreateTalepPublic(body: TalepPublicBody, ipHash: string | null): Promise<{ id: string }> {
   const id = randomUUID();
-  await db.insert(teklifTalepleri).values({
-    id,
-    kaynak_sayfa: body.kaynakSayfa ?? null,
-    dil: body.dil,
-    ad: body.ad,
-    firma: body.firma ?? null,
-    email: body.email ?? null,
-    telefon: body.telefon ?? null,
-    konu: body.konu ?? null,
-    mesaj: body.mesaj ?? null,
-    secili_urunler: body.seciliUrunler ?? null,
-    utm: body.utm ?? null,
-    kvkk_onay: body.kvkkOnay ? 1 : 0,
-    durum: 'yeni',
-    ip_hash: ipHash,
-  });
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.execute(
+      `INSERT INTO teklif_talepleri
+       (id,kaynak_sayfa,dil,ad,firma,email,telefon,konu,mesaj,secili_urunler,utm,kvkk_onay,durum,ip_hash)
+       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,\'yeni\',?)`,
+      [id,body.kaynakSayfa??null,body.dil,body.ad,body.firma??null,body.email??null,body.telefon??null,body.konu??null,body.mesaj??null,
+       body.seciliUrunler ? JSON.stringify(body.seciliUrunler) : null,body.utm ? JSON.stringify(body.utm) : null,body.kvkkOnay?1:0,ipHash],
+    );
+    await connection.execute(
+      `INSERT INTO crm_talep_detaylari(talep_id,source,channel,product_interest,campaign)
+       VALUES(?,'web','form',?,?)`,
+      [id,body.seciliUrunler ? JSON.stringify(body.seciliUrunler) : null,body.utm?.utm_campaign??null],
+    );
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
   return { id };
 }
 
