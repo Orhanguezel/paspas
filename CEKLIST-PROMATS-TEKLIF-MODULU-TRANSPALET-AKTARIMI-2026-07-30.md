@@ -222,7 +222,7 @@ dönüştürülmesi
   - SMTP hataları ve gönderim kimlikleri kayıt altında tutulacak.
   - Kabul: Teklif e-postası ayrıca CRM iletişim geçmişinde görünüyor.
 
-- [ ] **42. Kaybedilme nedenleri ve kapanış kurallarını taşı** — `high`
+- [x] **42. Kaybedilme nedenleri ve kapanış kurallarını taşı** — `high`
   - Yönetilebilir kaybetme nedeni listesi olacak.
   - Kazanıldı/kaybedildi aşamalarına geçişte gerekli alanlar doğrulanacak.
   - Kabul: Kaybedilen fırsat neden olmadan kapatılamıyor; raporlara yansıyor.
