@@ -109,11 +109,13 @@ dönüştürülmesi
   - Canlı yönlendirme testi genel iletişim için `/contact`; `Teklif Talebi` ve
     `OEM & Private Label` için `/teklif-talebi` rotasını doğrular.
 
-- [ ] **8. Teklif CRUD ve listeleme API’lerini taşı** — `critical`
+- [x] **8. Teklif CRUD ve listeleme API’lerini taşı** — `critical`
   - Liste, detay, oluşturma, yalnız taslakta güncelleme ve yalnız taslakta silme
     endpointleri Paspas backend standardına uyarlanacak.
   - Arama/filtre: teklif no, müşteri, durum, tarih, sorumlu ve para birimi.
   - Kabul: Yetkili kullanıcı teklif yaşam döngüsünü API üzerinden yönetebiliyor.
+  - `scripts/uat-teklif-crud-api.mjs` CRUD, yetki, filtreler ve yalnız-taslak
+    güncelleme/silme kapılarını gerçek HTTP katmanında doğrular.
 
 - [ ] **9. Teklif kalemleri ve ürün snapshot’ını uygula** — `critical`
   - Ürün seçimi yanında manuel açıklama kalemine izin verilecek.
