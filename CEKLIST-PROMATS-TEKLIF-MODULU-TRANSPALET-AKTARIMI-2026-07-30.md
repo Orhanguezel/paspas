@@ -390,7 +390,7 @@ dönüştürülmesi
   - Toplam/KDV/iskonto, durum geçişi, snapshot, numara yarışı, izinler,
     gönderim hatası, token ve sipariş dönüşümü test edilecek.
 
-- [ ] **30. Admin ve frontend uçtan uca senaryosunu yaz** — `critical`
+- [x] **30. Admin ve frontend uçtan uca senaryosunu yaz** — `critical`
   - Web talebi → admin gelen kutusu → müşteri eşleme → taslak → PDF → gönderim
     → görüntülenme → kabul → sipariş akışı Playwright ile doğrulanacak.
 
