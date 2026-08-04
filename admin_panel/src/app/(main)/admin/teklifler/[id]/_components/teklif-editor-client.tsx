@@ -103,6 +103,18 @@ function money(n: number, currency: string): string {
   return n.toLocaleString('tr-TR', { style: 'currency', currency: currency || 'TRY' });
 }
 
+function apiErrorMessage(err: unknown): string | undefined {
+  if (typeof err !== 'object' || !err || !('data' in err)) return undefined;
+  return (err as { data?: { error?: { message?: string } } }).data?.error?.message;
+}
+
+const GONDERIM_HATALARI: Record<string, string> = {
+  iskonto_onayi_gerekli: 'İskonto için yönetici onayı alınmadan teklif gönderilemez.',
+  pdf_servisi_kullanilamiyor: 'PDF servisi şu anda kullanılamıyor. Birkaç dakika sonra yeniden deneyin.',
+  gecersiz_istek_govdesi: 'Alıcı e-posta adresini kontrol edin.',
+  teklif_bulunamadi: 'Teklif bulunamadı veya artık erişilemiyor.',
+};
+
 export default function TeklifEditorClient({ id }: { id: string }) {
   const { t } = useLocaleContext();
   const { data, isLoading, isFetching, refetch } = useGetTeklifAdminQuery(id);
@@ -125,6 +137,7 @@ export default function TeklifEditorClient({ id }: { id: string }) {
   async function handleOnayaGonder() {
     try {
       await onayaGonder(id).unwrap();
+      await refetch();
       toast.success('Teklif onaya gönderildi.');
     } catch (err: unknown) {
       const msg = typeof err === 'object' && err && 'data' in err
@@ -136,24 +149,27 @@ export default function TeklifEditorClient({ id }: { id: string }) {
   async function handleOnayla() {
     try {
       await onaylaIskonto(id).unwrap();
+      await refetch();
       toast.success('İskonto onaylandı; teklif taslağa döndü, gönderebilirsiniz.');
     } catch { toast.error('Onaylanamadı.'); }
   }
 
-  async function handleReddet() {
-    const neden = window.prompt('Red nedeni:');
-    if (!neden || !neden.trim()) return;
+  async function confirmIskontoRed() {
+    if (!iskontoRedNedeni.trim()) { toast.error('Red nedeni zorunlu.'); return; }
     try {
-      await reddetIskonto({ id, body: { neden: neden.trim() } }).unwrap();
+      await reddetIskonto({ id, body: { neden: iskontoRedNedeni.trim() } }).unwrap();
+      await refetch();
+      setIskontoRedDialogOpen(false);
       toast.success('İskonto reddedildi; teklif taslağa döndü.');
-    } catch { toast.error('Reddedilemedi.'); }
+    } catch (err: unknown) { toast.error(apiErrorMessage(err) ?? 'Reddedilemedi.'); }
   }
 
-  async function handleRevizyon() {
-    const neden = window.prompt('Revizyon nedeni:');
-    if (!neden || !neden.trim()) return;
+  async function confirmRevizyon() {
+    if (!revizyonNedeni.trim()) { toast.error('Revizyon nedeni zorunlu.'); return; }
     try {
-      await createRevizyon({ id, body: { neden: neden.trim() } }).unwrap();
+      await createRevizyon({ id, body: { neden: revizyonNedeni.trim() } }).unwrap();
+      await refetch();
+      setRevizyonDialogOpen(false);
       toast.success('Yeni revizyon oluşturuldu; teklif taslağa döndü.');
     } catch (err: unknown) {
       const msg = typeof err === 'object' && err && 'data' in err
@@ -170,22 +186,32 @@ export default function TeklifEditorClient({ id }: { id: string }) {
     if (!aliciEmail.trim()) { toast.error('Alıcı e-posta girin.'); return; }
     try {
       await gonder({ id, body: { kanal: 'email', aliciEmail: aliciEmail.trim() } }).unwrap();
+      await refetch();
       toast.success('Teklif e-posta ile gönderildi (PDF ekli).');
       setAliciEmail('');
     } catch (err: unknown) {
       const msg = typeof err === 'object' && err && 'data' in err
         ? ((err as { data?: { error?: { message?: string; detail?: string } } }).data?.error) : undefined;
-      toast.error(msg?.message === 'eposta_gonderilemedi' ? `E-posta gönderilemedi: ${msg?.detail ?? ''}` : 'Gönderilemedi.');
+      toast.error(msg?.message === 'eposta_gonderilemedi'
+        ? `E-posta gönderilemedi${msg?.detail ? `: ${msg.detail}` : '.'}`
+        : (GONDERIM_HATALARI[msg?.message ?? ''] ?? 'Teklif gönderilemedi. Lütfen yeniden deneyin.'));
     }
   }
 
   async function handleWhatsapp(token: string | null) {
     if (!token) { toast.error('Görüntüleme linki henüz yok.'); return; }
     const link = publicLink(token);
-    try { await navigator.clipboard.writeText(link); } catch { /* pano yoksa yoksay */ }
-    try { await gonder({ id, body: { kanal: 'whatsapp_link' } }).unwrap(); } catch { /* kayıt hatası kritik değil */ }
-    window.open(`https://wa.me/?text=${encodeURIComponent(`Teklifimiz: ${link}`)}`, '_blank', 'noopener');
-    toast.success('Link kopyalandı ve WhatsApp açıldı.');
+    try {
+      await gonder({ id, body: { kanal: 'whatsapp_link' } }).unwrap();
+      await refetch();
+      let copied = true;
+      try { await navigator.clipboard.writeText(link); } catch { copied = false; }
+      window.open(`https://wa.me/?text=${encodeURIComponent(`Teklifimiz: ${link}`)}`, '_blank', 'noopener');
+      toast.success(copied ? 'Link kopyalandı ve WhatsApp açıldı.' : 'WhatsApp açıldı; bağlantıyı mesajdan paylaşabilirsiniz.');
+    } catch (err: unknown) {
+      const message = apiErrorMessage(err);
+      toast.error(GONDERIM_HATALARI[message ?? ''] ?? 'WhatsApp bağlantısı kaydedilemedi.');
+    }
   }
 
   async function handleConvert() {
@@ -212,21 +238,35 @@ export default function TeklifEditorClient({ id }: { id: string }) {
   const [deleteKalemTarget, setDeleteKalemTarget] = useState<TeklifKalemDto | null>(null);
   const [printOpen, setPrintOpen] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [iskontoRedDialogOpen, setIskontoRedDialogOpen] = useState(false);
+  const [iskontoRedNedeni, setIskontoRedNedeni] = useState('');
+  const [revizyonDialogOpen, setRevizyonDialogOpen] = useState(false);
+  const [revizyonNedeni, setRevizyonNedeni] = useState('');
 
-  async function handlePdf() {
+  async function handlePdf(mode: 'preview' | 'download') {
     setPdfLoading(true);
     try {
       const token = tokenStore.get();
       const res = await fetch(`${resolveBaseUrl()}/admin/teklifler/${id}/pdf`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (!res.ok) throw new Error(String(res.status));
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null) as { error?: { message?: string } } | null;
+        throw new Error(payload?.error?.message ?? String(res.status));
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank', 'noopener');
+      if (mode === 'preview') window.open(url, '_blank', 'noopener');
+      else {
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `${data?.teklifNo ?? 'teklif'}.pdf`;
+        anchor.click();
+      }
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } catch {
-      toast.error('PDF oluşturulamadı. Lütfen tekrar deneyin.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '';
+      toast.error(GONDERIM_HATALARI[message] ?? 'PDF oluşturulamadı. Lütfen tekrar deneyin.');
     } finally {
       setPdfLoading(false);
     }
@@ -292,6 +332,7 @@ export default function TeklifEditorClient({ id }: { id: string }) {
     }
     try {
       await setDurum({ id, body: { durum: next } }).unwrap();
+      await refetch();
       toast.success(t('admin.erp.teklifler.durumAksiyonlari.durumGuncellendi'));
     } catch (err: any) {
       const message = err?.data?.error?.message;
@@ -310,6 +351,7 @@ export default function TeklifEditorClient({ id }: { id: string }) {
     }
     try {
       await setDurum({ id, body: { durum: 'red', redNedeni: redNedeni.trim() } }).unwrap();
+      await refetch();
       toast.success(t('admin.erp.teklifler.durumAksiyonlari.durumGuncellendi'));
       setRedDialogOpen(false);
     } catch (err: any) {
@@ -380,9 +422,12 @@ export default function TeklifEditorClient({ id }: { id: string }) {
             <RefreshCcw className={`size-4${isFetching ? ' animate-spin' : ''}`} />
           </Button>
           <Button variant="outline" size="sm" onClick={() => setPrintOpen(true)}>
-            <Printer className="mr-1 size-4" /> {t('admin.erp.teklifler.detail.yazdir')}
+            <Printer className="mr-1 size-4" /> Önizle / Yazdır
           </Button>
-          <Button variant="outline" size="sm" onClick={handlePdf} disabled={pdfLoading}>
+          <Button variant="outline" size="sm" onClick={() => handlePdf('preview')} disabled={pdfLoading}>
+            <FileDown className="mr-1 size-4" /> {pdfLoading ? 'PDF…' : 'PDF Önizle'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handlePdf('download')} disabled={pdfLoading}>
             <FileDown className="mr-1 size-4" /> {pdfLoading ? 'PDF…' : 'PDF İndir'}
           </Button>
         </div>
@@ -424,7 +469,7 @@ export default function TeklifEditorClient({ id }: { id: string }) {
           {currentRole === 'admin' && (
             <div className="flex gap-2">
               <Button size="sm" onClick={handleOnayla} disabled={onaylaState.isLoading}>Onayla</Button>
-              <Button size="sm" variant="destructive" onClick={handleReddet} disabled={reddetState.isLoading}>Reddet</Button>
+              <Button size="sm" variant="destructive" onClick={() => { setIskontoRedNedeni(''); setIskontoRedDialogOpen(true); }} disabled={reddetState.isLoading}>Reddet</Button>
             </div>
           )}
         </div>
@@ -439,7 +484,7 @@ export default function TeklifEditorClient({ id }: { id: string }) {
       {revizyonUygunDurumlar.includes(data.durum) && (
         <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/20 p-3">
           <p className="text-sm text-muted-foreground">Fiyat/koşul değişikliği için yeni bir revizyon oluşturabilirsiniz. Eski teklif değişmez, ayrı bir kayıt olarak saklanır.</p>
-          <Button size="sm" variant="outline" onClick={handleRevizyon} disabled={revizyonState.isLoading}>
+          <Button size="sm" variant="outline" onClick={() => { setRevizyonNedeni(''); setRevizyonDialogOpen(true); }} disabled={revizyonState.isLoading}>
             Yeni Revizyon
           </Button>
         </div>
@@ -518,6 +563,9 @@ export default function TeklifEditorClient({ id }: { id: string }) {
                   <span className="text-xs text-muted-foreground">
                     {g.durum === 'hata' ? 'Hata' : 'Başarılı'} · {new Date(g.createdAt).toLocaleString('tr-TR')}
                   </span>
+                  {g.durum === 'hata' && g.hataMesaji && (
+                    <span className="max-w-xs text-xs text-destructive" title={g.hataMesaji}>{g.hataMesaji}</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -813,6 +861,38 @@ export default function TeklifEditorClient({ id }: { id: string }) {
             </Button>
             <Button variant="destructive" onClick={confirmRed} disabled={setDurumState.isLoading}>
               {setDurumState.isLoading ? t('admin.erp.common.saving') : t('admin.erp.teklifler.durumAksiyonlari.reddet')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={iskontoRedDialogOpen} onOpenChange={setIskontoRedDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>İskonto Onayını Reddet</DialogTitle></DialogHeader>
+          <div className="space-y-1">
+            <Label>Red nedeni</Label>
+            <Textarea value={iskontoRedNedeni} onChange={(e) => setIskontoRedNedeni(e.target.value)} placeholder="Satış ekibinin göreceği açıklama" rows={3} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIskontoRedDialogOpen(false)} disabled={reddetState.isLoading}>İptal</Button>
+            <Button variant="destructive" onClick={confirmIskontoRed} disabled={reddetState.isLoading}>
+              {reddetState.isLoading ? 'Kaydediliyor…' : 'Reddet'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={revizyonDialogOpen} onOpenChange={setRevizyonDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Yeni Revizyon Oluştur</DialogTitle></DialogHeader>
+          <div className="space-y-1">
+            <Label>Revizyon nedeni</Label>
+            <Textarea value={revizyonNedeni} onChange={(e) => setRevizyonNedeni(e.target.value)} placeholder="Fiyat veya koşul değişikliğini açıklayın" rows={3} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRevizyonDialogOpen(false)} disabled={revizyonState.isLoading}>İptal</Button>
+            <Button onClick={confirmRevizyon} disabled={revizyonState.isLoading}>
+              {revizyonState.isLoading ? 'Oluşturuluyor…' : 'Revizyon Oluştur'}
             </Button>
           </DialogFooter>
         </DialogContent>
