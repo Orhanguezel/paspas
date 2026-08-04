@@ -17,7 +17,8 @@ import {
 
 export async function registerTeklifler(app: FastifyInstance): Promise<void> {
   const guard = makeAdminPermissionGuard('admin.teklifler');
-  const talepGuard = makeAdminPermissionGuard('admin.crm_talepler');
+  const talepGuard = makeAdminPermissionGuard('admin.teklif_talepleri');
+  const gonderGuard = makeAdminPermissionGuard('admin.teklif_gonder');
   const onayGuard = makeAdminPermissionGuard('admin.teklif_onay');
 
   // Teklifler
@@ -31,7 +32,7 @@ export async function registerTeklifler(app: FastifyInstance): Promise<void> {
   app.delete(`${T}/:id`, { preHandler: [guard,requireOwnOffer] }, deleteTeklif);
   app.post(`${T}/:id/durum`, { preHandler: [guard,requireOwnOffer] }, setTeklifDurum);
   app.post(`${T}/:id/siparise-donustur`, { preHandler: [guard,requireOwnOffer] }, sipariseDonustur);
-  app.post(`${T}/:id/gonder`, { preHandler: [guard,requireOwnOffer] }, gonderTeklif);
+  app.post(`${T}/:id/gonder`, { preHandler: [gonderGuard,requireOwnOffer] }, gonderTeklif);
   app.post(`${T}/:id/onaya-gonder`, { preHandler: [guard,requireOwnOffer] }, onayaGonder);
   app.post(`${T}/:id/onayla`, { preHandler: onayGuard }, onaylaIskonto);
   app.post(`${T}/:id/onay-reddet`, { preHandler: onayGuard }, reddetIskonto);

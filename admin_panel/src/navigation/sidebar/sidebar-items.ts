@@ -165,8 +165,8 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
     id: 4,
     key: 'teklif',
     items: [
-      { key: 'teklif_talepleri', url: '/admin/teklif-talepleri', icon: Inbox, roles: ['admin'] },
-      { key: 'teklifler',        url: '/admin/teklifler',        icon: FileSignature, roles: ['admin'] },
+      { key: 'teklif_talepleri', url: '/admin/teklif-talepleri', icon: Inbox, roles: ['admin', 'nakliyeci'] },
+      { key: 'teklifler',        url: '/admin/teklifler',        icon: FileSignature, roles: ['admin', 'nakliyeci'] },
     ],
   },
   {

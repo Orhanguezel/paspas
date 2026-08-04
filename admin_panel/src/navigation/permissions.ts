@@ -101,8 +101,8 @@ const NAV_ROLES: Record<AdminNavKey, PanelRole[]> = {
   proje_teklifi:     ['admin'],
   web_sayfasi:       ['admin'],
   yazilim_gorevleri: ['admin'],
-  teklif_talepleri:  ['admin'],
-  teklifler:         ['admin'],
+  teklif_talepleri:  ['admin', 'nakliyeci'],
+  teklifler:         ['admin', 'nakliyeci'],
 };
 
 export function getAdminNavRoles(key: AdminNavKey): PanelRole[] {
