@@ -12,6 +12,7 @@ import { sendMailWithAttachments } from '@/modules/mail/service';
 import { scheduleOfferFollowup } from '@/modules/crm/reminders.repository';
 import { recordOfferCommunication } from '@/modules/crm/communications.repository';
 import { emitAutomationEvent } from '@/modules/crm/automation.repository';
+import { writeCrmAudit } from '@/modules/crm/audit';
 
 import { PdfUnavailableError } from './pdf.service';
 import { buildTeklifPdf } from './teklif-pdf';
@@ -36,6 +37,7 @@ function userIdOf(req: { user?: unknown }): string | null {
 function roleOf(req: { user?: unknown }): string {
   return (req.user as { role?: string } | undefined)?.role ?? 'operator';
 }
+async function crmAudit(req:Parameters<RouteHandler>[0],action:string,resource:string,id:string,before:unknown,after:unknown){await writeCrmAudit({actorUserId:userIdOf(req),action,resource,resourceId:id,before,after}).catch(error=>req.log.warn({error},'crm_domain_audit_failed'));}
 
 // İş kuralı hatasını uygun HTTP koduna eşle
 function mapError(reply: Parameters<RouteHandler>[1], err: unknown): void {
@@ -132,7 +134,7 @@ export const gonderTeklif: RouteHandler = async (req, reply) => {
   if (userId) await scheduleOfferFollowup(id,userId).catch((err)=>req.log.error({err},'teklif_takip_hatirlatmasi_olusturulamadi'));
   await emitAutomationEvent('offer_sent','offer',id,userId,{},`offer_sent:${id}`);
 
-  return repoGetTeklif(id);
+  const sent=await repoGetTeklif(id);await crmAudit(req,'CRM_OFFER_SENT','offers',id,teklif,sent);return sent;
 };
 
 // Public: token ile teklif PDF (siteden/WhatsApp linkiyle)
@@ -199,9 +201,9 @@ export const deleteTeklif: RouteHandler = async (req, reply) => {
 export const sipariseDonustur: RouteHandler = async (req, reply) => {
   const { id } = req.params as { id: string };
   try {
-    const result = await repoTeklifiSipariseDonustur(id);
+    const before=await repoGetTeklif(id),result = await repoTeklifiSipariseDonustur(id);
     await emitAutomationEvent('order_created','order',result.siparisId,userIdOf(req),{offerId:id},`order_created:${result.siparisId}`);
-    return reply.code(201).send(result);
+    await crmAudit(req,'CRM_ORDER_CREATED','orders',result.siparisId,null,{...result,offerBefore:before});return reply.code(201).send(result);
   } catch (err) { return mapError(reply, err); }
 };
 
@@ -210,9 +212,9 @@ export const setTeklifDurum: RouteHandler = async (req, reply) => {
   const parsed = teklifDurumSchema.safeParse(req.body);
   if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
   try {
-    const dto = await repoSetTeklifDurum(id, parsed.data.durum, parsed.data.redNedeni, roleOf(req));
+    const before=await repoGetTeklif(id),dto = await repoSetTeklifDurum(id, parsed.data.durum, parsed.data.redNedeni, roleOf(req));
     if (!dto) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
-    if(parsed.data.durum==='kabul')await emitAutomationEvent('offer_accepted','offer',id,userIdOf(req),{},`offer_accepted:${id}`);return dto;
+    if(parsed.data.durum==='kabul'){await emitAutomationEvent('offer_accepted','offer',id,userIdOf(req),{},`offer_accepted:${id}`);await crmAudit(req,'CRM_OFFER_ACCEPTED','offers',id,before,dto);}return dto;
   } catch (err) { return mapError(reply, err); }
 };
 
