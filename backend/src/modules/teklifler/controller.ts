@@ -56,6 +56,7 @@ function mapError(reply: Parameters<RouteHandler>[1], err: unknown): void {
     teklif_bulunamadi: 404,
     kalem_bulunamadi: 404,
     talep_bulunamadi: 404,
+    musteri_bulunamadi: 404,
     musteri_gerekli: 400,
   };
   const code = map[msg] ?? 500;

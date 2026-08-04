@@ -152,6 +152,7 @@ export interface TeklifCreatePayload {
 }
 
 export interface TeklifPatchPayload {
+  musteriId?: string;
   paraBirimi?: string;
   dil?: string;
   kdvOrani?: number;

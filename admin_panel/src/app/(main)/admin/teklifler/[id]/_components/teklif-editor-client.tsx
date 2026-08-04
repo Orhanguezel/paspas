@@ -51,12 +51,14 @@ import {
   useConvertTeklifToSiparisAdminMutation,
   useDeleteTeklifKalemAdminMutation,
 } from '@/integrations/endpoints/admin/erp/teklifler_admin.endpoints';
+import { useListMusterilerAdminQuery } from '@/integrations/endpoints/admin/erp/musteriler_admin.endpoints';
 import type { TeklifDurum, TeklifKalemDto, TeklifPatchPayload } from '@/integrations/shared/erp/teklifler.types';
 import { TEKLIF_DURUM_BADGE, TEKLIF_DURUM_GECISLERI, TEKLIF_ISKONTO_LIMITLERI_UI } from '@/integrations/shared/erp/teklifler.types';
 import TeklifKalemDialog from './teklif-kalem-dialog';
 import TeklifPrint from './teklif-print';
 
 const PARA_BIRIMLERI = ['TRY', 'USD', 'EUR'] as const;
+const DILLER = ['tr', 'en', 'de'] as const;
 
 const DURUM_ACTION_KEY: Record<TeklifDurum, string> = {
   taslak:        'taslagaDondur',
@@ -70,7 +72,9 @@ const DURUM_ACTION_KEY: Record<TeklifDurum, string> = {
 };
 
 interface HeaderFormState {
+  musteriId: string;
   paraBirimi: string;
+  dil: string;
   kdvOrani: string;
   kdvDahil: boolean;
   iskontoOrani: string;
@@ -82,7 +86,9 @@ interface HeaderFormState {
 }
 
 const EMPTY_FORM: HeaderFormState = {
+  musteriId: '',
   paraBirimi: 'TRY',
+  dil: 'tr',
   kdvOrani: '20',
   kdvDahil: true,
   iskontoOrani: '0',
@@ -100,6 +106,8 @@ function money(n: number, currency: string): string {
 export default function TeklifEditorClient({ id }: { id: string }) {
   const { t } = useLocaleContext();
   const { data, isLoading, isFetching, refetch } = useGetTeklifAdminQuery(id);
+  const { data: musterilerData } = useListMusterilerAdminQuery({ tur: 'musteri' });
+  const musteriler = musterilerData?.items ?? [];
   const [updateTeklif, updateState] = useUpdateTeklifAdminMutation();
   const [setDurum, setDurumState] = useSetTeklifDurumAdminMutation();
   const [convert, convertState] = useConvertTeklifToSiparisAdminMutation();
@@ -231,7 +239,9 @@ export default function TeklifEditorClient({ id }: { id: string }) {
   useEffect(() => {
     if (!data) return;
     setForm({
+      musteriId: data.musteriId,
       paraBirimi: data.paraBirimi,
+      dil: data.dil,
       kdvOrani: String(data.kdvOrani),
       kdvDahil: data.kdvDahil,
       iskontoOrani: String(data.iskontoOrani),
@@ -249,7 +259,9 @@ export default function TeklifEditorClient({ id }: { id: string }) {
 
   async function saveHeader() {
     const body: TeklifPatchPayload = {
+      musteriId: form.musteriId,
       paraBirimi: form.paraBirimi,
+      dil: form.dil,
       kdvOrani: Number(form.kdvOrani) || 0,
       kdvDahil: form.kdvDahil,
       iskontoOrani: Number(form.iskontoOrani) || 0,
@@ -409,10 +421,12 @@ export default function TeklifEditorClient({ id }: { id: string }) {
           <p className="text-sm text-amber-900">
             İskonto onayı bekleniyor (%{data.iskontoOrani}). Yalnız yönetici onaylayabilir/reddedebilir.
           </p>
-          <div className="flex gap-2">
-            <Button size="sm" onClick={handleOnayla} disabled={onaylaState.isLoading}>Onayla</Button>
-            <Button size="sm" variant="destructive" onClick={handleReddet} disabled={reddetState.isLoading}>Reddet</Button>
-          </div>
+          {currentRole === 'admin' && (
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleOnayla} disabled={onaylaState.isLoading}>Onayla</Button>
+              <Button size="sm" variant="destructive" onClick={handleReddet} disabled={reddetState.isLoading}>Reddet</Button>
+            </div>
+          )}
         </div>
       )}
       {data.iskontoOnaylandi && data.iskontoOnayAt && (
@@ -529,6 +543,26 @@ export default function TeklifEditorClient({ id }: { id: string }) {
           <CardTitle className="text-base">{t('admin.erp.teklifler.title')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label>Müşteri</Label>
+              <Select value={form.musteriId} onValueChange={(v) => patch('musteriId', v)} disabled={isLocked}>
+                <SelectTrigger><SelectValue placeholder="Müşteri seçin" /></SelectTrigger>
+                <SelectContent>
+                  {musteriler.map((m) => <SelectItem key={m.id} value={m.id}>{m.kod} — {m.ad}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Dil</Label>
+              <Select value={form.dil} onValueChange={(v) => patch('dil', v)} disabled={isLocked}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DILLER.map((dil) => <SelectItem key={dil} value={dil}>{dil.toUpperCase()}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-1">
               <Label>{t('admin.erp.teklifler.form.paraBirimi')}</Label>

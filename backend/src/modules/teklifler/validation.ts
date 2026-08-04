@@ -55,6 +55,7 @@ export const teklifCreateSchema = z.object({
 }).refine((v) => !!(v.musteriId || v.yeniMusteri), { message: 'Müşteri seçin veya yeni aday ekleyin' });
 
 export const teklifPatchSchema = z.object({
+  musteriId: z.string().uuid().optional(),
   paraBirimi: paraBirimiEnum.optional(),
   dil: dilEnum.optional(),
   kdvOrani: z.coerce.number().min(0).max(100).optional(),

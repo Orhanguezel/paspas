@@ -306,6 +306,15 @@ export async function repoPatchTeklif(id: string, body: TeklifPatchBody): Promis
   if (row.durum !== 'taslak') throw new Error('sadece_taslak_duzenlenir');
 
   const set: Partial<TeklifRow> = {};
+  if (body.musteriId !== undefined) {
+    const [musteri] = await db.select({ id: musteriler.id }).from(musteriler).where(and(
+      eq(musteriler.id, body.musteriId),
+      eq(musteriler.tur, 'musteri'),
+      eq(musteriler.is_active, 1),
+    )).limit(1);
+    if (!musteri) throw new Error('musteri_bulunamadi');
+    set.musteri_id = body.musteriId;
+  }
   if (body.paraBirimi !== undefined) set.para_birimi = body.paraBirimi;
   if (body.dil !== undefined) set.dil = body.dil;
   if (body.kdvOrani !== undefined) set.kdv_orani = String(body.kdvOrani);
