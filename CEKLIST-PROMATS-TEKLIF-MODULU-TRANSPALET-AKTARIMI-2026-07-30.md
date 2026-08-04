@@ -293,7 +293,7 @@ dönüştürülmesi
     yönetici doğrulayacak.
   - Kabul: Talep, müşteri ve teklif bağlantıları tek transaction ile kuruluyor.
 
-- [ ] **20. Teklif liste ekranını taşı ve geliştir** — `high`
+- [x] **20. Teklif liste ekranını taşı ve geliştir** — `high`
   - Teklif no, revizyon, müşteri, durum, toplam, para birimi, geçerlilik,
     sorumlu ve son işlem tarihi gösterilecek.
   - Kaydedilmiş filtreler ve sayfalama eklenecek.
