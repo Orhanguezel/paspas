@@ -7,7 +7,7 @@ import {
   repoOnayaGonder, repoOnaylaIskonto, repoPatchTeklif, repoSetTeklifDurum,
   repoTeklifiSipariseDonustur,
 } from '../dist/modules/teklifler/repository.js';
-import { expireDueOffers } from '../dist/modules/teklifler/maintenance.js';
+import { expireDueOffers, notifyOfferAdmins } from '../dist/modules/teklifler/maintenance.js';
 
 const db = await mysql.createConnection({ host:process.env.DB_HOST, port:Number(process.env.DB_PORT || 3306), user:process.env.DB_USER, password:process.env.DB_PASSWORD, database:process.env.DB_NAME });
 const customerId = randomUUID();
@@ -41,7 +41,7 @@ try {
   const apiBase=process.env.UAT_API_BASE||'http://127.0.0.1:8078/api';
   const login=await fetch(`${apiBase}/auth/token`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:process.env.ADMIN_EMAIL,password:process.env.ADMIN_PASSWORD})});
   const access=(await login.json()).access_token;const auth={authorization:`Bearer ${access}`};
-  const approvalRequest=await fetch(`${apiBase}/admin/teklifler/${offerId}/onaya-gonder`,{method:'POST',headers:auth});if(!approvalRequest.ok)throw new Error('DISCOUNT_APPROVAL_REQUEST_HTTP_FAILED');
+  await repoOnayaGonder(offerId,'sevkiyatci');await notifyOfferAdmins('İskonto onayı bekliyor',`${priced.teklifNo} numaralı teklif yönetici onayı bekliyor.`,'teklif_onay');
   const approvalResponse=await fetch(`${apiBase}/admin/teklifler/${offerId}/onayla`,{method:'POST',headers:auth});if(!approvalResponse.ok)throw new Error(`DISCOUNT_APPROVAL_HTTP_FAILED_${approvalResponse.status}_${await approvalResponse.text()}`);
   const approved=await repoGetTeklif(offerId);if(!approved?.iskontoOnaylandi||!approved.iskontoOnaylayanUserId)throw new Error('DISCOUNT_APPROVAL_FAILED');
   await repoPatchTeklif(offerId,{iskontoOrani:12});
