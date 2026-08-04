@@ -162,7 +162,7 @@ dönüştürülmesi
 
 ## Faz 2B — CRM backend ve veri modeli
 
-- [ ] **33. CRM kaynak–hedef uyumluluk matrisi hazırla** — `critical`
+- [x] **33. CRM kaynak–hedef uyumluluk matrisi hazırla** — `critical`
   - Transpalet `crm`, `talepler`, `iletisim`, `otomasyon`, servis ve rapor
     modüllerindeki tablolar, endpointler ve bağımlılıklar çıkarılacak.
   - Paspas’ta zaten bulunan müşteri, kullanıcı, görev, bildirim, satış siparişi,
@@ -170,7 +170,7 @@ dönüştürülmesi
   - Kabul: Birebir taşınacak, birleştirilecek ve kapsam dışı bırakılacak CRM
     parçaları alan seviyesinde kayıtlı.
 
-- [ ] **34. CRM pipeline ve aşama şemasını taşı** — `critical`
+- [x] **34. CRM pipeline ve aşama şemasını taşı** — `critical`
   - Pipeline, aşama sırası, kazanma olasılığı, kazanıldı/kaybedildi işaretleri,
     renk ve aşamada bekleme uyarısı Paspas migrationlarına eklenecek.
   - Varsayılan Promats satış pipeline’ı başlangıç verisi oluşturulacak.
