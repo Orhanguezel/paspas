@@ -286,7 +286,7 @@ dönüştürülmesi
     gösterilecek.
   - Kabul: Yönetici talebi kaybetmeden açıp durumunu ve sorumlusunu değiştirebilir.
 
-- [ ] **19. Talebi müşteri ve taslak teklife dönüştür** — `critical`
+- [x] **19. Talebi müşteri ve taslak teklife dönüştür** — `critical`
   - E-posta/telefon ile olası mevcut müşteriler önerilecek.
   - Yönetici mevcut müşteriyi seçebilecek veya yeni müşteri oluşturabilecek.
   - Seçilen web ürünleri taslak kalem önerisi olarak aktarılacak; fiyatı
