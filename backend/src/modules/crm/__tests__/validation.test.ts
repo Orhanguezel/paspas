@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { activityCreateSchema, activityListSchema, automationEmitSchema, automationRuleCreateSchema, communicationCreateSchema, dashboardQuerySchema, dealCreateSchema, dealMoveSchema, dealPatchSchema, dealProductSchema, dealToOfferSchema, lossReasonCreateSchema, reminderCreateSchema, reminderListSchema, talepToDealSchema } from '../validation';
+import { activityCreateSchema, activityListSchema, automationEmitSchema, automationRuleCreateSchema, communicationCreateSchema, dashboardQuerySchema, dealCreateSchema, dealMoveSchema, dealPatchSchema, dealProductSchema, dealToOfferSchema, lossReasonCreateSchema, reminderCreateSchema, reminderListSchema, reportQuerySchema, talepToDealSchema } from '../validation';
 
 describe('CRM validation', () => {
   it('fırsat varsayılanlarını güvenli üretir', () => {
@@ -73,5 +73,10 @@ describe('CRM validation', () => {
   it('dashboard ters tarih aralığını reddeder',()=>{
     expect(dashboardQuerySchema.safeParse({dateFrom:'2026-08-05',dateTo:'2026-08-04'}).success).toBe(false);
     expect(dashboardQuerySchema.safeParse({dateFrom:'2026-08-04',dateTo:'2026-08-05'}).success).toBe(true);
+  });
+
+  it('rapor filtresinde kaynak uzunluğunu ve tarihleri doğrular',()=>{
+    expect(reportQuerySchema.safeParse({source:'web',dateFrom:'2026-01-01',dateTo:'2026-12-31'}).success).toBe(true);
+    expect(reportQuerySchema.safeParse({source:'x'.repeat(65)}).success).toBe(false);
   });
 });

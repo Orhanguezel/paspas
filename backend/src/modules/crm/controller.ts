@@ -12,6 +12,7 @@ import { lossReasonCreateSchema, lossReasonPatchSchema } from './validation';
 import { createAutomationRule, emitAutomationEvent, listAutomationRules, setAutomationRuleActive } from './automation.repository';
 import { automationEmitSchema, automationRuleCreateSchema } from './validation';
 import { crmDashboard } from './dashboard.repository';import { dashboardQuerySchema } from './validation';
+import { crmReports } from './reports.repository';import { reportQuerySchema } from './validation';
 
 function userId(req: FastifyRequest) { return ((req as { user?: { sub?: string } }).user?.sub) ?? null; }
 function error(reply: FastifyReply, err: unknown) {
@@ -55,3 +56,4 @@ export const automationRuleCreate:RouteHandler=async(req,reply)=>{const p=automa
 export const automationRuleActive:RouteHandler=async(req,reply)=>{const active=(req.body as{isActive?:unknown})?.isActive;if(typeof active!=='boolean')return reply.code(400).send({error:{message:'gecersiz_istek_govdesi'}});return(await setAutomationRuleActive((req.params as{id:string}).id,active))?reply.code(204).send():reply.code(404).send({error:{message:'otomasyon_kurali_bulunamadi'}});};
 export const automationEmit:RouteHandler=async(req,reply)=>{const p=automationEmitSchema.safeParse(req.body);if(!p.success)return reply.code(400).send({error:{message:'gecersiz_istek_govdesi',issues:p.error.flatten()}});return reply.send(await emitAutomationEvent(p.data.triggerType,p.data.entityType,p.data.entityId,userId(req),p.data.payload,p.data.eventKey));};
 export const dashboard:RouteHandler=async(req,reply)=>{const p=dashboardQuerySchema.safeParse(req.query);if(!p.success)return reply.code(400).send({error:{message:'gecersiz_sorgu_parametreleri',issues:p.error.flatten()}});return reply.send(await crmDashboard(p.data));};
+export const reports:RouteHandler=async(req,reply)=>{const p=reportQuerySchema.safeParse(req.query);if(!p.success)return reply.code(400).send({error:{message:'gecersiz_sorgu_parametreleri',issues:p.error.flatten()}});return reply.send(await crmReports(p.data));};

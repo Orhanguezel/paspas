@@ -53,6 +53,7 @@ export const communicationListSchema=z.object({customerId:z.string().uuid().opti
 export const automationRuleCreateSchema=z.object({name:z.string().trim().min(1).max(160),triggerType:z.enum(['lead_created','deal_created','stage_changed','offer_sent','offer_accepted','followup_overdue','order_created','shipment_completed']),actionType:z.enum(['create_task','notify','assign_owner']),config:z.record(z.string(),z.unknown()).default({}),isActive:z.boolean().default(true),sort:z.coerce.number().int().min(0).default(0)});
 export const automationEmitSchema=z.object({triggerType:z.enum(['lead_created','deal_created','stage_changed','offer_sent','offer_accepted','followup_overdue','order_created','shipment_completed']),entityType:z.enum(['lead','deal','offer','order','shipment']),entityId:z.string().uuid(),eventKey:z.string().trim().min(1).max(190).optional(),payload:z.record(z.string(),z.unknown()).default({})});
 export const dashboardQuerySchema=z.object({ownerUserId:z.string().uuid().optional(),pipelineId:z.string().uuid().optional(),dateFrom:z.string().date().optional(),dateTo:z.string().date().optional()}).refine(v=>!v.dateFrom||!v.dateTo||v.dateFrom<=v.dateTo,'Başlangıç tarihi bitişten sonra olamaz');
+export const reportQuerySchema=dashboardQuerySchema.and(z.object({source:z.string().trim().max(64).optional()}));
 
 export type DealList = z.infer<typeof dealListSchema>;
 export type DealCreate = z.infer<typeof dealCreateSchema>;
