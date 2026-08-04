@@ -403,12 +403,16 @@ dönüştürülmesi
     formunun `/teklif-talebi` rotasını kullandığı Playwright ile doğrulandı
     (4/4 geçti); API ve web health kontrolleri `200` döndü.
 
-- [ ] **32. Production migration, smoke test ve izleme yap** — `critical`
+- [x] **32. Production migration, smoke test ve izleme yap** — `critical`
   - DB yedeği, migration, backend/admin/frontend deploy sırası ve rollback
     adımları hazırlanacak.
   - Gerçek bildirim üretmeyen işaretli UAT talebiyle uçtan uca doğrulanacak.
   - Hata oranı, kaydedilen talep, gönderilen teklif ve dönüşüm metrikleri
     izlenecek.
+  - Canlı kabul (2026-08-04): Transaction-consistent DB yedeği alınıp gzip ve
+    SHA-256 ile doğrulandı; production runbook ve salt-okunur metrik aracı
+    eklendi. Temizlenen lifecycle UAT tüm kontrolleri geçti; API/admin/web
+    smoke yanıtları `200`, ilgili PM2 süreçleri `online`.
 
 ---
 
