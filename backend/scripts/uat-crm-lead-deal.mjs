@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import mysql from 'mysql2/promise';
+import { pool } from '../dist/db/client.js';
 
 const connection = await mysql.createConnection({
   host: process.env.DB_HOST,
@@ -58,4 +59,5 @@ try {
   if (talepId) await connection.execute('DELETE FROM teklif_talepleri WHERE id=?', [talepId]);
   if (musteriId) await connection.execute('DELETE FROM musteriler WHERE id=?', [musteriId]);
   await connection.end();
+  await pool.end();
 }

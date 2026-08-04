@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import mysql from 'mysql2/promise';
 import { createDeal, createDealProduct, convertDealToOffer } from '../dist/modules/crm/repository.js';
+import { pool } from '../dist/db/client.js';
 
 const db = await mysql.createConnection({ host:process.env.DB_HOST,port:Number(process.env.DB_PORT||3306),user:process.env.DB_USER,password:process.env.DB_PASSWORD,database:process.env.DB_NAME });
 const customerId=randomUUID(); let dealId=null; let offerId=null;
@@ -22,4 +23,5 @@ try {
   if(dealId)await db.execute('DELETE FROM crm_deals WHERE id=?',[dealId]);
   await db.execute('DELETE FROM musteriler WHERE id=?',[customerId]);
   await db.end();
+  await pool.end();
 }
