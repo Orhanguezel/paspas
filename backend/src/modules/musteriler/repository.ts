@@ -19,7 +19,7 @@ function buildWhere(query: ListQuery): SQL | undefined {
   if (query.q) {
     const pattern = `%${query.q}%`;
     conditions.push(
-      sql`(${musteriler.ad} LIKE ${pattern} OR ${musteriler.kod} LIKE ${pattern} OR ${musteriler.ilgili_kisi} LIKE ${pattern} OR ${musteriler.email} LIKE ${pattern} OR ${musteriler.website_url} LIKE ${pattern} OR ${musteriler.bayi_segment} LIKE ${pattern})`,
+      sql`(${musteriler.ad} LIKE ${pattern} OR ${musteriler.kod} LIKE ${pattern} OR ${musteriler.ilgili_kisi} LIKE ${pattern} OR ${musteriler.email} LIKE ${pattern} OR ${musteriler.telefon} LIKE ${pattern} OR ${musteriler.website_url} LIKE ${pattern} OR ${musteriler.bayi_segment} LIKE ${pattern})`,
     );
   }
   if (query.tur) {

@@ -218,6 +218,7 @@ export interface TalepDonusturPayload {
 export interface TalepDonusturResponse {
   teklifId: string;
   musteriId: string;
+  aktarilanKalemSayisi: number;
 }
 
 // ── Labels & Badge variantları ──────────────────────────────

@@ -38,8 +38,8 @@ interface Props {
 export default function TalepDonusturDialog({ open, onClose, talep }: Props) {
   const { t } = useLocaleContext();
   const router = useRouter();
-
-  const { data: musterilerData } = useListMusterilerAdminQuery({ tur: 'musteri' });
+  const [musteriSearch, setMusteriSearch] = useState('');
+  const { data: musterilerData } = useListMusterilerAdminQuery({ tur: 'musteri', search: musteriSearch || undefined });
   const musteriler = musterilerData?.items ?? [];
 
   const [mode, setMode] = useState<'mevcut' | 'yeni'>('yeni');
@@ -61,6 +61,7 @@ export default function TalepDonusturDialog({ open, onClose, talep }: Props) {
       setYeniEmail(talep.email ?? '');
       setYeniAdres('');
       setParaBirimi('TRY');
+      setMusteriSearch(talep.email || talep.telefon || talep.firma || talep.ad || '');
     }
   }, [open, talep]);
 
@@ -139,6 +140,8 @@ export default function TalepDonusturDialog({ open, onClose, talep }: Props) {
           <TabsContent value="mevcut" className="space-y-3 pt-2">
             <div className="space-y-1">
               <Label>{t('admin.erp.teklifler.form.musteri')}</Label>
+              <Input placeholder="E-posta, telefon veya ad ile ara" value={musteriSearch} onChange={(e) => setMusteriSearch(e.target.value)} />
+              {musteriler.length > 0 && <p className="text-xs text-muted-foreground">{musteriler.length} olası eşleşme bulundu.</p>}
               <Select value={musteriId || 'none'} onValueChange={(v) => setMusteriId(v === 'none' ? '' : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder={t('admin.erp.teklifTalepleri.detail.musteriSec')} />
@@ -146,13 +149,15 @@ export default function TalepDonusturDialog({ open, onClose, talep }: Props) {
                 <SelectContent>
                   <SelectItem value="none" disabled>{t('admin.erp.teklifTalepleri.detail.musteriSec')}</SelectItem>
                   {musteriler.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>{m.ad}</SelectItem>
+                    <SelectItem key={m.id} value={m.id}>{m.ad}{m.email ? ` — ${m.email}` : m.telefon ? ` — ${m.telefon}` : ''}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </TabsContent>
         </Tabs>
+
+        {talep.seciliUrunler.length > 0 && <div className="rounded-md border bg-muted/20 p-3 text-sm"><p className="font-medium">Taslak kalem önerileri ({talep.seciliUrunler.length})</p><p className="text-xs text-muted-foreground">Seçilen web ürünleri miktarlarıyla aktarılır; fiyatlar teklif editöründe yönetici tarafından doğrulanmalıdır.</p></div>}
 
         <div className="space-y-1">
           <Label>{t('admin.erp.teklifler.form.paraBirimi')}</Label>

@@ -59,7 +59,7 @@ export default function TeklifTalepleriClient() {
   };
 
   const { data, isLoading, isFetching, refetch } = useListTeklifTalepleriAdminQuery(params);
-  const { data: users = [] } = useListUsersAdminQuery();
+  const { data: users = [] } = useListUsersAdminQuery(undefined);
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
   const userName = (id: string | null) => users.find((u) => u.id === id)?.full_name || users.find((u) => u.id === id)?.email || 'Atanmamış';

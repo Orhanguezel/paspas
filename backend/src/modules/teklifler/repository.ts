@@ -4,6 +4,7 @@
 // =============================================================
 
 import { randomUUID } from 'node:crypto';
+import type { RowDataPacket } from 'mysql2';
 
 import { and, asc, desc, eq, gte, inArray, like, lt, or, sql } from 'drizzle-orm';
 
@@ -620,51 +621,21 @@ export async function repoCreateTalepPublic(body: TalepPublicBody, ipHash: strin
 /** Talebi mevcut/yeni müşteriye ve taslak teklife dönüştürür (tek transaction). */
 export async function repoDonusturTalep(
   talepId: string, body: TalepDonusturBody, userId: string | null,
-): Promise<{ teklifId: string; musteriId: string }> {
-  const talepRows = await db.select().from(teklifTalepleri).where(eq(teklifTalepleri.id, talepId)).limit(1);
-  const talep = talepRows[0];
-  if (!talep) throw new Error('talep_bulunamadi');
-  if (talep.durum === 'teklife_donustu' && talep.teklif_id) throw new Error('talep_zaten_donustu');
-
-  const teklifNo = await generateTeklifNo();
-
-  // Müşteri: mevcut ya da yeni. Yeni müşteri, kod üretimi vb. için kendi
-  // modülünün repoCreate'i ile açılır (transaction öncesi).
-  let musteriId = body.musteriId ?? null;
-  if (!musteriId && body.yeniMusteri) {
-    // Web/telefon talebinden gelen yeni müşteri = aday müşteri
-    const created = await musteriRepoCreate({
-      tur: 'musteri',
-      musteriDurumu: 'aday',
-      ad: body.yeniMusteri.ad,
-      telefon: body.yeniMusteri.telefon,
-      email: body.yeniMusteri.email,
-      adres: body.yeniMusteri.adres,
-    });
-    musteriId = created.id;
-  }
-  if (!musteriId) throw new Error('musteri_gerekli');
-
-  return db.transaction(async (tx) => {
-    const teklifId = randomUUID();
-    await tx.insert(teklifler).values({
-      id: teklifId,
-      teklif_no: teklifNo,
-      musteri_id: musteriId,
-      talep_id: talepId,
-      durum: 'taslak',
-      para_birimi: body.paraBirimi,
-      aciklama: talep.mesaj ?? null,
-      goruntuleme_token: randomUUID(),
-      created_by: userId,
-    });
-
-    await tx.update(teklifTalepleri).set({
-      durum: 'teklife_donustu',
-      musteri_id: musteriId,
-      teklif_id: teklifId,
-    }).where(eq(teklifTalepleri.id, talepId));
-
-    return { teklifId, musteriId };
-  });
+): Promise<{ teklifId: string; musteriId: string; aktarilanKalemSayisi: number }> {
+  const connection=await pool.getConnection();
+  try{
+    await connection.beginTransaction();
+    const[talepler]=await connection.execute<RowDataPacket[]>('SELECT * FROM teklif_talepleri WHERE id=? FOR UPDATE',[talepId]);
+    const talep=talepler[0];if(!talep)throw new Error('talep_bulunamadi');if(talep.durum==='teklife_donustu'&&talep.teklif_id)throw new Error('talep_zaten_donustu');
+    let musteriId=body.musteriId??null;
+    if(musteriId){const[existing]=await connection.execute<RowDataPacket[]>('SELECT id FROM musteriler WHERE id=? AND tur=\'musteri\' AND is_active=1',[musteriId]);if(!existing[0])throw new Error('musteri_bulunamadi');}
+    if(!musteriId&&body.yeniMusteri){musteriId=randomUUID();const kod=`MUS-WEB-${musteriId.replaceAll('-','').slice(0,12).toUpperCase()}`;await connection.execute("INSERT INTO musteriler(id,tur,musteri_durumu,kod,ad,telefon,email,adres,is_active)VALUES(?,'musteri','aday',?,?,?,?,?,1)",[musteriId,kod,body.yeniMusteri.ad,body.yeniMusteri.telefon??null,body.yeniMusteri.email??null,body.yeniMusteri.adres??null]);}
+    if(!musteriId)throw new Error('musteri_gerekli');
+    const year=new Date().getFullYear();await connection.execute('INSERT INTO teklif_no_sayaclari(yil,son_no)VALUES(?,LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE son_no=LAST_INSERT_ID(son_no+1)',[year]);const[numbers]=await connection.execute<RowDataPacket[]>('SELECT LAST_INSERT_ID() no');const teklifNo=`TK-${year}-${String(numbers[0].no).padStart(4,'0')}`;
+    const teklifId=randomUUID();await connection.execute("INSERT INTO teklifler(id,teklif_no,musteri_id,talep_id,durum,dil,para_birimi,aciklama,goruntuleme_token,created_by)VALUES(?,?,?,?,'taslak',?,?,?,?,?)",[teklifId,teklifNo,musteriId,talepId,talep.dil??'tr',body.paraBirimi,talep.mesaj??null,randomUUID(),userId]);
+    const selected=Array.isArray(talep.secili_urunler)?talep.secili_urunler:[];let aktarilanKalemSayisi=0;
+    for(const raw of selected){const item=raw&&typeof raw==='object'?raw as Record<string,unknown>:{};const ref=typeof item.urunId==='string'?item.urunId:null;let product:RowDataPacket|undefined;if(ref){const[products]=await connection.execute<RowDataPacket[]>('SELECT id,kod,ad,birim FROM urunler WHERE id=? AND is_active=1 LIMIT 1',[ref]);product=products[0];}const ad=String(item.ad??product?.ad??item.slug??'Web ürün önerisi').slice(0,255),miktar=Math.max(1,Number(item.miktar??1)||1);await connection.execute('INSERT INTO teklif_kalemleri(id,teklif_id,urun_id,urun_kod,urun_ad,aciklama,birim,miktar,birim_fiyat,iskonto_orani,satir_toplam,sira)VALUES(?,?,?,?,?,?,?,?,0,0,0,?)',[randomUUID(),teklifId,product?.id??null,product?.kod??null,product?.ad??ad,ad,product?.birim??'adet',miktar,aktarilanKalemSayisi]);aktarilanKalemSayisi++;}
+    await connection.execute("UPDATE teklif_talepleri SET durum='teklife_donustu',musteri_id=?,teklif_id=? WHERE id=?",[musteriId,teklifId,talepId]);
+    await connection.commit();return{teklifId,musteriId,aktarilanKalemSayisi};
+  }catch(error){await connection.rollback();throw error;}finally{connection.release();}
 }
