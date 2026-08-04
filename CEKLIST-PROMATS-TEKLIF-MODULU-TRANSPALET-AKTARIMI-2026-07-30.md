@@ -377,7 +377,7 @@ dönüştürülmesi
   - Birden fazla ürün seçimi kompakt ve mobil uyumlu olacak.
   - Kabul: Ürün kimliği yalnız görünen ada bağlı kalmadan backend’e ulaşıyor.
 
-- [ ] **28. Form UX, spam koruması ve analitiği tamamla** — `high`
+- [x] **28. Form UX, spam koruması ve analitiği tamamla** — `high`
   - Gönderim sırasında çift tıklama engeli, alan bazlı hata, başarılı kayıt
     referansı ve yeniden deneme davranışı eklenecek.
   - Rate-limit, honeypot ve gerekiyorsa captcha devreye alınacak.
