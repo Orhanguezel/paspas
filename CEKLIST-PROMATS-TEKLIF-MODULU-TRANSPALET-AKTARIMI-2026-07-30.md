@@ -91,7 +91,7 @@ dönüştürülmesi
   - `220`, `225`, `235` ve `240` migrationları temel kayıt, CRM detayı, OEM
     form detayları ve referrer izini birlikte saklar.
 
-- [ ] **6. Public teklif talebi endpointini geliştir** — `critical`
+- [x] **6. Public teklif talebi endpointini geliştir** — `critical`
   - Yeni endpoint mevcut `/web/promats/contact`tan ayrılacak veya açık bir
     `requestType=quote` sözleşmesi kullanacak.
   - Zod doğrulama, boyut sınırı, rate-limit, honeypot/anti-spam ve IP hash
@@ -99,6 +99,8 @@ dönüştürülmesi
   - Tekrar gönderim/idempotency yaklaşımıyla çift kayıt önlenecek.
   - Kabul: Geçersiz istek reddediliyor; geçerli istek DB, bildirim ve Telegram
     sonuçlarından bağımsız olarak başarıyla saklanıyor.
+  - Endpoint 32 KiB body limiti ve `X-Idempotency-Key` ile aynı ağ isteğinin
+    yeniden gönderiminde mevcut kayıt kimliğini döndürür.
 
 - [ ] **7. İletişim mesajı ile teklif talebini ayır** — `high`
   - Genel iletişim, destek ve iş ortaklığı mesajları iletişim akışında kalacak.

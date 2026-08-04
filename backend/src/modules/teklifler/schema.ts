@@ -34,6 +34,7 @@ export const teklifTalepleri = mysqlTable('teklif_talepleri', {
   musteri_id: char('musteri_id', { length: 36 }),
   teklif_id: char('teklif_id', { length: 36 }),
   ip_hash: varchar('ip_hash', { length: 64 }),
+  idempotency_key: char('idempotency_key', { length: 36 }),
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updated_at: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
 });

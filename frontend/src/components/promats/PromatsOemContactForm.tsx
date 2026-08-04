@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { getPublicApiBaseUrl } from '@/lib/site-config';
 import { buildTeklifTalepPayload } from '@/lib/promats/teklif-talebi';
@@ -38,9 +38,14 @@ const API_BASE = getPublicApiBaseUrl().replace(/\/+$/, '');
 
 export default function PromatsOemContactForm({ labels, success, error }: Props) {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const submittingRef = useRef(false);
+  const idempotencyKeyRef = useRef<string>();
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    idempotencyKeyRef.current ??= crypto.randomUUID();
     const currentForm = event.currentTarget;
     const form = new FormData(currentForm);
     setStatus('sending');
@@ -59,14 +64,17 @@ export default function PromatsOemContactForm({ labels, success, error }: Props)
       });
       const res = await fetch(`${API_BASE}/teklif-talebi`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Idempotency-Key': idempotencyKeyRef.current },
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('contact_failed');
       setStatus('sent');
+      idempotencyKeyRef.current = undefined;
       currentForm.reset();
     } catch {
       setStatus('error');
+    } finally {
+      submittingRef.current = false;
     }
   }
 

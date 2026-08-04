@@ -354,8 +354,12 @@ export const createTalepPublic: RouteHandler = async (req, reply) => {
   // Honeypot doluysa botu sessizce başarılı say (kayıt açma)
   if (parsed.data.website) return reply.code(202).send({ ok: true });
 
+  const rawKey = req.headers['x-idempotency-key'];
+  const idempotencyKey = typeof rawKey === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawKey)
+    ? rawKey : null;
+
   const ipHash = createHash('sha256').update(ip).digest('hex').slice(0, 64);
-  const { id } = await repoCreateTalepPublic(parsed.data, ipHash);
-  await emitAutomationEvent('lead_created','lead',id,null,{source:'web'},`lead_created:${id}`);
-  return reply.code(201).send({ ok: true, id });
+  const { id, created } = await repoCreateTalepPublic(parsed.data, ipHash, idempotencyKey);
+  if (created) await emitAutomationEvent('lead_created','lead',id,null,{source:'web'},`lead_created:${id}`);
+  return reply.code(created ? 201 : 200).send({ ok: true, id, duplicate: !created });
 };

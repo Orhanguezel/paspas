@@ -39,6 +39,7 @@ export default function PromatsContactForm({ labels, formClassName, products = [
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string>();
   const submittingRef = useRef(false);
+  const idempotencyKeyRef = useRef<string>();
   // İlgilenilen ürün grubu: çoklu seçim, kapalı kutu + checkbox (müşteri notu a1bf78c3).
   // Native <select multiple> yerine dışarı tıklayınca kapanan checkbox paneli.
   const [productsOpen, setProductsOpen] = useState(false);
@@ -96,6 +97,7 @@ export default function PromatsContactForm({ labels, formClassName, products = [
     setReferenceId(undefined);
     if (Object.keys(errors).length) return;
     submittingRef.current = true;
+    idempotencyKeyRef.current ??= crypto.randomUUID();
     setStatus('sending');
     if (isQuote) trackQuoteEvent('quote_request_submit', { product_count: selectedProducts.length, request_type: subject });
     try {
@@ -120,12 +122,13 @@ export default function PromatsContactForm({ labels, formClassName, products = [
       };
       const res = await fetch(`${API_BASE}${isQuote ? '/teklif-talebi' : '/contact'}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Idempotency-Key': idempotencyKeyRef.current },
         body: JSON.stringify(body),
       });
       const response = await res.json().catch(() => ({})) as { id?: string; error?: { message?: string } };
       if (!res.ok) throw new Error(response.error?.message || `http_${res.status}`);
       setStatus('sent');
+      idempotencyKeyRef.current = undefined;
       setReferenceId(response.id);
       if (isQuote) trackQuoteEvent('quote_request_success', { product_count: selectedProducts.length, request_type: subject });
       formElement.reset();

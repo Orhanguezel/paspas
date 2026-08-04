@@ -51,7 +51,7 @@ export async function registerTeklifler(app: FastifyInstance): Promise<void> {
 
 /** Public web teklif talebi (siteden gelen istekler) — /api prefix altında. */
 export async function registerTeklifPublic(app: FastifyInstance): Promise<void> {
-  app.post('/web/promats/teklif-talebi', createTalepPublic);
+  app.post('/web/promats/teklif-talebi', { bodyLimit: 32 * 1024 }, createTalepPublic);
   // Public teklif görüntüleme (token linki — WhatsApp/e-posta paylaşımı)
   app.get('/web/promats/teklif/:token', publicTeklifByToken);
 }

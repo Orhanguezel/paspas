@@ -632,17 +632,17 @@ export async function repoPatchTalep(id: string, body: TalepPatchBody): Promise<
   return repoGetTalep(id);
 }
 
-export async function repoCreateTalepPublic(body: TalepPublicBody, ipHash: string | null): Promise<{ id: string }> {
+export async function repoCreateTalepPublic(body: TalepPublicBody, ipHash: string | null, idempotencyKey: string | null): Promise<{ id: string; created: boolean }> {
   const id = randomUUID();
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
     await connection.execute(
       `INSERT INTO teklif_talepleri
-       (id,kaynak_sayfa,referrer,dil,ad,firma,email,telefon,konu,mesaj,form_detaylari,secili_urunler,utm,kvkk_onay,durum,ip_hash)
-       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,\'yeni\',?)`,
+       (id,kaynak_sayfa,referrer,dil,ad,firma,email,telefon,konu,mesaj,form_detaylari,secili_urunler,utm,kvkk_onay,durum,ip_hash,idempotency_key)
+       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,\'yeni\',?,?)`,
       [id,body.kaynakSayfa??null,body.referrer??null,body.dil,body.ad,body.firma??null,body.email??null,body.telefon??null,body.konu??null,body.mesaj??null,
-       body.formDetaylari ? JSON.stringify(body.formDetaylari) : null,body.seciliUrunler ? JSON.stringify(body.seciliUrunler) : null,body.utm ? JSON.stringify(body.utm) : null,body.kvkkOnay?1:0,ipHash],
+       body.formDetaylari ? JSON.stringify(body.formDetaylari) : null,body.seciliUrunler ? JSON.stringify(body.seciliUrunler) : null,body.utm ? JSON.stringify(body.utm) : null,body.kvkkOnay?1:0,ipHash,idempotencyKey],
     );
     await connection.execute(
       `INSERT INTO crm_talep_detaylari(talep_id,source,channel,product_interest,campaign)
@@ -652,11 +652,15 @@ export async function repoCreateTalepPublic(body: TalepPublicBody, ipHash: strin
     await connection.commit();
   } catch (error) {
     await connection.rollback();
+    if (idempotencyKey && typeof error === 'object' && error && 'code' in error && error.code === 'ER_DUP_ENTRY') {
+      const [rows] = await connection.execute<RowDataPacket[]>('SELECT id FROM teklif_talepleri WHERE idempotency_key=? LIMIT 1', [idempotencyKey]);
+      if (rows[0]?.id) return { id: String(rows[0].id), created: false };
+    }
     throw error;
   } finally {
     connection.release();
   }
-  return { id };
+  return { id, created: true };
 }
 
 /** Talebi mevcut/yeni müşteriye ve taslak teklife dönüştürür (tek transaction). */
