@@ -8,7 +8,7 @@ const db = await mysql.createConnection({
   user: process.env.DB_USER, password: process.env.DB_PASSWORD, database: process.env.DB_NAME,
 });
 try {
-  const [[leads], [offers], [conversions]] = await Promise.all([
+  const [leadResult, offerResult, conversionResult] = await Promise.all([
     db.execute(`SELECT COUNT(*) kaydedilenTalep,
       SUM(durum='teklife_donustu') teklifeDonusenTalep
       FROM teklif_talepleri WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? HOUR)`, [hours]),
@@ -20,6 +20,9 @@ try {
     db.execute(`SELECT COUNT(*) sipariseDonusenTeklif FROM teklifler
       WHERE donusen_siparis_id IS NOT NULL AND updated_at >= DATE_SUB(NOW(), INTERVAL ? HOUR)`, [hours]),
   ]);
+  const leads = leadResult[0][0];
+  const offers = offerResult[0][0];
+  const conversions = conversionResult[0][0];
   const output = { checkedAt: new Date().toISOString(), hours, ...leads, ...offers, ...conversions };
   const sent = Number(output.gonderilenTeklif || 0);
   output.kabulOrani = sent ? Number((Number(output.kabulEdilenTeklif || 0) * 100 / sent).toFixed(2)) : 0;
