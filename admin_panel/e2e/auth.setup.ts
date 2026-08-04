@@ -19,12 +19,15 @@ setup('admin login', async ({ page, context, request }) => {
 
   // 1. Direkt API ile login (login sayfasının form alanlarına bağımlı kalmaz)
   const apiBase = process.env.E2E_API_BASE ?? 'http://localhost:8078/api';
+  const appBase = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
+  const appUrl = new URL(appBase);
   const loginRes = await request.post(`${apiBase}/auth/token`, {
     data: { email: adminEmail, password: adminPassword },
   });
   expect(loginRes.ok(), `login_failed status=${loginRes.status()}`).toBe(true);
 
   // Set-Cookie üzerinden gelen access_token / refresh_token'i context'e taşı.
+  const body = (await loginRes.json().catch(() => null)) as { access_token?: string } | null;
   const setCookieHeader = loginRes.headers()['set-cookie'] ?? '';
   const cookies = setCookieHeader
     .split(/,(?=\s*\w+=)/)
@@ -40,10 +43,10 @@ setup('admin login', async ({ page, context, request }) => {
       return {
         name: name.trim(),
         value: value ?? '',
-        domain: opts.domain ?? 'localhost',
+        domain: appUrl.hostname,
         path: opts.path ?? '/',
         httpOnly: 'httponly' in opts,
-        secure: 'secure' in opts,
+        secure: appUrl.protocol === 'https:',
         sameSite: 'Lax' as const,
       };
     })
@@ -51,12 +54,11 @@ setup('admin login', async ({ page, context, request }) => {
 
   if (cookies.length === 0) {
     // Fallback: response body'sinde access_token varsa manuel cookie ekle
-    const body = (await loginRes.json().catch(() => null)) as { access_token?: string } | null;
     if (body?.access_token) {
       cookies.push({
         name: 'access_token',
         value: body.access_token,
-        domain: 'localhost',
+        domain: appUrl.hostname,
         path: '/',
         httpOnly: true,
         secure: false,
@@ -66,6 +68,8 @@ setup('admin login', async ({ page, context, request }) => {
   }
 
   await context.addCookies(cookies);
+  await page.goto(appBase);
+  if (body?.access_token) await page.evaluate((token) => localStorage.setItem('mh_access_token', token), body.access_token);
 
   // 2. Cookie'lerin admin paneli açabildiğini doğrula
   await page.goto('/admin/dashboard');
