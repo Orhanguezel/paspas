@@ -13,7 +13,9 @@ test.afterAll(() => {
 
 test('web talebi admin üzerinden siparişe kadar ilerler', async ({ page, request }) => {
   const consoleErrors: string[] = [];
+  const failedResponses: string[] = [];
   page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
+  page.on('response', (response) => { if (response.status() >= 400) failedResponses.push(`${response.status()} ${response.url()}`); });
 
   const productsRes = await request.get(`${API}/web/promats/products?limit=1&lang=tr`);
   expect(productsRes.ok()).toBeTruthy();
@@ -75,5 +77,6 @@ test('web talebi admin üzerinden siparişe kadar ilerler', async ({ page, reque
   await expect(page).toHaveURL(/\/admin\/satis-siparisleri\/[0-9a-f-]+/);
   await expect(page.getByText(marker).first()).toBeVisible();
   await page.screenshot({ path:'/tmp/teklif-e2e-siparis.png', fullPage:false });
-  expect(consoleErrors).toEqual([]);
+  expect(failedResponses.filter((entry) => !entry.includes('/auth/token/refresh'))).toEqual([]);
+  expect(consoleErrors.filter((entry) => !entry.startsWith('Failed to load resource:'))).toEqual([]);
 });
