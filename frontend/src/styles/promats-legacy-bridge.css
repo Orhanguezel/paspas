@@ -324,9 +324,34 @@ body.promats-offcanvas::before {
   }
 }
 
-/* Mobil menü kapatma X'i header ikonlariyla cakismasin: panel ust alani opak + X net */
-.promats-public .untree_co--site-mobile-menu { padding-top: 20px; }
-.promats-public .untree_co--site-mobile-menu .close-wrap { justify-content: space-between; align-items: center; }
+/* Mobil menü: başlık ve navigasyon tek viewport'a oturur. Yalnız kısa ekranlarda
+   menü gövdesi kendi içinde kayar; sayfa/panel gereksiz yere taşmaz. */
+.promats-public .untree_co--site-mobile-menu {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  padding: 16px 0 0;
+}
+.promats-public .untree_co--site-mobile-menu .close-wrap {
+  flex: 0 0 auto;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0;
+  padding: 0 16px;
+}
+.promats-public .untree_co--site-mobile-menu .site-mobile-inner {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin-top: 20px;
+  padding: 0 16px 16px;
+}
+.promats-public .untree_co--site-mobile-menu .social-media {
+  margin-top: 20px !important;
+}
 
 /* ÜRÜNLER dropdown link görünürlüğü (kontrast) — orijinalde mobil menü siyah, desktop dropdown gri.
    Bir override metni görünmez kılıyordu; ürün/menü linklerini net göster. */
