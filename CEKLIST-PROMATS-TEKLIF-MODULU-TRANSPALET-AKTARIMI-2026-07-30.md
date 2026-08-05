@@ -437,6 +437,26 @@ dönüştürülmesi
   - Kabul: Genel iletişim mesajı admin gelen kutusunda eksiksiz görünür, durum ve
     sorumlu değişir, mükerrer gönderim engellenir ve UAT kaydı temizlenebilir.
 
+- [ ] **60. Tüm public URL segmentlerini dile göre yerelleştir** — `critical`
+  - İngilizce rotalarda Türkçe segment kullanılmayacak; örneğin
+    `/en/urunler/star-plus-series` yerine `/en/products/star-plus-series`,
+    `/en/iletisim` yerine `/en/contact`, `/en/kaynaklar` yerine
+    `/en/resources` üretilecek. Türkçe rotalar `/tr/urunler`, `/tr/iletisim`,
+    `/tr/kaynaklar` biçiminde korunacak.
+  - Ana sayfa dışındaki bütün statik ve dinamik public sayfalar için merkezi
+    locale→route sözlüğü oluşturulacak; ürün/kategori/içerik slugları da dil
+    bazlı karşılıklarıyla çözülecek.
+  - Header, footer, menü, breadcrumb, CTA, arama, dil değiştirici ve içerik içi
+    bağlantılar aynı sözlüğü kullanacak; dil değiştirildiğinde kullanıcı eşdeğer
+    sayfanın hedef dildeki URL ve slugına gidecek.
+  - Eski ve yanlış dildeki URL'ler doğru yerelleştirilmiş adrese kalıcı `301`
+    yönlenecek; sorgu parametreleri korunacak ve yönlendirme döngüsü olmayacak.
+  - Sitemap, canonical, `hreflang`, `x-default`, Open Graph URL ve robots çıktısı
+    gerçek yerelleştirilmiş adresleri gösterecek; aynı içeriğin farklı URL'lerle
+    indekslenmesi engellenecek.
+  - Kabul: TR/EN route matrisi otomatik test edilir; tüm menü ve dil değiştirme
+    akışları doğru URL'yi açar, eski URL'ler `301` verir ve hedefler `200` döner.
+
 ## Faz 5 — Test, veri ve canlıya geçiş
 
 - [x] **29. Backend birim ve entegrasyon testlerini taşı** — `critical`
@@ -483,4 +503,5 @@ dönüştürülmesi
 - [ ] Web talebi CRM talebi ve fırsatıyla ilişkilendirilebiliyor.
 - [ ] Pipeline, Kanban, aktiviteler, hatırlatmalar ve CRM raporları çalışıyor.
 - [ ] Teklif dışı genel iletişim mesajları kalıcı admin gelen kutusunda izleniyor.
+- [ ] Tüm public sayfa URL'leri ve içerik slugları dile göre yerelleştirilmiş.
 - [ ] Fırsat → teklif → sipariş → üretim/sevkiyat zinciri çift yönlü izleniyor.
