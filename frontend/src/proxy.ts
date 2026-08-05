@@ -47,10 +47,16 @@ export function proxy(req: NextRequest) {
   // Koku canonical locale URL'sine yonlendir. Absolute internal rewrite,
   // reverse proxy arkasinda https://localhost:<port> ureterek 500'e yol acabilir.
   if (pathname === '/') {
-    return new NextResponse(null, {
-      status: 308,
-      headers: { location: `${basePath}/${DEFAULT_LOCALE}` },
-    });
+    const host = req.headers.get('x-forwarded-host')?.split(',')[0]?.trim()
+      || req.headers.get('host')
+      || req.nextUrl.host;
+    const protocol = req.headers.get('x-forwarded-proto')?.split(',')[0]?.trim()
+      || req.nextUrl.protocol.replace(':', '')
+      || 'https';
+    return NextResponse.redirect(
+      new URL(`${basePath}/${DEFAULT_LOCALE}`, `${protocol}://${host}`),
+      308,
+    );
   }
 
   // Locale prefix YOK → default locale'e internal rewrite (URL bar'da `/` kalır)
