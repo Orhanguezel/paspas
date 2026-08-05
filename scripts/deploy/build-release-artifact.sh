@@ -82,7 +82,10 @@ log 'frontend root-domain artifact'
 (
   cd "$SRC/frontend"
   rm -rf .next
-  set -a; source .env.production.promats-root; set +a
+  # Next her production build'de .env.production dosyasini otomatik okur. Subpath
+  # dosyasi yerinde kalirsa bos env override'larini /promats ile yeniden doldurur.
+  cp .env.production.promats-root .env.production
+  set -a; source .env.production; set +a
   PROMATS_BASE_PATH='' NEXT_PUBLIC_BASE_PATH='' bun run build
 )
 copy_standalone "$SRC/frontend" "$STAGE/frontend-root"
