@@ -423,6 +423,20 @@ dönüştürülmesi
   - `quote_request_submit/success/error` analitik olayları kişisel veri
     taşımadan üretilecek.
 
+- [ ] **59. Genel İletişim Mesajları gelen kutusunu kalıcılaştır** — `critical`
+  - Teklif dışındaki `Destek talebi`, `Soru / bilgi`, `İşbirliği` ve `Diğer`
+    mesajları yalnız bildirim/Telegram/log yerine ayrı bir kalıcı tabloda
+    saklanacak; idempotency, rate-limit, honeypot ve KVKK verisi korunacak.
+  - Public `/web/promats/contact` endpointi kayıt referansı döndürecek;
+    `/admin/contacts` liste, detay, durum, sorumlu, not ve çözüm endpointleri
+    Paspas rol/yetki standardına bağlanacak.
+  - Admin panelde `İletişim Mesajları` menüsü ve yeni/işlemde/çözüldü/spam
+    gelen kutuları; ad/firma/e-posta/telefon/konu/tarih/sorumlu filtreleri olacak.
+  - Mevcut admin bildirimi ve Telegram ikincil bildirim olarak devam edecek;
+    kalıcı DB kaydı başarısızsa form başarılı sayılmayacak.
+  - Kabul: Genel iletişim mesajı admin gelen kutusunda eksiksiz görünür, durum ve
+    sorumlu değişir, mükerrer gönderim engellenir ve UAT kaydı temizlenebilir.
+
 ## Faz 5 — Test, veri ve canlıya geçiş
 
 - [x] **29. Backend birim ve entegrasyon testlerini taşı** — `critical`
@@ -468,4 +482,5 @@ dönüştürülmesi
 - [ ] Yetki, audit, bildirim, test ve production rollback kontrolleri tamam.
 - [ ] Web talebi CRM talebi ve fırsatıyla ilişkilendirilebiliyor.
 - [ ] Pipeline, Kanban, aktiviteler, hatırlatmalar ve CRM raporları çalışıyor.
+- [ ] Teklif dışı genel iletişim mesajları kalıcı admin gelen kutusunda izleniyor.
 - [ ] Fırsat → teklif → sipariş → üretim/sevkiyat zinciri çift yönlü izleniyor.

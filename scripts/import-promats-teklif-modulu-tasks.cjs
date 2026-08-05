@@ -33,6 +33,7 @@ const tasks = [
   ['Backend birim ve entegrasyon testleri', 'Toplam, KDV, iskonto, durum, snapshot, sayaç yarışı, izin, gönderim, token ve sipariş dönüşümü testlerini taşı.', 'critical', 'Test'],
   ['Uçtan uca web–teklif–sipariş testi', 'Web talebi → gelen kutusu → müşteri → taslak → PDF → gönderim → görüntüleme → kabul → sipariş akışını Playwright ile doğrula.', 'critical', 'Test'],
   ['Eski contact endpointi için geriye uyum', 'Yeni teklif endpointi canlıya çıkana kadar genel iletişimi koru; geçişte yalnız teklif konularını yeni kalıcı akışa yönlendir.', 'high', 'Canlıya Geçiş'],
+  ['Genel İletişim Mesajları gelen kutusu', 'Teklif dışındaki destek, soru/bilgi, işbirliği ve diğer mesajlarını ayrı kalıcı tabloda sakla; public kayıt referansı, idempotency/spam koruması, admin liste-detay-durum-sorumlu-not API ve İletişim Mesajları gelen kutusunu ekle. Bildirim ve Telegram ikincil kanal olarak sürsün.', 'critical', 'Frontend'],
   ['Production migration, smoke ve izleme', 'Yedek, deploy sırası, rollback, işaretli UAT talebi ve talep/teklif/dönüşüm metrikleriyle canlı geçişi doğrula.', 'critical', 'Canlıya Geçiş'],
   ['CRM kaynak–hedef uyumluluk matrisi', 'Transpalet CRM, talepler, iletişim, otomasyon, servis ve rapor bağımlılıklarını Paspas müşteri, kullanıcı, görev, bildirim, sipariş, üretim ve sevkiyat yapılarıyla eşleştir.', 'critical', 'CRM Analiz'],
   ['CRM pipeline ve aşama şeması', 'Pipeline, aşama sırası, olasılık, kazanıldı/kaybedildi işaretleri, renk ve bekleme uyarılarını migration ve başlangıç Promats pipeline verisiyle taşı.', 'critical', 'CRM Backend'],
@@ -71,6 +72,7 @@ const webTitles = new Set([
   'Ürün detayından teklif isteme',
   'Frontend form UX, spam ve analitik',
   'Eski contact endpointi için geriye uyum',
+  'Genel İletişim Mesajları gelen kutusu',
 ]);
 
 function moduleFor(title, phase) {
