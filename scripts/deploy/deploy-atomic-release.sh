@@ -50,6 +50,9 @@ command -v bun >/dev/null || die 'bun bulunamadi'
 command -v pm2 >/dev/null || die 'pm2 bulunamadi'
 command -v rsync >/dev/null || die 'rsync bulunamadi'
 
+AVAILABLE_KB="$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)"
+[[ "$AVAILABLE_KB" -ge 4194304 ]] || die 'Build hostunda en az 4 GiB kullanilabilir RAM gerekli. Production VPS uzerinde build yapmayin; build-release-artifact.sh ile artifact uretin.'
+
 mkdir -p "$RELEASES_DIR" "$BUILDS_DIR" "$SHARED_DIR"
 
 log "hedef commit cozuluyor: $TARGET_REF"
