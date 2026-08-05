@@ -25,13 +25,16 @@ yazılmaz.
 
 ## Faz 1 — Yedekleme politikasını sabitle
 
-- [ ] **1.1 Yedek kapsamı ve hedeflerini belgeleyip kesinleştir** — `critical`
+- [x] **1.1 Yedek kapsamı ve hedeflerini belgeleyip kesinleştir** — `critical`
   - MariaDB/MySQL veritabanı, `/var/www/paspas/uploads`, gerekli production env
     dosyaları ve etkin Nginx/PM2 yapılandırmaları kapsama alınacak.
   - Atomik release artifact'leri yeniden üretilebilir olduğu için ana veri yedeği
     kabul edilmeyecek; yalnız hızlı rollback için son iki release tutulacak.
   - Önerilen hedef: `RPO ≤ 24 saat`, `RTO ≤ 2 saat`, günlük 14 ve aylık 3 kopya.
   - Kabul: kapsam, saklama süresi, yedek saati ve sorumlu kişi runbook'ta yazılı.
+  - Tamamlanma (2026-08-05): kapsam, RPO/RTO, 14 günlük saklama, 02:20 UTC
+    çalışma saati ve kontrol komutları `docs/runbooks/CANLI-YEDEKLEME.md` içinde
+    belgelendi.
 
 - [ ] **1.2 Sunucu dışı yedek hedefini hazırla** — `critical`
   - Yedek aynı VPS diski dışında mevcut yedek altyapısına aktarılacak.
@@ -41,12 +44,15 @@ yazılmaz.
   - Kabul: test dosyası aktarılır, checksum eşleşir ve kaynak silinse de hedefte
     okunabilir kalır.
 
-- [ ] **1.3 Transaction-consistent günlük veritabanı yedeğini otomatikleştir** — `critical`
+- [x] **1.3 Transaction-consistent günlük veritabanı yedeğini otomatikleştir** — `critical`
   - Tarih damgalı, sıkıştırılmış SQL yedeği ve SHA-256 manifest üretilecek.
   - Komut çıktısı ve hata durumu journal'a yazılacak; parola process listesinde
     veya logda görünmeyecek.
   - Yedek sonrası gzip bütünlüğü ve checksum otomatik doğrulanacak.
   - Kabul: zamanlayıcıyla üretilen gerçek yedek doğrulanır ve uzak hedefte bulunur.
+  - Yerel otomasyon kabulü (2026-08-05): `paspas-backup.timer` etkin; iki gerçek
+    yedek üretildi, `gzip -t` ve SHA-256 kontrolleri geçti. Uzak hedef doğrulaması
+    ayrıca 1.2 altında açık tutuluyor.
 
 - [ ] **1.4 Upload ve kritik yapılandırma yedeğini otomatikleştir** — `critical`
   - Upload dosyaları artımlı ve silme gecikmeli/sürümlü biçimde yedeklenecek.
@@ -77,11 +83,16 @@ yazılmaz.
     okunacak.
   - Kabul: checksum geçer, import hatasızdır, kritik sayımlar kaynak manifestiyle
     uyumludur ve gerçek geri yükleme süresi kaydedilir.
+  - Yerel prova (2026-08-05): izole geçici DB'ye restore 10 saniyede tamamlandı;
+    87/87 tablo ile `users`, `teklifler`, `satis_siparisleri`, `sevkiyatlar` ve
+    `site_settings` sayımları canlıyla birebir eşleşti. Uzak kopyadan prova açık.
 
 - [ ] **2.3 Upload dosyalarını geri yükle ve uygulamayla eşleştir** — `critical`
   - İzole dizine geri alınan örnek görsel/PDF/ekler checksum ile doğrulanacak.
   - DB'deki örnek asset yollarının dosya sisteminde karşılığı kontrol edilecek.
   - Kabul: seçilen örneklerin tamamı açılır ve DB–dosya yolu eşleşir.
+  - Yerel prova (2026-08-05): snapshot içindeki örnek malzeme dosyası canlı
+    karşılığıyla byte düzeyinde karşılaştırıldı. Uzak kopyadan toplu prova açık.
 
 - [ ] **2.4 Felaket kurtarma runbook'unu prova sonucuyla tamamla** — `high`
   - Yeni VPS, DB restore, upload restore, env, Nginx, PM2 ve atomik release
