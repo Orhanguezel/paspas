@@ -246,6 +246,7 @@ export async function listPermissionCatalog(): Promise<PermissionCatalogItem[]> 
 }
 
 export async function resolveRolePermissionKeys(role: AppRole): Promise<string[]> {
+  const defaults = getDefaultPermissionKeysForRole(role);
   const stored = await db
     .select()
     .from(rolePermissions)
@@ -253,8 +254,12 @@ export async function resolveRolePermissionKeys(role: AppRole): Promise<string[]
   const allowed = stored
     .filter((row) => Number(row.is_allowed) === 1)
     .map((row) => row.permission_key);
+  // Admin, yeni moduller eklendiginde eski stored permission snapshot'i
+  // yuzunden kilitlenmemeli. Admin'in varsayilan katalog izinleri daima taban
+  // yetkidir; stored izinler varsa bunun uzerine birlestirilir.
+  if (role === 'admin') return Array.from(new Set([...defaults, ...allowed]));
   if (allowed.length > 0) return allowed;
-  return getDefaultPermissionKeysForRole(role);
+  return defaults;
 }
 
 export async function canAccessAdminPermission(
@@ -266,6 +271,13 @@ export async function canAccessAdminPermission(
 
   const action = inferActionFromMethod(req.method);
   const needed = buildPermissionKey(key, action);
+
+  // Tam yonetici rolu stored permission tablosundaki eski/kismi snapshot'larla
+  // daraltilamaz. Aksi halde sonradan eklenen moduller admin'e 403 verir.
+  if (roles.includes('admin') && getDefaultPermissionKeysForRole('admin').includes(needed)) {
+    return true;
+  }
+
   const storedMap = await getStoredPermissionKeysForRoles(roles);
 
   return roles.some((role) => {
