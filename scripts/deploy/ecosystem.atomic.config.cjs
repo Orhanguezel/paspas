@@ -20,6 +20,7 @@ module.exports = {
         NODE_ENV: 'production',
         HOST: '127.0.0.1',
         PORT: '8078',
+        PATH: '/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
       },
       out_file: '/root/.pm2/logs/paspas-api-out.log',
       error_file: '/root/.pm2/logs/paspas-api-error.log',

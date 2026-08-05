@@ -47,7 +47,7 @@ RELEASE_DIR="${roots[0]}"
 [[ -f "$RELEASE_DIR/RELEASE" && -f "$RELEASE_DIR/SHA256SUMS" ]] || die 'Release manifesti eksik'
 (
   cd "$RELEASE_DIR"
-  sha256sum -c SHA256SUMS
+  sha256sum -c SHA256SUMS >/dev/null
 )
 RELEASE_ID="$(basename "$RELEASE_DIR")"
 FINAL_RELEASE="$RELEASES_DIR/$RELEASE_ID"
