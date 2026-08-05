@@ -175,7 +175,7 @@ body.promats-offcanvas::before {
    paragraf 2 yerine 3 satira kiriliyordu. Hero'da canlinin efektif stack'ini birebir kullan.
    Baslik ile arasindaki 12px de canlidaki 51px'lik adimi tutturmak icin. */
 .promats-public .untree_co--site-hero .site-hero-contents .sub-text {
-  font-family: 'gotham', Arial, sans-serif;
+  font-family: var(--font-sans), Arial, sans-serif;
   margin-top: 12px;
 }
 
@@ -1652,7 +1652,7 @@ body.promats-offcanvas::before {
   align-items: center;
 }
 .promats-public .promats-product-set .tam_set {
-  background: #fff;
+  background: var(--pm-brand, #ffa001);
   color: var(--pm-text-heading, #000);
   border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.08);
@@ -1679,6 +1679,136 @@ body.promats-offcanvas::before {
   font-family: var(--font-display);
   font-size: 15px;
   line-height: 1.25;
+}
+
+/* Revize 3 — Illustrator'daki 3x3 ortak özellik kartları. */
+.promats-public .pm-feature-cards {
+  padding: clamp(4.5rem, 8vw, 7.5rem) 0;
+  background: #f1f1f1;
+}
+.promats-public .pm-feature-cards__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(18px, 2.2vw, 30px);
+  margin: 38px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.promats-public .pm-feature-card {
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.08);
+}
+.promats-public .pm-feature-card > img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2.1 / 1;
+  object-fit: cover;
+}
+.promats-public .pm-feature-card__body {
+  display: flex;
+  min-height: 172px;
+  padding: 25px 28px 28px;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.promats-public .pm-feature-card__body strong {
+  color: #111;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+.promats-public .pm-feature-card__body i {
+  display: block;
+  width: 32px;
+  height: 3px;
+  margin: 12px 0 16px;
+  border-radius: 99px;
+  background: var(--pm-brand, #ffa001);
+}
+.promats-public .pm-feature-card__body > span {
+  color: #545454;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* Revize 3 — ustte metin+genis form, altta adres+genis harita. */
+.promats-public .promats-contact-main {
+  padding: clamp(125px, 13vw, 165px) 0 clamp(4rem, 8vw, 7rem);
+}
+.promats-public .promats-contact-main__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(520px, 1.18fr);
+  gap: clamp(44px, 7vw, 96px);
+  align-items: center;
+}
+.promats-public .promats-contact-copy {
+  text-align: left;
+}
+.promats-public .promats-contact-copy .promats-contact-hero-desc {
+  margin-right: 0;
+  margin-left: 0;
+}
+.promats-public .promats-contact-copy .promats-contact-hero-list {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.promats-public .promats-contact-form-card h2 {
+  margin-bottom: 18px;
+  color: #111;
+  font-size: clamp(25px, 3vw, 38px);
+}
+.promats-public .promats-contact-form-card form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.promats-public .promats-contact-form-card form > * {
+  min-width: 0;
+}
+.promats-public .promats-contact-form-card form > .form-group:has(textarea),
+.promats-public .promats-contact-form-card form > .form-check,
+.promats-public .promats-contact-form-card form > .float-right,
+.promats-public .promats-contact-form-card form > .alert,
+.promats-public .promats-contact-form-card form > .d-none {
+  grid-column: 1 / -1;
+}
+.promats-public .promats-contact-form-card .d-none { display: none !important; }
+.promats-public .promats-contact-location {
+  padding: clamp(3.5rem, 7vw, 6rem) 0;
+  background: #f2f3f4;
+}
+.promats-public .promats-contact-location__grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.72fr) minmax(520px, 1.28fr);
+  gap: clamp(32px, 5vw, 72px);
+  align-items: center;
+}
+.promats-public .promats-contact-address {
+  padding: 32px;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.08);
+}
+.promats-public .promats-contact-address .list-group-item {
+  display: flex;
+  gap: 12px;
+  padding: 14px 0;
+  border-color: rgba(0, 0, 0, 0.09);
+  background: transparent;
+}
+.promats-public .promats-contact-address i { color: var(--pm-brand, #ffa001); }
+.promats-public .promats-contact-location .promats-contact-map-wrap {
+  width: 100%;
+  margin-bottom: 18px;
+}
+.promats-public .promats-contact-location .promats-contact-map-wrap iframe {
+  width: 100%;
+  min-height: 430px;
+  aspect-ratio: 1.7 / 1;
 }
 .promats-public .promats-product-related {
   background: var(--pm-surface-white, #fff) !important;
@@ -2099,7 +2229,7 @@ body.promats-offcanvas::before {
 .promats-public .promats-hero-contents .hero-heading {
   font-size: 2.4rem;
   color: #ffaa00;
-  font-family: 'gothamblack', sans-serif;
+  font-family: var(--font-display), Arial, sans-serif;
   font-weight: 900;
   line-height: 1.02;
   margin: 0;
@@ -2109,7 +2239,7 @@ body.promats-offcanvas::before {
 }
 .promats-public .promats-hero-contents .sub-text {
   color: #fff;
-  font-family: 'gotham', Arial, sans-serif;
+  font-family: var(--font-sans), Arial, sans-serif;
   font-size: 16px;
   font-weight: 300;
   margin-top: 12px;
@@ -2125,5 +2255,35 @@ body.promats-offcanvas::before {
 @media (max-width: 991.98px) {
   .promats-public .promats-hero-contents .hero-heading {
     font-size: 1.8rem;
+  }
+  .promats-public .pm-feature-cards__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .promats-public .promats-contact-main__grid,
+  .promats-public .promats-contact-location__grid {
+    grid-template-columns: 1fr;
+  }
+  .promats-public .promats-contact-main {
+    padding-top: 120px;
+  }
+}
+@media (max-width: 575.98px) {
+  .promats-public .pm-feature-cards__grid {
+    grid-template-columns: 1fr;
+  }
+  .promats-public .pm-feature-card__body {
+    min-height: 0;
+  }
+  .promats-public .promats-contact-form-card form {
+    display: block;
+  }
+  .promats-public .promats-contact-form-card form > * + * {
+    margin-top: 12px;
+  }
+  .promats-public .promats-contact-address {
+    padding: 24px;
+  }
+  .promats-public .promats-contact-location .promats-contact-map-wrap iframe {
+    min-height: 320px;
   }
 }

@@ -8,7 +8,6 @@ import {
   PmHero,
   PmSectionHeading,
   PmStats,
-  StackedTitle,
   type PmContactLabels,
   type PmStat,
   type TitleLines,
@@ -74,20 +73,23 @@ function colorNames(features: ProductFeature[] | undefined, locale: string): str
   return [...new Set(names)];
 }
 
-/** Tüm serilerde geçen ikonlu özellikleri, ilk görülme sırasını koruyarak tekilleştirir. */
-function sharedFeatures(products: Product[]): ProductFeature[] {
-  const seen = new Map<string, ProductFeature>();
-  for (const product of products) {
-    for (const feature of product.features ?? []) {
-      if (feature.type !== FEATURE_TYPE.icon || !feature.feature || !feature.image) continue;
-      if (!seen.has(feature.feature)) seen.set(feature.feature, feature);
-    }
-  }
-  return [...seen.values()];
-}
+const SHARED_FEATURE_CARDS = [
+  { image: '/assets/images/features/quality-pvc.webp', tr: ['1. Sınıf Kalite PVC', 'Yüksek kalite PVC malzemeden üretilmiş, uzun ömürlü yapı.'], en: ['First-Class PVC', 'Premium PVC material engineered for dependable, long-lasting use.'] },
+  { image: '/assets/images/features/custom-fit.webp', tr: ['Kes ve Aracına Uygula', 'Kesim yerleri sayesinde aracınıza kolayca uyum sağlar.'], en: ['Cut to Custom Fit', 'Trim guides make it easy to adapt the mat to your vehicle.'] },
+  { image: '/assets/images/features/washable.webp', tr: ['Hijyenik / Yıkanabilir', 'Su ve sıvılarla kolaylıkla temizlenebilen hijyenik yüzey.'], en: ['Hygienic / Washable', 'A hygienic surface that is easy to wash and maintain.'] },
+  { image: '/assets/images/features/all-seasons.webp', tr: ['4 Mevsim Kullanım', 'Her mevsimde güvenle kullanılabilen dayanıklı malzeme.'], en: ['All-Season Use', 'Durable material designed for reliable use in every season.'] },
+  { image: '/assets/images/features/flexible-fit.webp', tr: ['Esnek / Uyumlu Kalıp', 'Esnek yapısıyla araç tabanına kolayca uyum sağlar.'], en: ['Flexible Fit', 'Flexible construction follows the vehicle floor with ease.'] },
+  { image: '/assets/images/features/odorless.webp', tr: ['Koku Yapmaz', 'Kokusuz malzeme yapısı konforlu bir kullanım sunar.'], en: ['Odour-Free', 'Odour-free material provides a more comfortable cabin.'] },
+  { image: '/assets/images/features/durable.webp', tr: ['Dayanıklı Malzeme', 'Aşınmaya karşı dirençli yapısıyla uzun süre kullanılabilir.'], en: ['Durable Material', 'Wear-resistant construction supports a long service life.'] },
+  { image: '/assets/images/features/anti-slip.webp', tr: ['Kaymaz Taban', 'Tabandaki sabitleyici yapı paspasın kaymasını azaltır.'], en: ['Anti-Slip Base', 'The securing structure helps keep the mat in position.'] },
+  { image: '/assets/images/features/raised-edge.webp', tr: ['Havuzlu Kenar Tasarımı', 'Yükseltilmiş kenarlar su ve kiri paspasın içinde tutar.'], en: ['Raised-Edge Design', 'Raised edges help contain water, dirt and debris.'] },
+] as const;
 
 export function PromatsProductsPage({ locale, products, content: c }: { locale: string; products: Product[]; content: UrunlerPageContent }) {
-  const features = sharedFeatures(products);
+  const featureCards = SHARED_FEATURE_CARDS.map((card) => ({
+    image: card.image,
+    content: locale === 'en' ? card.en : card.tr,
+  }));
   const heroImage = products[0]?.hero.image ?? null;
 
   return (
@@ -148,19 +150,19 @@ export function PromatsProductsPage({ locale, products, content: c }: { locale: 
       </section>
 
       {/* ORTAK ÖZELLİKLER */}
-      {features.length ? (
-        <section className="pm-caps pm-caps--images position-relative">
+      {featureCards.length ? (
+        <section className="pm-feature-cards position-relative">
           <DevNote section="urunler-ozellikler" title="Ürünler: Ortak Özellikler" />
           <div className="container">
             <PmSectionHeading line1={c.features.titleLine1} line2={c.features.titleLine2} intro={c.features.intro} />
-            <ul className="pm-caps__grid">
-              {features.map((feature, index) => (
-                <li className="pm-cap" key={feature.feature} data-aos="fade-up" data-aos-delay={(index % 3) * 80}>
-                  <span className="pm-cap__frame">
-                    <PromatsImage src={feature.image} alt="" width={72} height={72} sizes="72px" />
-                  </span>
-                  <span className="pm-cap__label">
-                    <StackedTitle lines={[feature.feature as string]} />
+            <ul className="pm-feature-cards__grid">
+              {featureCards.map((feature, index) => (
+                <li className="pm-feature-card" key={feature.content[0]} data-aos="fade-up" data-aos-delay={(index % 3) * 80}>
+                  <PromatsImage src={feature.image} alt="" width={696} height={330} sizes="(max-width: 768px) 100vw, 33vw" />
+                  <span className="pm-feature-card__body">
+                    <strong>{feature.content[0]}</strong>
+                    <i aria-hidden="true" />
+                    <span>{feature.content[1]}</span>
                   </span>
                 </li>
               ))}

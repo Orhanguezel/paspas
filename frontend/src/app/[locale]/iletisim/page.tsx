@@ -70,35 +70,21 @@ export default async function ContactPage({
 
   return (
     <>
-      <section className="promats-contact-hero position-relative">
-        <DevNote section="contact-hero" title="İletişim Hero" />
-        <div className="container">
-          <span className="promats-contact-hero-eyebrow">{hero.eyebrow}</span>
-          <h1 className="promats-contact-hero-title">{hero.title}</h1>
-          <p className="promats-contact-hero-desc">{hero.description}</p>
-          <ul className="promats-contact-hero-list">
-            {hero.bullets.map((item) => (
-              <li key={item}><span className="promats-contact-hero-check" aria-hidden="true">✔</span>{item}</li>
-            ))}
-          </ul>
-        </div>
-      </section>
-      <section className="section8_bg position-relative" id="iletisimform">
+      <section className="section8_bg promats-contact-main position-relative" id="iletisimform">
         <DevNote section="contact-form" title="İletişim Formu" />
         <div className="container">
-          <div className="row">
-            <div className="col-12 col-lg-4 mx-auto address" data-aos="fade-up" data-aos-delay="200">
-              <div className="footer">
-                <ul className="list-group list-group-flush">
-                  {address ? <li className="list-group-item"><i className="icon-map-marker" />{address}</li> : null}
-                  {phone ? <li className="list-group-item"><i className="icon-headset_mic" />{phone}</li> : null}
-                  {email ? <li className="list-group-item"><i className="icon-envelope-o" /><a href={`mailto:${email}`}>{email}</a></li> : null}
-                </ul>
-              </div>
-              <PromatsSocialLinks socials={siteConfig.socials} label={t(settings, 'Bizi Takip Edin')} className="text-center social-media" />
+          <div className="promats-contact-main__grid">
+            <div className="promats-contact-copy" data-aos="fade-up" data-aos-delay="100">
+              <span className="promats-contact-hero-eyebrow">{hero.eyebrow}</span>
+              <h1 className="promats-contact-hero-title">{hero.title}</h1>
+              <p className="promats-contact-hero-desc">{hero.description}</p>
+              <ul className="promats-contact-hero-list">
+                {hero.bullets.map((item) => (
+                  <li key={item}><span className="promats-contact-hero-check" aria-hidden="true">✓</span>{item}</li>
+                ))}
+              </ul>
             </div>
-            <div className="border-right d-none d-lg-block"><br /></div>
-            <div className="col-12 col-lg-5 offset-lg-1 mt-5 mt-lg-0" data-aos="fade-up" data-aos-delay="100">
+            <div className="promats-contact-form-card" data-aos="fade-up" data-aos-delay="160">
               <h2>{t(settings, 'İletişim Formu')}</h2>
               <PromatsContactForm
                 labels={{
@@ -130,20 +116,24 @@ export default async function ContactPage({
         </div>
       </section>
       {contactMapEmbedUrl ? (
-        <section className="contact_us promats-contact-map-section position-relative">
+        <section className="contact_us promats-contact-location position-relative">
           <DevNote section="contact-map" title="İletişim Harita" />
-          <div className="promats-contact-map-wrap"><iframe
-            allowFullScreen
-            frameBorder="0"
-            height="420"
-            src={contactMapEmbedUrl}
-            style={{ border: 0 }}
-            width="100%"
-            title={t(settings, 'Promats harita')}
-          /></div>
-          <a className="btn btn-yellow promats-directions-btn" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`} target="_blank" rel="noreferrer">
-            {t(settings, 'Yol Tarifi Al')}
-          </a>
+          <div className="container promats-contact-location__grid">
+            <aside className="promats-contact-address">
+              <div className="footer">
+                <ul className="list-group list-group-flush">
+                  {address ? <li className="list-group-item"><i className="icon-map-marker" />{address}</li> : null}
+                  {phone ? <li className="list-group-item"><i className="icon-headset_mic" />{phone}</li> : null}
+                  {email ? <li className="list-group-item"><i className="icon-envelope-o" /><a href={`mailto:${email}`}>{email}</a></li> : null}
+                </ul>
+              </div>
+              <PromatsSocialLinks socials={siteConfig.socials} label={t(settings, 'Bizi Takip Edin')} className="text-center social-media" />
+            </aside>
+            <div>
+              <div className="promats-contact-map-wrap"><iframe allowFullScreen frameBorder="0" src={contactMapEmbedUrl} title={t(settings, 'Promats harita')} /></div>
+              <a className="btn btn-yellow promats-directions-btn" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`} target="_blank" rel="noreferrer">{t(settings, 'Yol Tarifi Al')}</a>
+            </div>
+          </div>
         </section>
       ) : null}
     </>
