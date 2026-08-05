@@ -18,6 +18,7 @@ const STATIC_EXT_RE = /\.(?:ico|png|jpg|jpeg|gif|svg|webp|woff2?|ttf|otf|eot|css
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const basePath = (process.env.NEXT_PUBLIC_BASE_PATH || '').replace(/\/$/, '');
 
   // Next.js internals + static dosyalar — atla
   if (
@@ -43,8 +44,20 @@ export function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Koku canonical locale URL'sine yonlendir. Absolute internal rewrite,
+  // reverse proxy arkasinda https://localhost:<port> ureterek 500'e yol acabilir.
+  if (pathname === '/') {
+    return new NextResponse(null, {
+      status: 308,
+      headers: { location: `${basePath}/${DEFAULT_LOCALE}` },
+    });
+  }
+
   // Locale prefix YOK → default locale'e internal rewrite (URL bar'da `/` kalır)
   const url = req.nextUrl.clone();
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    url.protocol = 'http:';
+  }
   url.pathname = `/${DEFAULT_LOCALE}${pathname === '/' ? '' : pathname}`;
   return NextResponse.rewrite(url);
 }
