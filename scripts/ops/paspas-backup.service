@@ -1,0 +1,14 @@
+[Unit]
+Description=Paspas production verified backup
+After=network-online.target mysql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/var/www/paspas/scripts/ops/backup-production.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+ProtectSystem=full
+ReadWritePaths=/var/backups/paspas-automatic /run
+
