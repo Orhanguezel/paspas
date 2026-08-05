@@ -16,8 +16,7 @@ type Props = {
 // Footer'ın TÜM verisi DB'den: site_settings (iletişim/sosyal/logo/copyright/e-katalog)
 // + menu_items (menü) + static_texts (t etiketleri). Hard-code YOK.
 export default function PromatsFooter({ locale, settings, siteConfig, menu }: Props) {
-  const { contact, socials, logoDark, copyright, ekatalogUrl } = siteConfig;
-  const ekatalogIcon = settings.footer_ekatalog_icon;
+  const { contact, socials, logoDark, copyright } = siteConfig;
   const localizedCopyright = t(settings, 'Promats A.Ş Tüm Hakları Saklıdır.');
   const footerCopyright =
     localizedCopyright === 'Promats A.Ş Tüm Hakları Saklıdır.'
@@ -68,16 +67,8 @@ export default function PromatsFooter({ locale, settings, siteConfig, menu }: Pr
           <PromatsSocialLinks
             socials={socials}
             label={t(settings, 'Bizi Takip Edin')}
-            className="col-8 offset-2 col-lg-6 offset-lg-0 text-center social-media order-2 order-lg-1 mt-4 mt-lg-0 mb-4 mb-lg-0"
+            className="col-8 offset-2 col-lg-9 offset-lg-0 text-center social-media order-2 order-lg-1 mt-4 mt-lg-0 mb-4 mb-lg-0"
           />
-          <div className="col-8 offset-2 col-lg-3 offset-lg-0 text-center order-1 order-lg-2">
-            {ekatalogUrl && ekatalogIcon ? (
-              <a href={ekatalogUrl} className="e-katalog" target="_blank" rel="noreferrer">
-                <span>{t(settings, 'E-Katalog İndir')}</span>
-                <PromatsImage src={ekatalogIcon} alt="" width={40} height={40} />
-              </a>
-            ) : null}
-          </div>
         </div>
       </div>
     </footer>

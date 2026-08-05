@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { BookOpen, Eye, FileDown, X } from 'lucide-react';
 
 import type { MenuLink, Product, SiteConfig } from '@/lib/promats/api';
 import { DevNote } from '@/components/devnote';
@@ -25,8 +26,8 @@ export default function PromatsHeader({ locale, products, settings, siteConfig, 
   const [searchOpen, setSearchOpen] = useState(false);
   const [sticky, setSticky] = useState(false);
   const [productsOpen, setProductsOpen] = useState(true);
-  const [catalogOpen, setCatalogOpen] = useState(false);
-  const catalogRef = useRef<HTMLDivElement>(null);
+  const [catalogViewerOpen, setCatalogViewerOpen] = useState(false);
+  const catalogRef = useRef<HTMLDetailsElement>(null);
 
   // Anasayfa header'i koyu hero uzerinde seffaf durur; diger tum sayfalarda
   // (bg-light hero) header solid siyah (black-header) olur → tek/tutarli header.
@@ -35,6 +36,9 @@ export default function PromatsHeader({ locale, products, settings, siteConfig, 
   const darkHeader = Boolean(title) || !isHome;
   const searchIcon = settings.header_icon_search;
   const menuIcon = settings.header_icon_menu;
+  const catalogPdfUrl = locale === 'tr'
+    ? '/userfiles/files/e-katalog-tr.pdf'
+    : (siteConfig.ekatalogUrl || '/userfiles/files/e-catalogue.pdf');
 
   useEffect(() => {
     // Orijinal tema offcanvas mekanizmasi: body.offcanvas -> panel translateX(0) + body:before karartma.
@@ -49,22 +53,35 @@ export default function PromatsHeader({ locale, products, settings, siteConfig, 
   // E-Katalog menüsü (native <details> değil): dışarı tıklayınca ve Escape ile
   // kapanır. <details> müşteri notunda "dışarı tıklayınca kapanmıyor" idi.
   useEffect(() => {
-    if (!catalogOpen) return;
-    const onPointer = (e: MouseEvent) => {
+    const onPointer = (e: PointerEvent) => {
       if (catalogRef.current && !catalogRef.current.contains(e.target as Node)) {
-        setCatalogOpen(false);
+        catalogRef.current.removeAttribute('open');
       }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setCatalogOpen(false);
+      if (e.key === 'Escape') catalogRef.current?.removeAttribute('open');
     };
-    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('pointerdown', onPointer);
     document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('pointerdown', onPointer);
       document.removeEventListener('keydown', onKey);
     };
-  }, [catalogOpen]);
+  }, []);
+
+  useEffect(() => {
+    if (!catalogViewerOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setCatalogViewerOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [catalogViewerOpen]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -166,32 +183,36 @@ export default function PromatsHeader({ locale, products, settings, siteConfig, 
           {title ? <div className="header d-none d-lg-block"><h1>{title}</h1></div> : null}
           <div className="icons-wrap text-md-right">
             {siteConfig.ekatalogUrl ? (
-              <div className="promats-header-catalog d-none d-lg-inline-block" ref={catalogRef}>
-                <button
-                  type="button"
+              <details className="promats-header-catalog d-none d-lg-inline-block" ref={catalogRef}>
+                <summary
                   className="promats-header-catalog-toggle"
-                  onClick={() => setCatalogOpen((v) => !v)}
-                  aria-haspopup="true"
-                  aria-expanded={catalogOpen}
                 >
-                  {t(settings, 'E-Katalog')}
-                </button>
-                {catalogOpen ? (
-                  <div className="promats-header-catalog-menu">
-                    <a
-                      href={siteConfig.ekatalogUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={() => setCatalogOpen(false)}
-                    >
-                      {t(settings, 'Katalog Görüntüle')}
-                    </a>
-                    <a href={siteConfig.ekatalogUrl} download onClick={() => setCatalogOpen(false)}>
-                      {t(settings, 'PDF İndir')}
-                    </a>
-                  </div>
-                ) : null}
-              </div>
+                  <span>{t(settings, 'E-Katalog')}</span>
+                  <BookOpen aria-hidden="true" />
+                </summary>
+                <div className="promats-header-catalog-menu">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      catalogRef.current?.removeAttribute('open');
+                      setCatalogViewerOpen(true);
+                    }}
+                  >
+                    <span className="promats-catalog-option-icon"><Eye aria-hidden="true" /></span>
+                    <strong>{t(settings, 'Görüntüle')}</strong>
+                    <small>{t(settings, 'Online incele')}</small>
+                  </button>
+                  <a
+                    href={catalogPdfUrl}
+                    download
+                    onClick={() => catalogRef.current?.removeAttribute('open')}
+                  >
+                    <span className="promats-catalog-option-icon"><FileDown aria-hidden="true" /></span>
+                    <strong>{t(settings, 'PDF İndir')}</strong>
+                    <small>{t(settings, 'Kataloğu indir')}</small>
+                  </a>
+                </div>
+              </details>
             ) : null}
             <ul className="icons-top d-lg-block">
               {searchIcon ? <li>
@@ -234,6 +255,41 @@ export default function PromatsHeader({ locale, products, settings, siteConfig, 
           </div>
         </div>
       </div>
+
+      {catalogViewerOpen ? (
+        <div
+          className="promats-catalog-viewer"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t(settings, 'Katalog Görüntüle')}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setCatalogViewerOpen(false);
+          }}
+        >
+          <div className="promats-catalog-viewer-panel">
+            <div className="promats-catalog-viewer-header">
+              <span><BookOpen aria-hidden="true" />{t(settings, 'E-Katalog')}</span>
+              <div>
+                <a href={catalogPdfUrl} download>
+                  <FileDown aria-hidden="true" />
+                  {t(settings, 'PDF İndir')}
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setCatalogViewerOpen(false)}
+                  aria-label={locale === 'en' ? 'Close catalogue' : 'Kataloğu kapat'}
+                >
+                  <X aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+            <iframe
+              src={`${catalogPdfUrl}#page=1&view=FitH`}
+              title={t(settings, 'Katalog Görüntüle')}
+            />
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
