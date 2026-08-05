@@ -88,6 +88,7 @@ export default function YazilimGorevleriClient() {
   const [uploadAsset] = useCreateAssetAdminMutation();
   const [selectedId, setSelectedId] = useState<string>();
   const [dragging, setDragging] = useState<string>();
+  const draggingIdRef = useRef<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [subject, setSubject] = useState('');
@@ -348,8 +349,11 @@ export default function YazilimGorevleriClient() {
                 key={column.status}
                 className="min-w-0 rounded-lg border bg-muted/20"
                 onDragOver={(event) => event.preventDefault()}
-                onDrop={() => {
-                  if (dragging) void move(dragging, column.status);
+                onDrop={(event) => {
+                  event.preventDefault();
+                  const draggedId = event.dataTransfer.getData('text/plain') || draggingIdRef.current;
+                  if (draggedId) void move(draggedId, column.status);
+                  draggingIdRef.current = null;
                   setDragging(undefined);
                 }}
               >
@@ -365,7 +369,16 @@ export default function YazilimGorevleriClient() {
                       key={item.id}
                       type="button"
                       draggable
-                      onDragStart={() => setDragging(item.id)}
+                      onDragStart={(event) => {
+                        draggingIdRef.current = item.id;
+                        setDragging(item.id);
+                        event.dataTransfer.effectAllowed = 'move';
+                        event.dataTransfer.setData('text/plain', item.id);
+                      }}
+                      onDragEnd={() => {
+                        draggingIdRef.current = null;
+                        setDragging(undefined);
+                      }}
                       onClick={() => setSelectedId(item.id)}
                       className={`min-w-0 w-full rounded-md border bg-card p-2 text-left shadow-sm hover:border-primary/50 ${['high', 'critical'].includes(item.priority) ? 'border-destructive/50' : ''}`}
                     >
