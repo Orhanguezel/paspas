@@ -3,154 +3,163 @@
 // Promat ERP — 4 rol tanımı + sayfa erişim kontrolü
 // =============================================================
 
-export type PanelRole = 'admin' | 'operator' | 'satin_almaci' | 'nakliyeci';
+export type PanelRole = "admin" | "operator" | "satin_almaci" | "nakliyeci";
 
 export type AdminNavKey =
-  | 'dashboard'
-  | 'urunler'
-  | 'musteriler'
-  | 'is_ortaklari'
-  | 'makineler'
-  | 'kaliplar'
-  | 'birimler'
-  | 'tatil_gunleri'
-  | 'vardiyalar'
-  | 'durus_nedenleri'
-  | 'hafta_sonu_planlari'
-  | 'makine_kapama'
-  | 'calisma_planlari'
-  | 'uretim_tanimlari'
-  | 'satis_siparisleri'
-  | 'uretim_emirleri'
-  | 'makine_havuzu'
-  | 'is_yukler'
-  | 'gantt'
-  | 'stoklar'
-  | 'satin_alma'
-  | 'hareketler'
-  | 'gorevler'
-  | 'giris_ayarlari'
-  | 'kullanicilar'
-  | 'operator'
-  | 'tanimlar'
-  | 'audit_logs'
-  | 'site_settings'
-  | 'tedarikci'
-  | 'kategoriler'
-  | 'sevkiyat'
-  | 'mal_kabul'
-  | 'storage'
-  | 'db_admin'
-  | 'test_center'
-  | 'admin_documentation'
-  | 'vardiya_analizi'
-  | 'proje_teklifi'
-  | 'web_sayfasi'
-  | 'yazilim_gorevleri'
-  | 'teklif_talepleri'
-  | 'teklifler'
-  | 'iletisim_mesajlari';
+  | "dashboard"
+  | "urunler"
+  | "musteriler"
+  | "is_ortaklari"
+  | "makineler"
+  | "kaliplar"
+  | "birimler"
+  | "tatil_gunleri"
+  | "vardiyalar"
+  | "durus_nedenleri"
+  | "hafta_sonu_planlari"
+  | "makine_kapama"
+  | "calisma_planlari"
+  | "uretim_tanimlari"
+  | "satis_siparisleri"
+  | "uretim_emirleri"
+  | "makine_havuzu"
+  | "is_yukler"
+  | "gantt"
+  | "stoklar"
+  | "satin_alma"
+  | "hareketler"
+  | "gorevler"
+  | "giris_ayarlari"
+  | "kullanicilar"
+  | "operator"
+  | "tanimlar"
+  | "audit_logs"
+  | "site_settings"
+  | "tedarikci"
+  | "kategoriler"
+  | "sevkiyat"
+  | "mal_kabul"
+  | "storage"
+  | "db_admin"
+  | "test_center"
+  | "admin_documentation"
+  | "vardiya_analizi"
+  | "proje_teklifi"
+  | "web_sayfasi"
+  | "yazilim_gorevleri"
+  | "teklif_talepleri"
+  | "teklifler"
+  | "fuar_genel_bakis"
+  | "fuar_urunler"
+  | "fuar_musteriler"
+  | "fuar_teklifler"
+  | "iletisim_mesajlari";
 
 // Her rolün varsayılan giriş sayfası (login sonrası yönlendirme)
 export const ROLE_HOME: Record<PanelRole, string> = {
-  admin:        '/admin/dashboard',
-  operator:     '/admin/operator',
-  satin_almaci: '/admin/satin-alma',
-  nakliyeci:    '/admin/sevkiyat',
+  admin: "/admin/dashboard",
+  operator: "/admin/operator",
+  satin_almaci: "/admin/satin-alma",
+  nakliyeci: "/admin/sevkiyat",
 };
 
 // Modül → izin verilen roller
 const NAV_ROLES: Record<AdminNavKey, PanelRole[]> = {
-  dashboard:         ['admin'],
-  urunler:           ['admin', 'operator', 'satin_almaci'],
-  musteriler:        ['admin', 'satin_almaci'],
-  is_ortaklari:      ['admin', 'satin_almaci'],
-  makineler:         ['admin', 'operator'],
-  kaliplar:          ['admin', 'operator'],
-  birimler:          ['admin'],
-  tatil_gunleri:     ['admin'],
-  vardiyalar:        ['admin'],
-  durus_nedenleri:   ['admin'],
-  hafta_sonu_planlari: ['admin'],
-  makine_kapama:    ['admin'],
-  calisma_planlari: ['admin'],
-  uretim_tanimlari: ['admin'],
-  satis_siparisleri: ['admin'],
-  uretim_emirleri:   ['admin', 'operator'],
-  makine_havuzu:     ['admin', 'operator'],
-  is_yukler:         ['admin', 'operator'],
-  gantt:             ['admin', 'operator'],
-  stoklar:           ['admin', 'operator', 'satin_almaci'],
-  satin_alma:        ['admin', 'satin_almaci'],
-  sevkiyat:          ['admin', 'nakliyeci'],
-  hareketler:        ['admin', 'operator', 'satin_almaci'],
-  gorevler:          ['admin', 'operator', 'satin_almaci'],
-  giris_ayarlari:    ['admin'],
-  kullanicilar:      ['admin'],
-  operator:          ['admin', 'operator'],
-  tanimlar:          ['admin', 'operator', 'satin_almaci'],
-  tedarikci:         ['admin', 'satin_almaci'],
-  kategoriler:       ['admin'],
-  audit_logs:        ['admin'],
-  site_settings:     ['admin'],
-  mal_kabul:         ['admin', 'satin_almaci'],
-  storage:           ['admin'],
-  db_admin:          ['admin'],
-  test_center:       ['admin'],
-  admin_documentation: ['admin'],
-  vardiya_analizi:   ['admin'],
-  proje_teklifi:     ['admin'],
-  web_sayfasi:       ['admin'],
-  yazilim_gorevleri: ['admin'],
-  teklif_talepleri:  ['admin', 'nakliyeci'],
-  teklifler:         ['admin', 'nakliyeci'],
-  iletisim_mesajlari: ['admin'],
+  dashboard: ["admin"],
+  urunler: ["admin", "operator", "satin_almaci"],
+  musteriler: ["admin", "satin_almaci"],
+  is_ortaklari: ["admin", "satin_almaci"],
+  makineler: ["admin", "operator"],
+  kaliplar: ["admin", "operator"],
+  birimler: ["admin"],
+  tatil_gunleri: ["admin"],
+  vardiyalar: ["admin"],
+  durus_nedenleri: ["admin"],
+  hafta_sonu_planlari: ["admin"],
+  makine_kapama: ["admin"],
+  calisma_planlari: ["admin"],
+  uretim_tanimlari: ["admin"],
+  satis_siparisleri: ["admin"],
+  uretim_emirleri: ["admin", "operator"],
+  makine_havuzu: ["admin", "operator"],
+  is_yukler: ["admin", "operator"],
+  gantt: ["admin", "operator"],
+  stoklar: ["admin", "operator", "satin_almaci"],
+  satin_alma: ["admin", "satin_almaci"],
+  sevkiyat: ["admin", "nakliyeci"],
+  hareketler: ["admin", "operator", "satin_almaci"],
+  gorevler: ["admin", "operator", "satin_almaci"],
+  giris_ayarlari: ["admin"],
+  kullanicilar: ["admin"],
+  operator: ["admin", "operator"],
+  tanimlar: ["admin", "operator", "satin_almaci"],
+  tedarikci: ["admin", "satin_almaci"],
+  kategoriler: ["admin"],
+  audit_logs: ["admin"],
+  site_settings: ["admin"],
+  mal_kabul: ["admin", "satin_almaci"],
+  storage: ["admin"],
+  db_admin: ["admin"],
+  test_center: ["admin"],
+  admin_documentation: ["admin"],
+  vardiya_analizi: ["admin"],
+  proje_teklifi: ["admin"],
+  web_sayfasi: ["admin"],
+  yazilim_gorevleri: ["admin"],
+  teklif_talepleri: ["admin", "nakliyeci"],
+  teklifler: ["admin", "nakliyeci"],
+  fuar_genel_bakis: ["admin"],
+  fuar_urunler: ["admin"],
+  fuar_musteriler: ["admin"],
+  fuar_teklifler: ["admin"],
+  iletisim_mesajlari: ["admin"],
 };
 
 export function getAdminNavRoles(key: AdminNavKey): PanelRole[] {
-  return NAV_ROLES[key] ?? ['admin'];
+  return NAV_ROLES[key] ?? ["admin"];
 }
 
 // Bir rolün belirli bir URL'e erişip erişemeyeceğini kontrol eder
 export function canAccessAdminPath(role: PanelRole, pathname: string): boolean {
-  if (role === 'admin') return true;
+  if (role === "admin") return true;
 
   // Her modülün URL prefix'ini izinli rollerle eşleştir
   const PATH_ROLE_MAP: Array<{ prefix: string; key: AdminNavKey }> = [
-    { prefix: '/admin/operator',           key: 'operator' },
-    { prefix: '/admin/satin-alma',         key: 'satin_alma' },
-    { prefix: '/admin/stoklar',            key: 'stoklar' },
-    { prefix: '/admin/satis-siparisleri',  key: 'satis_siparisleri' },
-    { prefix: '/admin/hareketler',         key: 'hareketler' },
-    { prefix: '/admin/gantt',              key: 'gantt' },
-    { prefix: '/admin/gorevler',           key: 'gorevler' },
-    { prefix: '/admin/giris-ayarlari',     key: 'giris_ayarlari' },
-    { prefix: '/admin/users',              key: 'kullanicilar' },
-    { prefix: '/admin/musteriler',         key: 'musteriler' },
-    { prefix: '/admin/dashboard',          key: 'dashboard' },
-    { prefix: '/admin/sevkiyat',           key: 'sevkiyat' },
-    { prefix: '/admin/mal-kabul',          key: 'mal_kabul' },
-    { prefix: '/admin/tedarikci',          key: 'tedarikci' },
-    { prefix: '/admin/urunler',            key: 'urunler' },
-    { prefix: '/admin/uretim-emirleri',    key: 'uretim_emirleri' },
-    { prefix: '/admin/makine-havuzu',      key: 'makine_havuzu' },
-    { prefix: '/admin/is-yukler',          key: 'is_yukler' },
-    { prefix: '/admin/tanimlar',           key: 'tanimlar' },
-    { prefix: '/admin/receteler',          key: 'urunler' },
-    { prefix: '/admin/test-merkezi',       key: 'test_center' },
-    { prefix: '/admin/dokumantasyon',      key: 'admin_documentation' },
-    { prefix: '/admin/proje-teklifi',      key: 'proje_teklifi' },
-    { prefix: '/admin/web-sayfasi',        key: 'web_sayfasi' },
-    { prefix: '/admin/yazilim-gorevleri',  key: 'yazilim_gorevleri' },
-    { prefix: '/admin/teklif-talepleri',   key: 'teklif_talepleri' },
-    { prefix: '/admin/teklifler',          key: 'teklifler' },
-    { prefix: '/admin/contacts',           key: 'iletisim_mesajlari' },
+    { prefix: "/admin/operator", key: "operator" },
+    { prefix: "/admin/satin-alma", key: "satin_alma" },
+    { prefix: "/admin/stoklar", key: "stoklar" },
+    { prefix: "/admin/satis-siparisleri", key: "satis_siparisleri" },
+    { prefix: "/admin/hareketler", key: "hareketler" },
+    { prefix: "/admin/gantt", key: "gantt" },
+    { prefix: "/admin/gorevler", key: "gorevler" },
+    { prefix: "/admin/giris-ayarlari", key: "giris_ayarlari" },
+    { prefix: "/admin/users", key: "kullanicilar" },
+    { prefix: "/admin/musteriler", key: "musteriler" },
+    { prefix: "/admin/dashboard", key: "dashboard" },
+    { prefix: "/admin/sevkiyat", key: "sevkiyat" },
+    { prefix: "/admin/mal-kabul", key: "mal_kabul" },
+    { prefix: "/admin/tedarikci", key: "tedarikci" },
+    { prefix: "/admin/urunler", key: "urunler" },
+    { prefix: "/admin/uretim-emirleri", key: "uretim_emirleri" },
+    { prefix: "/admin/makine-havuzu", key: "makine_havuzu" },
+    { prefix: "/admin/is-yukler", key: "is_yukler" },
+    { prefix: "/admin/tanimlar", key: "tanimlar" },
+    { prefix: "/admin/receteler", key: "urunler" },
+    { prefix: "/admin/test-merkezi", key: "test_center" },
+    { prefix: "/admin/dokumantasyon", key: "admin_documentation" },
+    { prefix: "/admin/proje-teklifi", key: "proje_teklifi" },
+    { prefix: "/admin/web-sayfasi", key: "web_sayfasi" },
+    { prefix: "/admin/yazilim-gorevleri", key: "yazilim_gorevleri" },
+    { prefix: "/admin/teklif-talepleri", key: "teklif_talepleri" },
+    { prefix: "/admin/teklifler", key: "teklifler" },
+    { prefix: "/admin/fuar", key: "fuar_genel_bakis" },
+    { prefix: "/admin/contacts", key: "iletisim_mesajlari" },
   ];
 
-  const clean = pathname.split('?')[0] ?? pathname;
+  const clean = pathname.split("?")[0] ?? pathname;
 
   // Profil sayfasi tum roller icin erisime acik
-  if (clean === '/admin/profile' || clean.startsWith('/admin/profile/')) return true;
+  if (clean === "/admin/profile" || clean.startsWith("/admin/profile/")) return true;
 
   for (const { prefix, key } of PATH_ROLE_MAP) {
     if (clean === prefix || clean.startsWith(`${prefix}/`)) {

@@ -6,43 +6,40 @@
 import {
   Activity,
   BarChart2,
+  BookOpenText,
   Building2,
   Calendar,
   CalendarDays,
   CalendarOff,
   CalendarRange,
   CircleOff,
-  Clock,
   ClipboardCheck,
   ClipboardList,
+  Clock,
   Cpu,
-  Database,
   Factory,
   Fence,
   FileSearch,
   FileSignature,
+  GalleryVerticalEnd,
   Inbox,
-  BookOpenText,
-  FolderTree,
-  Presentation,
-  PanelsTopLeft,
-  HardDrive,
-  KeyRound,
   LayoutDashboard,
+  type LucideIcon,
   Package,
+  PanelsTopLeft,
   Play,
+  Presentation,
   Ruler,
   Settings,
   ShoppingCart,
   Timer,
   Truck,
   Users,
-  type LucideIcon,
-} from 'lucide-react';
-import type { TranslateFn } from '@/i18n';
-import { getAdminNavRoles } from '@/navigation/permissions';
-import type { AdminNavKey } from '@/navigation/permissions';
-import type { PanelRole } from '@/navigation/permissions';
+} from "lucide-react";
+
+import type { TranslateFn } from "@/i18n";
+import type { AdminNavKey, PanelRole } from "@/navigation/permissions";
+import { getAdminNavRoles } from "@/navigation/permissions";
 
 export interface NavSubItem {
   title: string;
@@ -69,7 +66,7 @@ export type AdminSidebarRole = PanelRole;
 
 export type AdminNavItemKey = AdminNavKey;
 
-export type AdminNavGroupKey = 'overview' | 'production' | 'logistics' | 'teklif' | 'website' | 'system';
+export type AdminNavGroupKey = "overview" | "production" | "logistics" | "teklif" | "fuar" | "website" | "system";
 
 export type AdminNavConfigItem = {
   key: AdminNavItemKey;
@@ -90,48 +87,52 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
   // ─── Genel ───
   {
     id: 1,
-    key: 'overview',
+    key: "overview",
     items: [
-
-      { key: 'yazilim_gorevleri', url: '/admin/yazilim-gorevleri', icon: ClipboardList, roles: ['admin'] },
-      { key: 'iletisim_mesajlari', url: '/admin/contacts', icon: Inbox, roles: ['admin'] },
+      { key: "yazilim_gorevleri", url: "/admin/yazilim-gorevleri", icon: ClipboardList, roles: ["admin"] },
+      { key: "iletisim_mesajlari", url: "/admin/contacts", icon: Inbox, roles: ["admin"] },
 
       // V2: görevler (tasks/notifications) buraya eklenecek
       // { key: 'gorevler', url: '/admin/gorevler', icon: ClipboardList, roles: ['admin', 'operator', 'satin_almaci'] },
       {
-        key: 'is_ortaklari',
-        url: '/admin/musteriler',  
-        icon: Users, 
-        roles: ['admin', 'satin_almaci'],
+        key: "is_ortaklari",
+        url: "/admin/musteriler",
+        icon: Users,
+        roles: ["admin", "satin_almaci"],
         subItems: [
-          { key: 'musteriler',  url: '/admin/musteriler',   icon: Users,     roles: ['admin'] },
-          { key: 'tedarikci',   url: '/admin/tedarikci',    icon: Building2, roles: ['admin', 'satin_almaci'] },
+          { key: "musteriler", url: "/admin/musteriler", icon: Users, roles: ["admin"] },
+          { key: "tedarikci", url: "/admin/tedarikci", icon: Building2, roles: ["admin", "satin_almaci"] },
         ],
       },
-      { key: 'urunler',           url: '/admin/urunler',           icon: Package,         roles: ['admin'] },
+      { key: "urunler", url: "/admin/urunler", icon: Package, roles: ["admin"] },
 
       {
-        key: 'uretim_tanimlari',
-        url: '/admin/makineler',
+        key: "uretim_tanimlari",
+        url: "/admin/makineler",
         icon: Timer,
-        roles: ['admin'],
+        roles: ["admin"],
         subItems: [
-          { key: 'makineler',       url: '/admin/makineler',                     icon: Timer,      roles: ['admin'] },
-          { key: 'kaliplar',        url: '/admin/tanimlar?tab=kaliplar',         icon: Fence,      roles: ['admin'] },
-          { key: 'durus_nedenleri', url: '/admin/tanimlar?tab=durus-nedenleri',  icon: CircleOff,  roles: ['admin'] },
-          { key: 'birimler',        url: '/admin/tanimlar?tab=birimler',         icon: Ruler,      roles: ['admin'] },
+          { key: "makineler", url: "/admin/makineler", icon: Timer, roles: ["admin"] },
+          { key: "kaliplar", url: "/admin/tanimlar?tab=kaliplar", icon: Fence, roles: ["admin"] },
+          { key: "durus_nedenleri", url: "/admin/tanimlar?tab=durus-nedenleri", icon: CircleOff, roles: ["admin"] },
+          { key: "birimler", url: "/admin/tanimlar?tab=birimler", icon: Ruler, roles: ["admin"] },
         ],
       },
       {
-        key: 'calisma_planlari',
-        url: '/admin/tanimlar?tab=tatiller',
+        key: "calisma_planlari",
+        url: "/admin/tanimlar?tab=tatiller",
         icon: CalendarDays,
-        roles: ['admin'],
+        roles: ["admin"],
         subItems: [
-          { key: 'tatil_gunleri',       url: '/admin/tanimlar?tab=tatiller',             icon: CalendarDays,   roles: ['admin'] },
-          { key: 'vardiyalar',          url: '/admin/tanimlar?tab=vardiyalar',           icon: Clock,          roles: ['admin'] },
-          { key: 'hafta_sonu_planlari', url: '/admin/tanimlar?tab=hafta-sonu-planlari',  icon: CalendarRange,  roles: ['admin'] },
-          { key: 'makine_kapama',        url: '/admin/tanimlar?tab=makine-kapama',       icon: CalendarOff,    roles: ['admin'] },
+          { key: "tatil_gunleri", url: "/admin/tanimlar?tab=tatiller", icon: CalendarDays, roles: ["admin"] },
+          { key: "vardiyalar", url: "/admin/tanimlar?tab=vardiyalar", icon: Clock, roles: ["admin"] },
+          {
+            key: "hafta_sonu_planlari",
+            url: "/admin/tanimlar?tab=hafta-sonu-planlari",
+            icon: CalendarRange,
+            roles: ["admin"],
+          },
+          { key: "makine_kapama", url: "/admin/tanimlar?tab=makine-kapama", icon: CalendarOff, roles: ["admin"] },
         ],
       },
     ],
@@ -139,52 +140,68 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
   // ─── Üretim Süreçleri ───
   {
     id: 2,
-    key: 'production',
+    key: "production",
     items: [
-      { key: 'satis_siparisleri', url: '/admin/satis-siparisleri', icon: ShoppingCart, roles: ['admin'] },
-      { key: 'uretim_emirleri',   url: '/admin/uretim-emirleri',   icon: Factory,     roles: ['admin'] },
-      { key: 'is_yukler',         url: '/admin/is-yukler',         icon: Cpu,         roles: ['admin'] },
-      { key: 'operator',          url: '/admin/operator',          icon: Play,        roles: ['admin', 'operator'] },
-      { key: 'gantt',             url: '/admin/gantt',             icon: Calendar,    roles: ['admin', 'operator'] },
-      { key: 'vardiya_analizi',   url: '/admin/vardiya-analizi',   icon: Timer,       roles: ['admin'] },
+      { key: "satis_siparisleri", url: "/admin/satis-siparisleri", icon: ShoppingCart, roles: ["admin"] },
+      { key: "uretim_emirleri", url: "/admin/uretim-emirleri", icon: Factory, roles: ["admin"] },
+      { key: "is_yukler", url: "/admin/is-yukler", icon: Cpu, roles: ["admin"] },
+      { key: "operator", url: "/admin/operator", icon: Play, roles: ["admin", "operator"] },
+      { key: "gantt", url: "/admin/gantt", icon: Calendar, roles: ["admin", "operator"] },
+      { key: "vardiya_analizi", url: "/admin/vardiya-analizi", icon: Timer, roles: ["admin"] },
     ],
   },
   // ─── Lojistik & Stok ───
   {
     id: 3,
-    key: 'logistics',
+    key: "logistics",
     items: [
-      { key: 'sevkiyat',          url: '/admin/sevkiyat',          icon: Truck,      roles: ['admin', 'nakliyeci'] },
-      { key: 'stoklar',           url: '/admin/stoklar',           icon: BarChart2,  roles: ['admin', 'satin_almaci'] },
-      { key: 'satin_alma',        url: '/admin/satin-alma',        icon: Truck,      roles: ['admin', 'satin_almaci'] },
-      { key: 'mal_kabul',         url: '/admin/mal-kabul',         icon: ClipboardCheck, roles: ['admin', 'satin_almaci'] },
-      { key: 'hareketler',        url: '/admin/hareketler',        icon: Activity,   roles: ['admin', 'satin_almaci'] },
+      { key: "sevkiyat", url: "/admin/sevkiyat", icon: Truck, roles: ["admin", "nakliyeci"] },
+      { key: "stoklar", url: "/admin/stoklar", icon: BarChart2, roles: ["admin", "satin_almaci"] },
+      { key: "satin_alma", url: "/admin/satin-alma", icon: Truck, roles: ["admin", "satin_almaci"] },
+      { key: "mal_kabul", url: "/admin/mal-kabul", icon: ClipboardCheck, roles: ["admin", "satin_almaci"] },
+      { key: "hareketler", url: "/admin/hareketler", icon: Activity, roles: ["admin", "satin_almaci"] },
     ],
   },
   // ─── Teklif Modülü ───
   {
     id: 4,
-    key: 'teklif',
+    key: "teklif",
     items: [
-      { key: 'teklif_talepleri', url: '/admin/teklif-talepleri', icon: Inbox, roles: ['admin', 'nakliyeci'] },
-      { key: 'teklifler',        url: '/admin/teklifler',        icon: FileSignature, roles: ['admin', 'nakliyeci'] },
+      { key: "teklif_talepleri", url: "/admin/teklif-talepleri", icon: Inbox, roles: ["admin", "nakliyeci"] },
+      { key: "teklifler", url: "/admin/teklifler", icon: FileSignature, roles: ["admin", "nakliyeci"] },
     ],
   },
   {
     id: 5,
-    key: 'website',
+    key: "fuar",
     items: [
-      { key: 'web_sayfasi', url: '/admin/web-sayfasi', icon: PanelsTopLeft, roles: ['admin'] },
+      {
+        key: "fuar_genel_bakis",
+        url: "/admin/fuar",
+        icon: GalleryVerticalEnd,
+        roles: ["admin"],
+        subItems: [
+          { key: "fuar_genel_bakis", url: "/admin/fuar", icon: LayoutDashboard, roles: ["admin"] },
+          { key: "fuar_urunler", url: "/admin/fuar/urunler", icon: Package, roles: ["admin"] },
+          { key: "fuar_musteriler", url: "/admin/fuar/musteriler", icon: Users, roles: ["admin"] },
+          { key: "fuar_teklifler", url: "/admin/fuar/teklifler", icon: FileSignature, roles: ["admin"] },
+        ],
+      },
     ],
   },
   {
     id: 6,
-    key: 'system',
+    key: "website",
+    items: [{ key: "web_sayfasi", url: "/admin/web-sayfasi", icon: PanelsTopLeft, roles: ["admin"] }],
+  },
+  {
+    id: 7,
+    key: "system",
     items: [
-      { key: 'site_settings',     url: '/admin/sistem',           icon: Settings,     roles: ['admin'] },
-      { key: 'test_center',       url: '/admin/test-merkezi',     icon: FileSearch,   roles: ['admin'] },
-      { key: 'admin_documentation', url: '/admin/dokumantasyon',  icon: BookOpenText, roles: ['admin'] },
-      { key: 'proje_teklifi',     url: '/admin/proje-teklifi',    icon: Presentation, roles: ['admin'] },
+      { key: "site_settings", url: "/admin/sistem", icon: Settings, roles: ["admin"] },
+      { key: "test_center", url: "/admin/test-merkezi", icon: FileSearch, roles: ["admin"] },
+      { key: "admin_documentation", url: "/admin/dokumantasyon", icon: BookOpenText, roles: ["admin"] },
+      { key: "proje_teklifi", url: "/admin/proje-teklifi", icon: Presentation, roles: ["admin"] },
     ],
   },
 ];
@@ -195,77 +212,79 @@ export type AdminNavCopy = {
 };
 
 const FALLBACK_GROUP_LABELS: Record<AdminNavGroupKey, string> = {
-  overview:   'Genel',
-  production: 'Üretim Süreçleri',
-  logistics:  'Lojistik & Stok',
-  teklif:     'Teklif Modülü',
-  website:    'Web Sitesi',
-  system:     'Sistem Yönetimi',
+  overview: "Genel",
+  production: "Üretim Süreçleri",
+  logistics: "Lojistik & Stok",
+  teklif: "Teklif Modülü",
+  fuar: "Fuar Teklif",
+  website: "Web Sitesi",
+  system: "Sistem Yönetimi",
 };
 
 const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
-  dashboard:         'Dashboard',
-  iletisim_mesajlari:'İletişim Mesajları',
-  gorevler:          'Görevler',
-  urunler:           'Ürünler',
-  musteriler:        'Müşteriler',
-  is_ortaklari:      'İş Ortakları',
-  makineler:         'Makineler',
-  kaliplar:          'Kalıplar',
-  tatil_gunleri:     'Tatil Günleri',
-  satis_siparisleri: 'Satış Siparişleri',
-  uretim_emirleri:   'Üretim Emirleri',
-  makine_havuzu:     'Makine Havuzu',
-  is_yukler:         'Makine İş Yükleri',
-  gantt:             'Gantt Planı',
-  stoklar:           'Malzeme Stokları',
-  satin_alma:        'Satın Alma',
-  hareketler:        'Hareketler',
-  operator:          'Operatör',
-  tanimlar:          'Tanımlar',
-  vardiyalar:        'Vardiyalar',
-  durus_nedenleri:   'Duruş Nedenleri',
-  birimler:          'Birimler',
-  hafta_sonu_planlari: 'Hafta Sonu Planları',
-  makine_kapama:    'Makine Kapama',
-  calisma_planlari:  'Çalışma Planları',
-  uretim_tanimlari:  'Üretim Tanımları',
-  tedarikci:         'Tedarikçiler',
-  kategoriler:       'Kategoriler',
-  sevkiyat:          'Sevkiyat',
-  mal_kabul:         'Mal Kabul',
-  audit_logs:        'Audit Logları',
-  kullanicilar:      'Kullanıcılar',
-  giris_ayarlari:    'Giriş Ayarları',
-  storage:           'Medyalar',
-  site_settings:     'Sistem & Ayarlar',
-  db_admin:          'Veritabanı',
-  test_center:       'Test Merkezi',
-  admin_documentation: 'Dokumantasyon',
-  vardiya_analizi:   'Vardiya Analizi',
-  proje_teklifi:     'Proje Teklifleri',
-  web_sayfasi:       'Promats İçerik Yönetimi',
-  yazilim_gorevleri: 'Yazılım Görevleri',
-  teklif_talepleri:  'Teklif Talepleri',
-  teklifler:         'Teklifler',
+  dashboard: "Dashboard",
+  iletisim_mesajlari: "İletişim Mesajları",
+  gorevler: "Görevler",
+  urunler: "Ürünler",
+  musteriler: "Müşteriler",
+  is_ortaklari: "İş Ortakları",
+  makineler: "Makineler",
+  kaliplar: "Kalıplar",
+  tatil_gunleri: "Tatil Günleri",
+  satis_siparisleri: "Satış Siparişleri",
+  uretim_emirleri: "Üretim Emirleri",
+  makine_havuzu: "Makine Havuzu",
+  is_yukler: "Makine İş Yükleri",
+  gantt: "Gantt Planı",
+  stoklar: "Malzeme Stokları",
+  satin_alma: "Satın Alma",
+  hareketler: "Hareketler",
+  operator: "Operatör",
+  tanimlar: "Tanımlar",
+  vardiyalar: "Vardiyalar",
+  durus_nedenleri: "Duruş Nedenleri",
+  birimler: "Birimler",
+  hafta_sonu_planlari: "Hafta Sonu Planları",
+  makine_kapama: "Makine Kapama",
+  calisma_planlari: "Çalışma Planları",
+  uretim_tanimlari: "Üretim Tanımları",
+  tedarikci: "Tedarikçiler",
+  kategoriler: "Kategoriler",
+  sevkiyat: "Sevkiyat",
+  mal_kabul: "Mal Kabul",
+  audit_logs: "Audit Logları",
+  kullanicilar: "Kullanıcılar",
+  giris_ayarlari: "Giriş Ayarları",
+  storage: "Medyalar",
+  site_settings: "Sistem & Ayarlar",
+  db_admin: "Veritabanı",
+  test_center: "Test Merkezi",
+  admin_documentation: "Dokumantasyon",
+  vardiya_analizi: "Vardiya Analizi",
+  proje_teklifi: "Proje Teklifleri",
+  web_sayfasi: "Promats İçerik Yönetimi",
+  yazilim_gorevleri: "Yazılım Görevleri",
+  teklif_talepleri: "Teklif Talepleri",
+  teklifler: "Teklifler",
+  fuar_genel_bakis: "Genel Bakış",
+  fuar_urunler: "Fuar Ürünleri",
+  fuar_musteriler: "Fuar Müşterileri",
+  fuar_teklifler: "Fuar Teklifleri",
 };
 
 export function buildAdminSidebarItems(
   copy?: Partial<AdminNavCopy> | null,
   t?: TranslateFn,
-  role: AdminSidebarRole = 'admin',
+  role: AdminSidebarRole = "admin",
 ): NavGroup[] {
-  const labels = copy?.labels ?? ({} as AdminNavCopy['labels']);
-  const items = copy?.items ?? ({} as AdminNavCopy['items']);
+  const labels = copy?.labels ?? ({} as AdminNavCopy["labels"]);
+  const items = copy?.items ?? ({} as AdminNavCopy["items"]);
 
   const getTitle = (item: AdminNavConfigItem): string => {
     const tKey = `admin.dashboard.items.${item.key}`;
-    const translated = t ? t(tKey) : '';
+    const translated = t ? t(tKey) : "";
     return (
-      items[item.key] ||
-      (translated && translated !== tKey ? translated : '') ||
-      FALLBACK_TITLES[item.key] ||
-      item.key
+      items[item.key] || (translated && translated !== tKey ? translated : "") || FALLBACK_TITLES[item.key] || item.key
     );
   };
 
@@ -274,7 +293,7 @@ export function buildAdminSidebarItems(
     return subItems
       .filter((sub) => {
         const allowed = sub.roles ?? getAdminNavRoles(sub.key);
-        if (!allowed?.length) return role === 'admin';
+        if (!allowed?.length) return role === "admin";
         return allowed.includes(role);
       })
       .map((sub) => ({
@@ -290,13 +309,13 @@ export function buildAdminSidebarItems(
       const label =
         labels[group.key] ||
         (() => {
-          if (!t) return '';
+          if (!t) return "";
           const key = `admin.sidebar.groups.${group.key}`;
           const translated = t(key);
-          return translated && translated !== key ? translated : '';
+          return translated && translated !== key ? translated : "";
         })() ||
         FALLBACK_GROUP_LABELS[group.key] ||
-        '';
+        "";
 
       return {
         id: group.id,
@@ -304,7 +323,7 @@ export function buildAdminSidebarItems(
         items: group.items
           .filter((item) => {
             const allowed = item.roles ?? getAdminNavRoles(item.key);
-            if (!allowed?.length) return role === 'admin';
+            if (!allowed?.length) return role === "admin";
             return allowed.includes(role);
           })
           .map((item) => ({
