@@ -14,6 +14,7 @@ export type FuarQuoteCreate = {
   customerId: string;
   currency: "USD" | "EUR" | "TRY";
   deliveryMethod: "EXW" | "FOB" | "CIF";
+  loadingType: "loose" | "palletized";
   freight: number;
   extraDiscountPercent: number;
   lines: Array<{ productId: string; amount: number; unit: "set" | "carton" | "pallet" }>;
@@ -31,8 +32,13 @@ export type FuarQuoteDetail = FuarQuote & {
           product: { id: string; code: string; name: string };
           unitPricePerSet: number;
           lineTotal: number;
+          quantity: { sets: number; cartons: number; pallets: number };
+          logistics: { cbm: number; netWeightKg: number; grossWeightKg: number } | null;
+          logisticsMissingFields: string[];
         }
       >;
+      logisticsTotals: { cbm: number; netWeightKg: number; grossWeightKg: number } | null;
+      logisticsComplete: boolean;
     };
     totals: {
       grossProductTotal: number;

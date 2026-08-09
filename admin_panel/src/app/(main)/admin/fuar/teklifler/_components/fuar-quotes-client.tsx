@@ -34,6 +34,7 @@ export function FuarQuotesClient() {
   const [customerId, setCustomerId] = useState("");
   const [currency, setCurrency] = useState<"USD" | "EUR" | "TRY">("USD");
   const [deliveryMethod, setDeliveryMethod] = useState<"EXW" | "FOB" | "CIF">("EXW");
+  const [loadingType, setLoadingType] = useState<"loose" | "palletized">("palletized");
   const [freight, setFreight] = useState("0");
   const [extraDiscount, setExtraDiscount] = useState("0");
   const [lines, setLines] = useState<LineDraft[]>(() => [newLine()]);
@@ -50,6 +51,7 @@ export function FuarQuotesClient() {
     setCustomerId(current.snapshot.customer.id);
     setCurrency(current.snapshot.currency);
     setDeliveryMethod(current.snapshot.deliveryMethod);
+    setLoadingType(current.snapshot.loadingType);
     setFreight(String(current.snapshot.freight));
     setExtraDiscount(String(current.snapshot.extraDiscountPercent));
     setLines(
@@ -66,6 +68,7 @@ export function FuarQuotesClient() {
     customerId,
     currency,
     deliveryMethod,
+    loadingType,
     freight: Number(freight),
     extraDiscountPercent: Number(extraDiscount),
     lines: lines.map(({ productId, amount, unit }) => ({ productId, amount: Number(amount), unit })),
@@ -87,6 +90,7 @@ export function FuarQuotesClient() {
     setCustomerId("");
     setCurrency("USD");
     setDeliveryMethod("EXW");
+    setLoadingType("palletized");
     setFreight("0");
     setExtraDiscount("0");
     setLines([newLine()]);
@@ -185,6 +189,20 @@ export function FuarQuotesClient() {
                   value={freight}
                   onChange={(event) => setFreight(event.target.value)}
                 />
+              </Field>
+              <Field>
+                <FieldLabel>Yükleme tipi</FieldLabel>
+                <Select value={loadingType} onValueChange={(value) => setLoadingType(value as typeof loadingType)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="palletized">Paletli</SelectItem>
+                      <SelectItem value="loose">Paletsiz / kolili</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </Field>
               <Field>
                 <FieldLabel htmlFor="quote-discount">Ek indirim (%)</FieldLabel>
@@ -368,12 +386,37 @@ function QuoteDetail({ quote }: { quote: FuarQuoteDetail }) {
               </div>
               <strong>{money(revision.totals.grandTotal, revision.snapshot.currency)}</strong>
             </div>
+            {revision.snapshot.logisticsTotals ? (
+              <div className="grid gap-3 rounded-md bg-muted p-3 text-sm sm:grid-cols-3">
+                <div>
+                  <span className="text-muted-foreground">Toplam hacim</span>
+                  <strong className="block">{revision.snapshot.logisticsTotals.cbm.toLocaleString("tr-TR")} m³</strong>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Net ağırlık</span>
+                  <strong className="block">
+                    {revision.snapshot.logisticsTotals.netWeightKg.toLocaleString("tr-TR")} kg
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Brüt ağırlık</span>
+                  <strong className="block">
+                    {revision.snapshot.logisticsTotals.grossWeightKg.toLocaleString("tr-TR")} kg
+                  </strong>
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                Lojistik toplamı için bazı ürünlerin ölçü veya ağırlık bilgileri eksik.
+              </p>
+            )}
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Ürün</TableHead>
                   <TableHead>Miktar</TableHead>
                   <TableHead>Birim fiyat</TableHead>
+                  <TableHead>Hacim / brüt</TableHead>
                   <TableHead className="text-right">Tutar</TableHead>
                 </TableRow>
               </TableHeader>
@@ -387,6 +430,11 @@ function QuoteDetail({ quote }: { quote: FuarQuoteDetail }) {
                       {line.amount} {line.unit}
                     </TableCell>
                     <TableCell>{money(line.unitPricePerSet, revision.snapshot.currency)}</TableCell>
+                    <TableCell>
+                      {line.logistics
+                        ? `${line.logistics.cbm.toLocaleString("tr-TR")} m³ · ${line.logistics.grossWeightKg.toLocaleString("tr-TR")} kg`
+                        : "Bilgi eksik"}
+                    </TableCell>
                     <TableCell className="text-right">{money(line.lineTotal, revision.snapshot.currency)}</TableCell>
                   </TableRow>
                 ))}

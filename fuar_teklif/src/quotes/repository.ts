@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { Database } from '../db';
-import { assertMoq, calculateLineTotal, calculateTotals, convertQuantity } from '../domain/calculator';
+import { assertMoq, calculateLineTotal, calculateLogistics, calculateTotals, convertQuantity } from '../domain/calculator';
 import type { QuoteCreate } from './schema';
 
 export async function listQuotes(db: Database) {
@@ -31,27 +31,48 @@ async function nextQuoteNo(connection: PoolConnection) {
   const [rows] = await connection.query<RowDataPacket[]>('SELECT current_value FROM quote_sequences WHERE sequence_year=? FOR UPDATE', [year]);
   return `FQ-${year}-${String(rows[0].current_value).padStart(4, '0')}`;
 }
+
+async function buildQuoteSnapshot(connection: PoolConnection, input: QuoteCreate, quoteNo: string) {
+  const [customers] = await connection.query<RowDataPacket[]>('SELECT * FROM customers WHERE id=? AND is_active=1', [input.customerId]);
+  if (!customers[0]) throw new Error('customer_not_found');
+  const ids = input.lines.map((line) => line.productId); const placeholders = ids.map(() => '?').join(',');
+  const [products] = await connection.query<RowDataPacket[]>(`SELECT * FROM products WHERE id IN (${placeholders}) AND is_active=1`, ids);
+  const productMap = new Map(products.map((product) => [product.id, product]));
+  const lines = input.lines.map((line) => {
+    const product = productMap.get(line.productId); if (!product) throw new Error('product_not_found');
+    const conversion = { setsPerCarton: product.sets_per_carton, cartonsPerPallet: product.cartons_per_pallet };
+    const quantity = convertQuantity(line.amount, line.unit, conversion); assertMoq(quantity, product.moq_amount, product.moq_unit, conversion);
+    const price = line.unitPricePerSet ?? product[`price_${input.currency.toLowerCase()}`];
+    if (price == null) throw new Error('product_price_missing');
+    const requiredFacts = input.loadingType === 'palletized'
+      ? ['pallet_width_cm', 'pallet_length_cm', 'pallet_height_cm', 'net_weight_per_set_kg', 'gross_weight_per_carton_kg', 'pallet_tare_kg']
+      : ['carton_width_cm', 'carton_length_cm', 'carton_height_cm', 'net_weight_per_set_kg', 'gross_weight_per_carton_kg'];
+    const logisticsMissingFields = requiredFacts.filter((field) => product[field] == null);
+    const logistics = logisticsMissingFields.length ? null : calculateLogistics(quantity, input.loadingType, {
+      cartonWidthCm: Number(product.carton_width_cm), cartonLengthCm: Number(product.carton_length_cm), cartonHeightCm: Number(product.carton_height_cm),
+      palletWidthCm: Number(product.pallet_width_cm), palletLengthCm: Number(product.pallet_length_cm), palletHeightCm: Number(product.pallet_height_cm),
+      netWeightPerSetKg: Number(product.net_weight_per_set_kg), grossWeightPerCartonKg: Number(product.gross_weight_per_carton_kg), palletTareKg: Number(product.pallet_tare_kg),
+    });
+    return { product: { id: product.id, code: product.code, name: product.name }, amount: line.amount, unit: line.unit, quantity, unitPricePerSet: Number(price), lineTotal: calculateLineTotal(quantity, Number(price)), logistics, logisticsMissingFields };
+  });
+  const grossProductTotal = lines.reduce((sum, line) => sum + line.lineTotal, 0);
+  const totals = calculateTotals({ grossProductTotal, customerDiscountPercent: Number(customers[0].default_discount_percent), extraDiscountPercent: input.extraDiscountPercent, freight: input.freight, deliveryMethod: input.deliveryMethod });
+  const completeLogistics = lines.every((line) => line.logistics !== null);
+  const logisticsTotals = completeLogistics ? lines.reduce((total, line) => ({
+    cbm: Math.round((total.cbm + (line.logistics?.cbm ?? 0)) * 10_000) / 10_000,
+    netWeightKg: Math.round((total.netWeightKg + (line.logistics?.netWeightKg ?? 0)) * 1_000) / 1_000,
+    grossWeightKg: Math.round((total.grossWeightKg + (line.logistics?.grossWeightKg ?? 0)) * 1_000) / 1_000,
+  }), { cbm: 0, netWeightKg: 0, grossWeightKg: 0 }) : null;
+  const snapshot = { quoteNo, customer: { id: customers[0].id, code: customers[0].code, name: customers[0].name, discountPercent: Number(customers[0].default_discount_percent) }, ...input, lines, logisticsTotals, logisticsComplete: completeLogistics };
+  return { snapshot, totals };
+}
+
 export async function createQuote(db: Database, input: QuoteCreate) {
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
-    const [customers] = await connection.query<RowDataPacket[]>('SELECT * FROM customers WHERE id=? AND is_active=1', [input.customerId]);
-    if (!customers[0]) throw new Error('customer_not_found');
-    const ids = input.lines.map((line) => line.productId); const placeholders = ids.map(() => '?').join(',');
-    const [products] = await connection.query<RowDataPacket[]>(`SELECT * FROM products WHERE id IN (${placeholders}) AND is_active=1`, ids);
-    const productMap = new Map(products.map((product) => [product.id, product]));
-    const lines = input.lines.map((line) => {
-      const product = productMap.get(line.productId); if (!product) throw new Error('product_not_found');
-      const conversion = { setsPerCarton: product.sets_per_carton, cartonsPerPallet: product.cartons_per_pallet };
-      const quantity = convertQuantity(line.amount, line.unit, conversion); assertMoq(quantity, product.moq_amount, product.moq_unit, conversion);
-      const price = line.unitPricePerSet ?? product[`price_${input.currency.toLowerCase()}`];
-      if (price == null) throw new Error('product_price_missing');
-      return { product: { id: product.id, code: product.code, name: product.name }, amount: line.amount, unit: line.unit, quantity, unitPricePerSet: Number(price), lineTotal: calculateLineTotal(quantity, Number(price)) };
-    });
-    const grossProductTotal = lines.reduce((sum, line) => sum + line.lineTotal, 0);
-    const totals = calculateTotals({ grossProductTotal, customerDiscountPercent: Number(customers[0].default_discount_percent), extraDiscountPercent: input.extraDiscountPercent, freight: input.freight, deliveryMethod: input.deliveryMethod });
     const id = randomUUID(); const revisionId = randomUUID(); const quoteNo = await nextQuoteNo(connection);
-    const snapshot = { quoteNo, customer: { id: customers[0].id, code: customers[0].code, name: customers[0].name, discountPercent: Number(customers[0].default_discount_percent) }, ...input, lines };
+    const { snapshot, totals } = await buildQuoteSnapshot(connection, input, quoteNo);
     await connection.query('INSERT INTO quotes (id,quote_no,customer_id,currency,delivery_method,delivery_time,destination,current_revision) VALUES (?,?,?,?,?,?,?,1)', [id, quoteNo, input.customerId, input.currency, input.deliveryMethod, input.deliveryTime, input.destination ?? null]);
     await connection.query('INSERT INTO quote_revisions (id,quote_id,revision_no,snapshot,totals_snapshot) VALUES (?,?,1,?,?)', [revisionId, id, JSON.stringify(snapshot), JSON.stringify(totals)]);
     await connection.commit(); return { id, quoteNo, revisionNo: 1, snapshot, totals };
@@ -64,23 +85,8 @@ export async function createQuoteRevision(db: Database, quoteId: string, input: 
     await connection.beginTransaction();
     const [quotes] = await connection.query<RowDataPacket[]>('SELECT * FROM quotes WHERE id=? FOR UPDATE', [quoteId]);
     if (!quotes[0]) throw new Error('quote_not_found');
-    const [customers] = await connection.query<RowDataPacket[]>('SELECT * FROM customers WHERE id=? AND is_active=1', [input.customerId]);
-    if (!customers[0]) throw new Error('customer_not_found');
-    const ids = input.lines.map((line) => line.productId); const placeholders = ids.map(() => '?').join(',');
-    const [products] = await connection.query<RowDataPacket[]>(`SELECT * FROM products WHERE id IN (${placeholders}) AND is_active=1`, ids);
-    const productMap = new Map(products.map((product) => [product.id, product]));
-    const lines = input.lines.map((line) => {
-      const product = productMap.get(line.productId); if (!product) throw new Error('product_not_found');
-      const conversion = { setsPerCarton: product.sets_per_carton, cartonsPerPallet: product.cartons_per_pallet };
-      const quantity = convertQuantity(line.amount, line.unit, conversion); assertMoq(quantity, product.moq_amount, product.moq_unit, conversion);
-      const price = line.unitPricePerSet ?? product[`price_${input.currency.toLowerCase()}`];
-      if (price == null) throw new Error('product_price_missing');
-      return { product: { id: product.id, code: product.code, name: product.name }, amount: line.amount, unit: line.unit, quantity, unitPricePerSet: Number(price), lineTotal: calculateLineTotal(quantity, Number(price)) };
-    });
-    const grossProductTotal = lines.reduce((sum, line) => sum + line.lineTotal, 0);
-    const totals = calculateTotals({ grossProductTotal, customerDiscountPercent: Number(customers[0].default_discount_percent), extraDiscountPercent: input.extraDiscountPercent, freight: input.freight, deliveryMethod: input.deliveryMethod });
     const revisionNo = Number(quotes[0].current_revision) + 1;
-    const snapshot = { quoteNo: quotes[0].quote_no, customer: { id: customers[0].id, code: customers[0].code, name: customers[0].name, discountPercent: Number(customers[0].default_discount_percent) }, ...input, lines };
+    const { snapshot, totals } = await buildQuoteSnapshot(connection, input, quotes[0].quote_no);
     await connection.query('INSERT INTO quote_revisions (id,quote_id,revision_no,snapshot,totals_snapshot) VALUES (?,?,?,?,?)', [randomUUID(), quoteId, revisionNo, JSON.stringify(snapshot), JSON.stringify(totals)]);
     await connection.query('UPDATE quotes SET customer_id=?,currency=?,delivery_method=?,delivery_time=?,destination=?,current_revision=? WHERE id=?', [input.customerId, input.currency, input.deliveryMethod, input.deliveryTime, input.destination ?? null, revisionNo, quoteId]);
     await connection.commit();
