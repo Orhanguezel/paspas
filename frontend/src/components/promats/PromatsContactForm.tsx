@@ -118,7 +118,12 @@ export default function PromatsContactForm({ labels, formClassName, products = [
         ad: String(form.get('name') ?? ''),
         eposta: String(form.get('email') ?? ''),
         telefon: String(form.get('phone') ?? ''),
+        konu: subject || undefined,
         mesaj: String(form.get('message') ?? ''),
+        website: String(form.get('website') ?? ''),
+        locale,
+        sourcePage,
+        kvkkOnay: form.get('kvkk') === 'on',
       };
       const res = await fetch(`${API_BASE}${isQuote ? '/teklif-talebi' : '/contact'}`, {
         method: 'POST',

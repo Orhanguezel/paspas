@@ -333,6 +333,7 @@ export async function registerWebPromatsPublic(app: FastifyInstance): Promise<vo
     })) };
   });
 
+  // Eski istemciler için geçici uyumluluk; yeni form /api/contact kullanır.
   app.post('/web/promats/contact', async (req, reply) => {
     const body = req.body as Row;
     const name = String(body.ad ?? body.name ?? '').trim();

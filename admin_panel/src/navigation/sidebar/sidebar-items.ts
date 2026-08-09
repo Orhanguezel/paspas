@@ -94,6 +94,7 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
     items: [
 
       { key: 'yazilim_gorevleri', url: '/admin/yazilim-gorevleri', icon: ClipboardList, roles: ['admin'] },
+      { key: 'iletisim_mesajlari', url: '/admin/contacts', icon: Inbox, roles: ['admin'] },
 
       // V2: görevler (tasks/notifications) buraya eklenecek
       // { key: 'gorevler', url: '/admin/gorevler', icon: ClipboardList, roles: ['admin', 'operator', 'satin_almaci'] },
@@ -204,6 +205,7 @@ const FALLBACK_GROUP_LABELS: Record<AdminNavGroupKey, string> = {
 
 const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   dashboard:         'Dashboard',
+  iletisim_mesajlari:'İletişim Mesajları',
   gorevler:          'Görevler',
   urunler:           'Ürünler',
   musteriler:        'Müşteriler',

@@ -228,7 +228,11 @@ function UretimOlusturGrid({
         const uretimCarpani = mevcutTahsis > 0 ? emri.planlananMiktar / mevcutTahsis : 1;
         // Manuel satırlar mamulün planlanan miktarına eklenmez; partiye ayrı emir olarak
         // açılırlar (backend). Eklenirse aynı miktar iki kez sayılır.
-        const planlananMiktar = kalemler.reduce((sum, row) => sum + row.miktar, 0) * uretimCarpani;
+        // Yalnız manuel satır ekleniyorsa mevcut mamul miktarını koru. Önceki kod
+        // boş kalem listesini 0'a indirip backend'in positive doğrulamasına takılıyordu.
+        const planlananMiktar = kalemler.length > 0
+          ? kalemler.reduce((sum, row) => sum + row.miktar, 0) * uretimCarpani
+          : emri.planlananMiktar;
         await updateMamul({
           partiNo: emri.partiNo,
           mamulUrunId: emri.mamulUrunId,

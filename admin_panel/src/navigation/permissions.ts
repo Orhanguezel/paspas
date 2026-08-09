@@ -48,7 +48,8 @@ export type AdminNavKey =
   | 'web_sayfasi'
   | 'yazilim_gorevleri'
   | 'teklif_talepleri'
-  | 'teklifler';
+  | 'teklifler'
+  | 'iletisim_mesajlari';
 
 // Her rolün varsayılan giriş sayfası (login sonrası yönlendirme)
 export const ROLE_HOME: Record<PanelRole, string> = {
@@ -103,6 +104,7 @@ const NAV_ROLES: Record<AdminNavKey, PanelRole[]> = {
   yazilim_gorevleri: ['admin'],
   teklif_talepleri:  ['admin', 'nakliyeci'],
   teklifler:         ['admin', 'nakliyeci'],
+  iletisim_mesajlari: ['admin'],
 };
 
 export function getAdminNavRoles(key: AdminNavKey): PanelRole[] {
@@ -142,6 +144,7 @@ export function canAccessAdminPath(role: PanelRole, pathname: string): boolean {
     { prefix: '/admin/yazilim-gorevleri',  key: 'yazilim_gorevleri' },
     { prefix: '/admin/teklif-talepleri',   key: 'teklif_talepleri' },
     { prefix: '/admin/teklifler',          key: 'teklifler' },
+    { prefix: '/admin/contacts',           key: 'iletisim_mesajlari' },
   ];
 
   const clean = pathname.split('?')[0] ?? pathname;

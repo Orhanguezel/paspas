@@ -35,8 +35,11 @@ export function isPromatsShellPath(pathname: string): boolean {
   const rest = match[2] ?? '';
   if (!rest || rest === '/') return true;
   if (rest.startsWith('/urunler/')) return true;
+  if (rest.startsWith('/products/')) return true;
   if (rest === '/arama' || rest.startsWith('/arama/')) return true;
   if (rest === '/iletisim' || rest.startsWith('/iletisim/')) return true;
+  if (rest === '/contact' || rest.startsWith('/contact/')) return true;
+  if (rest === '/products' || rest === '/resources' || rest.startsWith('/resources/') || rest === '/production' || rest === '/search' || rest.startsWith('/search/')) return true;
 
   const segments = rest.split('/').filter(Boolean);
   if (segments.length !== 1) return false;

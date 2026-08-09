@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { DevNote } from '@/components/devnote';
 import PromatsProductCarousel from '@/components/promats/PromatsProductCarousel';
 import { getSettings, searchProducts, t } from '@/lib/promats/api';
+import { localeHref } from '@/lib/promats/links';
 
 export async function generateMetadata({
   params,
@@ -14,7 +15,7 @@ export async function generateMetadata({
     title: locale === 'en' ? 'Search' : 'Arama',
     robots: { index: false, follow: true },
     alternates: {
-      canonical: `/${locale}/arama`,
+      canonical: localeHref(locale, '/arama'),
     },
   };
 }
@@ -42,7 +43,7 @@ export default async function SearchPage({
       <DevNote section="arama" title="Arama Sayfası" />
       <div className="container">
         <h1 className="text-center">{heading}</h1>
-        <form className="form-subscribe mt-4 mb-5" action={`/${locale}/arama`} method="get">
+        <form className="form-subscribe mt-4 mb-5" action={localeHref(locale, '/arama')} method="get">
           <div className="form-group d-flex">
             <label className="sr-only" htmlFor="promats-search-page-q">{t(settings, 'Aranacak kelimeyi yazınız')}</label>
             <input id="promats-search-page-q" className="form-control" type="search" name="q" defaultValue={q} />

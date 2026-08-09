@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { PromatsArticleDetailPage, type ResourcesPageContent } from '@/components/promats/PromatsEditorialPages';
 import { assetPath, getArticle, getArticles, getPageContent, stripHtml } from '@/lib/promats/api';
 import { getPublicSiteOrigin } from '@/lib/site-config';
+import { localeHref } from '@/lib/promats/links';
 
 const PROMATS_LOCALES = ['tr', 'en'] as const;
 
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return {
     title: article.metaTitle || article.title,
     description,
-    alternates: { canonical: `/${locale}/kaynaklar/${article.slug}` },
+    alternates: { canonical: localeHref(locale, `/kaynaklar/${article.slug}`) },
     openGraph: {
       title: article.title,
       description,
@@ -53,7 +54,7 @@ export default async function Page({ params }: { params: Promise<{ locale: strin
     datePublished: article.publishedAt,
     author: { '@type': 'Organization', name: 'Promats' },
     publisher: { '@type': 'Organization', name: 'Promats' },
-    mainEntityOfPage: `${origin}/${locale}/kaynaklar/${article.slug}`,
+    mainEntityOfPage: `${origin}${localeHref(locale, `/kaynaklar/${article.slug}`)}`,
   };
 
   return (

@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
 import { getPublicSiteOrigin } from '@/lib/site-config';
 import { getArticles, getProducts } from '@/lib/promats/api';
+import { localizedPromatsPath } from '@/lib/promats/links';
 
 const BASE_URL = getPublicSiteOrigin();
 
@@ -28,7 +29,7 @@ const EN_ONLY_PAGES = ['/oem-manufacturing'] as const;
 function buildAlternates(path: string): { languages: Record<string, string> } {
   const languages: Record<string, string> = {};
   for (const loc of LOCALES) {
-    languages[loc] = `${BASE_URL}/${loc}${path}`;
+    languages[loc] = `${BASE_URL}/${loc}${localizedPromatsPath(loc, path)}`;
   }
   languages['x-default'] = `${BASE_URL}/${DEFAULT_LOCALE}${path}`;
   return { languages };
@@ -46,13 +47,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
         return [
           ...products.map((product) => ({
-            url: `${BASE_URL}/${locale}/urunler/${product.slug}`,
+            url: `${BASE_URL}/${locale}${localizedPromatsPath(locale, `/urunler/${product.slug}`)}`,
             lastModified: now,
             changeFrequency: 'weekly' as const,
             priority: 0.85,
           })),
           ...articles.map((article) => ({
-            url: `${BASE_URL}/${locale}/kaynaklar/${article.slug}`,
+            url: `${BASE_URL}/${locale}${localizedPromatsPath(locale, `/kaynaklar/${article.slug}`)}`,
             lastModified: article.publishedAt ? new Date(article.publishedAt) : now,
             changeFrequency: 'monthly' as const,
             priority: 0.7,
@@ -66,7 +67,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticEntries = LOCALES.flatMap((locale) =>
     STATIC_PAGES.map((page) => ({
-      url: `${BASE_URL}/${locale}${page}`,
+      url: `${BASE_URL}/${locale}${localizedPromatsPath(locale, page)}`,
       lastModified: now,
       changeFrequency: 'weekly' as const,
       priority: page === '' ? 1 : 0.8,

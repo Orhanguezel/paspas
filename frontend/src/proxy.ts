@@ -9,6 +9,13 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const SUPPORTED_LOCALES = ['tr', 'en', 'de'] as const;
 const DEFAULT_LOCALE = 'tr';
+const EN_EXTERNAL_TO_INTERNAL: Record<string, string> = {
+  products: 'urunler', contact: 'iletisim', resources: 'kaynaklar',
+  production: 'uretim', search: 'arama',
+};
+const EN_INTERNAL_TO_EXTERNAL = Object.fromEntries(
+  Object.entries(EN_EXTERNAL_TO_INTERNAL).map(([external, internal]) => [internal, external]),
+);
 
 // Non-locale path prefixes (admin, api vs.)
 const NON_LOCALE_PREFIXES = ['admin', 'api', 'uploads', 'public', 'static', 'images', 'assets'];
@@ -37,6 +44,25 @@ export function proxy(req: NextRequest) {
   // Non-locale (admin/api/uploads) — olduğu gibi geç
   if (firstSeg && NON_LOCALE_PREFIXES.includes(firstSeg)) {
     return NextResponse.next();
+  }
+
+  // İngilizce public rotaları dışarıda İngilizce segment kullanır; App Router'daki
+  // mevcut sayfalara içeride rewrite edilir. Eski Türkçe segmentler kalıcı yönlenir.
+  if (firstSeg === 'en') {
+    const segments = pathname.split('/').filter(Boolean);
+    const second = segments[1]?.toLowerCase();
+    if (second && EN_INTERNAL_TO_EXTERNAL[second]) {
+      const target = req.nextUrl.clone();
+      segments[1] = EN_INTERNAL_TO_EXTERNAL[second];
+      target.pathname = `/${segments.join('/')}`;
+      return NextResponse.redirect(target, 301);
+    }
+    if (second && EN_EXTERNAL_TO_INTERNAL[second]) {
+      const target = req.nextUrl.clone();
+      segments[1] = EN_EXTERNAL_TO_INTERNAL[second];
+      target.pathname = `/${segments.join('/')}`;
+      return NextResponse.rewrite(target);
+    }
   }
 
   // Locale prefix var ve destekli — olduğu gibi geç

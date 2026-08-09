@@ -29,6 +29,7 @@ import {
   uniq,
 } from '@/integrations/shared';
 import { getLocaleDescriptionFallback, getPublicAppName } from '@/lib/site-config';
+import { localizedPromatsPath } from '@/lib/promats/links';
 
 /**
  * ✅ Server runtime base URL (proxy-safe).
@@ -317,12 +318,12 @@ export async function buildMetadataFromSeo(
   const pathname = normPath(args.pathname);
 
   // ✅ canonical SSR tek kaynak
-  const canonical = absUrlJoin(baseUrl, localizedPath(locale, pathname, defaultLocale));
+  const canonical = absUrlJoin(baseUrl, localizedPath(locale, localizedPromatsPath(locale, pathname), defaultLocale));
 
   // ✅ hreflang SSR tek kaynak
   const languages: Record<string, string> = {};
   for (const l of active) {
-    languages[l] = absUrlJoin(baseUrl, localizedPath(l, pathname, defaultLocale));
+    languages[l] = absUrlJoin(baseUrl, localizedPath(l, localizedPromatsPath(l, pathname), defaultLocale));
   }
   languages['x-default'] = absUrlJoin(baseUrl, localizedPath(defaultLocale, pathname, defaultLocale));
 

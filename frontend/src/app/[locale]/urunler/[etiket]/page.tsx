@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import PromatsProductDetail from '@/components/promats/PromatsProductDetail';
 import { assetPath, getProduct, getProducts, getSettings, getSpecialPage, stripHtml } from '@/lib/promats/api';
 import { getPublicSiteOrigin } from '@/lib/site-config';
+import { localeHref } from '@/lib/promats/links';
 
 const PROMATS_LOCALES = ['tr', 'en'] as const;
 
@@ -32,7 +33,7 @@ export async function generateMetadata({
     title: product.seo?.title || product.name,
     description,
     alternates: {
-      canonical: `/${locale}/urunler/${product.slug}`,
+      canonical: localeHref(locale, `/urunler/${product.slug}`),
     },
     openGraph: {
       title: product.seo?.title || product.name,
@@ -60,7 +61,7 @@ export default async function ProductPage({
   if (!product) notFound();
 
   const origin = getPublicSiteOrigin().replace(/\/+$/, '');
-  const productUrl = `${origin}/${locale}/urunler/${product.slug}`;
+  const productUrl = `${origin}${localeHref(locale, `/urunler/${product.slug}`)}`;
   const productJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',

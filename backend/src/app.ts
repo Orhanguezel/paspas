@@ -62,6 +62,7 @@ import { registerPageFeedbackAdmin } from '@/modules/page_feedback/router';
 import { registerProjeTeklifiNotlariAdmin } from '@/modules/projeTeklifiNotlari/router';
 import { registerWebPromatsAdmin, registerWebPromatsPublic } from '@/modules/web_promats/router';
 import { registerCrm } from '@/modules/crm/router';
+import { registerContactMessagesAdmin, registerContactMessagesPublic } from '@/modules/contact_messages/router';
 
 // Storage config (site_settings + env)
 import { getStorageSettings } from '@/modules/siteSettings/service';
@@ -123,6 +124,7 @@ export async function createApp() {
     allowedHeaders: [
       'Content-Type', 'Authorization', 'Prefer', 'Accept', 'Accept-Language',
       'x-skip-auth', 'Range',
+      'X-Idempotency-Key',
     ],
     exposedHeaders: ['x-total-count', 'content-range', 'range'],
   });
@@ -246,6 +248,7 @@ export async function createApp() {
     await api.register(registerProjeTeklifiNotlariAdmin, { prefix: '/admin' });
     await api.register(registerWebPromatsAdmin, { prefix: '/admin' });
     await api.register(registerCrm, { prefix: '/admin' });
+    await api.register(registerContactMessagesAdmin, { prefix: '/admin' });
 
     // --- Public modüller → /api/... ---
     await registerPublicLoginConfig(api);
@@ -259,6 +262,7 @@ export async function createApp() {
     await registerCategories(api);
     await registerWebPromatsPublic(api);
     await registerTeklifPublic(api);
+    await registerContactMessagesPublic(api);
 
   }, { prefix: '/api' });
 

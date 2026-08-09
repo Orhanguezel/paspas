@@ -78,6 +78,7 @@ const emptyNav: AdminNavCopy = {
   },
   items: {
     dashboard:         '',
+    iletisim_mesajlari:'',
     teklif_talepleri:  '',
     teklifler:         '',
     gorevler:          '',
@@ -140,6 +141,7 @@ export function normalizeAdminUiCopy(raw: unknown): AdminUiCopy {
 
   const items: AdminNavCopy['items'] = {
     dashboard:         uiText(itemsRaw.dashboard),
+    iletisim_mesajlari:uiText(itemsRaw.iletisim_mesajlari),
     teklif_talepleri:  uiText(itemsRaw.teklif_talepleri),
     teklifler:         uiText(itemsRaw.teklifler),
     gorevler:          uiText(itemsRaw.gorevler),
