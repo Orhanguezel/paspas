@@ -261,6 +261,7 @@ export const tags = [
   'FuarUrunler',
   'FuarMusteri',
   'FuarMusteriler',
+  'FuarTeklifler',
 ] as const;
 
 export type tag = typeof tags[number];

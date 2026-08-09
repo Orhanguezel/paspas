@@ -9,6 +9,7 @@ import { createDatabase } from './db';
 import { calculateLineTotal, calculateLogistics, calculateTotals, convertQuantity } from './domain/calculator';
 import { registerCustomerRoutes } from './customers/routes';
 import { registerProductRoutes } from './products/routes';
+import { registerQuoteRoutes } from './quotes/routes';
 
 const previewSchema = z.object({
   amount: z.number().int().positive(), unit: z.enum(['set', 'carton', 'pallet']),
@@ -31,6 +32,7 @@ export async function createApp(database?: Database) {
   app.get('/health', async () => ({ ok: true, service: 'paspas-fuar-teklif' }));
   await registerProductRoutes(app, db);
   await registerCustomerRoutes(app, db);
+  await registerQuoteRoutes(app, db);
   app.post('/api/fuar/v1/calculations/preview', { preHandler: requireAdmin }, async (request, reply) => {
     const parsed = previewSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: 'invalid_body', issues: parsed.error.flatten() });
