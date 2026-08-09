@@ -10,6 +10,19 @@ export type FuarProduct = {
   moqAmount: number;
   moqUnit: "set" | "carton" | "pallet";
   isActive: boolean;
+  category: string | null;
+  productGroup: string | null;
+  hsCode: string | null;
+  originCountry: string;
+  cartonWidthCm: number | null;
+  cartonLengthCm: number | null;
+  cartonHeightCm: number | null;
+  palletWidthCm: number | null;
+  palletLengthCm: number | null;
+  palletHeightCm: number | null;
+  netWeightPerSetKg: number | null;
+  grossWeightPerCartonKg: number | null;
+  palletTareKg: number | null;
 };
 export type FuarProductCreate = {
   code: string;
@@ -19,6 +32,19 @@ export type FuarProductCreate = {
   cartonsPerPallet: number;
   moqAmount: number;
   moqUnit: "set" | "carton" | "pallet";
+  category?: string;
+  productGroup?: string;
+  hsCode?: string;
+  originCountry?: string;
+  cartonWidthCm?: number;
+  cartonLengthCm?: number;
+  cartonHeightCm?: number;
+  palletWidthCm?: number;
+  palletLengthCm?: number;
+  palletHeightCm?: number;
+  netWeightPerSetKg?: number;
+  grossWeightPerCartonKg?: number;
+  palletTareKg?: number;
 };
 
 export const fuarProductsApi = baseApi.injectEndpoints({
@@ -37,6 +63,13 @@ export const fuarProductsApi = baseApi.injectEndpoints({
       query: (body) => ({ url: "/fuar/v1/products", method: "POST", body }),
       invalidatesTags: [{ type: "FuarUrunler", id: "LIST" }],
     }),
+    updateFuarProduct: builder.mutation<FuarProduct, { id: string; body: FuarProductCreate }>({
+      query: ({ id, body }) => ({ url: `/fuar/v1/products/${id}`, method: "PATCH", body }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "FuarUrun", id },
+        { type: "FuarUrunler", id: "LIST" },
+      ],
+    }),
     archiveFuarProduct: builder.mutation<void, string>({
       query: (id) => ({ url: `/fuar/v1/products/${id}`, method: "DELETE" }),
       invalidatesTags: (_result, _error, id) => [
@@ -47,5 +80,9 @@ export const fuarProductsApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useListFuarProductsQuery, useCreateFuarProductMutation, useArchiveFuarProductMutation } =
-  fuarProductsApi;
+export const {
+  useListFuarProductsQuery,
+  useCreateFuarProductMutation,
+  useUpdateFuarProductMutation,
+  useArchiveFuarProductMutation,
+} = fuarProductsApi;
