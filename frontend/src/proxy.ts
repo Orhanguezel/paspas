@@ -51,7 +51,8 @@ export function proxy(req: NextRequest) {
   if (firstSeg === 'en') {
     const segments = pathname.split('/').filter(Boolean);
     const second = segments[1]?.toLowerCase();
-    if (second && EN_INTERNAL_TO_EXTERNAL[second]) {
+    const internalRoute = req.headers.get('x-promats-internal-route') === '1';
+    if (!internalRoute && second && EN_INTERNAL_TO_EXTERNAL[second]) {
       const target = req.nextUrl.clone();
       segments[1] = EN_INTERNAL_TO_EXTERNAL[second];
       target.pathname = `/${segments.join('/')}`;
@@ -61,7 +62,10 @@ export function proxy(req: NextRequest) {
       const target = req.nextUrl.clone();
       segments[1] = EN_EXTERNAL_TO_INTERNAL[second];
       target.pathname = `/${segments.join('/')}`;
-      return NextResponse.rewrite(target);
+      if (target.hostname === 'localhost' || target.hostname === '127.0.0.1') target.protocol = 'http:';
+      const requestHeaders = new Headers(req.headers);
+      requestHeaders.set('x-promats-internal-route', '1');
+      return NextResponse.rewrite(target, { request: { headers: requestHeaders } });
     }
   }
 
