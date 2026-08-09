@@ -13,6 +13,7 @@ describe("Fuar sidebar group", () => {
     expect(fuarGroup?.items[0]?.url).toBe("/admin/fuar");
     expect(fuarGroup?.items[0]?.subItems?.map((item) => item.url)).toEqual([
       "/admin/fuar",
+      "/admin/fuar/katalog",
       "/admin/fuar/urunler",
       "/admin/fuar/musteriler",
       "/admin/fuar/teklifler",

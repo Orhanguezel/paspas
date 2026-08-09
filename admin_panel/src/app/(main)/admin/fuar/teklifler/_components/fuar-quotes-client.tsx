@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { readFuarCart, writeFuarCart } from "@/features/fuar/cart";
 import { useListFuarCustomersQuery } from "@/integrations/endpoints/admin/fuar-customers.endpoints";
 import { useListFuarProductsQuery } from "@/integrations/endpoints/admin/fuar-products.endpoints";
 import {
@@ -44,6 +45,19 @@ export function FuarQuotesClient() {
   const { data: selectedQuote } = useGetFuarQuoteQuery(selectedQuoteId, { skip: !selectedQuoteId });
   const [createQuote, createState] = useCreateFuarQuoteMutation();
   const [createRevision, revisionState] = useCreateFuarQuoteRevisionMutation();
+
+  useEffect(() => {
+    const saved = readFuarCart();
+    if (!saved.length) return;
+    setLines(
+      saved.map((line) => ({
+        key: crypto.randomUUID(),
+        productId: line.productId,
+        amount: String(line.amount),
+        unit: line.unit,
+      })),
+    );
+  }, []);
 
   useEffect(() => {
     if (!selectedQuote) return;
@@ -80,7 +94,10 @@ export function FuarQuotesClient() {
         ? await createRevision({ id: selectedQuoteId, body: body() }).unwrap()
         : await createQuote(body()).unwrap();
       toast.success(`${result.quoteNo} / R${result.revisionNo} oluşturuldu.`);
-      if (!selectedQuoteId) resetForm();
+      if (!selectedQuoteId) {
+        writeFuarCart([]);
+        resetForm();
+      }
     } catch {
       toast.error("Kayıt oluşturulamadı. Fiyat, MOQ ve paketleme bilgilerini kontrol edin.");
     }

@@ -50,6 +50,7 @@ export type AdminNavKey =
   | "teklif_talepleri"
   | "teklifler"
   | "fuar_genel_bakis"
+  | "fuar_katalog"
   | "fuar_urunler"
   | "fuar_musteriler"
   | "fuar_teklifler"
@@ -109,6 +110,7 @@ const NAV_ROLES: Record<AdminNavKey, PanelRole[]> = {
   teklif_talepleri: ["admin", "nakliyeci"],
   teklifler: ["admin", "nakliyeci"],
   fuar_genel_bakis: ["admin"],
+  fuar_katalog: ["admin"],
   fuar_urunler: ["admin"],
   fuar_musteriler: ["admin"],
   fuar_teklifler: ["admin"],

@@ -24,6 +24,7 @@ import {
   GalleryVerticalEnd,
   Inbox,
   LayoutDashboard,
+  LayoutGrid,
   type LucideIcon,
   Package,
   PanelsTopLeft,
@@ -182,6 +183,7 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
         roles: ["admin"],
         subItems: [
           { key: "fuar_genel_bakis", url: "/admin/fuar", icon: LayoutDashboard, roles: ["admin"] },
+          { key: "fuar_katalog", url: "/admin/fuar/katalog", icon: LayoutGrid, roles: ["admin"] },
           { key: "fuar_urunler", url: "/admin/fuar/urunler", icon: Package, roles: ["admin"] },
           { key: "fuar_musteriler", url: "/admin/fuar/musteriler", icon: Users, roles: ["admin"] },
           { key: "fuar_teklifler", url: "/admin/fuar/teklifler", icon: FileSignature, roles: ["admin"] },
@@ -267,6 +269,7 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   teklif_talepleri: "Teklif Talepleri",
   teklifler: "Teklifler",
   fuar_genel_bakis: "Genel Bakış",
+  fuar_katalog: "Katalog",
   fuar_urunler: "Fuar Ürünleri",
   fuar_musteriler: "Fuar Müşterileri",
   fuar_teklifler: "Fuar Teklifleri",

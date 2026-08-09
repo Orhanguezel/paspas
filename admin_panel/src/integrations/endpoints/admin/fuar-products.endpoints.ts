@@ -4,7 +4,10 @@ export type FuarProduct = {
   id: string;
   code: string;
   name: string;
+  description: string | null;
   priceUsd: number | null;
+  priceEur: number | null;
+  priceTry: number | null;
   setsPerCarton: number;
   cartonsPerPallet: number;
   moqAmount: number;
@@ -49,7 +52,10 @@ export type FuarProductCreate = {
 
 export const fuarProductsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    listFuarProducts: builder.query<{ items: FuarProduct[]; total: number }, { q?: string } | undefined>({
+    listFuarProducts: builder.query<
+      { items: FuarProduct[]; total: number },
+      { q?: string; active?: "true" | "false" } | undefined
+    >({
       query: (params) => ({ url: "/fuar/v1/products", params: params || undefined }),
       providesTags: (result) =>
         result
