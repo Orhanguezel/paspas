@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { FilePlus2, Loader2 } from "lucide-react";
+import { FilePlus2, Loader2, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -11,60 +11,113 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useListFuarCustomersQuery } from "@/integrations/endpoints/admin/fuar-customers.endpoints";
 import { useListFuarProductsQuery } from "@/integrations/endpoints/admin/fuar-products.endpoints";
 import {
+  type FuarQuoteCreate,
+  type FuarQuoteDetail,
   useCreateFuarQuoteMutation,
+  useCreateFuarQuoteRevisionMutation,
+  useGetFuarQuoteQuery,
   useListFuarQuotesQuery,
 } from "@/integrations/endpoints/admin/fuar-quotes.endpoints";
 
+type LineDraft = { key: string; productId: string; amount: string; unit: "set" | "carton" | "pallet" };
+const newLine = (): LineDraft => ({ key: crypto.randomUUID(), productId: "", amount: "1", unit: "pallet" });
+const money = (value: number, currency: string) =>
+  new Intl.NumberFormat("tr-TR", { style: "currency", currency }).format(value);
+
 export function FuarQuotesClient() {
+  const [selectedQuoteId, setSelectedQuoteId] = useState("");
   const [customerId, setCustomerId] = useState("");
-  const [productId, setProductId] = useState("");
   const [currency, setCurrency] = useState<"USD" | "EUR" | "TRY">("USD");
   const [deliveryMethod, setDeliveryMethod] = useState<"EXW" | "FOB" | "CIF">("EXW");
-  const [amount, setAmount] = useState("1");
   const [freight, setFreight] = useState("0");
   const [extraDiscount, setExtraDiscount] = useState("0");
+  const [lines, setLines] = useState<LineDraft[]>(() => [newLine()]);
   const { data: customers } = useListFuarCustomersQuery(undefined);
   const { data: products } = useListFuarProductsQuery(undefined);
   const { data: quotes, isLoading } = useListFuarQuotesQuery(undefined);
+  const { data: selectedQuote } = useGetFuarQuoteQuery(selectedQuoteId, { skip: !selectedQuoteId });
   const [createQuote, createState] = useCreateFuarQuoteMutation();
+  const [createRevision, revisionState] = useCreateFuarQuoteRevisionMutation();
+
+  useEffect(() => {
+    if (!selectedQuote) return;
+    const current = selectedQuote.revisions[0];
+    setCustomerId(current.snapshot.customer.id);
+    setCurrency(current.snapshot.currency);
+    setDeliveryMethod(current.snapshot.deliveryMethod);
+    setFreight(String(current.snapshot.freight));
+    setExtraDiscount(String(current.snapshot.extraDiscountPercent));
+    setLines(
+      current.snapshot.lines.map((line) => ({
+        key: crypto.randomUUID(),
+        productId: line.product.id,
+        amount: String(line.amount),
+        unit: line.unit,
+      })),
+    );
+  }, [selectedQuote]);
+
+  const body = (): FuarQuoteCreate => ({
+    customerId,
+    currency,
+    deliveryMethod,
+    freight: Number(freight),
+    extraDiscountPercent: Number(extraDiscount),
+    lines: lines.map(({ productId, amount, unit }) => ({ productId, amount: Number(amount), unit })),
+  });
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     try {
-      const result = await createQuote({
-        customerId,
-        currency,
-        deliveryMethod,
-        freight: Number(freight),
-        extraDiscountPercent: Number(extraDiscount),
-        lines: [{ productId, amount: Number(amount), unit: "pallet" }],
-      }).unwrap();
+      const result = selectedQuoteId
+        ? await createRevision({ id: selectedQuoteId, body: body() }).unwrap()
+        : await createQuote(body()).unwrap();
       toast.success(`${result.quoteNo} / R${result.revisionNo} oluşturuldu.`);
-      setAmount("1");
-      setFreight("0");
-      setExtraDiscount("0");
+      if (!selectedQuoteId) resetForm();
     } catch {
-      toast.error("Teklif oluşturulamadı. Fiyat, MOQ ve ürün bilgilerini kontrol edin.");
+      toast.error("Kayıt oluşturulamadı. Fiyat, MOQ ve paketleme bilgilerini kontrol edin.");
     }
   }
+  function resetForm() {
+    setSelectedQuoteId("");
+    setCustomerId("");
+    setCurrency("USD");
+    setDeliveryMethod("EXW");
+    setFreight("0");
+    setExtraDiscount("0");
+    setLines([newLine()]);
+  }
+  function updateLine(key: string, patch: Partial<LineDraft>) {
+    setLines((current) => current.map((line) => (line.key === key ? { ...line, ...patch } : line)));
+  }
+  const pending = createState.isLoading || revisionState.isLoading;
+  const canSubmit = Boolean(
+    customerId && lines.length && lines.every((line) => line.productId && Number(line.amount) > 0),
+  );
+
   return (
     <main className="flex flex-col gap-6 p-4 md:p-6">
       <header className="flex flex-col gap-1">
         <h1 className="font-semibold text-2xl tracking-tight">Fuar Teklifleri</h1>
         <p className="text-muted-foreground text-sm">
-          Müşteri indirimi, teslim şekli ve değiştirilemez revizyon snapshot’ı ile teklif oluşturun.
+          Çoklu ürün satırıyla yeni teklif hazırlayın veya kayıtlı tekliften yeni revizyon üretin.
         </p>
       </header>
       <Card>
         <CardHeader>
-          <CardTitle>Yeni teklif</CardTitle>
-          <CardDescription>İlk kayıt otomatik teklif numarası ve R1 revizyonu oluşturur.</CardDescription>
+          <CardTitle>{selectedQuote ? `${selectedQuote.quoteNo} · yeni revizyon` : "Yeni teklif"}</CardTitle>
+          <CardDescription>
+            {selectedQuote
+              ? `Mevcut R${selectedQuote.currentRevision} korunur; yeni kayıt R${selectedQuote.currentRevision + 1} olur.`
+              : "İlk kayıt otomatik teklif numarası ve R1 revizyonu oluşturur."}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={submit}>
+          <form className="flex flex-col gap-5" onSubmit={submit}>
             <FieldGroup className="grid md:grid-cols-3">
               <Field>
                 <FieldLabel>Müşteri</FieldLabel>
@@ -84,36 +137,6 @@ export function FuarQuotesClient() {
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-              </Field>
-              <Field>
-                <FieldLabel>Ürün</FieldLabel>
-                <Select value={productId} onValueChange={setProductId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Ürün seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {products?.items
-                        .filter((item) => item.isActive)
-                        .map((item) => (
-                          <SelectItem key={item.id} value={item.id}>
-                            {item.code} · {item.name}
-                          </SelectItem>
-                        ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="quote-amount">Palet adedi</FieldLabel>
-                <Input
-                  id="quote-amount"
-                  type="number"
-                  min="1"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  required
-                />
               </Field>
               <Field>
                 <FieldLabel>Para birimi</FieldLabel>
@@ -160,7 +183,7 @@ export function FuarQuotesClient() {
                   min="0"
                   step="0.01"
                   value={freight}
-                  onChange={(e) => setFreight(e.target.value)}
+                  onChange={(event) => setFreight(event.target.value)}
                 />
               </Field>
               <Field>
@@ -172,25 +195,118 @@ export function FuarQuotesClient() {
                   max="100"
                   step="0.01"
                   value={extraDiscount}
-                  onChange={(e) => setExtraDiscount(e.target.value)}
+                  onChange={(event) => setExtraDiscount(event.target.value)}
                 />
               </Field>
-              <Button type="submit" disabled={!customerId || !productId || createState.isLoading}>
-                {createState.isLoading ? (
+            </FieldGroup>
+            <Separator />
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="font-medium">Ürün satırları</h2>
+                <p className="text-muted-foreground text-sm">Her ürün için miktar ve paketleme birimini seçin.</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setLines((current) => [...current, newLine()])}
+              >
+                <Plus data-icon="inline-start" />
+                Satır ekle
+              </Button>
+            </div>
+            <FieldGroup className="flex flex-col gap-3">
+              {lines.map((line, index) => (
+                <div
+                  key={line.key}
+                  className="grid items-end gap-3 rounded-lg border p-3 md:grid-cols-[minmax(0,1fr)_140px_150px_auto]"
+                >
+                  <Field>
+                    <FieldLabel>Ürün {index + 1}</FieldLabel>
+                    <Select
+                      value={line.productId}
+                      onValueChange={(value) => updateLine(line.key, { productId: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Ürün seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {products?.items
+                            .filter((item) => item.isActive)
+                            .map((item) => (
+                              <SelectItem key={item.id} value={item.id}>
+                                {item.code} · {item.name}
+                              </SelectItem>
+                            ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field>
+                    <FieldLabel>Miktar</FieldLabel>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={line.amount}
+                      onChange={(event) => updateLine(line.key, { amount: event.target.value })}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel>Birim</FieldLabel>
+                    <Select
+                      value={line.unit}
+                      onValueChange={(value) => updateLine(line.key, { unit: value as LineDraft["unit"] })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value="set">Set</SelectItem>
+                          <SelectItem value="carton">Koli</SelectItem>
+                          <SelectItem value="pallet">Palet</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`${index + 1}. satırı sil`}
+                    disabled={lines.length === 1}
+                    onClick={() => setLines((current) => current.filter((item) => item.key !== line.key))}
+                  >
+                    <Trash2 />
+                  </Button>
+                </div>
+              ))}
+            </FieldGroup>
+            <div className="flex flex-wrap justify-end gap-2">
+              {selectedQuote ? (
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  <RotateCcw data-icon="inline-start" />
+                  Yeni teklife dön
+                </Button>
+              ) : null}
+              <Button type="submit" disabled={!canSubmit || pending}>
+                {pending ? (
                   <Loader2 data-icon="inline-start" className="animate-spin" />
                 ) : (
                   <FilePlus2 data-icon="inline-start" />
                 )}
-                Teklifi oluştur
+                {selectedQuote ? `R${selectedQuote.currentRevision + 1} oluştur` : "Teklifi oluştur"}
               </Button>
-            </FieldGroup>
+            </div>
           </form>
         </CardContent>
       </Card>
+      {selectedQuote ? <QuoteDetail quote={selectedQuote} /> : null}
       <Card>
         <CardHeader>
           <CardTitle>Teklif listesi</CardTitle>
-          <CardDescription>{quotes?.items.length ?? 0} teklif</CardDescription>
+          <CardDescription>{quotes?.items.length ?? 0} teklif · detay için satırı açın</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -204,6 +320,7 @@ export function FuarQuotesClient() {
                   <TableHead>Teslim</TableHead>
                   <TableHead>Para Birimi</TableHead>
                   <TableHead>Revizyon</TableHead>
+                  <TableHead className="text-right">İşlem</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -216,6 +333,11 @@ export function FuarQuotesClient() {
                     <TableCell>
                       <Badge variant="outline">R{quote.currentRevision}</Badge>
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Button type="button" variant="outline" size="sm" onClick={() => setSelectedQuoteId(quote.id)}>
+                        Detay / Revizyon
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -224,5 +346,55 @@ export function FuarQuotesClient() {
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+function QuoteDetail({ quote }: { quote: FuarQuoteDetail }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Revizyon geçmişi</CardTitle>
+        <CardDescription>
+          {quote.quoteNo} için {quote.revisions.length} değiştirilemez kayıt
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {quote.revisions.map((revision) => (
+          <div key={revision.revisionNo} className="flex flex-col gap-3 rounded-lg border p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Badge>R{revision.revisionNo}</Badge>
+                <span className="font-medium">{revision.snapshot.customer.name}</span>
+              </div>
+              <strong>{money(revision.totals.grandTotal, revision.snapshot.currency)}</strong>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Ürün</TableHead>
+                  <TableHead>Miktar</TableHead>
+                  <TableHead>Birim fiyat</TableHead>
+                  <TableHead className="text-right">Tutar</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {revision.snapshot.lines.map((line) => (
+                  <TableRow key={`${revision.revisionNo}-${line.product.id}`}>
+                    <TableCell>
+                      {line.product.code} · {line.product.name}
+                    </TableCell>
+                    <TableCell>
+                      {line.amount} {line.unit}
+                    </TableCell>
+                    <TableCell>{money(line.unitPricePerSet, revision.snapshot.currency)}</TableCell>
+                    <TableCell className="text-right">{money(line.lineTotal, revision.snapshot.currency)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
