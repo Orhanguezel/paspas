@@ -7,6 +7,7 @@ import { requireAdmin } from './auth';
 import type { Database } from './db';
 import { createDatabase } from './db';
 import { calculateLineTotal, calculateLogistics, calculateTotals, convertQuantity } from './domain/calculator';
+import { registerCustomerRoutes } from './customers/routes';
 import { registerProductRoutes } from './products/routes';
 
 const previewSchema = z.object({
@@ -29,6 +30,7 @@ export async function createApp(database?: Database) {
   app.addHook('onClose', async () => { if (!database) await db.end(); });
   app.get('/health', async () => ({ ok: true, service: 'paspas-fuar-teklif' }));
   await registerProductRoutes(app, db);
+  await registerCustomerRoutes(app, db);
   app.post('/api/fuar/v1/calculations/preview', { preHandler: requireAdmin }, async (request, reply) => {
     const parsed = previewSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: 'invalid_body', issues: parsed.error.flatten() });
