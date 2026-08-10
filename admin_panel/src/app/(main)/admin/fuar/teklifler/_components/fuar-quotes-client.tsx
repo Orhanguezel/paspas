@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { FilePlus2, Loader2, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -41,6 +41,7 @@ export function FuarQuotesClient() {
   const [lines, setLines] = useState<LineDraft[]>(() => [newLine()]);
   const { data: customers } = useListFuarCustomersQuery(undefined);
   const { data: products } = useListFuarProductsQuery(undefined);
+  const productMap = useMemo(() => new Map(products?.items.map((product) => [product.id, product])), [products?.items]);
   const { data: quotes, isLoading } = useListFuarQuotesQuery(undefined);
   const { data: selectedQuote } = useGetFuarQuoteQuery(selectedQuoteId, { skip: !selectedQuoteId });
   const [createQuote, createState] = useCreateFuarQuoteMutation();
@@ -263,7 +264,11 @@ export function FuarQuotesClient() {
                       onValueChange={(value) => updateLine(line.key, { productId: value })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Ürün seçin" />
+                        <SelectValue placeholder="Ürün seçin">
+                          {productMap.get(line.productId)
+                            ? `${productMap.get(line.productId)?.code} · ${productMap.get(line.productId)?.name}`
+                            : undefined}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
