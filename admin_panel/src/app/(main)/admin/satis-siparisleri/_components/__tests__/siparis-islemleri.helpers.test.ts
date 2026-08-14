@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { SiparisIslemSatiri } from "@/integrations/shared/erp/satis_siparisleri.types";
 
-import { getBitisDisplay, getSevkDisplay, getUretimDisplay } from "../siparis-islemleri.helpers";
+import { canCloseSiparisItems, getBitisDisplay, getSevkDisplay, getUretimDisplay } from "../siparis-islemleri.helpers";
 
 const baseItem: SiparisIslemSatiri = {
   kalemId: "kalem",
@@ -59,5 +59,11 @@ describe("sipariş işlemleri sunum kuralları", () => {
       gercekBitis: "2026-08-09T15:30:00Z",
     };
     expect(getBitisDisplay(item)).toEqual({ value: "2026-08-09T15:30:00Z", kind: "gercek" });
+  });
+
+  it("üretimi süren siparişin kapatma aksiyonunu engeller", () => {
+    expect(canCloseSiparisItems([{ ...baseItem, uretimDurumu: "beklemede" }])).toBe(true);
+    expect(canCloseSiparisItems([{ ...baseItem, uretimDurumu: "uretim_tamamlandi" }])).toBe(true);
+    expect(canCloseSiparisItems([{ ...baseItem, uretimDurumu: "makineye_atandi" }])).toBe(false);
   });
 });

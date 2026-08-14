@@ -33,7 +33,7 @@ import {
 import type { KalemUretimDurumu, SiparisIslemSatiri } from "@/integrations/shared/erp/satis_siparisleri.types";
 import { KALEM_URETIM_DURUMU_LABELS } from "@/integrations/shared/erp/satis_siparisleri.types";
 
-import { getBitisDisplay, getSevkDisplay, getUretimDisplay } from "./siparis-islemleri.helpers";
+import { canCloseSiparisItems, getBitisDisplay, getSevkDisplay, getUretimDisplay } from "./siparis-islemleri.helpers";
 
 type Gorunum = "duz" | "musteri" | "urun" | "alt_grup" | "siparis";
 
@@ -426,10 +426,14 @@ export default function SiparisIslemleriTab() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      title={`${group.items[0]?.siparisNo} siparişini kapat`}
+                      title={
+                        canCloseSiparisItems(group.items)
+                          ? `${group.items[0]?.siparisNo} siparişini kapat`
+                          : "Üretimi devam eden sipariş kapatılamaz"
+                      }
                       aria-label={`${group.items[0]?.siparisNo} siparişini kapat`}
                       onClick={() => setCloseTarget(group.items[0] ?? null)}
-                      disabled={closeState.isLoading}
+                      disabled={closeState.isLoading || !canCloseSiparisItems(group.items)}
                     >
                       <Lock className="size-4" />
                     </Button>

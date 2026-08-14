@@ -1,5 +1,12 @@
 import type { SiparisIslemSatiri } from "@/integrations/shared/erp/satis_siparisleri.types";
 
+export function canCloseSiparisItems(items: SiparisIslemSatiri[]): boolean {
+  return (
+    items.length > 0 &&
+    items.every((item) => item.uretimDurumu === "beklemede" || item.uretimDurumu === "uretim_tamamlandi")
+  );
+}
+
 export type IslemDisplay = {
   kind: "empty" | "status" | "progress" | "complete";
   text: string;
