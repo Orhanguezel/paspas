@@ -1,16 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Spinner } from "@/components/ui/spinner";
+
+import { Factory, Lock, RefreshCcw, Search } from "lucide-react";
+import { toast } from "sonner";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,36 +15,64 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Factory, RefreshCcw, Lock } from "lucide-react";
-import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   useListSiparisIslemleriAdminQuery,
-  useUretimeAktarAdminMutation,
   useUpdateSatisSiparisiAdminMutation,
+  useUretimeAktarAdminMutation,
 } from "@/integrations/endpoints/admin/erp/satis_siparisleri_admin.endpoints";
 import type { KalemUretimDurumu, SiparisIslemSatiri } from "@/integrations/shared/erp/satis_siparisleri.types";
-import {
-  KALEM_URETIM_DURUMU_LABELS,
-  KALEM_URETIM_DURUMU_BADGE,
-} from "@/integrations/shared/erp/satis_siparisleri.types";
+import { KALEM_URETIM_DURUMU_LABELS } from "@/integrations/shared/erp/satis_siparisleri.types";
+
+import { getBitisDisplay, getSevkDisplay, getUretimDisplay } from "./siparis-islemleri.helpers";
 
 type Gorunum = "duz" | "musteri" | "urun" | "alt_grup" | "siparis";
 
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debouncedValue, setDebouncedValue] = React.useState(value);
+
+  React.useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedValue(value), delayMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [value, delayMs]);
+
+  return debouncedValue;
+}
+
 export default function SiparisIslemleriTab() {
   const [search, setSearch] = React.useState("");
-  const [gorunum, setGorunum] = React.useState<Gorunum>("duz");
+  const normalizedSearch = search.trim();
+  const debouncedSearch = useDebouncedValue(normalizedSearch, 300);
+  const [gorunum, setGorunum] = React.useState<Gorunum>("siparis");
   const [durumFiltre, setDurumFiltre] = React.useState<string>("all");
   const [gizleTamamlanan, setGizleTamamlanan] = React.useState(true);
   const [seciliKalemler, setSeciliKalemler] = React.useState<Set<string>>(new Set());
   const [aktarDialogAcik, setAktarDialogAcik] = React.useState(false);
 
-  const { data: items = [], isLoading, isFetching, refetch } = useListSiparisIslemleriAdminQuery({
-    q: search || undefined,
-    gorunum,
-    uretimDurumu: durumFiltre !== "all" ? (durumFiltre as KalemUretimDurumu) : undefined,
-    gizleTamamlanan,
-    limit: 200,
-  }, { pollingInterval: 30_000, refetchOnMountOrArgChange: true, refetchOnFocus: true });
+  const {
+    data: items = [],
+    isLoading,
+    isFetching,
+    refetch,
+  } = useListSiparisIslemleriAdminQuery(
+    {
+      q: debouncedSearch || undefined,
+      gorunum,
+      uretimDurumu: durumFiltre !== "all" ? (durumFiltre as KalemUretimDurumu) : undefined,
+      gizleTamamlanan,
+      limit: 200,
+    },
+    { pollingInterval: 30_000, refetchOnMountOrArgChange: true, refetchOnFocus: true },
+  );
 
   const [uretimeAktar, { isLoading: aktarLoading }] = useUretimeAktarAdminMutation();
   const [updateSiparis, closeState] = useUpdateSatisSiparisiAdminMutation();
@@ -71,14 +93,17 @@ export default function SiparisIslemleriTab() {
   }
 
   // Sadece beklemede olanlar secilebilir
-  const secilebilirler = React.useMemo(
-    () => items.filter((i) => i.uretimDurumu === "beklemede"),
-    [items],
-  );
+  const secilebilirler = React.useMemo(() => items.filter((i) => i.uretimDurumu === "beklemede"), [items]);
+  const tumSecilebilirlerSecili =
+    secilebilirler.length > 0 && secilebilirler.every((item) => seciliKalemler.has(item.kalemId));
 
   const tumunuSec = () => {
-    if (seciliKalemler.size === secilebilirler.length) {
-      setSeciliKalemler(new Set());
+    if (tumSecilebilirlerSecili) {
+      setSeciliKalemler((prev) => {
+        const next = new Set(prev);
+        for (const item of secilebilirler) next.delete(item.kalemId);
+        return next;
+      });
     } else {
       setSeciliKalemler(new Set(secilebilirler.map((i) => i.kalemId)));
     }
@@ -94,7 +119,7 @@ export default function SiparisIslemleriTab() {
   };
 
   // Secili kalemlerde ayni urun var mi? (birlestirme secenegi icin)
-  const seciliItems = items.filter((i) => seciliKalemler.has(i.kalemId));
+  const seciliItems = React.useMemo(() => items.filter((i) => seciliKalemler.has(i.kalemId)), [items, seciliKalemler]);
   const ayniUrunVarMi = React.useMemo(() => {
     const urunIds = new Set(seciliItems.map((i) => i.urunId));
     return seciliItems.length > 1 && urunIds.size < seciliItems.length;
@@ -113,65 +138,78 @@ export default function SiparisIslemleriTab() {
       }
       setSeciliKalemler(new Set());
       setAktarDialogAcik(false);
-    } catch (err: any) {
-      const detail = err?.data?.error?.detail;
+    } catch (err: unknown) {
+      const detail = (err as { data?: { error?: { detail?: string } } })?.data?.error?.detail;
       toast.error(detail ?? "Üretime aktarma sırasında hata oluştu.");
     }
   }
 
-  // Gruplama — SP-7: musteri bazında en geç planlanan bitiş hesaplanır
+  function openUretimeAktarForRows(rows: SiparisIslemSatiri[]) {
+    const kalemIds = rows.filter((item) => item.uretimDurumu === "beklemede").map((item) => item.kalemId);
+    if (kalemIds.length === 0) return;
+    setSeciliKalemler(new Set(kalemIds));
+    setAktarDialogAcik(true);
+  }
+
+  // Gruplama — tamamlanan üretimde gerçek, diğerlerinde planlanan en geç bitiş kullanılır.
   const grouped = React.useMemo(() => {
     if (gorunum === "duz") return null;
-    const map = new Map<string, { label: string; items: SiparisIslemSatiri[]; maxPlanned: string | null; kalanToplam: number }>();
+    const map = new Map<
+      string,
+      {
+        key: string;
+        label: string;
+        items: SiparisIslemSatiri[];
+        maxBitis: string | null;
+        kalanToplam: number;
+      }
+    >();
     for (const item of items) {
       const key =
-        gorunum === "musteri" ? item.musteriId :
-        gorunum === "alt_grup" ? (item.urunAltGrup || "__alt_grup_yok") :
-        gorunum === "siparis" ? item.siparisId :
-        item.urunId;
+        gorunum === "musteri"
+          ? item.musteriId
+          : gorunum === "alt_grup"
+            ? item.urunAltGrup || "__alt_grup_yok"
+            : gorunum === "siparis"
+              ? item.siparisId
+              : item.urunId;
       const label =
-        gorunum === "musteri" ? item.musteriAd :
-        gorunum === "alt_grup" ? (item.urunAltGrup || "Alt grup yok") :
-        gorunum === "siparis" ? item.siparisNo :
-        `${item.urunKod} — ${item.urunAd}`;
-      if (!map.has(key)) map.set(key, { label, items: [], maxPlanned: null, kalanToplam: 0 });
-      const group = map.get(key)!;
+        gorunum === "musteri"
+          ? item.musteriAd
+          : gorunum === "alt_grup"
+            ? item.urunAltGrup || "Alt grup yok"
+            : gorunum === "siparis"
+              ? `${item.siparisNo} — ${item.musteriAd}`
+              : `${item.urunKod} — ${item.urunAd}`;
+      let group = map.get(key);
+      if (!group) {
+        group = { key, label, items: [], maxBitis: null, kalanToplam: 0 };
+        map.set(key, group);
+      }
       group.items.push(item);
       group.kalanToplam += item.uretimKalanMiktar ?? Math.max(item.miktar - item.uretilenMiktar, 0);
-      if (item.planlananBitis) {
-        if (!group.maxPlanned || item.planlananBitis > group.maxPlanned) {
-          group.maxPlanned = item.planlananBitis;
+      const bitis = getBitisDisplay(item).value;
+      if (bitis) {
+        if (!group.maxBitis || bitis > group.maxBitis) {
+          group.maxBitis = bitis;
         }
       }
     }
     return Array.from(map.values());
   }, [items, gorunum]);
 
-  function durumBadge(durum: KalemUretimDurumu) {
-    return (
-      <Badge variant={KALEM_URETIM_DURUMU_BADGE[durum] ?? "secondary"}>
-        {KALEM_URETIM_DURUMU_LABELS[durum] ?? durum}
-      </Badge>
-    );
-  }
-
   function renderTable(rows: SiparisIslemSatiri[]) {
-    const showClose = gorunum === "siparis";
-    const emptyColSpan =
-      8 +
-      (gorunum !== "musteri" ? 1 : 0) +
-      (gorunum !== "urun" ? 1 : 0) +
-      (showClose ? 1 : 0);
+    const showSelection = gorunum !== "siparis";
+    const emptyColSpan = 6 + (gorunum !== "musteri" ? 1 : 0) + (gorunum !== "urun" ? 1 : 0) + (showSelection ? 1 : 0);
     return (
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-10">
-              <Checkbox
-                checked={secilebilirler.length > 0 && seciliKalemler.size === secilebilirler.length}
-                onCheckedChange={tumunuSec}
-              />
-            </TableHead>
+            {showSelection && (
+              <TableHead className="w-10">
+                <Checkbox checked={tumSecilebilirlerSecili} onCheckedChange={tumunuSec} />
+              </TableHead>
+            )}
             <TableHead>Sipariş No</TableHead>
             {gorunum !== "musteri" && <TableHead>Müşteri</TableHead>}
             {gorunum !== "urun" && <TableHead>Ürün</TableHead>}
@@ -179,32 +217,33 @@ export default function SiparisIslemleriTab() {
             <TableHead className="text-right">Miktar</TableHead>
             <TableHead className="text-right">Üretilen</TableHead>
             <TableHead className="text-right">Sevk Edilen</TableHead>
-            <TableHead>Üretim Durumu</TableHead>
-            <TableHead>Planlanan Bitiş</TableHead>
-            {showClose && <TableHead className="w-12 text-center">Kapat</TableHead>}
+            <TableHead>Bitiş Tarihi</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((item) => {
             const secilebilir = item.uretimDurumu === "beklemede";
-            const uretimKalan = item.uretimKalanMiktar ?? Math.max(item.miktar - item.uretilenMiktar, 0);
-            const sevkKalan = item.sevkKalanMiktar ?? Math.max(item.miktar - item.sevkEdilenMiktar, 0);
+            const uretimDisplay = getUretimDisplay(item);
+            const sevkDisplay = getSevkDisplay(item);
+            const bitisDisplay = getBitisDisplay(item);
             return (
               <TableRow key={item.kalemId} className={seciliKalemler.has(item.kalemId) ? "bg-primary/5" : ""}>
-                <TableCell>
-                  <Checkbox
-                    checked={seciliKalemler.has(item.kalemId)}
-                    onCheckedChange={() => toggleKalem(item.kalemId)}
-                    disabled={!secilebilir}
-                  />
-                </TableCell>
+                {showSelection && (
+                  <TableCell>
+                    <Checkbox
+                      checked={seciliKalemler.has(item.kalemId)}
+                      onCheckedChange={() => toggleKalem(item.kalemId)}
+                      disabled={!secilebilir}
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="font-mono text-xs">{item.siparisNo}</TableCell>
                 {gorunum !== "musteri" && <TableCell>{item.musteriAd}</TableCell>}
                 {gorunum !== "urun" && (
                   <TableCell>
                     <div className="min-w-0">
                       <div>
-                        <span className="text-muted-foreground text-xs mr-1">{item.urunKod}</span>
+                        <span className="mr-1 text-muted-foreground text-xs">{item.urunKod}</span>
                         {item.urunAd}
                       </div>
                       {item.urunAltGrup && <div className="text-muted-foreground text-xs">{item.urunAltGrup}</div>}
@@ -216,49 +255,49 @@ export default function SiparisIslemleriTab() {
                 </TableCell>
                 <TableCell className="text-right font-medium">{item.miktar.toLocaleString("tr-TR")}</TableCell>
                 <TableCell className="text-right">
-                  <div className="font-medium tabular-nums">
-                    {item.uretilenMiktar.toLocaleString("tr-TR")} / {uretimKalan.toLocaleString("tr-TR")}
-                  </div>
-                  <div className="text-muted-foreground text-[10px]">üretilen / kalan</div>
+                  {uretimDisplay.kind === "complete" ? (
+                    <Badge className="bg-emerald-600 hover:bg-emerald-600">{uretimDisplay.text}</Badge>
+                  ) : uretimDisplay.text ? (
+                    <span className="font-medium tabular-nums">{uretimDisplay.text}</span>
+                  ) : (
+                    <span className="sr-only">Üretim başlamadı</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="font-medium tabular-nums">
-                    {item.sevkEdilenMiktar.toLocaleString("tr-TR")} / {sevkKalan.toLocaleString("tr-TR")}
-                  </div>
-                  <div className="text-muted-foreground text-[10px]">sevk / kalan</div>
+                  {sevkDisplay.kind === "complete" ? (
+                    <Badge className="bg-emerald-600 hover:bg-emerald-600">{sevkDisplay.text}</Badge>
+                  ) : sevkDisplay.text ? (
+                    <span className="font-medium tabular-nums">{sevkDisplay.text}</span>
+                  ) : (
+                    <span className="sr-only">Sevk yapılmadı</span>
+                  )}
                 </TableCell>
-                <TableCell>{durumBadge(item.uretimDurumu)}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {item.planlananBitis
-                    ? new Date(item.planlananBitis).toLocaleString("tr-TR", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "—"}
+                <TableCell className="text-muted-foreground text-xs">
+                  {bitisDisplay.value ? (
+                    <div>
+                      <div>
+                        {new Date(bitisDisplay.value).toLocaleString("tr-TR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                      <div className="text-[10px]">
+                        {bitisDisplay.kind === "gercek" ? "Gerçek bitiş" : "Planlanan bitiş"}
+                      </div>
+                    </div>
+                  ) : (
+                    "—"
+                  )}
                 </TableCell>
-                {showClose && (
-                  <TableCell className="text-center">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8"
-                      title={`${item.siparisNo} siparişini kapat`}
-                      aria-label="Siparişi kapat"
-                      onClick={() => setCloseTarget(item)}
-                    >
-                      <Lock className="size-4" />
-                    </Button>
-                  </TableCell>
-                )}
               </TableRow>
             );
           })}
           {rows.length === 0 && (
             <TableRow>
-              <TableCell colSpan={emptyColSpan} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={emptyColSpan} className="py-8 text-center text-muted-foreground">
                 Kayıt bulunamadı
               </TableCell>
             </TableRow>
@@ -274,8 +313,8 @@ export default function SiparisIslemleriTab() {
       <Card>
         <CardContent className="pt-4">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="relative min-w-[200px] flex-1">
+              <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Sipariş, müşteri veya ürün ara..."
                 value={search}
@@ -284,7 +323,13 @@ export default function SiparisIslemleriTab() {
               />
             </div>
 
-            <Select value={gorunum} onValueChange={(v) => setGorunum(v as Gorunum)}>
+            <Select
+              value={gorunum}
+              onValueChange={(v) => {
+                setGorunum(v as Gorunum);
+                setSeciliKalemler(new Set());
+              }}
+            >
               <SelectTrigger className="w-[160px]">
                 <SelectValue />
               </SelectTrigger>
@@ -319,7 +364,7 @@ export default function SiparisIslemleriTab() {
             </div>
 
             <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching}>
-              <RefreshCcw className={`h-4 w-4${isFetching ? " animate-spin" : ""}`} />
+              <RefreshCcw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
             </Button>
 
             {seciliKalemler.size > 0 && (
@@ -343,11 +388,11 @@ export default function SiparisIslemleriTab() {
         </Card>
       ) : (
         grouped?.map((group) => (
-          <Card key={group.label}>
+          <Card key={group.key}>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-sm font-medium">{group.label}</CardTitle>
+                  <CardTitle className="font-medium text-sm">{group.label}</CardTitle>
                   {(gorunum === "urun" || gorunum === "alt_grup") && (
                     <p className="text-muted-foreground text-xs">
                       Kalan toplam:{" "}
@@ -357,14 +402,37 @@ export default function SiparisIslemleriTab() {
                     </p>
                   )}
                 </div>
-                <div className="text-right">
-                  {group.maxPlanned && (
-                    <span className="text-xs text-muted-foreground">
-                      Planlanan Bitiş (En Geç):{" "}
+                <div className="flex items-center gap-2 text-right">
+                  {group.maxBitis && (
+                    <span className="text-muted-foreground text-xs">
+                      Bitiş (En Geç):{" "}
                       <span className="font-medium text-foreground">
-                        {new Date(group.maxPlanned).toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        {new Date(group.maxBitis).toLocaleDateString("tr-TR", {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </span>
                     </span>
+                  )}
+                  {gorunum === "siparis" && group.items.some((item) => item.uretimDurumu === "beklemede") && (
+                    <Button size="sm" variant="outline" onClick={() => openUretimeAktarForRows(group.items)}>
+                      <Factory className="mr-1 size-4" /> Üretime Aktar
+                    </Button>
+                  )}
+                  {gorunum === "siparis" && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title={`${group.items[0]?.siparisNo} siparişini kapat`}
+                      aria-label={`${group.items[0]?.siparisNo} siparişini kapat`}
+                      onClick={() => setCloseTarget(group.items[0] ?? null)}
+                      disabled={closeState.isLoading}
+                    >
+                      <Lock className="size-4" />
+                    </Button>
                   )}
                 </div>
               </div>
@@ -374,9 +442,7 @@ export default function SiparisIslemleriTab() {
         ))
       )}
 
-      {!isLoading && (
-        <p className="text-sm text-muted-foreground text-right">Toplam {items.length} kalem</p>
-      )}
+      {!isLoading && <p className="text-right text-muted-foreground text-sm">Toplam {items.length} kalem</p>}
 
       {/* Uretime Aktar Dialog */}
       <AlertDialog open={aktarDialogAcik} onOpenChange={setAktarDialogAcik}>
@@ -408,9 +474,8 @@ export default function SiparisIslemleriTab() {
           <AlertDialogHeader>
             <AlertDialogTitle>Siparişi Kapat</AlertDialogTitle>
             <AlertDialogDescription>
-              {closeTarget?.siparisNo} siparişi kapatılacak. Kapatılan siparişin tüm satırları bu
-              ekrandan düşer ve yalnızca açık siparişler görünmeye devam eder. Üretimi devam eden
-              bir sipariş kapatılamaz.
+              {closeTarget?.siparisNo} siparişi kapatılacak. Kapatılan siparişin tüm satırları bu ekrandan düşer ve
+              yalnızca açık siparişler görünmeye devam eder. Üretimi devam eden bir sipariş kapatılamaz.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

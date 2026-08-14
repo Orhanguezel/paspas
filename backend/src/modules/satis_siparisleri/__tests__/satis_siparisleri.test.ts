@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import { createSatisSiparisi, listSatisSiparisleri, updateSatisSiparisi } from "../controller";
+import { canCloseSiparis } from "../kalem-durum.service";
 import { createSchema, listQuerySchema, patchSchema } from "../validation";
 
 type FakeReply = {
@@ -83,6 +84,15 @@ describe("satis_siparisleri validation", () => {
       durum: "kapali",
       items: [{ urunId: "22222222-2222-2222-2222-222222222222", miktar: 1 }],
     }).success).toBe(true);
+  });
+});
+
+describe("sipariş kapatma koruması", () => {
+  it("yalnız bekleyen veya üretimi tamamlanan kalemleri kapatır", () => {
+    expect(canCloseSiparis(["beklemede", "uretim_tamamlandi"])).toBe(true);
+    expect(canCloseSiparis(["makineye_atandi"])).toBe(false);
+    expect(canCloseSiparis(["uretiliyor"])).toBe(false);
+    expect(canCloseSiparis(["duraklatildi"])).toBe(false);
   });
 });
 

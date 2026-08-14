@@ -169,10 +169,14 @@ export const updateSatisSiparisi: RouteHandler = async (req, reply) => {
   } catch (error: unknown) {
     const dbError = getDatabaseError(error);
     req.log.error({ error, dbCode: dbError.code, sqlMessage: dbError.sqlMessage }, 'update_satis_siparisi_failed');
-    const err = error as { code?: string; message?: string };
+    const err = error as { code?: string; message?: string; detail?: string };
     if (dbError.code === 'ER_DUP_ENTRY') return reply.code(409).send({ error: { message: 'siparis_no_zaten_var' } });
     if (dbError.code === 'ER_WARN_DATA_OUT_OF_RANGE') return reply.code(400).send({ error: { message: 'Girilen miktar veya fiyat çok büyük.' } });
-    if (err.message === 'siparis_kilitli') return reply.code(409).send({ error: { message: 'siparis_kilitli' } });
+    if (err.message === 'siparis_kilitli') {
+      return reply.code(409).send({
+        error: { message: 'siparis_kilitli', detail: err.detail ?? 'Sipariş mevcut işlem durumu nedeniyle güncellenemedi.' },
+      });
+    }
     return sendInternalError(reply);
   }
 };

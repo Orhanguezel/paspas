@@ -555,10 +555,18 @@ export interface SiparisIslemSatiri {
   sevkKalanMiktar: number;
   uretimEmriId: string | null;
   planlananBitis: string | null;
+  gercekBitis: string | null;
   terminTarihi: string | null;
 }
 
 export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: SiparisIslemSatiri[]; total: number }> {
+  // Sevk edilen miktar hem DTO'da hem de "tamamlananları gizle" kuralında aynı
+  // kaynaktan hesaplanır. Böylece ekran ve filtre birbirinden sapmaz.
+  const sevkSubquery = sql<string>`COALESCE((
+    SELECT SUM(sk2.miktar) FROM sevkiyat_kalemleri sk2
+    WHERE sk2.siparis_kalem_id = ${siparisKalemleri.id}
+  ), 0)`;
+
   const conditions: SQL[] = [
     eq(satisSiparisleri.is_active, 1),
   ];
@@ -576,17 +584,14 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
     conditions.push(
       notInArray(satisSiparisleri.durum, ['kapali', 'iptal', 'tamamlandi']),
     );
-    // Kalem bazinda: tamami sevk edilmis olanlari da gizle
+    // Bir kalem yalnız üretim VE sevk birlikte tamamlandığında listeden düşer.
     conditions.push(
-      sql`${siparisKalemleri.uretim_durumu} != 'uretim_tamamlandi' OR ${siparisKalemleri.uretim_durumu} = 'uretim_tamamlandi'`,
+      sql`NOT (
+        ${siparisKalemleri.uretim_durumu} = 'uretim_tamamlandi'
+        AND ${sevkSubquery} >= ${siparisKalemleri.miktar}
+      )`,
     );
   }
-
-  // Sevk edilen miktar subquery
-  const sevkSubquery = sql<string>`COALESCE((
-    SELECT SUM(sk2.miktar) FROM sevkiyat_kalemleri sk2
-    WHERE sk2.siparis_kalem_id = ${siparisKalemleri.id}
-  ), 0)`;
 
   // Üretilen miktarı asıl ürünün giriş hareketleri üzerinden topla.
   // `uretim_emirleri.uretilen_miktar` çift taraflı (sağ+sol Operasyonel YM) emirlerde
@@ -625,6 +630,13 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
     WHERE uesk2.siparis_kalem_id = ${siparisKalemleri.id}
   )`;
 
+  // Tamamlanan üretimde planlanan tarih yerine operasyonların gerçek bitişi gösterilir.
+  const gercekBitisSubquery = sql<string>`(
+    SELECT MAX(eop3.gercek_bitis) FROM uretim_emri_operasyonlari eop3
+    INNER JOIN uretim_emri_siparis_kalemleri uesk3 ON uesk3.uretim_emri_id = eop3.uretim_emri_id
+    WHERE uesk3.siparis_kalem_id = ${siparisKalemleri.id}
+  )`;
+
   const where = and(...conditions);
 
   const baseQuery = db
@@ -648,6 +660,7 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
       sevkEdilenMiktar: sevkSubquery,
       uretimEmriId: ueIdSubquery,
       planlananBitis: planlananBitisSubquery,
+      gercekBitis: gercekBitisSubquery,
       terminTarihi: satisSiparisleri.termin_tarihi,
     })
     .from(siparisKalemleri)
@@ -700,6 +713,9 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
       uretimEmriId: r.uretimEmriId ?? null,
       planlananBitis: r.planlananBitis
         ? String(r.planlananBitis).replace(' ', 'T') + 'Z'
+        : null,
+      gercekBitis: r.gercekBitis
+        ? String(r.gercekBitis).replace(' ', 'T') + 'Z'
         : null,
       terminTarihi: r.terminTarihi ? String(r.terminTarihi).slice(0, 10) : null,
     };

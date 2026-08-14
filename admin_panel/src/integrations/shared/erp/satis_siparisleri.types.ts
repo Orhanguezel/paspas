@@ -47,6 +47,7 @@ export interface SiparisIslemSatiri {
   sevkKalanMiktar: number;
   uretimEmriId: string | null;
   planlananBitis: string | null;
+  gercekBitis: string | null;
   terminTarihi: string | null;
 }
 
