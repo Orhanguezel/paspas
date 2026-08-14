@@ -365,15 +365,17 @@ body.promats-offcanvas::before {
    Üst öğeler 20px sol boşlukta; alt öğeler daha içeride (36px) ve sol dikey çizgi nesteme işareti. */
 .promats-public .untree_co--site-mobile-menu .promats-sub-menu {
   list-style: none;
-  margin: 4px 0 8px 20px;
+  margin: 2px 0 6px 20px;
   padding: 0;
   border-left: 2px solid var(--pm-border, #e5e5e5);
 }
 .promats-public .untree_co--site-mobile-menu .promats-sub-menu > li > a {
   display: block;
   position: relative;
-  padding: 7px 20px 7px 22px;
-  font-size: 13px;
+  min-height: 32px;
+  padding: 5px 12px 5px 20px;
+  font-size: 12px;
+  line-height: 1.35;
   letter-spacing: 0.01em;
   color: var(--pm-text-body, #6b6b6b) !important;
 }
@@ -392,6 +394,34 @@ body.promats-offcanvas::before {
 }
 .promats-public .untree_co--site-mobile-menu .promats-sub-menu > li > a:hover::before {
   background: var(--pm-brand, #ffa001);
+}
+.promats-public .untree_co--site-mobile-menu .promats-sub-menu-more {
+  padding: 6px 10px 2px 18px;
+}
+.promats-public .untree_co--site-mobile-menu .promats-sub-menu-more > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--pm-brand, #ffa001) 42%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pm-brand, #ffa001) 9%, white);
+  color: var(--pm-text-heading, #000);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.promats-public .untree_co--site-mobile-menu .promats-sub-menu-more > button:hover,
+.promats-public .untree_co--site-mobile-menu .promats-sub-menu-more > button:focus-visible {
+  border-color: var(--pm-brand, #ffa001);
+  outline: none;
+}
+.promats-public .untree_co--site-mobile-menu .promats-sub-menu-more small {
+  color: var(--pm-brand, #d98600);
+  font-size: 11px;
 }
 
 /* Kapatma X — tek temiz işaret (kırılgan bar1/bar2 yerine) */

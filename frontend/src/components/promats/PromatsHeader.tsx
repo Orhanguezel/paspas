@@ -21,11 +21,14 @@ type Props = {
   title?: string;
 };
 
+const MOBILE_PRODUCT_PREVIEW_COUNT = 8;
+
 export default function PromatsHeader({ locale, products, settings, siteConfig, menu, title }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [sticky, setSticky] = useState(false);
   const [productsOpen, setProductsOpen] = useState(true);
+  const [allProductsVisible, setAllProductsVisible] = useState(false);
   const [catalogViewerOpen, setCatalogViewerOpen] = useState(false);
   const catalogRef = useRef<HTMLDetailsElement>(null);
 
@@ -39,6 +42,8 @@ export default function PromatsHeader({ locale, products, settings, siteConfig, 
   const catalogPdfUrl = locale === 'tr'
     ? '/userfiles/files/e-katalog-tr.pdf'
     : (siteConfig.ekatalogUrl || '/userfiles/files/e-catalogue.pdf');
+  const hasMoreProducts = products.length > MOBILE_PRODUCT_PREVIEW_COUNT;
+  const visibleProducts = allProductsVisible ? products : products.slice(0, MOBILE_PRODUCT_PREVIEW_COUNT);
 
   useEffect(() => {
     // Orijinal tema offcanvas mekanizmasi: body.offcanvas -> panel translateX(0) + body:before karartma.
@@ -137,12 +142,31 @@ export default function PromatsHeader({ locale, products, settings, siteConfig, 
                       aria-label={locale === 'en' ? 'Toggle products' : 'Ürünleri aç/kapat'}
                       aria-expanded={productsOpen}
                     />
-                    <ul className="promats-sub-menu" style={{ display: productsOpen ? 'block' : 'none' }}>
-                      {products.map((product) => (
+                    <ul
+                      id="promats-mobile-products"
+                      className="promats-sub-menu"
+                      style={{ display: productsOpen ? 'block' : 'none' }}
+                    >
+                      {visibleProducts.map((product) => (
                         <li key={product.id}>
                           <a href={localeHref(locale, `/urunler/${product.slug}`)}>{product.name}</a>
                         </li>
                       ))}
+                      {hasMoreProducts ? (
+                        <li className="promats-sub-menu-more">
+                          <button
+                            type="button"
+                            onClick={() => setAllProductsVisible((visible) => !visible)}
+                            aria-controls="promats-mobile-products"
+                            aria-expanded={allProductsVisible}
+                          >
+                            <span>{allProductsVisible
+                              ? (locale === 'en' ? 'Show less' : 'Daha Az Göster')
+                              : (locale === 'en' ? 'Show all products' : 'Devamını Göster')}</span>
+                            <small>{allProductsVisible ? '−' : `+${products.length - MOBILE_PRODUCT_PREVIEW_COUNT}`}</small>
+                          </button>
+                        </li>
+                      ) : null}
                     </ul>
                   </li>
                 );
