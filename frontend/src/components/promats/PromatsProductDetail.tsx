@@ -358,7 +358,7 @@ export default function PromatsProductDetail({ locale, product, related, setting
                 {dims[3] ? <div className="row no-gutters mt-4">
                   <div className="col-7">
                     <h4>
-                      <span>{t(settings, 'TAKIM AĞIRLIĞI')}</span>
+                      {locale === 'tr' ? <span>{t(settings, 'TAKIM AĞIRLIĞI')}</span> : null}
                       {t(settings, 'SET WEIGHT')}
                     </h4>
                   </div>
@@ -367,7 +367,7 @@ export default function PromatsProductDetail({ locale, product, related, setting
                 {dims[4] ? <div className="row no-gutters mt-4">
                   <div className="col-7">
                     <h4>
-                      <span>{t(settings, 'KOLİ AĞIRLIĞI')}</span>
+                      {locale === 'tr' ? <span>{t(settings, 'KOLİ AĞIRLIĞI')}</span> : null}
                       {t(settings, 'PACK WEIGHT')}
                     </h4>
                   </div>
