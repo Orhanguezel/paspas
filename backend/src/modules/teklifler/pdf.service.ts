@@ -23,18 +23,26 @@ export async function resolveLogoDataUri(logoUrl: string | null): Promise<string
   if (!logoUrl) return null;
   if (/^(https?:|data:)/i.test(logoUrl)) return logoUrl;
   if (!logoUrl.startsWith('/')) return null;
-  try {
-    const file = path.join(process.cwd(), '..', 'admin_panel', 'public', logoUrl.replace(/^\/+/, ''));
-    const buf = await readFile(file);
-    const ext = path.extname(file).toLowerCase();
-    const mime = ext === '.svg' ? 'image/svg+xml'
-      : ext === '.png' ? 'image/png'
-      : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
-      : 'application/octet-stream';
-    return `data:${mime};base64,${buf.toString('base64')}`;
-  } catch {
-    return null;
+  const relativePath = logoUrl.replace(/^\/+/, '');
+  const candidates = [
+    path.join(process.cwd(), 'public', relativePath),
+    path.join(process.cwd(), '..', 'admin', 'admin_panel', 'public', relativePath),
+    path.join(process.cwd(), '..', 'admin_panel', 'public', relativePath),
+  ];
+  for (const file of candidates) {
+    try {
+      const buf = await readFile(file);
+      const ext = path.extname(file).toLowerCase();
+      const mime = ext === '.svg' ? 'image/svg+xml'
+        : ext === '.png' ? 'image/png'
+        : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
+        : 'application/octet-stream';
+      return `data:${mime};base64,${buf.toString('base64')}`;
+    } catch {
+      // Atomik release, kaynak repo ve yerel geliştirme dizilimlerini sırayla dene.
+    }
   }
+  return null;
 }
 
 export async function renderPdf(html: string): Promise<Buffer> {

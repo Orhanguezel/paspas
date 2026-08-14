@@ -59,6 +59,11 @@ mkdir -p "$STAGE/backend"
 rsync -a "$SRC/backend/dist/" "$STAGE/backend/dist/"
 rsync -a "$SRC/backend/node_modules/" "$STAGE/backend/node_modules/"
 cp "$SRC/backend/package.json" "$SRC/backend/bun.lock" "$STAGE/backend/"
+# Teklif PDF'i panel logosunu backend tarafında data URI olarak gömer. Backend
+# release'i panel standalone'ından bağımsız çalıştığı için logo/public dosyalarını
+# kendi çalışma dizinine de koyuyoruz.
+mkdir -p "$STAGE/backend/public"
+rsync -a "$SRC/admin_panel/public/" "$STAGE/backend/public/"
 
 log 'admin standalone artifact'
 (

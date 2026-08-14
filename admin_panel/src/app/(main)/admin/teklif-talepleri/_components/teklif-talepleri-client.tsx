@@ -6,7 +6,8 @@
 // =============================================================
 
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, RefreshCcw, Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ChevronLeft, ChevronRight, FileText, RefreshCcw, Search } from 'lucide-react';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
 
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,7 @@ import { useListTeklifTalepleriAdminQuery } from '@/integrations/endpoints/admin
 import { useListUsersAdminQuery } from '@/integrations/endpoints/admin/users/auth_admin.endpoints';
 import type { TalepDto, TalepDurum } from '@/integrations/shared/erp/teklifler.types';
 import { TALEP_DURUM_BADGE } from '@/integrations/shared/erp/teklifler.types';
-import TalepDetaySheet from './talep-detay-sheet';
+import TalepDonusturDialog from './talep-donustur-dialog';
 
 const DURUM_VALUES: TalepDurum[] = [
   'yeni', 'inceleniyor', 'musteriye_donustu', 'teklife_donustu', 'istenmeyen', 'kapandi',
@@ -34,6 +35,7 @@ type DurumGrubu = 'hepsi' | 'yeni' | 'inceleniyor' | 'donusturuldu' | 'spam';
 
 export default function TeklifTalepleriClient() {
   const { t } = useLocaleContext();
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [durum, setDurum] = useState<TalepDurum | 'hepsi'>('hepsi');
   const [durumGrubu, setDurumGrubu] = useState<DurumGrubu>('hepsi');
@@ -43,7 +45,7 @@ export default function TeklifTalepleriClient() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [offset, setOffset] = useState(0);
-  const [selected, setSelected] = useState<TalepDto | null>(null);
+  const [convertTarget, setConvertTarget] = useState<TalepDto | null>(null);
 
   const params = {
     ...(search ? { q: search } : {}),
@@ -143,7 +145,15 @@ export default function TeklifTalepleriClient() {
               </TableRow>
             )}
             {!isLoading && items.map((talep) => (
-              <TableRow key={talep.id} className="cursor-pointer" onClick={() => setSelected(talep)}>
+              <TableRow
+                key={talep.id}
+                className="cursor-pointer transition-colors hover:bg-muted/50"
+                title={talep.teklifId ? 'Teklif içeriğini aç' : 'Taslak teklife dönüştür'}
+                onClick={() => {
+                  if (talep.teklifId) router.push(`/admin/teklifler/${talep.teklifId}`);
+                  else setConvertTarget(talep);
+                }}
+              >
                 <TableCell className="font-medium">
                   <div>{talep.firma || talep.ad}</div>
                   {talep.firma && talep.ad && <div className="text-xs text-muted-foreground">{talep.ad}</div>}
@@ -161,7 +171,10 @@ export default function TeklifTalepleriClient() {
                 <TableCell className="text-xs text-muted-foreground">{talep.kaynakSayfa || '—'}</TableCell>
                 <TableCell className="text-xs"><div>{userName(talep.atananUserId)}</div><div className="uppercase text-muted-foreground">{talep.dil}</div></TableCell>
                 <TableCell className="text-xs text-muted-foreground">
-                  {talep.createdAt ? talep.createdAt.slice(0, 10) : '—'}
+                  <div className="flex items-center justify-between gap-2">
+                    <span>{talep.createdAt ? talep.createdAt.slice(0, 10) : '—'}</span>
+                    {talep.teklifId ? <FileText className="size-4 text-primary" aria-label="Teklifi aç" /> : null}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -175,7 +188,13 @@ export default function TeklifTalepleriClient() {
         <Button variant="outline" size="icon" disabled={offset + PAGE_SIZE >= total || isFetching} onClick={() => setOffset(offset + PAGE_SIZE)}><ChevronRight className="size-4" /></Button>
       </div>
 
-      <TalepDetaySheet talep={selected} onClose={() => setSelected(null)} />
+      {convertTarget ? (
+        <TalepDonusturDialog
+          open
+          talep={convertTarget}
+          onClose={() => setConvertTarget(null)}
+        />
+      ) : null}
     </div>
   );
 }

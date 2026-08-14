@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, RefreshCcw, Plus, Pencil, Trash2, Printer, FileDown, ShoppingCart, Mail, Share2, Save, Link2Off,
+  CircleDollarSign, AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
@@ -50,6 +51,7 @@ import {
   useReddetIskontoAdminMutation,
   useCreateTeklifRevizyonAdminMutation,
   useConvertTeklifToSiparisAdminMutation,
+  usePatchTeklifKalemAdminMutation,
   useDeleteTeklifKalemAdminMutation,
 } from '@/integrations/endpoints/admin/erp/teklifler_admin.endpoints';
 import { useListMusterilerAdminQuery } from '@/integrations/endpoints/admin/erp/musteriler_admin.endpoints';
@@ -253,6 +255,8 @@ export default function TeklifEditorClient({ id }: { id: string }) {
   const [iskontoRedNedeni, setIskontoRedNedeni] = useState('');
   const [revizyonDialogOpen, setRevizyonDialogOpen] = useState(false);
   const [revizyonNedeni, setRevizyonNedeni] = useState('');
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
+  const [patchKalem, patchKalemState] = usePatchTeklifKalemAdminMutation();
 
   async function handlePdf(mode: 'preview' | 'download') {
     setPdfLoading(true);
@@ -286,6 +290,11 @@ export default function TeklifEditorClient({ id }: { id: string }) {
   const [redNedeni, setRedNedeni] = useState('');
 
   const isLocked = data ? data.durum !== 'taslak' : true;
+
+  useEffect(() => {
+    if (!data?.kalemler) return;
+    setPriceDrafts(Object.fromEntries(data.kalemler.map((kalem) => [kalem.id, String(kalem.birimFiyat)])));
+  }, [data?.kalemler]);
 
   useEffect(() => {
     if (!data) return;
@@ -332,6 +341,41 @@ export default function TeklifEditorClient({ id }: { id: string }) {
           ? t('admin.erp.teklifler.form.taslakDisindaBilgi')
           : (message ?? t('admin.erp.common.operationFailed')),
       );
+    }
+  }
+
+  async function savePrices() {
+    if (!data || isLocked) return;
+    const changed = (data.kalemler ?? []).filter((kalem) => {
+      const value = Number(priceDrafts[kalem.id]);
+      return Number.isFinite(value) && value >= 0 && value !== kalem.birimFiyat;
+    });
+    const invalid = (data.kalemler ?? []).some((kalem) => {
+      const value = Number(priceDrafts[kalem.id]);
+      return !Number.isFinite(value) || value < 0;
+    });
+    if (invalid) {
+      toast.error('Birim fiyatlar sıfır veya daha büyük bir sayı olmalıdır.');
+      return;
+    }
+    if (changed.length === 0) {
+      toast.info('Değişen bir fiyat yok.');
+      return;
+    }
+    try {
+      // Her kalem güncellemesi teklif toplamını yeniden hesapladığı için yarış
+      // oluşturmadan sırayla kaydediyoruz.
+      for (const kalem of changed) {
+        await patchKalem({
+          id,
+          kalemId: kalem.id,
+          body: { birimFiyat: Number(priceDrafts[kalem.id]) },
+        }).unwrap();
+      }
+      await refetch();
+      toast.success(`${changed.length} kalemin fiyatı kaydedildi.`);
+    } catch (err: unknown) {
+      toast.error(apiErrorMessage(err) ?? 'Fiyatlar kaydedilemedi.');
     }
   }
 
@@ -411,6 +455,8 @@ export default function TeklifEditorClient({ id }: { id: string }) {
   const iskontoLimiti = TEKLIF_ISKONTO_LIMITLERI_UI[currentRole] ?? 0;
   const iskontoOnayGerekiyor = data.iskontoOrani > iskontoLimiti && !data.iskontoOnaylandi;
   const revizyonUygunDurumlar: TeklifDurum[] = ['gonderildi', 'goruntulendi', 'red', 'suresi_doldu'];
+  const changedPriceCount = kalemler.filter((kalem) => Number(priceDrafts[kalem.id]) !== kalem.birimFiyat).length;
+  const unpricedCount = kalemler.filter((kalem) => kalem.birimFiyat <= 0).length;
 
   return (
     <div className="space-y-6">
@@ -491,15 +537,6 @@ export default function TeklifEditorClient({ id }: { id: string }) {
         </p>
       )}
 
-      {/* Revizyon — gönderilmiş/görüntülenmiş/reddedilmiş/süresi dolmuş tekliften yeni taslak */}
-      {revizyonUygunDurumlar.includes(data.durum) && (
-        <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/20 p-3">
-          <p className="text-sm text-muted-foreground">Fiyat/koşul değişikliği için yeni bir revizyon oluşturabilirsiniz. Eski teklif değişmez, ayrı bir kayıt olarak saklanır.</p>
-          <Button size="sm" variant="outline" onClick={() => { setRevizyonNedeni(''); setRevizyonDialogOpen(true); }} disabled={revizyonState.isLoading}>
-            Yeni Revizyon
-          </Button>
-        </div>
-      )}
       {data.revizyonlar && data.revizyonlar.length > 0 && (
         <Card>
           <CardHeader><CardTitle className="text-base">Revizyon Geçmişi</CardTitle></CardHeader>
@@ -534,6 +571,109 @@ export default function TeklifEditorClient({ id }: { id: string }) {
           </Button>
         </div>
       )}
+
+      {/* Ana çalışma alanı: kullanıcı ilk ekranda ürünü, miktarı ve fiyatı görür. */}
+      <Card className="overflow-hidden border-primary/20 shadow-sm">
+        <CardHeader className="border-b bg-muted/20 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <CircleDollarSign className="size-5 text-primary" />
+                Ürünler ve Fiyatlandırma
+              </CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Miktarı kontrol edin, birim fiyatı girin ve teklif toplamını oluşturun.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {!isLocked ? (
+                <>
+                  <Button size="sm" variant="outline" onClick={openAddKalem}>
+                    <Plus className="mr-1 size-4" /> Ürün Ekle
+                  </Button>
+                  <Button size="sm" onClick={savePrices} disabled={patchKalemState.isLoading || changedPriceCount === 0}>
+                    <Save className="mr-1 size-4" />
+                    {patchKalemState.isLoading ? 'Kaydediliyor…' : changedPriceCount > 0 ? `Fiyatları Kaydet (${changedPriceCount})` : 'Fiyatlar Kayıtlı'}
+                  </Button>
+                </>
+              ) : null}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {unpricedCount > 0 ? (
+            <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <AlertTriangle className="size-4 shrink-0" />
+              <strong>{unpricedCount} ürünün birim fiyatı henüz girilmemiş.</strong>
+            </div>
+          ) : null}
+          {isLocked ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/20 px-4 py-3">
+              <p className="text-sm text-muted-foreground">
+                Bu teklif {t(`admin.erp.teklifler.statuses.${data.durum}`).toLocaleLowerCase('tr-TR')} durumda. Eski kaydı koruyarak fiyat değiştirmek için yeni revizyon açın.
+              </p>
+              {revizyonUygunDurumlar.includes(data.durum) ? (
+                <Button size="sm" onClick={() => { setRevizyonNedeni('Fiyatlandırma güncellemesi'); setRevizyonDialogOpen(true); }} disabled={revizyonState.isLoading}>
+                  Yeni Revizyon Aç ve Fiyatlandır
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Ürün / Açıklama</TableHead>
+                  <TableHead className="w-36 text-right">Miktar</TableHead>
+                  <TableHead className="w-52">Birim Fiyat ({data.paraBirimi})</TableHead>
+                  <TableHead className="w-40 text-right">Satır Toplamı</TableHead>
+                  <TableHead className="w-24" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {kalemler.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">Teklif kalemi bulunmuyor.</TableCell></TableRow>
+                ) : null}
+                {kalemler.map((kalem) => (
+                  <TableRow key={kalem.id} className={kalem.birimFiyat <= 0 ? 'bg-amber-50/40' : undefined}>
+                    <TableCell>
+                      <div className="font-medium">{kalem.aciklama}</div>
+                      {kalem.urunKod ? <div className="text-xs text-muted-foreground">{kalem.urunKod} · {kalem.urunAd}</div> : null}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{kalem.miktar.toLocaleString('tr-TR')} {kalem.birim ?? ''}</TableCell>
+                    <TableCell>
+                      <Input
+                        className="h-9 text-right font-semibold tabular-nums"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        aria-label={`${kalem.aciklama} birim fiyat`}
+                        value={priceDrafts[kalem.id] ?? String(kalem.birimFiyat)}
+                        onChange={(event) => setPriceDrafts((current) => ({ ...current, [kalem.id]: event.target.value }))}
+                        disabled={isLocked || patchKalemState.isLoading}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right font-semibold tabular-nums">{money(kalem.satirToplam, data.paraBirimi)}</TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEditKalem(kalem)} disabled={isLocked} aria-label="Kalemi düzenle"><Pencil className="size-4" /></Button>
+                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteKalemTarget(kalem)} disabled={isLocked} aria-label="Kalemi sil"><Trash2 className="size-4" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+              {kalemler.length > 0 ? (
+                <TableFooter>
+                  <TableRow><TableCell colSpan={3} className="text-right">Ara Toplam</TableCell><TableCell colSpan={2} className="text-right font-semibold tabular-nums">{money(data.araToplam, data.paraBirimi)}</TableCell></TableRow>
+                  <TableRow className="border-t-2"><TableCell colSpan={3} className="text-right text-base font-bold">Genel Toplam</TableCell><TableCell colSpan={2} className="text-right text-lg font-bold tabular-nums">{money(data.genelToplam, data.paraBirimi)}</TableCell></TableRow>
+                </TableFooter>
+              ) : null}
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Gönder & Paylaş */}
       <Card>
@@ -604,9 +744,15 @@ export default function TeklifEditorClient({ id }: { id: string }) {
       )}
 
       {/* Header alanları */}
-      <Card>
+      <details className="group rounded-lg border bg-card shadow-sm">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 font-semibold">
+          <span>Teklif Koşulları ve Diğer Ayarlar</span>
+          <span className="text-xs font-normal text-muted-foreground group-open:hidden">Göster</span>
+          <span className="hidden text-xs font-normal text-muted-foreground group-open:inline">Gizle</span>
+        </summary>
+      <Card className="rounded-none border-x-0 border-b-0 shadow-none">
         <CardHeader>
-          <CardTitle className="text-base">{t('admin.erp.teklifler.title')}</CardTitle>
+          <CardTitle className="text-base">Müşteri, vergi, teslimat ve ödeme bilgileri</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -730,104 +876,7 @@ export default function TeklifEditorClient({ id }: { id: string }) {
           </div>
         </CardContent>
       </Card>
-
-      {/* Kalemler */}
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">{t('admin.erp.teklifler.detail.kalemler')}</h2>
-          <Button size="sm" variant="outline" onClick={openAddKalem} disabled={isLocked}>
-            <Plus className="mr-1 size-4" /> {t('admin.erp.teklifler.form.kalemEkle')}
-          </Button>
-        </div>
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">{t('admin.erp.common.row')}</TableHead>
-                <TableHead>{t('admin.erp.teklifler.form.kalemAciklama')}</TableHead>
-                <TableHead className="text-right">{t('admin.erp.teklifler.form.miktar')}</TableHead>
-                <TableHead className="text-right">{t('admin.erp.teklifler.form.fiyat')}</TableHead>
-                <TableHead className="text-right">{t('admin.erp.teklifler.form.kalemIskonto')}</TableHead>
-                <TableHead className="text-right">{t('admin.erp.common.total')}</TableHead>
-                <TableHead className="w-20" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {kalemler.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
-                    {t('admin.erp.common.noItems')}
-                  </TableCell>
-                </TableRow>
-              )}
-              {kalemler.map((k) => (
-                <TableRow key={k.id}>
-                  <TableCell>{k.sira}</TableCell>
-                  <TableCell>
-                    <div className="font-medium">{k.aciklama}</div>
-                    {k.urunKod && <div className="text-xs text-muted-foreground">{k.urunKod} — {k.urunAd}</div>}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {k.miktar.toLocaleString('tr-TR', { maximumFractionDigits: 4 })} {k.birim ?? ''}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">{money(k.birimFiyat, data.paraBirimi)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{k.iskontoOrani > 0 ? `%${k.iskontoOrani}` : '—'}</TableCell>
-                  <TableCell className="text-right tabular-nums font-semibold">{money(k.satirToplam, data.paraBirimi)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEditKalem(k)} disabled={isLocked}>
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost" size="icon"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => setDeleteKalemTarget(k)}
-                        disabled={isLocked}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-            {kalemler.length > 0 && (
-              <TableFooter>
-                <TableRow>
-                  <TableCell colSpan={5} className="text-right font-semibold">{t('admin.erp.common.total')}</TableCell>
-                  <TableCell colSpan={2} className="text-right tabular-nums font-semibold">{money(data.araToplam, data.paraBirimi)}</TableCell>
-                </TableRow>
-                {data.iskontoTutari > 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-right font-semibold text-green-600">
-                      İskonto (%{data.iskontoOrani})
-                    </TableCell>
-                    <TableCell colSpan={2} className="text-right tabular-nums font-semibold text-green-600">
-                      -{money(data.iskontoTutari, data.paraBirimi)}
-                    </TableCell>
-                  </TableRow>
-                )}
-                {data.nakliye > 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-right font-semibold">Nakliye</TableCell>
-                    <TableCell colSpan={2} className="text-right tabular-nums font-semibold">{money(data.nakliye, data.paraBirimi)}</TableCell>
-                  </TableRow>
-                )}
-                <TableRow>
-                  <TableCell colSpan={5} className="text-right font-semibold">
-                    KDV (%{data.kdvOrani}{data.kdvDahil ? ' — dahil' : ''})
-                  </TableCell>
-                  <TableCell colSpan={2} className="text-right tabular-nums font-semibold">{money(data.kdvTutari, data.paraBirimi)}</TableCell>
-                </TableRow>
-                <TableRow className="border-t-2">
-                  <TableCell colSpan={5} className="text-right text-base font-bold">Genel Toplam</TableCell>
-                  <TableCell colSpan={2} className="text-right tabular-nums text-base font-bold">{money(data.genelToplam, data.paraBirimi)}</TableCell>
-                </TableRow>
-              </TableFooter>
-            )}
-          </Table>
-        </div>
-      </div>
+      </details>
 
       <TeklifKalemDialog
         open={kalemDialogOpen}
