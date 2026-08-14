@@ -184,9 +184,9 @@ export default function PromatsHeader({ locale, products, settings, siteConfig, 
               );
             })}
           </ul>
-          <div className="text-center social-media mt-4">
-            <PromatsSocialLinks socials={siteConfig.socials} label={t(settings, 'Bizi Takip Edin')} />
-          </div>
+        </div>
+        <div className="text-center social-media mt-4">
+          <PromatsSocialLinks socials={siteConfig.socials} label={t(settings, 'Bizi Takip Edin')} />
         </div>
       </nav>
 
