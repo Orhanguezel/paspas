@@ -179,13 +179,13 @@ SELECT
   @seed_ts,
   @seed_ts
 FROM (
-  SELECT 'smtp_host' AS `key`, '"smtp.example.com"' AS `value`
-  UNION ALL SELECT 'smtp_port', '587'
+  SELECT 'smtp_host' AS `key`, '"srvm16.trwww.com"' AS `value`
+  UNION ALL SELECT 'smtp_port', '465'
   UNION ALL SELECT 'smtp_username', '"info@promats.com.tr"'
   UNION ALL SELECT 'smtp_password', '"__SET_IN_ENV__"'
   UNION ALL SELECT 'smtp_from_email', '"info@promats.com.tr"'
   UNION ALL SELECT 'smtp_from_name', '"Promats ERP"'
-  UNION ALL SELECT 'smtp_ssl', 'false'
+  UNION ALL SELECT 'smtp_ssl', 'true'
 ) AS src;
 
 -- =============================================================

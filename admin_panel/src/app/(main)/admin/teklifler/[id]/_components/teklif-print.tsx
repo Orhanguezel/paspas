@@ -265,12 +265,17 @@ export default function TeklifPrint({ open, onClose, teklif }: Props) {
                   <div className="row"><span className="lbl">Hesap Ünvanı</span><span className="val">{firma?.legalName || firmaAd}</span></div>
                 </div>
               )}
-              {(teklif.odemeKosullari || teklif.teslimKosullari || teklif.aciklama) && (
+              {(teklif.odemeKosullari || teklif.teslimKosullari) && (
                 <div className="tp-terms">
                   <div className="tp-eyebrow">Koşullar</div>
                   {teklif.odemeKosullari && <p><b>Ödeme:</b> {teklif.odemeKosullari}</p>}
                   {teklif.teslimKosullari && <p><b>Teslim:</b> {teklif.teslimKosullari}</p>}
-                  {teklif.aciklama && <p>{teklif.aciklama}</p>}
+                </div>
+              )}
+              {teklif.aciklama && (
+                <div className="tp-terms">
+                  <div className="tp-eyebrow">Müşteriden Gelen Mesaj</div>
+                  <p>“{teklif.aciklama}”</p>
                 </div>
               )}
             </section>

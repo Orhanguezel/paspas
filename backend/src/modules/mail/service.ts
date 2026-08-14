@@ -38,6 +38,9 @@ async function getTransporter(): Promise<Transporter> {
   if (!cfg.host) {
     throw new Error("smtp_host_not_configured");
   }
+  if (!cfg.username || !cfg.password || cfg.password.startsWith("__")) {
+    throw new Error("smtp_credentials_not_configured");
+  }
 
   // Port fallback:
   // - secure=true ise default 465
@@ -55,15 +58,6 @@ async function getTransporter(): Promise<Transporter> {
     cfg.username && cfg.password
       ? { user: cfg.username, pass: cfg.password }
       : undefined;
-
-  // 🔍 DEBUG: Şifre hariç log (gerek kalmadığında silebilirsin)
-  console.log("[SMTP CFG]", {
-    host: cfg.host,
-    port: cfg.port,
-    username: cfg.username,
-    secure: cfg.secure,
-    hasPassword: !!cfg.password,
-  });
 
   const transporter = nodemailer.createTransport({
     host: cfg.host,

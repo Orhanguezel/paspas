@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, RefreshCcw, Plus, Pencil, Trash2, Printer, FileDown, ShoppingCart, Mail, Share2, Save, Link2Off,
-  CircleDollarSign, AlertTriangle,
+  CircleDollarSign, AlertTriangle, MessageSquareQuote,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
@@ -46,6 +46,7 @@ import {
   useSetTeklifDurumAdminMutation,
   useGonderTeklifAdminMutation,
   useUpdateTeklifPublicLinkAdminMutation,
+  useClearTeklifMusteriMesajiAdminMutation,
   useOnayaGonderTeklifAdminMutation,
   useOnaylaIskontoAdminMutation,
   useReddetIskontoAdminMutation,
@@ -85,7 +86,6 @@ interface HeaderFormState {
   gecerlilikTarihi: string;
   odemeKosullari: string;
   teslimKosullari: string;
-  aciklama: string;
 }
 
 const EMPTY_FORM: HeaderFormState = {
@@ -99,7 +99,6 @@ const EMPTY_FORM: HeaderFormState = {
   gecerlilikTarihi: '',
   odemeKosullari: '',
   teslimKosullari: '',
-  aciklama: '',
 };
 
 function money(n: number, currency: string): string {
@@ -132,6 +131,7 @@ export default function TeklifEditorClient({ id }: { id: string }) {
   const [onaylaIskonto, onaylaState] = useOnaylaIskontoAdminMutation();
   const [reddetIskonto, reddetState] = useReddetIskontoAdminMutation();
   const [createRevizyon, revizyonState] = useCreateTeklifRevizyonAdminMutation();
+  const [clearMusteriMesaji, clearMusteriMesajiState] = useClearTeklifMusteriMesajiAdminMutation();
   const [aliciEmail, setAliciEmail] = useState('');
   const router = useRouter();
 
@@ -168,17 +168,26 @@ export default function TeklifEditorClient({ id }: { id: string }) {
     } catch (err: unknown) { toast.error(apiErrorMessage(err) ?? 'Reddedilemedi.'); }
   }
 
-  async function confirmRevizyon() {
-    if (!revizyonNedeni.trim()) { toast.error('Revizyon nedeni zorunlu.'); return; }
+  async function handleFiyatlariDuzenle() {
     try {
-      await createRevizyon({ id, body: { neden: revizyonNedeni.trim() } }).unwrap();
+      await createRevizyon({ id, body: { neden: 'Fiyat güncellemesi' } }).unwrap();
       await refetch();
-      setRevizyonDialogOpen(false);
-      toast.success('Yeni revizyon oluşturuldu; teklif taslağa döndü.');
+      toast.success('Fiyat alanları düzenlemeye açıldı.');
     } catch (err: unknown) {
       const msg = typeof err === 'object' && err && 'data' in err
         ? ((err as { data?: { error?: { message?: string } } }).data?.error?.message) : undefined;
-      toast.error(msg === 'gecersiz_teklif_gecisi' ? 'Bu durumda revizyon oluşturulamaz.' : 'Revizyon oluşturulamadı.');
+      toast.error(msg === 'gecersiz_teklif_gecisi' ? 'Bu teklif şu anda düzenlemeye açılamıyor.' : 'Fiyatlar düzenlemeye açılamadı.');
+    }
+  }
+
+  async function confirmClearMusteriMesaji() {
+    try {
+      await clearMusteriMesaji(id).unwrap();
+      await refetch();
+      setClearMusteriMesajiOpen(false);
+      toast.success('Müşteri mesajı tekliften kaldırıldı.');
+    } catch (err: unknown) {
+      toast.error(apiErrorMessage(err) ?? 'Müşteri mesajı kaldırılamadı.');
     }
   }
 
@@ -197,7 +206,7 @@ export default function TeklifEditorClient({ id }: { id: string }) {
       const msg = typeof err === 'object' && err && 'data' in err
         ? ((err as { data?: { error?: { message?: string; detail?: string } } }).data?.error) : undefined;
       toast.error(msg?.message === 'eposta_gonderilemedi'
-        ? `E-posta gönderilemedi${msg?.detail ? `: ${msg.detail}` : '.'}`
+        ? 'E-posta gönderilemedi. SMTP ayarlarını kontrol edin.'
         : (GONDERIM_HATALARI[msg?.message ?? ''] ?? 'Teklif gönderilemedi. Lütfen yeniden deneyin.'));
     }
   }
@@ -253,8 +262,7 @@ export default function TeklifEditorClient({ id }: { id: string }) {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [iskontoRedDialogOpen, setIskontoRedDialogOpen] = useState(false);
   const [iskontoRedNedeni, setIskontoRedNedeni] = useState('');
-  const [revizyonDialogOpen, setRevizyonDialogOpen] = useState(false);
-  const [revizyonNedeni, setRevizyonNedeni] = useState('');
+  const [clearMusteriMesajiOpen, setClearMusteriMesajiOpen] = useState(false);
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [patchKalem, patchKalemState] = usePatchTeklifKalemAdminMutation();
 
@@ -309,7 +317,6 @@ export default function TeklifEditorClient({ id }: { id: string }) {
       gecerlilikTarihi: data.gecerlilikTarihi ?? '',
       odemeKosullari: data.odemeKosullari ?? '',
       teslimKosullari: data.teslimKosullari ?? '',
-      aciklama: data.aciklama ?? '',
     });
   }, [data]);
 
@@ -329,7 +336,6 @@ export default function TeklifEditorClient({ id }: { id: string }) {
       gecerlilikTarihi: form.gecerlilikTarihi || undefined,
       odemeKosullari: form.odemeKosullari || undefined,
       teslimKosullari: form.teslimKosullari || undefined,
-      aciklama: form.aciklama || undefined,
     };
     try {
       await updateTeklif({ id, body }).unwrap();
@@ -451,7 +457,7 @@ export default function TeklifEditorClient({ id }: { id: string }) {
 
   const kalemler = [...(data.kalemler ?? [])].sort((a, b) => a.sira - b.sira);
   // 'onay_bekliyor' aşağıdaki özel İskonto Onayı bloğuyla (gerçek ihtiyaç kontrolüyle) yönetilir.
-  const gecisler = (TEKLIF_DURUM_GECISLERI[data.durum] ?? []).filter((d) => d !== 'onay_bekliyor');
+  const gecisler = (TEKLIF_DURUM_GECISLERI[data.durum] ?? []).filter((d) => d !== 'onay_bekliyor' && d !== 'revizyon');
   const iskontoLimiti = TEKLIF_ISKONTO_LIMITLERI_UI[currentRole] ?? 0;
   const iskontoOnayGerekiyor = data.iskontoOrani > iskontoLimiti && !data.iskontoOnaylandi;
   const revizyonUygunDurumlar: TeklifDurum[] = ['gonderildi', 'goruntulendi', 'red', 'suresi_doldu'];
@@ -537,20 +543,6 @@ export default function TeklifEditorClient({ id }: { id: string }) {
         </p>
       )}
 
-      {data.revizyonlar && data.revizyonlar.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Revizyon Geçmişi</CardTitle></CardHeader>
-          <CardContent className="divide-y text-sm">
-            {data.revizyonlar.map((r) => (
-              <div key={r.id} className="flex items-center justify-between py-2">
-                <span>R{r.revizyonNo} · {r.neden}</span>
-                <span className="text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleString('tr-TR')}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
       {/* Siparişe dönüştür — kabul edilmiş ve henüz dönüştürülmemiş teklif */}
       {data.durum === 'kabul' && !data.donusenSiparisId && (
         <div className="flex items-center justify-between gap-3 rounded-md border border-emerald-300 bg-emerald-50 p-3">
@@ -571,6 +563,32 @@ export default function TeklifEditorClient({ id }: { id: string }) {
           </Button>
         </div>
       )}
+
+      {data.aciklama ? (
+        <Card className="border-sky-200 bg-sky-50/70 shadow-sm">
+          <CardContent className="flex items-start justify-between gap-4 p-4">
+            <div className="flex min-w-0 gap-3">
+              <MessageSquareQuote className="mt-0.5 size-5 shrink-0 text-sky-700" />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Müşteriden Gelen Mesaj</p>
+                <blockquote className="mt-2 whitespace-pre-wrap text-base font-medium leading-relaxed text-slate-900">
+                  “{data.aciklama}”
+                </blockquote>
+                <p className="mt-2 text-xs text-sky-800/70">Bu metin müşterinin teklif talebinde yazdığı mesajdır; Promats notu değildir.</p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="shrink-0 text-muted-foreground hover:text-destructive"
+              onClick={() => setClearMusteriMesajiOpen(true)}
+              disabled={clearMusteriMesajiState.isLoading}
+            >
+              <Trash2 className="mr-1 size-4" /> Kaldır
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Ana çalışma alanı: kullanıcı ilk ekranda ürünü, miktarı ve fiyatı görür. */}
       <Card className="overflow-hidden border-primary/20 shadow-sm">
@@ -610,11 +628,11 @@ export default function TeklifEditorClient({ id }: { id: string }) {
           {isLocked ? (
             <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/20 px-4 py-3">
               <p className="text-sm text-muted-foreground">
-                Bu teklif {t(`admin.erp.teklifler.statuses.${data.durum}`).toLocaleLowerCase('tr-TR')} durumda. Eski kaydı koruyarak fiyat değiştirmek için yeni revizyon açın.
+                Bu teklif {t(`admin.erp.teklifler.statuses.${data.durum}`).toLocaleLowerCase('tr-TR')} durumda. Fiyat değiştirmek için düzenlemeye açın.
               </p>
               {revizyonUygunDurumlar.includes(data.durum) ? (
-                <Button size="sm" onClick={() => { setRevizyonNedeni('Fiyatlandırma güncellemesi'); setRevizyonDialogOpen(true); }} disabled={revizyonState.isLoading}>
-                  Yeni Revizyon Aç ve Fiyatlandır
+                <Button size="sm" onClick={handleFiyatlariDuzenle} disabled={revizyonState.isLoading}>
+                  {revizyonState.isLoading ? 'Açılıyor…' : 'Fiyatları Düzenle'}
                 </Button>
               ) : null}
             </div>
@@ -700,9 +718,8 @@ export default function TeklifEditorClient({ id }: { id: string }) {
             </Button>
           </div>
           {data.goruntulemeToken && (
-            <p className="break-all text-xs text-muted-foreground">
-              Public görüntüleme linki: <span className="font-mono">{publicLink(data.goruntulemeToken)}</span>
-              {' · '}{data.goruntulemeTokenRevokedAt ? 'İptal edildi' : data.goruntulemeTokenExpiresAt ? `${new Date(data.goruntulemeTokenExpiresAt).toLocaleString('tr-TR')} tarihine kadar geçerli` : 'Süre bilgisi yok'}
+            <p className="text-xs text-muted-foreground">
+              Paylaşım bağlantısı: {data.goruntulemeTokenRevokedAt ? 'iptal edildi' : data.goruntulemeTokenExpiresAt ? `${new Date(data.goruntulemeTokenExpiresAt).toLocaleDateString('tr-TR')} tarihine kadar aktif` : 'aktif'}
             </p>
           )}
           {data.ilkGoruntulemeAt && (
@@ -711,7 +728,9 @@ export default function TeklifEditorClient({ id }: { id: string }) {
             </p>
           )}
           {data.gonderimler && data.gonderimler.length > 0 && (
-            <div className="divide-y rounded-md border text-sm">
+            <details className="rounded-md border text-sm">
+              <summary className="cursor-pointer px-3 py-2 font-medium">Gönderim geçmişi ({data.gonderimler.length})</summary>
+              <div className="divide-y border-t">
               {data.gonderimler.map((g) => (
                 <div key={g.id} className="flex items-center justify-between px-3 py-2">
                   <span>
@@ -722,11 +741,12 @@ export default function TeklifEditorClient({ id }: { id: string }) {
                     {g.durum === 'hata' ? 'Hata' : 'Başarılı'} · {new Date(g.createdAt).toLocaleString('tr-TR')}
                   </span>
                   {g.durum === 'hata' && g.hataMesaji && (
-                    <span className="max-w-xs text-xs text-destructive" title={g.hataMesaji}>{g.hataMesaji}</span>
+                    <span className="max-w-xs text-xs text-destructive">E-posta sunucusuna ulaşılamadı</span>
                   )}
                 </div>
               ))}
-            </div>
+              </div>
+            </details>
           )}
         </CardContent>
       </Card>
@@ -857,17 +877,6 @@ export default function TeklifEditorClient({ id }: { id: string }) {
             </div>
           </div>
 
-          <div className="space-y-1">
-            <Label>{t('admin.erp.teklifler.form.aciklama')}</Label>
-            <Textarea
-              value={form.aciklama}
-              onChange={(e) => patch('aciklama', e.target.value)}
-              placeholder={t('admin.erp.teklifler.form.aciklamaPlaceholder')}
-              disabled={isLocked}
-              rows={2}
-            />
-          </div>
-
           <div className="flex justify-end">
             <Button onClick={saveHeader} disabled={isLocked || updateState.isLoading}>
               <Save className="mr-1 size-4" />
@@ -949,21 +958,26 @@ export default function TeklifEditorClient({ id }: { id: string }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={revizyonDialogOpen} onOpenChange={setRevizyonDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Yeni Revizyon Oluştur</DialogTitle></DialogHeader>
-          <div className="space-y-1">
-            <Label>Revizyon nedeni</Label>
-            <Textarea value={revizyonNedeni} onChange={(e) => setRevizyonNedeni(e.target.value)} placeholder="Fiyat veya koşul değişikliğini açıklayın" rows={3} />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRevizyonDialogOpen(false)} disabled={revizyonState.isLoading}>İptal</Button>
-            <Button onClick={confirmRevizyon} disabled={revizyonState.isLoading}>
-              {revizyonState.isLoading ? 'Oluşturuluyor…' : 'Revizyon Oluştur'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AlertDialog open={clearMusteriMesajiOpen} onOpenChange={setClearMusteriMesajiOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Müşteri mesajı kaldırılsın mı?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Mesaj teklif ekranından ve PDF'den kaldırılır. Orijinal teklif talebi kaydı korunur.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearMusteriMesajiState.isLoading}>Vazgeç</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmClearMusteriMesaji}
+              disabled={clearMusteriMesajiState.isLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {clearMusteriMesajiState.isLoading ? 'Kaldırılıyor…' : 'Mesajı Kaldır'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

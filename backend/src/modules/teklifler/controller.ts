@@ -21,7 +21,7 @@ import { buildTeklifPdf } from './teklif-pdf';
 import { notifyOfferAdmins } from './maintenance';
 import {
   assertTeklifGonderilebilir, repoAddKalem, repoCreateRevizyon, repoCreateTalepPublic,
-  repoCreateTeklif, repoDeleteKalem, repoDeleteTeklif, repoDonusturTalep, repoGetTalep,
+  repoClearMusteriMesaji, repoCreateTeklif, repoDeleteKalem, repoDeleteTeklif, repoDonusturTalep, repoGetTalep,
   repoGetTeklif, repoGetRevizyon, repoListRevizyonlar, repoListTalepler, repoListTeklifler, repoLogGonderim,
   repoMarkGonderildi, repoOnaylaIskonto, repoOnayaGonder, repoPatchKalem, repoPatchTalep,
   repoPatchTeklif, repoReddetIskonto, repoRefreshPublicToken, repoRevokePublicToken, repoSetTeklifDurum, repoTeklifByToken,
@@ -207,6 +207,15 @@ export const updateTeklif: RouteHandler = async (req, reply) => {
     if (!dto) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
     await crmAudit(req,'CRM_OFFER_UPDATED','offers',id,before,dto);return dto;
   } catch (err) { return mapError(reply, err); }
+};
+
+export const clearMusteriMesaji: RouteHandler = async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const before = await repoGetTeklif(id);
+  if (!before) return reply.code(404).send({ error: { message: 'teklif_bulunamadi' } });
+  const dto = await repoClearMusteriMesaji(id);
+  await crmAudit(req, 'CRM_OFFER_CUSTOMER_MESSAGE_REMOVED', 'offers', id, before, dto);
+  return dto;
 };
 
 export const deleteTeklif: RouteHandler = async (req, reply) => {

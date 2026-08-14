@@ -9,7 +9,7 @@ import { makeAdminPermissionGuard } from '@/common/middleware/permissions';
 import { requireOwnLead, requireOwnOffer } from '@/modules/crm/scope';
 
 import {
-  addKalem, createRevizyon, createTalepPublic, createTeklif, deleteKalem, deleteTeklif, getRevizyon, getRevizyonPdf,
+  addKalem, clearMusteriMesaji, createRevizyon, createTalepPublic, createTeklif, deleteKalem, deleteTeklif, getRevizyon, getRevizyonPdf,
   donusturTalep, getFirmaProfili, getTalep, getTeklif, getTeklifPdf, gonderTeklif,
   listRevizyonlar, listTalepler, listTeklifler, onayaGonder, onaylaIskonto, patchKalem,
   publicTeklifByToken, reddetIskonto, setTeklifDurum, sipariseDonustur, updatePublicTeklifLink, updateTalep, updateTeklif,
@@ -28,6 +28,7 @@ export async function registerTeklifler(app: FastifyInstance): Promise<void> {
   app.get(`${T}/:id`, { preHandler: [guard,requireOwnOffer] }, getTeklif);
   app.get(`${T}/:id/pdf`, { preHandler: [guard,requireOwnOffer] }, getTeklifPdf);
   app.patch(`${T}/:id`, { preHandler: [guard,requireOwnOffer] }, updateTeklif);
+  app.delete(`${T}/:id/musteri-mesaji`, { preHandler: [guard,requireOwnOffer] }, clearMusteriMesaji);
   app.delete(`${T}/:id`, { preHandler: [guard,requireOwnOffer] }, deleteTeklif);
   app.post(`${T}/:id/durum`, { preHandler: [guard,requireOwnOffer] }, setTeklifDurum);
   app.post(`${T}/:id/siparise-donustur`, { preHandler: [guard,requireOwnOffer] }, sipariseDonustur);

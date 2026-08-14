@@ -367,6 +367,17 @@ export async function repoPatchTeklif(id: string, body: TeklifPatchBody): Promis
   return repoGetTeklif(id);
 }
 
+/**
+ * Web talebinden teklife aktarılan müşteri mesajını tekliften kaldırır.
+ * Teklif gönderilmiş olsa bile kullanılabilir; kaynak talep kaydı değişmez.
+ */
+export async function repoClearMusteriMesaji(id: string): Promise<ReturnType<typeof teklifRowToDto> | null> {
+  const row = await getTeklifRow(id);
+  if (!row) return null;
+  await db.update(teklifler).set({ aciklama: null }).where(eq(teklifler.id, id));
+  return repoGetTeklif(id);
+}
+
 export async function repoDeleteTeklif(id: string): Promise<boolean> {
   const row = await getTeklifRow(id);
   if (!row) return false;
