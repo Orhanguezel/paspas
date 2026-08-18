@@ -12,21 +12,20 @@ Bir önceki checklist: [CANLI-ACIK-YAZILIMCI-NOTLARI-CHECKLIST-2026-08-14.md](CA
 | Durum | Adet | Anlamı |
 |---|---:|---|
 | Açık (`open`) | 4 | Bizde — doğrudan iş *(1.1/1.2/1.6/1.8 çözüldü, 18 Ağu)* |
-| Bilgi bekliyor (`needs_info`) | 12 | Karşı tarafta (müşteri kararı / grafikçi) |
-| **Toplam aktif** | **16** | |
+| Bilgi bekliyor (`needs_info`) | 4 | Web sayfaları — grafikçi revizesi bekliyor |
+| **Toplam aktif** | **8** | |
 
-> **18 Ağustos:** Fuar modülü ayrı bir siteye taşındığı için 22 aktif Fuar kaydı silindi (bkz. Bölüm 2).
-> `planned` durumunda kayıt kalmadı — 18'inin tamamı Fuar'dı.
+> **18 Ağustos:** Fuar (22 aktif kayıt) ve CRM (8 aktif kayıt) kapsam dışına alınıp silindi —
+> bkz. Bölüm 2 ve Bölüm 3. `planned` durumunda kayıt kalmadı; 18'inin tamamı Fuar'dı.
 
 | Öncelik | Açık | Bilgi bekl. |
 |---|---:|---:|
-| Kritik | 0 | 5 |
-| Yüksek | 0 | 5 |
-| Normal | 4 | 2 |
+| Kritik | 0 | 1 |
+| Yüksek | 0 | 2 |
+| Normal | 4 | 1 |
 
 | İş alanı | Aktif |
 |---|---:|
-| CRM | 8 |
 | Üretim ERP / stok | 4 |
 | Web | 4 |
 
@@ -191,29 +190,36 @@ Bu checklist'te izlenen **22 aktif Fuar kaydı** (4 açık + 18 planlandı) ve t
 - Silme tek transaction içinde yapıldı; sonrasında öksüz yorum kalmadığı doğrulandı (0).
 - Önceki bölümlerdeki *"Fuar PDF/Excel çıktısı bu 4 kritik maddeyi açar"* bağımlılığı artık geçersiz.
 
-> Kalan iş: bu repodaki Fuar kalıntıları (`fuar_teklif/` dizini, `admin_panel/src/app/(main)/admin/fuar/`
-> ekranları, `paspas-fuar-teklif` PM2 süreci) hâlâ duruyor — ayrı bir temizlik kalemi.
+**Kod temizliği de tamamlandı** (commit `cd4561c`, 82 dosya / 8.285 satır silindi):
 
-## BÖLÜM 3 — Bilgi bekleyenler (12) — bizde iş yok, ama durumu netleşmeli
+- [x] `fuar_teklif/` — ayrı Fastify uygulaması (kendi DB'si `paspas_fuar_teklif`)
+- [x] `admin_panel/src/app/(main)/admin/fuar/` ekranları + `features/fuar`
+- [x] `fuar-quotes` / `fuar-customers` / `fuar-products` endpoint dosyaları
+- [x] Sidebar "Fuar Teklif" grubu, permission anahtarları, RTK tag'leri, `adminUi` etiketleri, `tr.json` anahtarları
+- [x] `scripts/import-fuar-teklif-tasks.cjs` (tek seferlik aktarım scripti)
+- [x] Sunucuda `paspas-fuar-teklif` PM2 süreci silindi (port 8090 — nginx'te yönlendirmesi zaten yoktu, dışarıdan erişilemiyordu)
+
+> `paspas_fuar_teklif` **veritabanına dokunulmadı** — yeni site ihtiyaç duyabilir.
+> `docs/` altındaki Fuar dokümanları (docx/xlsx/md) tarihsel kayıt olarak bırakıldı.
+
+## BÖLÜM 3 — Bilgi bekleyenler (4) — bizde iş yok, ama durumu netleşmeli
 
 Bu kayıtlar `needs_info`; yani karşı taraftan cevap bekliyor. Uzun süredir hareketsizler (CRM 29 Temmuz, Web 2 Ağustos).
 
-### CRM (8 kayıt · `/admin/teklifler`) — 29 Temmuz'dan beri beklemede
+### CRM — kapsam dışı (26 kayıt silindi)
 
-**Canlıda doğrulandı:** CRM **backend'i hazır** — `backend/src/modules/crm/` altında controller, router, validation, scope, audit + repository katmanı (dashboard, activities, communications, reports, reminders, automation, saved-views, loss-reasons). **Admin panel tarafında tek bir CRM ekranı yok.**
+**18 Ağustos 2026:** CRM kayıtları bu sistemin kapsamı dışına alındı. `[CRM]` konulu **26 thread**
+(8 bilgi bekleyen + 18 çözülmüş) ve bağlı **44 yorum** canlı veritabanından silindi.
 
-Yani bu 8 madde "bilgi bekliyor" görünse de, teknik durum net: **arka uç yazılmış, arayüz yazılmamış.**
+- Yedek: [.yedek/crm-geribildirim-yedek-20260818.sql](.yedek/crm-geribildirim-yedek-20260818.sql)
+- Silme `subject LIKE '[CRM]%'` ile yapıldı — `/admin/teklifler` altındaki **Teklif modülüne ait 32 kayıt korundu** (modül canlıda aktif).
+- Öksüz yorum kalmadığı doğrulandı (0).
 
-- [ ] `f50686b0` — CRM Pipeline/Kanban admin ekranı (Kritik)
-- [ ] `8f6e3278` — Müşteri detayında CRM sekmeleri (Kritik)
-- [ ] `0ed4080c` — CRM talep ve fırsat ekranları (Kritik)
-- [ ] `8b7d1465` — CRM admin E2E testleri (Kritik)
-- [ ] `b022f6cf` — CRM dashboard admin ekranı (Yüksek)
-- [ ] `c47deea7` — CRM aktivite panosu ve takvimi (Yüksek)
-- [ ] `ad5ccf40` — CRM ayar ekranları (Yüksek)
-- [ ] `1543ba91` — CRM rapor ekranları (Normal)
-
-**Aksiyon:** Bu 8 kaydın `needs_info` kalması doğru değil — beklenen bilgi ne, netleşmeli. Ya müşteriden karar istenip statü `planned`e çekilmeli, ya da yazılmış backend'in üstüne arayüz planlanmalı. Aksi halde tamamlanmış bir backend kullanılmadan duruyor.
+> **CRM backend kodu KALDIRILMADI — kaldırılamaz.** İlk incelemede bağımsız görünmüştü; kaldırıp
+> derleyince ortaya çıktı ki `teklifler/controller.ts`, `teklifler/maintenance.ts` ve
+> `sevkiyat/repository.ts` bu modülü kullanıyor (reminders, communications, automation, audit, scope).
+> Yani `backend/src/modules/crm/` **canlı Teklif ve Sevkiyat akışlarının parçası**; 14 CRM tablosu da
+> yerinde duruyor. Yalnızca geri bildirim kayıtları silindi.
 
 ### Web (4 kayıt) — grafikçi revizesi bekliyor
 
@@ -492,7 +498,7 @@ Aktivasyon SHA256 doğrular, `current` symlink'ini atomik değiştirir, hata hal
 5. **S5 — vardiya çift sayımı**: bağımsız backend düzeltmesi; herhangi bir pakete paralel gidebilir.
 6. **S2 — negatif stok kök çözümü**: tutarlılık denetim aracı → ambalaj YM kararı (müşteri) → inline model tanıma. Ayrı yol haritası; 1.7'nin filtresi bu iş bitene kadar "gösterge paneli" görevi görür.
 7. ~~Fuar PDF/Excel çıktıları~~ — **kapsam dışı**, modül ayrı siteye taşındı (Bölüm 2).
-8. **CRM ve Web** — teknik iş değil, karar bekliyor; müşteriyle netleştirilecek.
+8. **Web (4 kayıt)** — teknik iş değil, grafikçi revizesi bekliyor; müşteriyle netleştirilecek.
 
 **Müşteriye önceden söylenmesi gerekenler:**
 - (a) "Üretilen" sütunu toplam değil montaj/takım adedi olacak; montajsız çift taraflılarda tam çift sayısı gösterilecek (R1).
