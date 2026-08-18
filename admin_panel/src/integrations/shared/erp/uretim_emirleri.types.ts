@@ -52,12 +52,19 @@ export interface UretimEmriOperasyonOzet {
  * değil (UE-2026-0155'te 2., UE-2026-0156'da 1.), bu yüzden bayrağa göre okunur.
  */
 export function grupUretilen(emirler: UretimEmriDto[]): { miktar: number | null; birim: "Takım" | "Adet" } {
+  // Belirleyici kaynakta üretim yoksa `miktar: null` döner ve ekranda boş görünür.
+  // Müşteri isteği: "operatör montaj yapılan tarafı için veri girmediyse boş gelsin."
+  // Dolayısıyla enjeksiyon tarafı üretmiş olsa bile (canlı örnek UE-2026-0032:
+  // enjeksiyon 780, montaj 0) takım henüz doğmadığı için sütun boş kalır — "0" yazmak
+  // üretim yapılmış izlenimi verirdi.
+  const bos = (deger: number): number | null => (deger > 0 ? deger : null);
+
   const montajOp = emirler.flatMap((emir) => emir.operasyonlar ?? []).find((op) => op.montaj);
-  if (montajOp) return { miktar: montajOp.uretilenMiktar, birim: "Takım" };
+  if (montajOp) return { miktar: bos(montajOp.uretilenMiktar), birim: "Takım" };
   if (emirler.length > 1) {
-    return { miktar: Math.min(...emirler.map((emir) => emir.uretilenMiktar)), birim: "Takım" };
+    return { miktar: bos(Math.min(...emirler.map((emir) => emir.uretilenMiktar))), birim: "Takım" };
   }
-  return { miktar: emirler[0]?.uretilenMiktar ?? 0, birim: "Adet" };
+  return { miktar: bos(emirler[0]?.uretilenMiktar ?? 0), birim: "Adet" };
 }
 
 export interface UretimEmriDto {

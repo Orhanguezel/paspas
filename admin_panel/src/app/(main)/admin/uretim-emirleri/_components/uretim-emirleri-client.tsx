@@ -891,6 +891,7 @@ export default function UretimEmirleriClient() {
     // Takım adedi: montaj operasyonundan okunur (toplama/min DEĞİL) — bkz. grupUretilen.
     const uretilen = grupUretilen(emirler);
     const uretilenMiktar = uretilen.miktar ?? 0;
+    const uretilenVar = uretilen.miktar !== null;
     const yuzde = planlananMiktar > 0 ? Math.min(100, Math.round((uretilenMiktar / planlananMiktar) * 100)) : 0;
     const makineAdlari = Array.from(new Set(emirler.map((e) => e.makineAdlari).filter((x): x is string => Boolean(x))));
     const tumAtanmamis = emirler.every((e) => e.makineAtamaSayisi === 0);
@@ -919,7 +920,7 @@ export default function UretimEmirleriClient() {
       esiEksik,
       uretilenMiktar,
       uretilenBirim: uretilen.birim,
-      uretilenGirilmis: emirler.some((e) => (e.operasyonlar ?? []).some((op) => op.uretilenMiktar > 0)),
+      uretilenVar,
       yuzde,
       makineAdlari,
       tumAtanmamis,
@@ -1260,7 +1261,7 @@ export default function UretimEmirleriClient() {
                           {/* Üretilen — montaj operasyonundan okunur; operatör veri
                               girmediyse boş kalır (YN b23bee2e) */}
                           <TableCell className="text-right">
-                            {agg.uretilenGirilmis ? (
+                            {agg.uretilenVar ? (
                               <span className="font-semibold text-slate-900 text-sm">
                                 {agg.uretilenMiktar.toLocaleString("tr-TR")}{" "}
                                 <span className="font-normal text-[10px] text-muted-foreground">{agg.uretilenBirim}</span>

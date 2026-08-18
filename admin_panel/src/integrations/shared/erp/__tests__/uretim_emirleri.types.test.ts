@@ -153,4 +153,22 @@ describe('grupUretilen — takım adedi', () => {
     const emir = emir_({ id: 'y', planlananMiktar: 690, uretilenMiktar: 794, operasyonlar: [op({ montaj: true, uretilenMiktar: 794 })] });
     expect(grupUretilen([emir]).miktar).toBe(794);
   });
+
+  it('montaj tarafinda uretim yoksa BOS doner (0 yazmaz)', () => {
+    // Canli UE-2026-0032: enjeksiyon 780 uretmis ama montaj 0 — takim henuz
+    // dogmadi. Musteri istegi: "montaj yapilan tarafi icin veri girilmediyse bos".
+    const emir = emir_({
+      id: 'ue-32', uretilenMiktar: 0,
+      operasyonlar: [
+        op({ montaj: false, uretilenMiktar: 780 }),
+        op({ montaj: true, uretilenMiktar: 0 }),
+      ],
+    });
+    expect(grupUretilen([emir])).toEqual({ miktar: null, birim: 'Takım' });
+  });
+
+  it('hic uretim olmayan tek emirde de bos doner', () => {
+    const tek = emir_({ id: 'z', uretilenMiktar: 0, operasyonlar: [op({ montaj: false, uretilenMiktar: 0 })] });
+    expect(grupUretilen([tek]).miktar).toBeNull();
+  });
 });
