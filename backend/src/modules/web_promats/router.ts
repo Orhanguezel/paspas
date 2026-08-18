@@ -78,10 +78,28 @@ function editablePayload(table: CmsTable, body: unknown): Row {
   );
 }
 
+// Eski CMS gorsel yollarini `/userfiles` altina GORELI sakliyor; canlida iki
+// bicim birden var: `images/urun/x.png` ve `/images/urun/x.png`. Panelden
+// yuklenen yeni dosyalar ise tam yol tutuyor (`/userfiles/...`, `/uploads/...`).
+//
+// Onceden bu fonksiyon yalniz basa `/` koyuyordu, yani `/images/urun/x.png`
+// donuyordu — bu adres 404. Site calisiyordu cunku frontend (PromatsImage /
+// assetPath) ve admin panel eksigi kendi taraflarinda tamamliyordu. API dogru
+// adresi vermedigi icin ucuncu bir tuketici (TeklifRota urun entegrasyonu)
+// 20 gorselin 9'unda 404 aldi. Duzeltme kaynakta yapildi.
+//
+// Zaten tam olan yollar oldugu gibi birakilir; aksi halde `/uploads/...`
+// dosyalari yanlisilikla `/userfiles` altina tasinmis gorunurdu.
+const TAM_YOL_ONEKLERI = ['/userfiles', '/assets', '/uploads'] as const;
+
 function asset(value: unknown): string | null {
   if (!value) return null;
-  const path = String(value);
-  return path.startsWith('/') ? path : `/${path}`;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const path = raw.startsWith('/') ? raw : `/${raw}`;
+  if (TAM_YOL_ONEKLERI.some((onek) => path === onek || path.startsWith(`${onek}/`))) return path;
+  return `/userfiles${path}`;
 }
 
 function authorizedProductConsumer(value: unknown): boolean {

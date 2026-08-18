@@ -24,6 +24,35 @@ describe('web_promats public DTO helpers', () => {
     expect(asset('/uploads/a.png')).toBe('/uploads/a.png');
   });
 
+  // Regresyon: eski CMS kayitlari `/userfiles` altina goreli saklaniyor.
+  // Once yalniz basa `/` konuyordu ve `/images/...` adresi 404 veriyordu;
+  // site calisiyordu cunku frontend eksigi kendi tarafinda tamamliyordu.
+  // TeklifRota entegrasyonu 20 gorselin 9'unda 404 aldi (2026-08-18).
+  test('eski CMS gorsel yollari /userfiles altina tasinir', () => {
+    expect(asset('images/product/orbital-tekli.png')).toBe('/userfiles/images/product/orbital-tekli.png');
+    expect(asset('/images/product/orbital-tekli.png')).toBe('/userfiles/images/product/orbital-tekli.png');
+    expect(asset('images/banner/slider1.jpg')).toBe('/userfiles/images/banner/slider1.jpg');
+  });
+
+  test('tam yollar oldugu gibi birakilir (cift on ek olusmaz)', () => {
+    expect(asset('/userfiles/images/product/catalog-2026/star-serisi/cover.jpg'))
+      .toBe('/userfiles/images/product/catalog-2026/star-serisi/cover.jpg');
+    expect(asset('/uploads/page-feedback/x/image1.png')).toBe('/uploads/page-feedback/x/image1.png');
+    expect(asset('/assets/logo.svg')).toBe('/assets/logo.svg');
+    expect(asset('https://cdn.example.com/a.png')).toBe('https://cdn.example.com/a.png');
+  });
+
+  test('bos ve bosluklu degerler null doner', () => {
+    expect(asset('')).toBeNull();
+    expect(asset('   ')).toBeNull();
+    expect(asset(undefined)).toBeNull();
+  });
+
+  // `/userfiles` on eki, adi ona benzeyen bir klasoru yutmamali.
+  test('benzer isimli klasor tam yol sayilmaz', () => {
+    expect(asset('/userfilesx/a.png')).toBe('/userfiles/userfilesx/a.png');
+  });
+
   test('product DTO carries the legacy content contract and features', () => {
     const result = product({
       id: 7,
@@ -69,8 +98,15 @@ describe('web_promats public DTO helpers', () => {
       slug: 'page',
     };
     expect(page(row)).not.toHaveProperty('gallery');
+    // Kasitli davranis degisikligi (2026-08-18): on eki olmayan eski CMS yolu
+    // artik `/userfiles` altina tasiniyor; onceki beklenti `/g.jpg` idi ve bu
+    // adres canlida 404 veriyordu.
     expect(page(row, [{ id: 9, image: 'g.jpg', sort_order: 2 }]).gallery).toEqual([
-      { id: 9, image: '/g.jpg', sortOrder: 2 },
+      { id: 9, image: '/userfiles/g.jpg', sortOrder: 2 },
+    ]);
+    // Panelden yuklenen galeri gorselleri tam yol tutuyor; dokunulmamali.
+    expect(page(row, [{ id: 10, image: '/uploads/x/a.png', sort_order: 1 }]).gallery).toEqual([
+      { id: 10, image: '/uploads/x/a.png', sortOrder: 1 },
     ]);
   });
 });
