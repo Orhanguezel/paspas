@@ -32,6 +32,32 @@ export interface UretimEmriOperasyonOzet {
   planlananMiktar: number;
   uretilenMiktar: number;
   durum: string;
+  planlananBitis: string | null;
+  gercekBitis: string | null;
+}
+
+/**
+ * Bir mamul grubunun ÜRETİLEN adedi.
+ *
+ * Montaj = sağ+sol parçaların birleştirilip paketlenmesi; takım orada doğar.
+ * Enjeksiyon parça sayar, montaj takım sayar — bu yüzden operasyon miktarlarını
+ * TOPLAMAK birim hatasıdır (canlı örnek UE-2026-0155: 90 + 2.176 = 2.266 ≠ 2.176).
+ *
+ * Kural (canlı veriyle doğrulandı, 2026-08-18):
+ *  1) Grupta `montaj` operasyonu varsa → o operasyonun üretileni, birim "Takım".
+ *  2) Montaj yok ama grup çift taraflıysa → tam çift sayısı = min(taraflar), birim "Takım".
+ *  3) Montaj yok ve tek emir → emrin kendi üretileni, birim "Adet".
+ *
+ * Emir başına canlıda 2+ montaj operasyonu yok; montaj operasyonunun sırası sabit
+ * değil (UE-2026-0155'te 2., UE-2026-0156'da 1.), bu yüzden bayrağa göre okunur.
+ */
+export function grupUretilen(emirler: UretimEmriDto[]): { miktar: number | null; birim: "Takım" | "Adet" } {
+  const montajOp = emirler.flatMap((emir) => emir.operasyonlar ?? []).find((op) => op.montaj);
+  if (montajOp) return { miktar: montajOp.uretilenMiktar, birim: "Takım" };
+  if (emirler.length > 1) {
+    return { miktar: Math.min(...emirler.map((emir) => emir.uretilenMiktar)), birim: "Takım" };
+  }
+  return { miktar: emirler[0]?.uretilenMiktar ?? 0, birim: "Adet" };
 }
 
 export interface UretimEmriDto {
@@ -212,6 +238,8 @@ export function normalizeUretimEmri(raw: unknown): UretimEmriDto {
             planlananMiktar: toNum(op.planlananMiktar),
             uretilenMiktar: toNum(op.uretilenMiktar),
             durum: toStr(op.durum, "bekliyor"),
+            planlananBitis: op.planlananBitis != null ? toStr(op.planlananBitis) : null,
+            gercekBitis: op.gercekBitis != null ? toStr(op.gercekBitis) : null,
           };
         })
       : [],

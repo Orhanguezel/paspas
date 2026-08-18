@@ -47,6 +47,9 @@ export type UretimEmriOperasyonOzetDto = {
   planlananMiktar: number;
   uretilenMiktar: number;
   durum: string;
+  /** Emir satiri altindaki detay panelinde planlanan/gerceklesen bitis ayri renkte gosterilir. */
+  planlananBitis: string | null;
+  gercekBitis: string | null;
 };
 
 export type UretimEmriDto = {
@@ -90,9 +93,15 @@ export type UretimEmriDto = {
   updatedAt: Date | string;
 };
 
+/** Repository ham satiri: tarihler Date olabilir, rowToDto ISO string'e cevirir. */
+type OperasyonOzetGirdi = Omit<UretimEmriOperasyonOzetDto, 'planlananBitis' | 'gercekBitis'> & {
+  planlananBitis?: Date | string | null;
+  gercekBitis?: Date | string | null;
+};
+
 type UretimEmriDtoRow = UretimEmriRow & {
   siparisKalemIds?: string[];
-  operasyonlar?: UretimEmriOperasyonOzetDto[];
+  operasyonlar?: OperasyonOzetGirdi[];
   siparisNo?: string | null;
   siparisUrunKod?: string | null;
   siparisUrunAd?: string | null;
@@ -123,7 +132,12 @@ export function rowToDto(row: UretimEmriDtoRow): UretimEmriDto {
     id: row.id,
     emirNo: row.emir_no,
     partiNo: row.parti_no ?? null,
-    operasyonlar: row.operasyonlar ?? [],
+    // Repository Date donduruyor; DTO sozlesmesi ISO string.
+    operasyonlar: (row.operasyonlar ?? []).map((operasyon) => ({
+      ...operasyon,
+      planlananBitis: toDateTimeString(operasyon.planlananBitis),
+      gercekBitis: toDateTimeString(operasyon.gercekBitis),
+    })),
     siparisKalemIds: kalemIds,
     siparisNo: row.siparisNo ?? null,
     siparisUrunKod: row.siparisUrunKod ?? null,

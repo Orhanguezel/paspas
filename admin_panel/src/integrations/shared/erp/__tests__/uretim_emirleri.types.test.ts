@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   grupAsimetrik,
   grupPlanlanan,
+  grupUretilen,
   mamulGrupKey,
   type UretimEmriDto,
 } from '../uretim_emirleri.types';
@@ -86,5 +87,70 @@ describe('grupPlanlanan — asimetrik miktar', () => {
     const grup = [emir({ id: 'a', planlananMiktar: 4100 }), emir({ id: 'b', planlananMiktar: 4100 })];
     expect(grupPlanlanan(grup)).toBe(4100);
     expect(grupAsimetrik(grup)).toBe(false);
+  });
+});
+
+// Üretilen (Takım) kuralı — kullanıcı netleştirmesi 2026-08-18:
+// montaj = sağ+sol birleştirme/paketleme; takım orada doğar. Sipariş daima
+// takıma verilir. Enjeksiyon parça sayar, montaj takım sayar.
+function op(over: Partial<UretimEmriDto['operasyonlar'][number]>) {
+  return {
+    operasyonAdi: 'op', makineAd: null, montaj: false,
+    planlananMiktar: 0, uretilenMiktar: 0, durum: 'tamamlandi',
+    planlananBitis: null, gercekBitis: null,
+    ...over,
+  };
+}
+
+const emir_ = emir;
+
+describe('grupUretilen — takım adedi', () => {
+  it('montajli operasyon varsa onun uretileni doner, TOPLAM ALMAZ', () => {
+    // Canli UE-2026-0155: enjeksiyon 90 + montaj 2176. Toplam 2266 yanlis olurdu.
+    const emir = emir_({
+      id: 'ue-155', uretilenMiktar: 2176,
+      operasyonlar: [
+        op({ operasyonAdi: 'Profesyonel Sag', montaj: false, uretilenMiktar: 90 }),
+        op({ operasyonAdi: 'Maximum Sol', montaj: true, uretilenMiktar: 2176 }),
+      ],
+    });
+    expect(grupUretilen([emir])).toEqual({ miktar: 2176, birim: 'Takım' });
+  });
+
+  it('montaj operasyonunun sirasi onemli degil (bayraga gore okunur)', () => {
+    // UE-2026-0156 deseninde montaj 1. sirada.
+    const emir = emir_({
+      id: 'ue-156',
+      operasyonlar: [
+        op({ montaj: true, uretilenMiktar: 2176 }),
+        op({ montaj: false, uretilenMiktar: 2000 }),
+      ],
+    });
+    expect(grupUretilen([emir]).miktar).toBe(2176);
+  });
+
+  it('iki ayri emirli grupta montajli tarafin uretileni doner', () => {
+    // Canli UE-2026-0158 (sag, montajsiz 1300) + UE-2026-0159 (sol, montajli 2000).
+    const sag = emir_({ id: 'a', uretilenMiktar: 1300, operasyonlar: [op({ montaj: false, uretilenMiktar: 1300 })] });
+    const sol = emir_({ id: 'b', uretilenMiktar: 2000, operasyonlar: [op({ montaj: true, uretilenMiktar: 2000 })] });
+    expect(grupUretilen([sag, sol])).toEqual({ miktar: 2000, birim: 'Takım' });
+  });
+
+  it('montajsiz cift taraflida tam cift sayisi (min) doner', () => {
+    // Canli UP-2026-0007: Pars Bej 700/660 — iki tarafta da montaj yok.
+    const a = emir_({ id: 'a', uretilenMiktar: 700, operasyonlar: [op({ montaj: false, uretilenMiktar: 700 })] });
+    const b = emir_({ id: 'b', uretilenMiktar: 660, operasyonlar: [op({ montaj: false, uretilenMiktar: 660 })] });
+    expect(grupUretilen([a, b])).toEqual({ miktar: 660, birim: 'Takım' });
+  });
+
+  it('montajsiz tek emirde birim Adet olur', () => {
+    const tek = emir_({ id: 'x', uretilenMiktar: 450, operasyonlar: [op({ montaj: false, uretilenMiktar: 450 })] });
+    expect(grupUretilen([tek])).toEqual({ miktar: 450, birim: 'Adet' });
+  });
+
+  it('plan asimini kirpmaz (S4)', () => {
+    // Canli UE-2026-0148: 794 uretilen / 690 planlanan.
+    const emir = emir_({ id: 'y', planlananMiktar: 690, uretilenMiktar: 794, operasyonlar: [op({ montaj: true, uretilenMiktar: 794 })] });
+    expect(grupUretilen([emir]).miktar).toBe(794);
   });
 });

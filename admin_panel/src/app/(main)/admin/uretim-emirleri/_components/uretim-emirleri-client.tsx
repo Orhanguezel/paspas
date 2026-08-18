@@ -5,7 +5,7 @@
 // Paspas ERP — Üretim Emirleri liste sayfası
 // =============================================================
 
-import { Component, type ReactNode, useEffect, useMemo, useState } from "react";
+import { Component, Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
@@ -65,8 +65,18 @@ import {
 } from "@/integrations/endpoints/admin/erp/uretim_emirleri_admin.endpoints";
 import { useListUrunlerAdminQuery } from "@/integrations/endpoints/admin/erp/urunler_admin.endpoints";
 import type { SiparisIslemSatiri } from "@/integrations/shared/erp/satis_siparisleri.types";
-import type { UretimEmriDto, UretimEmriDurum } from "@/integrations/shared/erp/uretim_emirleri.types";
-import { EMIR_DURUM_BADGE, grupAsimetrik, grupPlanlanan, mamulGrupKey } from "@/integrations/shared/erp/uretim_emirleri.types";
+import type {
+  UretimEmriDto,
+  UretimEmriDurum,
+  UretimEmriOperasyonOzet,
+} from "@/integrations/shared/erp/uretim_emirleri.types";
+import {
+  EMIR_DURUM_BADGE,
+  grupAsimetrik,
+  grupPlanlanan,
+  grupUretilen,
+  mamulGrupKey,
+} from "@/integrations/shared/erp/uretim_emirleri.types";
 
 import { MakineMontajPlanlama } from "./makine-montaj-planlama";
 import { ReceteDetayModal } from "./recete-detay-modal";
@@ -487,6 +497,129 @@ class DialogErrorBoundary extends Component<{ children: ReactNode }, { hasError:
   }
 }
 
+
+// ── Üretim Detay Paneli ──────────────────────────────────────
+// Emir satırının altında açılır; o emir numarasına bağlı üretimleri listeler
+// (çift taraflı üretimde 2 satır). Tasarım Makine İş Yükleri görünümüne yakın.
+// YN a2b9aa7a.
+const OP_DURUM_ETIKET: Record<string, { metin: string; sinif: string }> = {
+  bekliyor: { metin: "Makineye atandı", sinif: "bg-slate-100 text-slate-700" },
+  planlandi: { metin: "Makineye atandı", sinif: "bg-slate-100 text-slate-700" },
+  calisiyor: { metin: "Üretiliyor", sinif: "bg-blue-100 text-blue-700" },
+  duraklatildi: { metin: "Duraklatıldı", sinif: "bg-amber-100 text-amber-800" },
+  tamamlandi: { metin: "Tamamlandı", sinif: "bg-emerald-100 text-emerald-700" },
+};
+
+function opDurumu(op: UretimEmriOperasyonOzet): { metin: string; sinif: string } {
+  if (op.durum === "bekliyor" && !op.makineAd) {
+    return { metin: "Atanmadı", sinif: "bg-slate-100 text-slate-500" };
+  }
+  return OP_DURUM_ETIKET[op.durum] ?? { metin: op.durum, sinif: "bg-slate-100 text-slate-700" };
+}
+
+/** "17/08 Pazartesi" + saat (planlanan) veya "17/08/2026" + saat (gerçekleşen). */
+function panelTarih(value: string | null, tamamlandi: boolean): { tarih: string; saat: string } | null {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  const saat = d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+  if (tamamlandi) return { tarih: d.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" }), saat };
+  const gun = d.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit" });
+  const haftaGunu = d.toLocaleDateString("tr-TR", { weekday: "long" });
+  return { tarih: `${gun} ${haftaGunu}`, saat };
+}
+
+function UretimDetayPaneli({ emirler }: { emirler: UretimEmriDto[] }) {
+  const satirlar = emirler.flatMap((emir) =>
+    (emir.operasyonlar ?? []).map((op) => ({ emir, op })),
+  );
+
+  if (satirlar.length === 0) {
+    return (
+      <div className="px-4 py-3 text-muted-foreground text-xs">
+        Bu emir için henüz üretim kaydı yok.
+      </div>
+    );
+  }
+
+  return (
+    <div className="divide-y border-slate-200 border-t">
+      {satirlar.map(({ emir, op }, i) => {
+        const durum = opDurumu(op);
+        const tamamlandi = op.durum === "tamamlandi";
+        // Tamamlandıysa gerçekleşen bitiş, değilse planlanan bitiş gösterilir.
+        const tarih = panelTarih(tamamlandi ? op.gercekBitis : op.planlananBitis, tamamlandi);
+        const birim = op.montaj ? "Takım" : "Adet";
+        return (
+          <div
+            key={`${emir.id}-${op.operasyonAdi}-${i}`}
+            className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm"
+          >
+            {/* Ürün adı + Operasyonel YM adı (YM daha belirgin) */}
+            <div className="min-w-56 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-slate-900">{op.operasyonAdi}</span>
+                {op.montaj && (
+                  <Badge variant="outline" className="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-700">
+                    <Wrench className="mr-1 size-2.5" />
+                    Montaj
+                  </Badge>
+                )}
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                {emir.emirNo}
+                {emir.mamulAd ? ` · ${emir.mamulAd}` : ""}
+              </div>
+            </div>
+
+            {/* Makine */}
+            <div className="flex min-w-32 items-center gap-1 text-slate-700 text-xs">
+              <Factory className="size-3 shrink-0 text-slate-400" />
+              <span className="truncate">{op.makineAd ?? "Atanmamış"}</span>
+            </div>
+
+            {/* Üretim durumu */}
+            <span className={`rounded px-2 py-0.5 font-medium text-[11px] ${durum.sinif}`}>{durum.metin}</span>
+
+            {/* Üretilen miktar — plan aşımı kırpılmaz (S4) */}
+            <div className="min-w-24 text-right tabular-nums">
+              {op.uretilenMiktar > 0 ? (
+                <span className="font-semibold text-slate-900">
+                  {op.uretilenMiktar.toLocaleString("tr-TR")}{" "}
+                  <span className="font-normal text-[10px] text-muted-foreground">{birim}</span>
+                </span>
+              ) : (
+                <span className="text-muted-foreground text-xs">—</span>
+              )}
+              {op.planlananMiktar > 0 && (
+                <div className="text-[10px] text-muted-foreground">
+                  hedef {op.planlananMiktar.toLocaleString("tr-TR")}
+                </div>
+              )}
+            </div>
+
+            {/* Bitiş tarihi — planlanan ve gerçekleşen farklı renkte */}
+            <div className="min-w-28 text-right">
+              {tarih ? (
+                <>
+                  <div className={`font-medium text-xs ${tamamlandi ? "text-emerald-700" : "text-slate-600"}`}>
+                    {tarih.tarih}
+                  </div>
+                  <div className={`text-[10px] ${tamamlandi ? "text-emerald-600" : "text-muted-foreground"}`}>
+                    {tarih.saat}
+                  </div>
+                </>
+              ) : (
+                <span className="text-muted-foreground text-xs">—</span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Liste Hata Sınırı ────────────────────────────────────────
 // Tek bir bozuk kayıt/grup, tüm üretim emirleri listesini düşürmesin
 // (2026-08-15 canlı "Application Error" vakası — YN 977aa834).
@@ -527,8 +660,19 @@ export default function UretimEmirleriClient() {
   // Parti bazında "Makine ve Montaj Planlama" bloğunu buton ile açma (YN 1ea4431f):
   // otomatik render cache/zamanlama sorunlarına takılıyordu; kullanıcı butonla açar.
   const [acikPlanlama, setAcikPlanlama] = useState<Set<string>>(new Set());
+  // Emir satırının altında açılan üretim detayı (YN a2b9aa7a)
+  const [acikDetay, setAcikDetay] = useState<Set<string>>(new Set());
   const PAGE_SIZE = 25;
   const isPlanlaTab = activeTab === "planla";
+
+  function toggleDetay(key: string) {
+    setAcikDetay((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   function togglePlanlama(partiKey: string) {
     setAcikPlanlama((current) => {
@@ -619,7 +763,15 @@ export default function UretimEmirleriClient() {
         emirler,
         temsilci: emirler[0],
       }));
-      return [{ parti, emirIds: bucket.emirIds, mamuller }];
+      // Grup başlığında gösterilecek ürün grubu (ör. "Pars Grubu").
+      // Mamul adının ilk kelimesinden türetilir; karışık gruplarda boş bırakılır.
+      const grupAdlari = new Set(
+        mamuller
+          .map((m) => (m.temsilci.mamulAd ?? "").trim().split(/\s+/)[0])
+          .filter((x) => x.length > 1),
+      );
+      const urunGrubu = grupAdlari.size === 1 ? `${[...grupAdlari][0]} Grubu` : null;
+      return [{ parti, emirIds: bucket.emirIds, mamuller, urunGrubu }];
     });
   }, [items]);
 
@@ -736,8 +888,9 @@ export default function UretimEmirleriClient() {
     // Sağ/Sol taraflı bir emir tek başına geldiyse eşi başka sayfada demektir
     // (gruplama sayfa içi yapılır — S3 kısa vade işareti).
     const esiEksik = emirler.length === 1 && (emirler[0].taraf === "sag" || emirler[0].taraf === "sol") && Boolean(emirler[0].partiNo);
-    // Mamul ancak en yavaş taraf kadar tamamlanır.
-    const uretilenMiktar = Math.min(...emirler.map((e) => e.uretilenMiktar));
+    // Takım adedi: montaj operasyonundan okunur (toplama/min DEĞİL) — bkz. grupUretilen.
+    const uretilen = grupUretilen(emirler);
+    const uretilenMiktar = uretilen.miktar ?? 0;
     const yuzde = planlananMiktar > 0 ? Math.min(100, Math.round((uretilenMiktar / planlananMiktar) * 100)) : 0;
     const makineAdlari = Array.from(new Set(emirler.map((e) => e.makineAdlari).filter((x): x is string => Boolean(x))));
     const tumAtanmamis = emirler.every((e) => e.makineAtamaSayisi === 0);
@@ -765,6 +918,8 @@ export default function UretimEmirleriClient() {
       asimetrik,
       esiEksik,
       uretilenMiktar,
+      uretilenBirim: uretilen.birim,
+      uretilenGirilmis: emirler.some((e) => (e.operasyonlar ?? []).some((op) => op.uretilenMiktar > 0)),
       yuzde,
       makineAdlari,
       tumAtanmamis,
@@ -962,7 +1117,13 @@ export default function UretimEmirleriClient() {
             <div key={parti.parti} className="space-y-2">
               <div className="rounded-md border bg-white shadow-sm overflow-hidden">
                 <div className="bg-muted/40 px-4 py-2 flex items-center justify-between gap-2">
-                  <span className="font-semibold text-xs">{parti.parti}</span>
+                  <div className="flex items-baseline gap-2">
+                    {/* Satırdaki emir no ile aynı biçim — daha belirgin (YN b23bee2e) */}
+                    <span className="font-bold font-mono text-slate-900 text-sm">{parti.parti}</span>
+                    {parti.urunGrubu && (
+                      <span className="text-muted-foreground text-xs">{parti.urunGrubu}</span>
+                    )}
+                  </div>
                   {isPlanlaTab && (
                     <Button
                       size="sm"
@@ -986,15 +1147,17 @@ export default function UretimEmirleriClient() {
                 <Table className="table-fixed">
                   <TableHeader className="bg-muted/30">
                     <TableRow>
-                      <TableHead className="w-[13%]">{t("admin.erp.uretimEmirleri.columns.emirNo")}</TableHead>
-                      <TableHead className="w-[26%]">{t("admin.erp.uretimEmirleri.columns.urunId")}</TableHead>
-                      <TableHead className="w-[15%]">Müşteri</TableHead>
-                      <TableHead className="w-[12%]">{t("admin.erp.uretimEmirleri.columns.bitis")}</TableHead>
-                      <TableHead className="w-[10%] text-right">
+                      <TableHead className="w-[3%]" />
+                      <TableHead className="w-[12%]">{t("admin.erp.uretimEmirleri.columns.emirNo")}</TableHead>
+                      <TableHead className="w-[22%]">{t("admin.erp.uretimEmirleri.columns.urunId")}</TableHead>
+                      <TableHead className="w-[13%]">Müşteri</TableHead>
+                      <TableHead className="w-[11%]">{t("admin.erp.uretimEmirleri.columns.bitis")}</TableHead>
+                      <TableHead className="w-[9%] text-right">
                         {t("admin.erp.uretimEmirleri.columns.planlanan")}
                       </TableHead>
-                      <TableHead className="w-[15%]">{t("admin.erp.uretimEmirleri.columns.ilerleme")}</TableHead>
-                      <TableHead className="w-[9%] text-center">
+                      <TableHead className="w-[10%] text-right">Üretilen</TableHead>
+                      <TableHead className="w-[12%]">{t("admin.erp.uretimEmirleri.columns.ilerleme")}</TableHead>
+                      <TableHead className="w-[8%] text-center">
                         {t("admin.erp.uretimEmirleri.columns.malzeme")}
                       </TableHead>
                       {isPlanlaTab && <TableHead className="w-[16%]">Makine</TableHead>}
@@ -1009,18 +1172,29 @@ export default function UretimEmirleriClient() {
                       const displayUrunAd = e.mamulAd ?? e.mamulUrunId;
                       const displayUrunKod = e.mamulKod;
                       return (
+                        <Fragment key={mamul.key}>
                         <TableRow
-                          key={mamul.key}
-                          className={`group hover:bg-slate-50/80 transition-colors ${agg.terminRiski ? "bg-destructive/5" : ""}`}
+                          className={`group transition-colors hover:bg-slate-50/80 ${agg.terminRiski ? "bg-destructive/5" : ""}`}
                         >
+                          {/* Detay panelini aç/kapat (YN a2b9aa7a) */}
+                          <TableCell className="pr-0 align-top">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-6"
+                              aria-label={acikDetay.has(mamul.key) ? "Detayı kapat" : "Detayı aç"}
+                              aria-expanded={acikDetay.has(mamul.key)}
+                              onClick={() => toggleDetay(mamul.key)}
+                            >
+                              <ChevronRight
+                                className={`size-4 transition-transform ${acikDetay.has(mamul.key) ? "rotate-90" : ""}`}
+                              />
+                            </Button>
+                          </TableCell>
+
                           {/* Emir No + Durum */}
                           <TableCell>
                             <div className="font-bold font-mono text-sm text-slate-900 leading-none">{e.emirNo}</div>
-                            {agg.ciftTarafli && (
-                              <div className="text-[10px] text-muted-foreground mt-0.5">
-                                +{mamul.emirler.length - 1} taraf daha
-                              </div>
-                            )}
                             {agg.esiEksik && (
                               <div className="mt-0.5 text-[10px] text-amber-600">Eşi diğer sayfada</div>
                             )}
@@ -1038,19 +1212,6 @@ export default function UretimEmirleriClient() {
                               <div className="font-medium text-sm text-slate-900 line-clamp-1">{displayUrunAd}</div>
                               {displayUrunKod && (
                                 <div className="text-xs text-muted-foreground font-mono">{displayUrunKod}</div>
-                              )}
-                              {agg.ciftTarafli && (
-                                <div className="mt-0.5">
-                                  <Badge
-                                    variant="outline"
-                                    className="px-1 py-0 text-[9px] font-bold border-blue-300 bg-blue-50 text-blue-700"
-                                  >
-                                    ÇİFT TARAFLI
-                                  </Badge>
-                                </div>
-                              )}
-                              {e.siparisNo && (
-                                <div className="text-[10px] text-muted-foreground mt-0.5">Sipariş: {e.siparisNo}</div>
                               )}
                             </div>
                           </TableCell>
@@ -1096,46 +1257,25 @@ export default function UretimEmirleriClient() {
                             )}
                           </TableCell>
 
-                          {/* İlerleme — mamul özeti + makine bazlı taraf kırılımı (YN#5) */}
+                          {/* Üretilen — montaj operasyonundan okunur; operatör veri
+                              girmediyse boş kalır (YN b23bee2e) */}
+                          <TableCell className="text-right">
+                            {agg.uretilenGirilmis ? (
+                              <span className="font-semibold text-slate-900 text-sm">
+                                {agg.uretilenMiktar.toLocaleString("tr-TR")}{" "}
+                                <span className="font-normal text-[10px] text-muted-foreground">{agg.uretilenBirim}</span>
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">—</span>
+                            )}
+                          </TableCell>
+
+                          {/* İlerleme — yalnız çubuk; makine kırılımı detay paneline taşındı (YN a2b9aa7a) */}
                           <TableCell>
-                            <div className="text-xs text-muted-foreground mb-1">
-                              {agg.uretilenMiktar.toLocaleString("tr-TR")} /{" "}
-                              {agg.planlananMiktar.toLocaleString("tr-TR")}
-                            </div>
                             <div className="flex items-center gap-2">
-                              <Progress value={agg.yuzde} className="h-1.5 flex-1 max-w-20" />
-                              <span className="text-[10px] font-bold text-slate-500 tabular-nums">{agg.yuzde}%</span>
+                              <Progress value={Math.min(100, agg.yuzde)} className="h-1.5 max-w-20 flex-1" />
+                              <span className="font-bold text-[10px] text-slate-500 tabular-nums">{agg.yuzde}%</span>
                             </div>
-                            {(() => {
-                              const ops = mamul.emirler.flatMap((em) => em.operasyonlar ?? []);
-                              if (ops.length < 2) return null;
-                              return (
-                                <div className="mt-1.5 space-y-0.5 border-t pt-1">
-                                  {ops.map((op, i) => {
-                                    const pct =
-                                      op.planlananMiktar > 0
-                                        ? Math.min(100, Math.round((op.uretilenMiktar / op.planlananMiktar) * 100))
-                                        : 0;
-                                    return (
-                                      <div key={i} className="flex items-center justify-between gap-2 text-[10px]">
-                                        <span className="flex items-center gap-1 text-slate-600 truncate max-w-28">
-                                          <Factory className="size-2.5 text-slate-400 shrink-0" />
-                                          <span className="truncate">
-                                            {op.makineAd ?? "Atanmamış"}
-                                            {op.montaj ? " · Montaj" : ""}
-                                          </span>
-                                        </span>
-                                        <span className="shrink-0 tabular-nums text-slate-500">
-                                          {op.uretilenMiktar > 0
-                                            ? `${op.uretilenMiktar.toLocaleString("tr-TR")}/${op.planlananMiktar.toLocaleString("tr-TR")} (%${pct})`
-                                            : "Başlamadı"}
-                                        </span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              );
-                            })()}
                           </TableCell>
 
                           {/* Malzeme */}
@@ -1206,6 +1346,14 @@ export default function UretimEmirleriClient() {
                             </TableCell>
                           )}
                         </TableRow>
+                        {acikDetay.has(mamul.key) && (
+                          <TableRow key={`${mamul.key}-detay`} className="hover:bg-transparent">
+                            <TableCell colSpan={isPlanlaTab ? 11 : 9} className="bg-slate-50/70 p-0">
+                              <UretimDetayPaneli emirler={mamul.emirler} />
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </Fragment>
                       );
                     })}
                   </TableBody>

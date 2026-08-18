@@ -42,6 +42,10 @@ export type OperasyonOzetRow = {
   planlananMiktar: number;
   uretilenMiktar: number;
   durum: string;
+  // Emir satirinin altinda acilan detay panelinde kullanilir (YN a2b9aa7a):
+  // planlanan ve gerceklesen bitis ayri renkte gosterilir.
+  planlananBitis: Date | string | null;
+  gercekBitis: Date | string | null;
 };
 
 type EnrichedUretimEmriRow = UretimEmriRow & {
@@ -499,6 +503,8 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
           planlananMiktar: op.planlananMiktar,
           uretilenMiktar: op.uretilenMiktar,
           durum: op.durum,
+          planlananBitis: op.planlananBitis ?? null,
+          gercekBitis: op.gercekBitis ?? null,
         })),
       siparisUrunKod: j?.siparisUrunKod ?? null,
       siparisUrunAd: j?.siparisUrunAd ?? null,
