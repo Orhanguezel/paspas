@@ -213,6 +213,16 @@ Frontend (`PromatsImage` → `resolvePath` → `assetPath`) ve admin panel (`web
 - [x] Regresyon testleri eklendi (göreli, kök-slash, tam yol, boş değer, benzer isimli klasör `/userfilesx`).
 - [x] Galeri testindeki eski beklenti (`/g.jpg`) kasıtlı değişiklik gerekçesiyle güncellendi.
 
+### Canlı doğrulama — release `20260818T210840Z-1e8b25d1dfd3`
+
+| Kontrol | Öncesi | Sonrası |
+|---|---:|---:|
+| TeklifRota sözleşmesindeki ürün görselleri | 11/20 | **20/20** ✓ |
+| Sitenin kendi ürün API'si (78 yoldan 30 örnek) | — | **30/30** ✓ |
+| Galeri `/uploads/...` kayıtları | çalışıyordu | **çalışıyor** (200) ✓ |
+| Çift ön ek (`/userfiles/uploads`) | — | **0** ✓ |
+| promats.com.tr · ürün sayfası · panel | — | 308 · 200 · 307 ✓ |
+
 > **Not:** TeklifRota kendi tarafında da dayanıklılık eklemişti (`ee2d678`). Artık iki taraf da doğru; onların telafi kodu zararsız (`/userfiles` gelince olduğu gibi geçiriyor).
 
 ## Önerilen Sıra
