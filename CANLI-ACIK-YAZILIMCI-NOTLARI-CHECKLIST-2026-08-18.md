@@ -11,22 +11,23 @@ Bir önceki checklist: [CANLI-ACIK-YAZILIMCI-NOTLARI-CHECKLIST-2026-08-14.md](CA
 
 | Durum | Adet | Anlamı |
 |---|---:|---|
-| Açık (`open`) | 8 | Bizde — doğrudan iş *(1.1/1.2/1.6/1.8 çözüldü, 18 Ağu)* |
+| Açık (`open`) | 4 | Bizde — doğrudan iş *(1.1/1.2/1.6/1.8 çözüldü, 18 Ağu)* |
 | Bilgi bekliyor (`needs_info`) | 12 | Karşı tarafta (müşteri kararı / grafikçi) |
-| Planlandı (`planned`) | 18 | Fuar modülü faz planı |
-| **Toplam aktif** | **38** | |
+| **Toplam aktif** | **16** | |
 
-| Öncelik | Açık | Bilgi bekl. | Planlandı |
-|---|---:|---:|---:|
-| Kritik | 3 | 5 | 5 |
-| Yüksek | 1 | 5 | 10 |
-| Normal | 8 | 2 | 3 |
+> **18 Ağustos:** Fuar modülü ayrı bir siteye taşındığı için 22 aktif Fuar kaydı silindi (bkz. Bölüm 2).
+> `planned` durumunda kayıt kalmadı — 18'inin tamamı Fuar'dı.
+
+| Öncelik | Açık | Bilgi bekl. |
+|---|---:|---:|
+| Kritik | 0 | 5 |
+| Yüksek | 0 | 5 |
+| Normal | 4 | 2 |
 
 | İş alanı | Aktif |
 |---|---:|
-| Fuar | 22 |
 | CRM | 8 |
-| Üretim ERP (yeni) | 8 |
+| Üretim ERP / stok | 4 |
 | Web | 4 |
 
 ---
@@ -179,26 +180,19 @@ Doğrulandı: `GroupSection` varsayılanı `defaultOpen = true` ([sevkiyat-clien
 
 ---
 
-## BÖLÜM 2 — Fuar modülü: 4 açık kritik/yüksek madde
+## BÖLÜM 2 — Fuar modülü: kapsam dışı (22 kayıt silindi)
 
-Dördü de 29 Temmuz'da açıldı, son hareket 9 Ağustos. Kalan tek engel hepsinde aynı: **PDF/Excel karşılaştırması**.
+**18 Ağustos 2026:** Fuar/teklif modülü için **ayrı bir site** yapıldı; modül bu sistemden taşındı.
+Bu checklist'te izlenen **22 aktif Fuar kaydı** (4 açık + 18 planlandı) ve toplam 42 Fuar thread'i +
+82 yorumu canlı veritabanından **silindi**.
 
-**Canlıda doğrulanan engel:** `fuar_teklif` uygulamasının bağımlılıklarında hiçbir PDF veya Excel kütüphanesi yok (`package.json` → fastify, mysql2, zod, jwt, cors, cookie). Yani bu dört maddenin kabul kriteri, **henüz hiç yazılmamış** bir çıktıya bağlı. Hesap motoru testleri geçiyor (13 pass / 0 fail, 4 dosya).
+- Silinenler: `page_feedback_threads.page_path = '/admin/fuar-teklif'` olan tüm kayıtlar ve bağlı yorumları.
+- Yedek (geri yüklenebilir SQL): [.yedek/fuar-geribildirim-yedek-20260818.sql](.yedek/fuar-geribildirim-yedek-20260818.sql) — 42 thread + 82 yorum.
+- Silme tek transaction içinde yapıldı; sonrasında öksüz yorum kalmadığı doğrulandı (0).
+- Önceki bölümlerdeki *"Fuar PDF/Excel çıktısı bu 4 kritik maddeyi açar"* bağımlılığı artık geçersiz.
 
-- [ ] **Hesaplama ve kabul testleri** — Kritik · `482661d2-76e0-4b82-9bcc-bb2d1652f5ed`
-  42 kriterlik kabul setinin tamamı + ekran/PDF/Excel üçlüsünün aynı sonucu vermesi.
-- [ ] **Koli bazlı CBM hesabı** — Kritik · `0664e852-aefd-4804-93ef-91d88c30c12d`
-  Testi geçiyor (dört ondalık, canlı örnek 10 koli = 0,6 m³); PDF/Excel karşılaştırması eksik.
-- [ ] **Net ve brüt ağırlık hesabı** — Kritik · `7939a87f-70d3-4913-b94a-3dd6cb2d9972`
-  Testi geçiyor (canlı örnek 240 kg net / 360 kg brüt); PDF/Excel karşılaştırması eksik.
-- [ ] **Paletli yükleme hacim ve adet hesabı** — Yüksek · `cacd7377-0897-4cd6-b8b9-c7f0c71fbe3e`
-  Testi geçiyor (canlı örnek 2 palet = 2,88 m³); PDF/Excel karşılaştırması eksik.
-
-**Bağımlılık — sıra bu olmalı:** bu 4 madde `planned` kovasındaki iki maddeye bağlı:
-`6b742dc1` (Teklif ve proforma PDF çıktısı) ve `092f9305` (Çeki listesi PDF ve Excel çıktıları).
-Bu ikisi yapılmadan yukarıdaki dördü **kapatılamaz**. Fuar planında bunlar öne alınmalı.
-
----
+> Kalan iş: bu repodaki Fuar kalıntıları (`fuar_teklif/` dizini, `admin_panel/src/app/(main)/admin/fuar/`
+> ekranları, `paspas-fuar-teklif` PM2 süreci) hâlâ duruyor — ayrı bir temizlik kalemi.
 
 ## BÖLÜM 3 — Bilgi bekleyenler (12) — bizde iş yok, ama durumu netleşmeli
 
@@ -232,37 +226,7 @@ Yani bu 8 madde "bilgi bekliyor" görünse de, teknik durum net: **arka uç yaz�
 
 ---
 
-## BÖLÜM 4 — Planlandı (18) — Fuar modülü faz planı
-
-Tamamı 29 Temmuz'da tek seferde açılmış, o günden beri hiç hareket yok. Öncelik sırasıyla:
-
-**Kritik (5)**
-- [ ] `0e1c86d5` — Ürün ihracat bilgilerinin eklenmesi
-- [ ] `26cd99a4` — Çeki listesinin otomatik oluşturulması
-- [ ] `6b742dc1` — **Teklif ve proforma PDF çıktısı** ← Bölüm 2'nin engeli
-- [ ] `e22bdd52` — Tekliften proforma oluşturma
-- [ ] `b4a7c00b` — Teklif ticari koşullarının girilmesi
-
-**Yüksek (10)**
-- [ ] `092f9305` — **Çeki listesi PDF ve Excel çıktıları** ← Bölüm 2'nin engeli
-- [ ] `fc5085b6` — Taşıma şekli ve yükleme tipi varsayımları
-- [ ] `f6b33adf` — Varsayılan navlun önerisi
-- [ ] `eb2b1895` — Teklif ve proforma dil seçimi
-- [ ] `ace2c5be` — Kapasite ve palet tanımlarının yönetimi
-- [ ] `9505c25a` — Ürünleri Excel ile içe aktarma
-- [ ] `81be5b3d` — Müşterileri Excel ile içe aktarma
-- [ ] `89f3251d` — Banka hesaplarının para birimine göre seçilmesi
-- [ ] `6eeec246` — Konteyner doluluk göstergesi
-- [ ] `35846c61` — TIR doluluk göstergesi
-
-**Normal (3)**
-- [ ] `c6e3e97b` — Karayolu navlun tablosunun yönetimi
-- [ ] `f0a9ba5e` — Ürün fotoğraf yönetimi
-- [ ] `f4ce4623` — Denizyolu navlun tablosunun yönetimi
-
----
-
-## BÖLÜM 5 — Risk analizi: 12 açık maddenin yan etkileri
+## BÖLÜM 4 — Risk analizi: 12 açık maddenin yan etkileri
 
 18 Ağustos'ta 12 açık maddenin tamamı, "başka nereyi bozar?" sorusuyla kodda ve canlı veride tek tek incelendi.
 **Dördü riskli, ikisi birbiriyle çelişiyor, biri checklist hatasıydı (düzeltildi).** Kalan beşi izole.
@@ -278,7 +242,7 @@ Tamamı 29 Temmuz'da tek seferde açılmış, o günden beri hiç hareket yok. �
 | R7 | 1.1 sonrası | 🟢 Düşük | Çökme kalkınca sayfa başına 25 gereksiz yeterlilik sorgusu görünür olur |
 | — | 1.2, 1.8, Fuar 4 madde | 🟢 Yok | İzole |
 
-Sistemik bulgular (S1–S5) ayrı bölümde: **Bölüm 6**. İkinci tur incelemede (18 Ağustos, derin doğrulama) çıkarıldılar.
+Sistemik bulgular (S1–S5) ayrı bölümde: **Bölüm 5**. İkinci tur incelemede (18 Ağustos, derin doğrulama) çıkarıldılar.
 
 ---
 
@@ -427,7 +391,7 @@ Ayrıca [mamul.test.ts:43](backend/src/modules/_shared/__tests__/mamul.test.ts#L
 
 ---
 
-## BÖLÜM 6 — Sistemik bulgular ve köklü çözüm planı (18 Ağustos, ikinci tur)
+## BÖLÜM 5 — Sistemik bulgular ve köklü çözüm planı (18 Ağustos, ikinci tur)
 
 Açık maddelerin risk incelemesi sırasında, hiçbir yazılımcı notunda geçmeyen beş sistemik hata bulundu ve canlıda doğrulandı. Bunlar müşteri şikâyetlerinin **altında yatan** sorunlar — çözülmezlerse aynı notlar başka kılıkta geri gelir.
 
@@ -527,7 +491,7 @@ Aktivasyon SHA256 doğrular, `current` symlink'ini atomik değiştirir, hata hal
 4. **Paket 4 — 1.3 + 1.4 + R1 + R3 + S4**: üretim emirleri ekran yenilemesi. Satır sadeleştirme + detay paneli + üç kurallı "Üretilen" hesabı + tek locale anahtarı + aşım gösterimi. En büyük iş kalemi.
 5. **S5 — vardiya çift sayımı**: bağımsız backend düzeltmesi; herhangi bir pakete paralel gidebilir.
 6. **S2 — negatif stok kök çözümü**: tutarlılık denetim aracı → ambalaj YM kararı (müşteri) → inline model tanıma. Ayrı yol haritası; 1.7'nin filtresi bu iş bitene kadar "gösterge paneli" görevi görür.
-7. **Fuar `6b742dc1` + `092f9305`** (PDF/Excel çıktıları) — Bölüm 2'deki 4 kritik maddeyi açan anahtar.
+7. ~~Fuar PDF/Excel çıktıları~~ — **kapsam dışı**, modül ayrı siteye taşındı (Bölüm 2).
 8. **CRM ve Web** — teknik iş değil, karar bekliyor; müşteriyle netleştirilecek.
 
 **Müşteriye önceden söylenmesi gerekenler:**
