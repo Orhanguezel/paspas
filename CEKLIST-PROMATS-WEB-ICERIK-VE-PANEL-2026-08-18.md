@@ -288,18 +288,41 @@ SELECT language_id, status, COUNT(*) FROM web_promats_products GROUP BY language
 -- EN: status=0 -> 8, status=1 -> 12
 ```
 
-### Adım 1 — Müşteriye sorulacak (koddan önce)
-- [ ] EN tarafındaki 8/12 ayrımı **kasıtlı mı**? Bazı ürünler bilinçli olarak İngilizce yayında olmayabilir.
-- [ ] Cevap gelmeden EN verisine dokunulmasın; TR'de 20/20 yayında olmalı (site zaten hepsini gösteriyor).
+### Adım 1 — ✅ Araştırma tamam (18 Ağu): EN ayrımı kasıtlı DEĞİL
 
-### Adım 2 — Veri düzeltmesi
-```sql
--- ÖNCE yedek
--- mysqldump ... web_promats_products --where="language_id=1" > yedek.sql
-UPDATE web_promats_products SET status=0 WHERE language_id=1;
+EN'de `status=1` olan 12 kayıt tam olarak **sort_order 9-20**, yani 14 Ağustos'ta
+`2323a71 feat(promats): complete English product catalog` ile eklenen yeni katalog ürünleri.
+İlk 8 EN ürünü (eski kayıtlar) `status=0`. Yani ayrım bilinçli bir yayın kararı değil,
+**yeni satırların varsayılan değeri**.
+
+| sort_order | TR | EN |
+|---|---|---|
+| 1–8 (eski ürünler) | status=1 | status=0 |
+| 9–20 (2026 kataloğu) | status=1 | status=1 |
+
+**Canlı kanıt — ikisi de zaten yayında:**
+- `?lang=tr` → 20 ürün · `?lang=en` → 20 ürün
+- EN ürün sayfaları açılıyor: `/en/products` ve `/en/products/star-series` → 200
+- Yani `status` alanı **hiçbir şeyi engellemiyordu**; panel gerçeği söylüyor, veri yanlış.
+
+**Sonuç:** 40 kaydın tamamı `status=0` yapılmalı. Bu değişiklik **ziyaretçi için hiçbir şeyi
+değiştirmez** (filtre zaten yok), yalnız paneli gerçeğe uydurur. Filtre sonradan eklenince de
+aynı 20 ürün görünmeye devam eder.
+
+### Adım 2 — Veri düzeltmesi ⏸️ **İZİN BEKLİYOR**
+
+- [x] Yedek alındı: [.yedek/web-products-status-oncesi-20260818.sql](.yedek/web-products-status-oncesi-20260818.sql) (181K, 40 kayıt) — hem sunucuda `/tmp/web-products-status-yedek.sql` hem yerelde.
+- [ ] **Çalıştırılacak komut** (canlı DB yazma izni gerekiyor, otomatik izin sistemi engelledi):
+
+```bash
+ssh vps-paspas "mysql -u app -pApp2026paspas promats_erp \
+  -e \"UPDATE web_promats_products SET status = 0 WHERE status <> 0;\""
 ```
-- [ ] Yedek alınmadan çalıştırılmasın.
-- [ ] Sonrasında panelde rozetlerin "Yayında" olduğu görülsün.
+
+Etkilenecek: TR 20 + EN 12 = **32 satır** (EN'deki 8 kayıt zaten 0).
+
+- [ ] Sonrasında panelde rozetlerin "Yayında" ve "İndekslenebilir" olduğu görülsün.
+- [ ] Geri alma gerekirse yedek dosyası aynı tabloya geri yüklenir.
 
 ### Adım 3 — Kod düzeltmesi (veri düzeltildikten SONRA)
 `backend/src/modules/web_promats/router.ts` — dört sorguya `AND status=0` eklenecek:
@@ -317,9 +340,26 @@ UPDATE web_promats_products SET status=0 WHERE language_id=1;
 > ⚠️ **Sıra hayati:** kod önce giderse 20 ürünün tamamı siteden kaybolur.
 > Doğrulama: `curl -s 'https://promats.com.tr/api/web/promats/products?lang=tr&limit=100' | python3 -c "import sys,json;print(len(json.load(sys.stdin)['data']))"` → 20 dönmeli.
 
-### Adım 4 — İndekslenebilirlik
+### Adım 4 — ✅ İndekslenebilirlik: ek iş GEREKMİYOR (18 Ağu hesaplandı)
+
 `published && hasSlug && score >= 50` ([web-sayfasi-client.tsx:713](admin_panel/src/app/\(main\)/admin/\(admin\)/web-sayfasi/web-sayfasi-client.tsx#L713))
-- [ ] `status` düzeldikten sonra hâlâ "İndekslenemez" kalan ürünler listelensin — bunlarda sorun SEO skoru (<50), ayrı iş.
+
+40 ürünün SEO skoru canlı veriyle hesaplandı: **hepsi 70–85 arasında**, hiçbiri 50'nin altında değil.
+Yani `status=0` yapılır yapılmaz **tümü "İndekslenebilir" olur**; ayrıca SEO çalışması gerekmiyor.
+
+| Skor | Ürün |
+|---:|---:|
+| 85 | 9 ürün |
+| 70 | 31 ürün |
+| <50 | **0** |
+
+#### 🐞 Yan bulgu — skor ürünlerin gerçek SEO alanlarını okumuyor
+
+`seoScore()` şu alanlara bakıyor: `meta_title ?? name ?? title` ve `meta_description ?? excerpt ?? s1_3_text ?? detail`.
+Ürün tablosunda **`meta_title`/`meta_description` kolonu yok**; ürünlerin SEO alanları `seo_title` ve `seo_description`.
+Dolayısıyla ürün skorları `name` ve `s1_3_text` üzerinden hesaplanıyor — gerçek SEO metinleri **hiç değerlendirilmiyor**.
+
+- [ ] `seoScore()` ürünler için `seo_title` / `seo_description` alanlarını da okusun (skor bugün yanıltıcı yüksek/düşük olabilir).
 
 ---
 
