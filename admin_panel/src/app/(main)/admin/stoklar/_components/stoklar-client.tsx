@@ -25,18 +25,52 @@ import YeterlilikDialog from "./yeterlilik-dialog";
 
 export default function StoklarClient() {
   const { t } = useLocaleContext();
+  const PAGE_SIZE = 100;
   const [search, setSearch] = useState("");
-  const [kategori, setKategori] = useState<string>("all");
+  // Varsayilanlar: Kategori = Urunler, Sadece Stokta Olanlar acik (YN 9ec0f5cf).
+  const [kategori, setKategori] = useState<string>("urun");
   const [durum, setDurum] = useState<"all" | StokDto["durum"]>("all");
-  const [stokluOnly, setStokluOnly] = useState(false);
+  const [stokluOnly, setStokluOnly] = useState(true);
+  // Negatif miktarli malzemeler modu (YN 201329ec). `stokluOnly` (stok > 0) ve
+  // `durum=yetersiz` (stok <= 0) ile mantiken celisir; asagida karsilikli
+  // dislama uygulanir, aksi halde sonuc daima bos donerdi.
+  const [negatifOnly, setNegatifOnly] = useState(false);
+  const [page, setPage] = useState(0);
   const [expandedUrunId, setExpandedUrunId] = useState<string | null>(null);
   const { data: categories = [] } = useListCategoriesAdminQuery({ limit: 50, sort: "display_order", order: "asc" });
+
+  function negatifModunuAyarla(acik: boolean) {
+    setNegatifOnly(acik);
+    setPage(0);
+    if (acik) {
+      setStokluOnly(false);
+      setDurum("all");
+      setKategori("all");
+    }
+  }
+
+  function stokluModunuAyarla(acik: boolean) {
+    setStokluOnly(acik);
+    setPage(0);
+    if (acik) setNegatifOnly(false);
+  }
+
+  function durumuAyarla(value: "all" | StokDto["durum"]) {
+    setDurum(value);
+    setPage(0);
+    // "Yetersiz" (stok <= 0) ile "Sadece Stokta Olanlar" (stok > 0) birlikte
+    // imkansiz kosul uretir; kullanici aciklamasiz bos liste gormesin.
+    if (value === "yetersiz") setStokluOnly(false);
+  }
 
   const query = {
     ...(search ? { q: search } : {}),
     ...(kategori !== "all" ? { kategori } : {}),
     ...(durum !== "all" ? { durum, kritikOnly: durum !== "yeterli" } : {}),
     ...(stokluOnly ? { stokluOnly: true } : {}),
+    ...(negatifOnly ? { negatifOnly: true } : {}),
+    limit: PAGE_SIZE,
+    offset: page * PAGE_SIZE,
     sort: durum === "all" ? "ad" : "kritik_stok",
     order: durum === "all" ? "asc" : "desc",
   } as const;
@@ -44,13 +78,16 @@ export default function StoklarClient() {
   const { data, isLoading, isFetching, refetch } = useListStoklarAdminQuery(query);
 
   const items = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages - 1);
   const counts = useMemo(
     () => ({
-      toplam: items.length,
+      toplam: total,
       kritik: items.filter((item) => item.durum === "kritik").length,
       yetersiz: items.filter((item) => item.durum === "yetersiz").length,
     }),
-    [items],
+    [items, total],
   );
 
   function getEffectiveDurum(item: StokDto): StokDto["durum"] {
@@ -102,7 +139,7 @@ export default function StoklarClient() {
               onChange={(event) => setSearch(event.target.value)}
             />
           </div>
-          <Select value={kategori} onValueChange={(value) => setKategori(value as typeof kategori)}>
+          <Select value={kategori} onValueChange={(value) => { setKategori(value as typeof kategori); setPage(0); }}>
             <SelectTrigger className="w-44">
               <SelectValue />
             </SelectTrigger>
@@ -115,7 +152,7 @@ export default function StoklarClient() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={durum} onValueChange={(value) => setDurum(value as typeof durum)}>
+          <Select value={durum} onValueChange={(value) => durumuAyarla(value as typeof durum)}>
             <SelectTrigger className="w-44">
               <SelectValue />
             </SelectTrigger>
@@ -126,13 +163,34 @@ export default function StoklarClient() {
               <SelectItem value="yetersiz">{t("admin.erp.stoklar.status.yetersiz")}</SelectItem>
             </SelectContent>
           </Select>
-          <div className="flex items-center gap-2 ml-auto">
-            <Switch id="stoklu-only" checked={stokluOnly} onCheckedChange={setStokluOnly} />
-            <Label htmlFor="stoklu-only" className="text-sm cursor-pointer">Sadece Stokta Olanlar</Label>
+          <Button
+            variant={negatifOnly ? "destructive" : "outline"}
+            size="sm"
+            onClick={() => negatifModunuAyarla(!negatifOnly)}
+          >
+            {negatifOnly ? "Negatif Filtresini Kapat" : "Miktarı Negatif Olanlar"}
+          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <Switch
+              id="stoklu-only"
+              checked={stokluOnly}
+              disabled={negatifOnly}
+              onCheckedChange={stokluModunuAyarla}
+            />
+            <Label htmlFor="stoklu-only" className="cursor-pointer text-sm">
+              Sadece Stokta Olanlar
+            </Label>
           </div>
         </div>
 
-        <Tabs value={kategori} onValueChange={(value) => setKategori(value as typeof kategori)}>
+        {negatifOnly && (
+          <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-destructive text-sm">
+            Negatif miktar modu açık — yalnızca stoğu sıfırın altına düşmüş malzemeler listeleniyor
+            ({total} kayıt). Diğer filtreler bu modda sıfırlandı.
+          </div>
+        )}
+
+        <Tabs value={kategori} onValueChange={(value) => { setKategori(value as typeof kategori); setPage(0); }}>
           <TabsList className="mb-4">
             <TabsTrigger value="all">Tümü</TabsTrigger>
             {categories.map((cat) => (
@@ -246,6 +304,37 @@ export default function StoklarClient() {
             </TableBody>
           </Table>
         </div>
+
+        {/* Sayfalama: onceden liste sessizce ilk 100 kayitla sinirliydi ve
+            geri kalani hic gorunmuyordu (S1). */}
+        {total > PAGE_SIZE && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/10 px-4 py-3">
+            <p className="text-muted-foreground text-sm">
+              {currentPage * PAGE_SIZE + 1}–{Math.min((currentPage + 1) * PAGE_SIZE, total)} / {total}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === 0 || isFetching}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+              >
+                Önceki
+              </Button>
+              <span className="text-muted-foreground text-sm">
+                {currentPage + 1} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage + 1 >= totalPages || isFetching}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Sonraki
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

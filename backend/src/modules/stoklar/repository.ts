@@ -39,6 +39,10 @@ function buildWhere(query: ListQuery): SQL | undefined {
     conditions.push(sql`${stokUrunler.stok} > 0`);
   }
 
+  if (query.negatifOnly) {
+    conditions.push(sql`${stokUrunler.stok} < 0`);
+  }
+
   if (query.durum === 'yetersiz') {
     conditions.push(sql`${stokUrunler.stok} <= 0`);
   }
@@ -100,10 +104,11 @@ function assertNarrowingFilterInTest(query: ListQuery): void {
     Boolean(query.kategori) ||
     query.kritikOnly === true ||
     query.stokluOnly === true ||
+    query.negatifOnly === true ||
     Boolean(query.durum);
   if (!hasFilter) {
     throw new Error(
-      'stoklar_repoList_test_filter_required: NODE_ENV=test iken bu sorgu en az bir filtre (q | kategori | kritikOnly | stokluOnly | durum) içermek zorundadır. Geniş tablolu canlı/test DB\'de yanlış negatif assertion riski.',
+      'stoklar_repoList_test_filter_required: NODE_ENV=test iken bu sorgu en az bir filtre (q | kategori | kritikOnly | stokluOnly | negatifOnly | durum) içermek zorundadır. Geniş tablolu canlı/test DB\'de yanlış negatif assertion riski.',
     );
   }
 }

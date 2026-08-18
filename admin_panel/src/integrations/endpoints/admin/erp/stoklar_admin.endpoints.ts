@@ -24,6 +24,10 @@ export const stoklarAdminApi = baseApi.injectEndpoints({
           durum?: "yeterli" | "kritik" | "yetersiz";
           kritikOnly?: boolean;
           stokluOnly?: boolean;
+          /** Yalniz stogu sifirin altina dusmus malzemeler. `stokluOnly` ile birlikte kullanilmaz. */
+          negatifOnly?: boolean;
+          limit?: number;
+          offset?: number;
           sort?: "ad" | "kod" | "stok" | "kritik_stok";
           order?: "asc" | "desc";
         }
