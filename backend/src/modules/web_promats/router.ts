@@ -5,6 +5,7 @@ import { sendTelegram } from '@/core/telegram';
 import { createAdminNotification } from '@/modules/notifications/controller';
 import { requireAdmin, requireAuth } from '@/common/middleware/auth';
 import { env } from '@/core/env';
+import { timingSafeEqual } from 'node:crypto';
 
 const localeQuery = z.object({
   lang: z.enum(['tr', 'en']).optional(),
@@ -81,6 +82,19 @@ function asset(value: unknown): string | null {
   if (!value) return null;
   const path = String(value);
   return path.startsWith('/') ? path : `/${path}`;
+}
+
+function authorizedProductConsumer(value: unknown): boolean {
+  const expected = env.PROMATS_TEKLIFROTA_API_KEY;
+  const provided = typeof value === 'string' ? value : '';
+  if (!expected || expected.length !== provided.length) return false;
+  return timingSafeEqual(Buffer.from(expected), Buffer.from(provided));
+}
+
+function absolutePromatsAsset(value: unknown): string | null {
+  const path = asset(value);
+  if (!path) return null;
+  return path.startsWith('http') ? path : `https://promats.com.tr${path}`;
 }
 
 function product(row: Row, features: Row[] = []) {
@@ -217,6 +231,33 @@ export async function registerWebPromatsPublic(app: FastifyInstance): Promise<vo
       `SELECT * FROM web_promats_product_features WHERE product_id IN (${items.map(() => '?').join(',')})
        ORDER BY type,sort_order,id`, items.map((item) => item.id));
     return { ok: true, data: items.map((item) => product(item, features.filter((f) => f.product_id === item.id))) };
+  });
+
+  // TeklifRota v1 ürün sözleşmesi. Kaynak fiyat içermediğinde null döner;
+  // tüketici doğrulanmamış fiyat tahmini yapmaz.
+  app.get('/web/promats/integrations/teklifrota/v1/products', async (req, reply) => {
+    if (!env.PROMATS_TEKLIFROTA_API_KEY) return reply.code(503).send({ error: 'integration_not_configured' });
+    if (!authorizedProductConsumer(req.headers['x-api-key'])) return reply.code(401).send({ error: 'invalid_api_key' });
+    const parsed = localeQuery.parse(req.query);
+    const locale = (parsed.lang ?? parsed.locale ?? 'tr') === 'en' ? 'en' : 'tr';
+    const items = await rows(app,
+      'SELECT * FROM web_promats_products WHERE language_id=? ORDER BY sort_order,id LIMIT ?',
+      [languageId(req.query), parsed.limit]);
+    return {
+      contract: 'teklifrota.products.v1',
+      source: { provider: 'promats', website: 'https://promats.com.tr/tr', locale },
+      generatedAt: new Date().toISOString(),
+      items: items.map((item) => ({
+        externalId: `promats-${locale}-${item.id}`,
+        code: `PROMATS-${String(item.id).padStart(3, '0')}`,
+        name: item.name,
+        url: `https://promats.com.tr/${locale}/urunler/${item.slug}`,
+        imageUrl: absolutePromatsAsset(item.s3_1_image || item.s1_4_image || item.s2_1_image),
+        description: item.detail_description || item.s1_3_text || item.seo_description || null,
+        price: null,
+        currency: null,
+      })),
+    };
   });
 
   app.get('/web/promats/products/search', async (req, reply) => {

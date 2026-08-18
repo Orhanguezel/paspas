@@ -124,6 +124,7 @@ export const env = {
   TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID || "",
   PROMATS_REVALIDATE_URL: process.env.PROMATS_REVALIDATE_URL || "",
   PROMATS_REVALIDATE_SECRET: process.env.PROMATS_REVALIDATE_SECRET || "",
+  PROMATS_TEKLIFROTA_API_KEY: process.env.PROMATS_TEKLIFROTA_API_KEY || "",
 } as const;
 
 export type AppEnv = typeof env;
