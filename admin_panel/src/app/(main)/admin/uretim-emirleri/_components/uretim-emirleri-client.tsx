@@ -66,16 +66,27 @@ import {
 import { useListUrunlerAdminQuery } from "@/integrations/endpoints/admin/erp/urunler_admin.endpoints";
 import type { SiparisIslemSatiri } from "@/integrations/shared/erp/satis_siparisleri.types";
 import type { UretimEmriDto, UretimEmriDurum } from "@/integrations/shared/erp/uretim_emirleri.types";
-import { EMIR_DURUM_BADGE, grupPlanlanan, mamulGrupKey } from "@/integrations/shared/erp/uretim_emirleri.types";
+import { EMIR_DURUM_BADGE, grupAsimetrik, grupPlanlanan, mamulGrupKey } from "@/integrations/shared/erp/uretim_emirleri.types";
 
 import { MakineMontajPlanlama } from "./makine-montaj-planlama";
 import { ReceteDetayModal } from "./recete-detay-modal";
 
 // ── MalzemeBadge ─────────────────────────────────────────────
-function MalzemeBadge({ urunId, miktar, receteId }: { urunId: string; miktar: number; receteId: string | null }) {
-  const { data, isLoading } = useCheckYeterlilikAdminQuery({ urunId, miktar }, { skip: !receteId });
+function MalzemeBadge({
+  urunId,
+  miktar,
+  receteId,
+  atla = false,
+}: {
+  urunId: string;
+  miktar: number;
+  receteId: string | null;
+  atla?: boolean;
+}) {
+  // Tamamlanmış emirde yeterlilik kontrolü anlamsız — sorgu atılmaz (R7).
+  const { data, isLoading } = useCheckYeterlilikAdminQuery({ urunId, miktar }, { skip: !receteId || atla });
 
-  if (!receteId) return <span className="text-muted-foreground text-xs">—</span>;
+  if (!receteId || atla) return <span className="text-muted-foreground text-xs">—</span>;
   if (isLoading) return <Skeleton className="h-5 w-16" />;
   if (!data) return <span className="text-muted-foreground text-xs">—</span>;
 
@@ -476,6 +487,27 @@ class DialogErrorBoundary extends Component<{ children: ReactNode }, { hasError:
   }
 }
 
+// ── Liste Hata Sınırı ────────────────────────────────────────
+// Tek bir bozuk kayıt/grup, tüm üretim emirleri listesini düşürmesin
+// (2026-08-15 canlı "Application Error" vakası — YN 977aa834).
+class ListeErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-md border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
+          Liste görüntülenirken beklenmeyen bir hata oluştu. Sayfayı yenileyip tekrar deneyin;
+          sorun sürerse yazılım ekibine bildirin.
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ── Ana Bileşen ───────────────────────────────────────────────
 export default function UretimEmirleriClient() {
   const { t } = useLocaleContext();
@@ -699,6 +731,11 @@ export default function UretimEmirleriClient() {
     const ciftTarafli = emirler.length > 1;
     // Çift taraflı: her iki tarafın planlananı eşittir → mamul adedi = max(tek taraf).
     const planlananMiktar = grupPlanlanan(emirler);
+    // Taraflar arasında planlanan farklıysa satırda işaretlenir (throw edilmez).
+    const asimetrik = grupAsimetrik(emirler);
+    // Sağ/Sol taraflı bir emir tek başına geldiyse eşi başka sayfada demektir
+    // (gruplama sayfa içi yapılır — S3 kısa vade işareti).
+    const esiEksik = emirler.length === 1 && (emirler[0].taraf === "sag" || emirler[0].taraf === "sol") && Boolean(emirler[0].partiNo);
     // Mamul ancak en yavaş taraf kadar tamamlanır.
     const uretilenMiktar = Math.min(...emirler.map((e) => e.uretilenMiktar));
     const yuzde = planlananMiktar > 0 ? Math.min(100, Math.round((uretilenMiktar / planlananMiktar) * 100)) : 0;
@@ -725,6 +762,8 @@ export default function UretimEmirleriClient() {
       ciftTarafli,
       emirIds: emirler.map((e) => e.id),
       planlananMiktar,
+      asimetrik,
+      esiEksik,
       uretilenMiktar,
       yuzde,
       makineAdlari,
@@ -917,6 +956,7 @@ export default function UretimEmirleriClient() {
           {t("admin.erp.uretimEmirleri.notFound")}
         </div>
       ) : (
+        <ListeErrorBoundary>
         <div className="space-y-6">
           {partiGruplari.map((parti) => (
             <div key={parti.parti} className="space-y-2">
@@ -977,6 +1017,9 @@ export default function UretimEmirleriClient() {
                               <div className="text-[10px] text-muted-foreground mt-0.5">
                                 +{mamul.emirler.length - 1} taraf daha
                               </div>
+                            )}
+                            {agg.esiEksik && (
+                              <div className="mt-0.5 text-[10px] text-amber-600">Eşi diğer sayfada</div>
                             )}
                             <Badge
                               className="mt-1 px-2 py-0 text-[10px] font-semibold"
@@ -1045,6 +1088,9 @@ export default function UretimEmirleriClient() {
                             <span className="font-bold text-sm text-slate-900">
                               {agg.planlananMiktar.toLocaleString("tr-TR")}
                             </span>
+                            {agg.asimetrik && (
+                              <div className="font-medium text-[10px] text-amber-600">Taraflar farklı planlı</div>
+                            )}
                           </TableCell>
 
                           {/* İlerleme — mamul özeti + makine bazlı taraf kırılımı (YN#5) */}
@@ -1091,7 +1137,12 @@ export default function UretimEmirleriClient() {
 
                           {/* Malzeme */}
                           <TableCell className="text-center">
-                            <MalzemeBadge urunId={e.urunId} miktar={e.planlananMiktar} receteId={e.receteId} />
+                            <MalzemeBadge
+                              urunId={e.urunId}
+                              miktar={e.planlananMiktar}
+                              receteId={e.receteId}
+                              atla={agg.durum === "tamamlandi"}
+                            />
                           </TableCell>
 
                           {/* Makine (mamul özeti — atama bloktan yapılır) */}
@@ -1205,6 +1256,7 @@ export default function UretimEmirleriClient() {
             </div>
           )}
         </div>
+        </ListeErrorBoundary>
       )}
 
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>

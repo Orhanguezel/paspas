@@ -5,14 +5,24 @@
 
 export type UretimEmriDurum = "atanmamis" | "planlandi" | "uretimde" | "montaj_bekliyor" | "tamamlandi" | "iptal";
 
-export function mamulGrupKey(emir: Pick<UretimEmriDto, "partiNo" | "mamulUrunId">): string {
-  return `${emir.partiNo ?? "partisiz"}::${emir.mamulUrunId}`;
+export function mamulGrupKey(emir: Pick<UretimEmriDto, "id" | "partiNo" | "mamulUrunId">): string {
+  // Partisiz emirler tek kovada birleştirilmez — her emir kendi grubudur.
+  // Canlı doğrulama (2026-08-18): partisiz kayıtların hiçbiri gerçek Sağ/Sol
+  // çifti değil; ortak kovada birleşmeleri alakasız emirleri aynı mamul grubuna
+  // sokuyor ve asimetrik planlanan miktarla listeyi çökertiyordu.
+  if (!emir.partiNo) return `emir::${emir.id}`;
+  return `${emir.partiNo}::${emir.mamulUrunId}`;
 }
 
 export function grupPlanlanan(emirler: UretimEmriDto[]): number {
-  const miktarlar = new Set(emirler.map((emir) => emir.planlananMiktar));
-  if (miktarlar.size !== 1) throw new Error("asimetrik_planlanan_miktar");
-  return emirler[0]?.planlananMiktar ?? 0;
+  // Asimetrik planlanan miktar canlıda gerçekleşebilir (kısmi revizyon vb.) —
+  // render yolunda hata fırlatmak yerine en büyük hedef gösterilir; asimetri
+  // `grupAsimetrik` ile ayrıca işaretlenir.
+  return emirler.reduce((max, emir) => Math.max(max, emir.planlananMiktar), 0);
+}
+
+export function grupAsimetrik(emirler: UretimEmriDto[]): boolean {
+  return new Set(emirler.map((emir) => emir.planlananMiktar)).size > 1;
 }
 
 export interface UretimEmriOperasyonOzet {

@@ -2,7 +2,7 @@ export type Taraf = 'sag' | 'sol' | 'parca';
 
 export interface MamulEmri {
   id: string;
-  partiNo: string;
+  partiNo: string | null;
   mamulUrunId: string;
   urunId: string;
   taraf: Taraf | null;
@@ -13,12 +13,17 @@ export interface MamulEmri {
 
 export interface MamulGrup<T extends MamulEmri = MamulEmri> {
   key: string;
-  partiNo: string;
+  partiNo: string | null;
   mamulUrunId: string;
   emirler: T[];
 }
 
-export function mamulGrupKey(emir: Pick<MamulEmri, 'partiNo' | 'mamulUrunId'>): string {
+export function mamulGrupKey(emir: Pick<MamulEmri, 'id' | 'partiNo' | 'mamulUrunId'>): string {
+  // Partisiz emirler tek kovada birleştirilmez — her emir kendi grubudur.
+  // Canlı doğrulama (2026-08-18): partisiz kayıtların hiçbiri gerçek Sağ/Sol
+  // çifti değil; ortak kova alakasız emirleri aynı gruba sokar.
+  // Admin panel eşleniği: admin_panel/src/integrations/shared/erp/uretim_emirleri.types.ts
+  if (!emir.partiNo) return `emir::${emir.id}`;
   return `${emir.partiNo}::${emir.mamulUrunId}`;
 }
 
@@ -52,9 +57,13 @@ export function taraflar<T extends MamulEmri>(grup: MamulGrup<T>): T[] {
 }
 
 export function grupPlanlanan(grup: MamulGrup): number {
-  const miktarlar = new Set(grup.emirler.map((emir) => emir.planlananMiktar));
-  if (miktarlar.size !== 1) {
-    throw new Error(`asimetrik_planlanan_miktar:${grup.key}`);
-  }
-  return grup.emirler[0]?.planlananMiktar ?? 0;
+  // Asimetrik planlanan miktar canlıda gerçekleşebilir (kısmi revizyon vb.) —
+  // hata fırlatılmaz; en büyük hedef döner, asimetri `grupAsimetrik` ile sorgulanır.
+  // (Önceki davranış `asimetrik_planlanan_miktar` throw'uydu; canlıda partisiz
+  // kayıtların yanlış gruplanmasıyla birleşince admin listesini çökertti — 2026-08-18.)
+  return grup.emirler.reduce((max, emir) => Math.max(max, emir.planlananMiktar), 0);
+}
+
+export function grupAsimetrik(grup: MamulGrup): boolean {
+  return new Set(grup.emirler.map((emir) => emir.planlananMiktar)).size > 1;
 }
