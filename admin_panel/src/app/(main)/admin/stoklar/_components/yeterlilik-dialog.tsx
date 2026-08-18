@@ -130,8 +130,6 @@ export default function YeterlilikDialog() {
                     <TableRow>
                       <TableHead>{t("admin.erp.stoklar.yeterlilik.columns.malzeme")}</TableHead>
                       <TableHead className="text-right">{t("admin.erp.stoklar.yeterlilik.columns.gerekli")}</TableHead>
-                      <TableHead className="text-right">{t("admin.erp.stoklar.yeterlilik.columns.fire")}</TableHead>
-                      <TableHead className="text-right">{t("admin.erp.stoklar.yeterlilik.columns.gerekliFire")}</TableHead>
                       <TableHead className="text-right">{t("admin.erp.stoklar.yeterlilik.columns.mevcut")}</TableHead>
                       <TableHead className="text-right">{t("admin.erp.stoklar.yeterlilik.columns.fark")}</TableHead>
                       <TableHead className="text-center">{t("admin.erp.stoklar.yeterlilik.columns.durum")}</TableHead>
@@ -144,12 +142,11 @@ export default function YeterlilikDialog() {
                           <div className="font-mono text-muted-foreground text-xs">{k.malzemeKod}</div>
                           <div className="text-sm">{k.malzemeAd}</div>
                         </TableCell>
-                        <TableCell className="text-right tabular-nums text-sm whitespace-nowrap">
-                          {formatAmount(k.gerekliMiktar)} {k.birim}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums text-sm">
-                          %{formatAmount(k.fireOrani)}
-                        </TableCell>
+                        {/* Gerekli: fire dahil edilmis miktar gosterilir — `fark` ve
+                            `yeterli` degerleri de bu miktardan hesaplanir, boylece
+                            ekrandaki Gerekli/Mevcut/Fark aritmetigi tutarli kalir.
+                            Ayri "Fire %" ve "Gerekli (Fireli)" sutunlari kaldirildi
+                            (YN f87c2245). */}
                         <TableCell className="text-right tabular-nums text-sm whitespace-nowrap">
                           {formatAmount(k.gerekliMiktarFireli)} {k.birim}
                         </TableCell>

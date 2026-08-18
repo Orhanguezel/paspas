@@ -289,7 +289,9 @@ function BekleyenlerTab() {
 }
 
 // ─── Collapsible Group Section ────────────────────────────────
-function GroupSection({ title, count, children, defaultOpen = true }: {
+// Gruplar ilk acilista KAPALI gelir: kullanici once firma/malzeme listesini
+// gorur, ilgilendigi grubu kendisi acar (YN 8f51e026).
+function GroupSection({ title, count, children, defaultOpen = false }: {
   title: string;
   count: number;
   children: React.ReactNode;

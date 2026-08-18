@@ -980,22 +980,25 @@ export default function UretimEmirleriClient() {
                     </Button>
                   )}
                 </div>
-                <Table>
+                {/* table-fixed: Urun sutunu artan tum genisligi yutup diger
+                    sutunlari sikistirmasin; genislikler oransal dagilir
+                    (YN 70fe2d32). */}
+                <Table className="table-fixed">
                   <TableHeader className="bg-muted/30">
                     <TableRow>
-                      <TableHead className="w-32">{t("admin.erp.uretimEmirleri.columns.emirNo")}</TableHead>
-                      <TableHead className="min-w-40">{t("admin.erp.uretimEmirleri.columns.urunId")}</TableHead>
-                      <TableHead className="w-36">Müşteri</TableHead>
-                      <TableHead className="w-32">{t("admin.erp.uretimEmirleri.columns.bitis")}</TableHead>
-                      <TableHead className="w-24 text-right">
+                      <TableHead className="w-[13%]">{t("admin.erp.uretimEmirleri.columns.emirNo")}</TableHead>
+                      <TableHead className="w-[26%]">{t("admin.erp.uretimEmirleri.columns.urunId")}</TableHead>
+                      <TableHead className="w-[15%]">Müşteri</TableHead>
+                      <TableHead className="w-[12%]">{t("admin.erp.uretimEmirleri.columns.bitis")}</TableHead>
+                      <TableHead className="w-[10%] text-right">
                         {t("admin.erp.uretimEmirleri.columns.planlanan")}
                       </TableHead>
-                      <TableHead className="w-36">{t("admin.erp.uretimEmirleri.columns.ilerleme")}</TableHead>
-                      <TableHead className="w-24 text-center">
+                      <TableHead className="w-[15%]">{t("admin.erp.uretimEmirleri.columns.ilerleme")}</TableHead>
+                      <TableHead className="w-[9%] text-center">
                         {t("admin.erp.uretimEmirleri.columns.malzeme")}
                       </TableHead>
-                      {isPlanlaTab && <TableHead className="w-48">Makine</TableHead>}
-                      {isPlanlaTab && <TableHead className="w-24 text-right pr-4" />}
+                      {isPlanlaTab && <TableHead className="w-[16%]">Makine</TableHead>}
+                      {isPlanlaTab && <TableHead className="w-[8%] text-right pr-4" />}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1056,8 +1059,8 @@ export default function UretimEmirleriClient() {
                           <TableCell>
                             {e.musteriAd ? (
                               <div
-                                className="text-sm text-slate-700 truncate max-w-32 font-medium"
-                                title={e.musteriDetay || undefined}
+                                className="truncate font-medium text-slate-700 text-sm"
+                                title={e.musteriDetay || e.musteriAd || undefined}
                               >
                                 {e.musteriAd}
                               </div>
