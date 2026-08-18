@@ -11,10 +11,10 @@ Bir önceki checklist: [CANLI-ACIK-YAZILIMCI-NOTLARI-CHECKLIST-2026-08-14.md](CA
 
 | Durum | Adet | Anlamı |
 |---|---:|---|
-| Açık (`open`) | 11 | Bizde — doğrudan iş *(1.1 çözüldü, 18 Ağu)* |
+| Açık (`open`) | 8 | Bizde — doğrudan iş *(1.1/1.2/1.6/1.8 çözüldü, 18 Ağu)* |
 | Bilgi bekliyor (`needs_info`) | 12 | Karşı tarafta (müşteri kararı / grafikçi) |
 | Planlandı (`planned`) | 18 | Fuar modülü faz planı |
-| **Toplam aktif** | **41** | |
+| **Toplam aktif** | **38** | |
 
 | Öncelik | Açık | Bilgi bekl. | Planlandı |
 |---|---:|---:|---:|
@@ -91,8 +91,11 @@ Canlı yazılımcı notu `977aa834` **`resolved`** yapıldı; müşteriye çöz�
 
 Doğrulandı: tablodaki tüm sütunlar sabit genişlikte (`w-32`, `w-36`, `w-24`…) ama Ürün sütunu `min-w-40` ve üst sınırı yok ([uretim-emirleri-client.tsx:946](admin_panel/src/app/\(main\)/admin/uretim-emirleri/_components/uretim-emirleri-client.tsx#L946)) → artan tüm genişliği Ürün sütunu yutuyor, diğerleri sıkışıyor.
 
-- [ ] Ürün sütununa üst sınır ver, artan genişliği sütunlara dengeli dağıt (`table-fixed` + oransal genişlikler).
-- [ ] 1366px ve 1920px genişlikte kontrol et.
+- [x] Ürün sütununa üst sınır verildi, genişlikler `table-fixed` + oransal paylarla dengelendi (Ürün %26, Müşteri %15).
+- [x] Müşteri sütunu genişletildi; uzun firma adı kolon içinde kırpılıyor, tam hâli tooltip'te (`FALKON OTOMO...` kesilmesi giderildi).
+
+✅ **CANLIDA — 18 Ağustos 2026, release `20260818T185931Z-26205ff06dc9`** (commit `26205ff`) · canlı not `resolved`
+
 
 ### 1.3 🟠 Üretim emirleri satırını sadeleştir
 
@@ -142,9 +145,13 @@ Doğrulandı: [stoklar-client.tsx:29](admin_panel/src/app/\(main\)/admin/stoklar
 
 Doğrulandı: [yeterlilik-dialog.tsx:133-134](admin_panel/src/app/\(main\)/admin/stoklar/_components/yeterlilik-dialog.tsx#L133-L134).
 
-- [ ] `Fire %` sütununu kaldır ([tr.json:5555](admin_panel/src/locale/tr.json#L5555)).
-- [ ] `Gerekli (Fireli)` sütununu kaldır ([tr.json:5556](admin_panel/src/locale/tr.json#L5556)).
-- [ ] Kalan sütunların genişliklerini yeniden dağıt.
+- [x] `Fire %` sütunu kaldırıldı.
+- [x] `Gerekli (Fireli)` sütunu kaldırıldı. Canlı ekranda kalan sütunlar: Malzeme, Gerekli, Mevcut, Fark, Durum.
+- [x] **R6 aritmetik tuzağı kapatıldı:** `Gerekli` sütunu artık `gerekliMiktarFireli` gösteriyor — `fark`/`yeterli` zaten bu değerden hesaplandığı için Gerekli/Mevcut/Fark ekranda tutarlı. Canlıda tüm reçetelerde fire oranı 0 olduğundan görünen sayılar değişmedi.
+- [x] Locale anahtarları (`columns.fire`, `columns.gerekliFire`) artık hiçbir bileşenden çağrılmıyor (kullanılmayan anahtar olarak duruyor, zararsız).
+
+✅ **CANLIDA — 18 Ağustos 2026, release `20260818T185931Z-26205ff06dc9`** (commit `26205ff`) · canlı not `resolved`
+
 
 > Dikkat: `gerekliMiktarFireli` değeri üretim emirleri ekranındaki `MalzemeBadge` tooltip'inde de kullanılıyor ([uretim-emirleri-client.tsx:105-106](admin_panel/src/app/\(main\)/admin/uretim-emirleri/_components/uretim-emirleri-client.tsx#L105-L106)). Sadece bu diyalogdaki sütunlar kaldırılacak; alan backend'den sökülmeyecek.
 
@@ -164,8 +171,11 @@ Doğrulandı: stoklar ekranında negatif stok filtresi/butonu **yok**.
 
 Doğrulandı: `GroupSection` varsayılanı `defaultOpen = true` ([sevkiyat-client.tsx:290](admin_panel/src/app/\(main\)/admin/sevkiyat/_components/sevkiyat-client.tsx#L290)).
 
-- [ ] Müşteri bazlı gruplamada ilk açılışta sadece firma isimleri görünsün, sipariş satırları kapalı gelsin.
-- [ ] Ürün bazlı gruplamada da malzeme adı listelensin, altındaki firma isimleri kapalı gelsin.
+- [x] Müşteri bazlı gruplamada ilk açılışta sadece firma isimleri görünüyor, sipariş satırları kapalı geliyor.
+- [x] Ürün bazlı gruplamada da malzeme adı listeleniyor, altındaki firma isimleri kapalı geliyor. Grup başlığındaki kayıt sayısı rozeti korundu.
+
+✅ **CANLIDA — 18 Ağustos 2026, release `20260818T185931Z-26205ff06dc9`** (commit `26205ff`) · canlı not `resolved`
+
 
 ---
 
@@ -511,8 +521,8 @@ Aktivasyon SHA256 doğrular, `current` symlink'ini atomik değiştirir, hata hal
 
 *(Bölüm 5 risk analizi + Bölüm 6 sistemik bulgulara göre revize edildi.)*
 
-1. **Paket 1 — 1.1 + R4 + R7 + S3-kısa**: Application Error kök çözümü (null-parti grup anahtarı, throw kaldırma, ErrorBoundary), backend kopyasıyla tek kaynak, tamamlanmış emirde yeterlilik `skip`, sayfa-bölünme işareti. Regresyon testli.
-2. **Paket 2 — 1.2 + 1.6 + 1.8**: izole ve risksiz üçlü; hızlı görünür kazanç.
+1. ~~**Paket 1 — 1.1 + R4 + R7 + S3-kısa**~~ ✅ **TAMAMLANDI** (18 Ağu): Application Error kök çözümü (null-parti grup anahtarı, throw kaldırma, ErrorBoundary), backend kopyasıyla tek kaynak, tamamlanmış emirde yeterlilik `skip`, sayfa-bölünme işareti. Regresyon testli.
+2. ~~**Paket 2 — 1.2 + 1.6 + 1.8**~~ ✅ **TAMAMLANDI** (18 Ağu, release `20260818T185931Z-26205ff06dc9`) — üçü de canlıda, notlar `resolved`.
 3. **Paket 3 — 1.5 + 1.7 + S1**: stok paketi. Sayfalama/limit + server-side özet + negatif filtresi + varsayılanlar, filtre çelişkisi çözülmüş halde. **Üçü ayrılamaz** — S1 olmadan negatif filtresi yarım kalır.
 4. **Paket 4 — 1.3 + 1.4 + R1 + R3 + S4**: üretim emirleri ekran yenilemesi. Satır sadeleştirme + detay paneli + üç kurallı "Üretilen" hesabı + tek locale anahtarı + aşım gösterimi. En büyük iş kalemi.
 5. **S5 — vardiya çift sayımı**: bağımsız backend düzeltmesi; herhangi bir pakete paralel gidebilir.
