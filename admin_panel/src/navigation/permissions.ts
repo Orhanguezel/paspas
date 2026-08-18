@@ -49,11 +49,6 @@ export type AdminNavKey =
   | "yazilim_gorevleri"
   | "teklif_talepleri"
   | "teklifler"
-  | "fuar_genel_bakis"
-  | "fuar_katalog"
-  | "fuar_urunler"
-  | "fuar_musteriler"
-  | "fuar_teklifler"
   | "iletisim_mesajlari";
 
 // Her rolün varsayılan giriş sayfası (login sonrası yönlendirme)
@@ -109,11 +104,6 @@ const NAV_ROLES: Record<AdminNavKey, PanelRole[]> = {
   yazilim_gorevleri: ["admin"],
   teklif_talepleri: ["admin", "nakliyeci"],
   teklifler: ["admin", "nakliyeci"],
-  fuar_genel_bakis: ["admin"],
-  fuar_katalog: ["admin"],
-  fuar_urunler: ["admin"],
-  fuar_musteriler: ["admin"],
-  fuar_teklifler: ["admin"],
   iletisim_mesajlari: ["admin"],
 };
 
@@ -154,7 +144,6 @@ export function canAccessAdminPath(role: PanelRole, pathname: string): boolean {
     { prefix: "/admin/yazilim-gorevleri", key: "yazilim_gorevleri" },
     { prefix: "/admin/teklif-talepleri", key: "teklif_talepleri" },
     { prefix: "/admin/teklifler", key: "teklifler" },
-    { prefix: "/admin/fuar", key: "fuar_genel_bakis" },
     { prefix: "/admin/contacts", key: "iletisim_mesajlari" },
   ];
 

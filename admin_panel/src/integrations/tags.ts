@@ -257,11 +257,6 @@ export const tags = [
   'Teklifler',
   'TeklifTalep',
   'TeklifTalepleri',
-  'FuarUrun',
-  'FuarUrunler',
-  'FuarMusteri',
-  'FuarMusteriler',
-  'FuarTeklifler',
 ] as const;
 
 export type tag = typeof tags[number];

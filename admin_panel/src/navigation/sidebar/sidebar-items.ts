@@ -67,7 +67,7 @@ export type AdminSidebarRole = PanelRole;
 
 export type AdminNavItemKey = AdminNavKey;
 
-export type AdminNavGroupKey = "overview" | "production" | "logistics" | "teklif" | "fuar" | "website" | "system";
+export type AdminNavGroupKey = "overview" | "production" | "logistics" | "teklif" | "website" | "system";
 
 export type AdminNavConfigItem = {
   key: AdminNavItemKey;
@@ -174,30 +174,11 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
   },
   {
     id: 5,
-    key: "fuar",
-    items: [
-      {
-        key: "fuar_genel_bakis",
-        url: "/admin/fuar",
-        icon: GalleryVerticalEnd,
-        roles: ["admin"],
-        subItems: [
-          { key: "fuar_genel_bakis", url: "/admin/fuar", icon: LayoutDashboard, roles: ["admin"] },
-          { key: "fuar_katalog", url: "/admin/fuar/katalog", icon: LayoutGrid, roles: ["admin"] },
-          { key: "fuar_urunler", url: "/admin/fuar/urunler", icon: Package, roles: ["admin"] },
-          { key: "fuar_musteriler", url: "/admin/fuar/musteriler", icon: Users, roles: ["admin"] },
-          { key: "fuar_teklifler", url: "/admin/fuar/teklifler", icon: FileSignature, roles: ["admin"] },
-        ],
-      },
-    ],
-  },
-  {
-    id: 6,
     key: "website",
     items: [{ key: "web_sayfasi", url: "/admin/web-sayfasi", icon: PanelsTopLeft, roles: ["admin"] }],
   },
   {
-    id: 7,
+    id: 6,
     key: "system",
     items: [
       { key: "site_settings", url: "/admin/sistem", icon: Settings, roles: ["admin"] },
@@ -218,7 +199,6 @@ const FALLBACK_GROUP_LABELS: Record<AdminNavGroupKey, string> = {
   production: "Üretim Süreçleri",
   logistics: "Lojistik & Stok",
   teklif: "Teklif Modülü",
-  fuar: "Fuar Teklif",
   website: "Web Sitesi",
   system: "Sistem Yönetimi",
 };
@@ -268,11 +248,6 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   yazilim_gorevleri: "Yazılım Görevleri",
   teklif_talepleri: "Teklif Talepleri",
   teklifler: "Teklifler",
-  fuar_genel_bakis: "Genel Bakış",
-  fuar_katalog: "Katalog",
-  fuar_urunler: "Fuar Ürünleri",
-  fuar_musteriler: "Fuar Müşterileri",
-  fuar_teklifler: "Fuar Teklifleri",
 };
 
 export function buildAdminSidebarItems(
