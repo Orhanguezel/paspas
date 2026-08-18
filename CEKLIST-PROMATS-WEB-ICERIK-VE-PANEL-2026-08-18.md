@@ -11,7 +11,7 @@
 | # | Konu | Durum |
 |---|---|---|
 | A | Excel içeriğinin siteye işlenmesi | 40 içerik satırı hazır, işlenmedi |
-| B | "Taslak / İndekslenemez" rozeti | **Panel doğru, veri ve kod yanlış** — aşağıda |
+| B | "Taslak / İndekslenemez" rozeti | ✅ **çözüldü** — commit `62763ef`, release `20260818T212756Z` |
 | C | Çok dilli düzenleme (TR/EN yan yana) | Dil anahtarı var, aynı anda tek dil |
 | D | JSON düzenleme formu | **Bileşen zaten repoda var**, bu ekrana bağlı değil |
 | E | Formda görünmeyen alanlar | Ürün formu tam; **özellikler ve galeri hiç düzenlenemiyor** |
@@ -70,7 +70,7 @@ Excel iki sayfadan oluşuyor: **Ürün İçerik Master** (91 satır, 40'ı yeni 
 
 ---
 
-## B. 🔴 "Taslak / İndekslenemez" Rozeti — Kök Neden Bulundu
+## B. ✅ ÇÖZÜLDÜ — "Taslak / İndekslenemez" Rozeti
 
 Ekranda **20 ürünün tamamı** "Taslak" ve "İndekslenemez" görünüyor.
 
@@ -228,7 +228,7 @@ Frontend (`PromatsImage` → `resolvePath` → `assetPath`) ve admin panel (`web
 ## Önerilen Sıra
 
 1. ~~**F — görsel yolu**~~ ✅ **TAMAMLANDI** (18 Ağu, commit `1e8b25d`)
-2. **B — status düzeltmesi** (veri → kod sırasıyla; rozetler ve gerçek yayın durumu düzelir)
+2. ~~**B — status düzeltmesi**~~ ✅ **TAMAMLANDI** (18 Ağu, commit `62763ef`)
 3. **D — JSON sekmesi** (çeviri akışını açar; bileşen hazır, bağlanacak)
 4. **C — çift dil görünümü** (D'nin üstüne oturur)
 5. **A — Excel içeriğinin işlenmesi** (asıl içerik işi; C ve D hazırsa TR/EN birlikte girilir)
@@ -312,7 +312,7 @@ aynı 20 ürün görünmeye devam eder.
 ### Adım 2 — Veri düzeltmesi ⏸️ **İZİN BEKLİYOR**
 
 - [x] Yedek alındı: [.yedek/web-products-status-oncesi-20260818.sql](.yedek/web-products-status-oncesi-20260818.sql) (181K, 40 kayıt) — hem sunucuda `/tmp/web-products-status-yedek.sql` hem yerelde.
-- [ ] **Çalıştırılacak komut** (canlı DB yazma izni gerekiyor, otomatik izin sistemi engelledi):
+- [x] **Uygulandı** (18 Ağu) — 32 satır güncellendi (TR 20 + EN 12):
 
 ```bash
 ssh vps-paspas "mysql -u app -pApp2026paspas promats_erp \
@@ -321,7 +321,8 @@ ssh vps-paspas "mysql -u app -pApp2026paspas promats_erp \
 
 Etkilenecek: TR 20 + EN 12 = **32 satır** (EN'deki 8 kayıt zaten 0).
 
-- [ ] Sonrasında panelde rozetlerin "Yayında" ve "İndekslenebilir" olduğu görülsün.
+- [x] Sonuç: TR 20 + EN 20 kaydın tamamı `status=0`.
+- [x] **Ziyaretçi tarafı değişmedi** (filtre henüz yoktu): TR/EN 20'şer ürün, sayfalar 200.
 - [ ] Geri alma gerekirse yedek dosyası aynı tabloya geri yüklenir.
 
 ### Adım 3 — Kod düzeltmesi (veri düzeltildikten SONRA)
@@ -334,8 +335,27 @@ Etkilenecek: TR 20 + EN 12 = **32 satır** (EN'deki 8 kayıt zaten 0).
 | ~267 | `GET /web/promats/products/search` |
 | ~274 | `GET /web/promats/products/:slug` |
 
-- [ ] `teklifrota/v1/products` ucu da aynı filtreyi almalı — sözleşme yayında olmayan ürünü dışa vermemeli.
-- [ ] `:slug` ucunda pasif ürün artık 404 dönecek; frontend'in bu durumu düzgün karşıladığı kontrol edilsin.
+- [x] `teklifrota/v1/products` ucu da filtreyi aldı — sözleşme yayında olmayan ürünü dışa vermiyor.
+- [x] `:slug` ucunda pasif ürün 404 dönüyor (aşağıdaki canlı testle kanıtlandı).
+- [x] Kodda `status=0 = yayında` ters mantığı ve sıra bağımlılığı yorum olarak yazıldı.
+
+### ✅ Canlı doğrulama — release `20260818T212756Z-62763ef143bd`
+
+| Kontrol | Sonuç |
+|---|---|
+| Site API TR / EN | **20 / 20 ürün** ✓ |
+| TR ürün sayfası · EN ürün sayfası · ürünler listesi | 200 · 200 · 200 ✓ |
+| Arama (`?q=orbital`) | çalışıyor ✓ |
+| TeklifRota sözleşmesi | 20 ürün, **20/20 görsel** ✓ |
+
+**Filtrenin gerçekten çalıştığı kanıtlandı** — bir ürün geçici olarak pasife alınıp geri döndürüldü:
+
+| Durum | Liste | Slug detayı |
+|---|---:|---:|
+| `orbital-serisi` → `status=1` | **19 ürün** | **404** |
+| `orbital-serisi` → `status=0` (geri) | **20 ürün** | **200** |
+
+> Yani artık panelden bir ürün "Taslak" yapıldığında siteden gerçekten kalkıyor — önceden bu mümkün değildi.
 
 > ⚠️ **Sıra hayati:** kod önce giderse 20 ürünün tamamı siteden kaybolur.
 > Doğrulama: `curl -s 'https://promats.com.tr/api/web/promats/products?lang=tr&limit=100' | python3 -c "import sys,json;print(len(json.load(sys.stdin)['data']))"` → 20 dönmeli.
