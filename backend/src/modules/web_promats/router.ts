@@ -239,10 +239,18 @@ export async function registerWebPromatsPublic(app: FastifyInstance): Promise<vo
     try { return JSON.parse(found.value); } catch { return {}; }
   });
 
+  // DIKKAT — bu eski CMS'te `status=0` YAYINDA, `status=1` pasif/taslak demektir
+  // (sezgiye ters). Ayni kural makaleler (`WHERE status=0`) ve diller
+  // (`is_active: status === 0`) icin de gecerli.
+  //
+  // Urun sorgulari bu filtreyi uzun sure hic uygulamiyordu: pasif isaretli urunler
+  // sitede yine de gorunuyordu ve panel hakli olarak "Taslak" diyordu. 2026-08-18'de
+  // once veri duzeltildi (40 urunun tamami status=0 yapildi), sonra bu filtre eklendi.
+  // Sira onemliydi: filtre once eklenseydi 20 urunun tamami siteden kaybolurdu.
   app.get('/web/promats/products', async (req) => {
     const parsed = localeQuery.parse(req.query);
     const items = await rows(app,
-      'SELECT * FROM web_promats_products WHERE language_id=? ORDER BY sort_order,id LIMIT ?',
+      'SELECT * FROM web_promats_products WHERE language_id=? AND status=0 ORDER BY sort_order,id LIMIT ?',
       [languageId(req.query), parsed.limit]);
     if (!items.length) return { ok: true, data: [] };
     const features = await rows(app,
@@ -259,7 +267,7 @@ export async function registerWebPromatsPublic(app: FastifyInstance): Promise<vo
     const parsed = localeQuery.parse(req.query);
     const locale = (parsed.lang ?? parsed.locale ?? 'tr') === 'en' ? 'en' : 'tr';
     const items = await rows(app,
-      'SELECT * FROM web_promats_products WHERE language_id=? ORDER BY sort_order,id LIMIT ?',
+      'SELECT * FROM web_promats_products WHERE language_id=? AND status=0 ORDER BY sort_order,id LIMIT ?',
       [languageId(req.query), parsed.limit]);
     return {
       contract: 'teklifrota.products.v1',
@@ -282,14 +290,14 @@ export async function registerWebPromatsPublic(app: FastifyInstance): Promise<vo
     const q = String((req.query as Row).q ?? '').trim();
     if (!q) return reply.code(400).send({ error: { message: 'Arama metni zorunlu.' } });
     const items = await rows(app,
-      'SELECT * FROM web_promats_products WHERE language_id=? AND (name LIKE ? OR slug LIKE ?) ORDER BY sort_order,id',
+      'SELECT * FROM web_promats_products WHERE language_id=? AND status=0 AND (name LIKE ? OR slug LIKE ?) ORDER BY sort_order,id',
       [languageId(req.query), `%${q}%`, `%${q}%`]);
     return { ok: true, data: items.map((item) => product(item)) };
   });
 
   app.get('/web/promats/products/:slug', async (req, reply) => {
     const [item] = await rows(app,
-      'SELECT * FROM web_promats_products WHERE language_id=? AND slug=? LIMIT 1',
+      'SELECT * FROM web_promats_products WHERE language_id=? AND status=0 AND slug=? LIMIT 1',
       [languageId(req.query), (req.params as Row).slug]);
     if (!item) return reply.code(404).send({ error: { message: 'Ürün bulunamadı.' } });
     const features = await rows(app,
