@@ -1136,6 +1136,12 @@ body.promats-offcanvas::before {
   color: #50545a;
   line-height: 1.75;
 }
+/* Musteri revizesi 2026-08 (H5): SSS sorulari belirgin olsun. Bootstrap'in
+   "bolder" kurali 300 govdede yalniz 400 verir — fark gorunmuyordu. */
+.promats-public .promats-product-accordion-body strong {
+  font-weight: 700;
+  color: var(--pm-text-strong, #111);
+}
 .promats-public .promats-product-source {
   display: table;
   margin: 22px auto;
