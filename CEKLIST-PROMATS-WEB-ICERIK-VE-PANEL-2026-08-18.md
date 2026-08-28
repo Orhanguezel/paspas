@@ -338,6 +338,21 @@ adres kartı harita yüksekliğinde. Ekran görüntüleriyle belgelendi.
 > Not: H2/H10 içerik düzeltmeleri DB'de (yedek: `.yedek/web-special-pages-oncesi-20260828.sql`);
 > H1 başlıklar `seo_pages` + `page_content.home` anahtarlarında; gerisi kod/CSS.
 
+### H eki — ISO rozeti + footer tekliği (2026-08-28 akşam, commit `9d2d5c9`, release `20260828T180307Z`)
+
+- [x] **Gerçek ISO rozeti:** Müşterinin gönderdiği "CERTIFIED ISO 9001:2015" rozeti işlendi
+  (beyaz zemin şeffaflaştırıldı, 440px) → `/assets/images/hakkimizda/iso-9001-2015.png`;
+  çizim SVG silindi; DB `page_content.hakkimizda` (TR+EN) + repo fallback JSON yeni yola çevrildi.
+- [x] **"Farklı footer" şikayeti — teşhis:** Sitede zaten TEK footer var (`PromatsFooter`,
+  `[locale]/layout` üzerinden tüm sayfalara girer; 7 sayfada aynı `<footer>` DOM'u doğrulandı).
+  Algılanan "ikinci footer", Hakkımızda sonundaki koyu **"Promats'ı Daha Yakından Keşfedin"**
+  bandıydı: footer menüsünü tekrarlayan ÜRETİM/ÜRÜNLER/İLETİŞİM nav butonları. Bant kaldırıldı;
+  panel şemasından "Kapanış Bandı" grubu çıkarıldı. Canlı doğrulama: bant TR+EN'de yok,
+  `<footer>` sayısı 1, footer logo+menü+adres+sosyal eksiksiz, konsol hatasız.
+- [ ] Benzer koyu CTA bandı `become-a-partner` sayfasında da var (`PromatsEditorialPages.finalCta`)
+  — o nav taklidi değil, satış CTA'sı (İletişim + OEM butonları); bilinçli bırakıldı.
+  Müşteri isterse o da kaldırılır.
+
 ### Site geneli
 
 - [x] **H1 — Favicon + sekme başlığı:** "P" harfi yerine Promats logosu; başlık
