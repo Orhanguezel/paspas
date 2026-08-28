@@ -15,15 +15,15 @@ import 'swiper/css/pagination';
 
 type Props = {
   banners: SpecialPage[];
-  /** Her slide gecisi baslangicinda cagrilir — overlay metnini yeniden reveal etmek icin. */
-  onSlideChange?: () => void;
+  /** Her slide gecisi baslangicinda aktif slide indeksiyle cagrilir — overlay metni o slide'a gecer. */
+  onSlideChange?: (realIndex: number) => void;
 };
 
 /**
  * Yalnizca arka plan gorselleri (fade). Metin artik slide'larin icinde degil; PromatsHeroSlider
  * icindeki tek sabit overlay'de (PromatsHeroContents) — boylece slide gecerken metin oynamaz.
- * Metnin harf-reveal animasyonu her slaytta tekrarlanir: slide gecisi baslayinca onSlideChange
- * ile overlay remount edilir (orijinal owl-hero `translate` davranisi).
+ * Her slide'in KENDI metni vardir: gecis baslayinca aktif indeks yukari bildirilir, overlay o
+ * banner'in icerigiyle remount edilir ve harf-reveal animasyonu bastan oynar.
  */
 export default function PromatsHeroSwiperInner({ banners, onSlideChange }: Props) {
   const options = getHeroSwiperOptions();
@@ -34,7 +34,7 @@ export default function PromatsHeroSwiperInner({ banners, onSlideChange }: Props
       {...options}
       effect="fade"
       fadeEffect={{ crossFade: true }}
-      onSlideChangeTransitionStart={onSlideChange}
+      onSlideChangeTransitionStart={(swiper) => onSlideChange?.(swiper.realIndex)}
       className="swiper-container owl-hero"
     >
       {banners.map((banner, index) => (

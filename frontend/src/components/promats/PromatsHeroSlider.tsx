@@ -18,6 +18,8 @@ export default function PromatsHeroSlider({ banners, locale }: Props) {
   // Her slide gecisinde artar; PromatsHeroContents'i remount edip reveal animasyonunu
   // bastan oynatir (orijinal owl-hero her slaytta harf-reveal'i tekrar tetikliyordu).
   const [revealKey, setRevealKey] = useState(0);
+  // Aktif slide indeksi — her banner'in kendi baslik/alt metni gosterilir.
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     // Hero above-the-fold + slider'in garanti calismasi icin Swiper'i mount'ta hemen yukle
@@ -31,12 +33,17 @@ export default function PromatsHeroSlider({ banners, locale }: Props) {
     };
   }, []);
 
-  const handleSlideChange = useCallback(() => {
+  const handleSlideChange = useCallback((realIndex: number) => {
+    setActiveIndex(realIndex);
     setRevealKey((k) => k + 1);
   }, []);
 
-  // Metin tum slaytlarda ayni (orijinal): ilk banner'dan cozulur, tek sabit overlay'de gosterilir.
-  const parsed = useMemo(() => (banners.length ? parseHeroContent(decodeHtml(banners[0]!.detail, locale)) : null), [banners, locale]);
+  // Aktif slide'in banner'indan cozulur; sabit overlay'de gosterilir (arka planda yalniz gorsel gecer).
+  const activeBanner = banners[activeIndex] ?? banners[0];
+  const parsed = useMemo(
+    () => (activeBanner ? parseHeroContent(decodeHtml(activeBanner.detail, locale)) : null),
+    [activeBanner, locale],
+  );
 
   if (!banners.length) return null;
 

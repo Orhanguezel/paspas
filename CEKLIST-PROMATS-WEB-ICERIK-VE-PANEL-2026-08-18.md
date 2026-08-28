@@ -62,6 +62,48 @@ Excel iki sayfadan oluşuyor: **Ürün İçerik Master** (91 satır, 40'ı yeni 
 
 - [ ] Excel'de **"FOKNSİYONEL TASARIM"** iki satırda birden yanlış yazılmış → doğrusu **"FONKSİYONEL TASARIM"**. Siteye işlerken düzeltilecek; kaynak dosyada da düzeltilmesi önerilir.
 
+### Açık sorular ve çelişkiler — 2026-08-27 incelemesi
+
+Excel'in 29 gömülü ekran görüntüsü tek tek incelendi, canlı site ile karşılaştırıldı.
+İçeriğin ~%90'ı nettir; aşağıdakiler işlemeden önce karara bağlanmalı (önerilen karar yanında):
+
+1. **25+ mi 35+ mı? (müşteriye sorulacak tek gerçek soru)** — Excel kendi içinde çelişiyor:
+   R12 "25+ Ülkeye İhracat", R41 üretim sayfası istatistiği **35+ → 25+ düşürülüyor**, R85 sevkiyat
+   "25'ten fazla ülke"; **ama R88 Kurumsal Kimliğimiz metni "35'ten fazla ülkeye ürün tedarik eden"**
+   diyor. Canlı sitede de şu an iki rakam bir arada. **Öneri:** her yerde **25+** (Excel'in genel yönü bu);
+   R88'deki 35 büyük olasılıkla eski metinden kalma. Olgusal, müşteriye dönük iddia → teyit alınmalı.
+2. **İki komşu kartta aynı rozet** — R23 ve R24'ün yenisi aynı: "FONKSİYONEL TASARIM" (typo düzeltilmiş
+   hâliyle). Ürünler sayfasında yan yana iki kart aynı etiketi taşıyacak. **Öneri:** R24 (kenar tasarımlı
+   model) → **"FONKSİYONEL KENAR"**; müşteri bilinçli aynı istiyorsa aynen bırakılır.
+3. **R16'da iki paragraf + R19 ile tekrar** — Ürünler sayfası girişi için R16'da iki ayrı paragraf verilmiş
+   (ikincisi Maximum/Professional/Icon serilerini sayıyor); R19'daki metin R16'nın ilk paragrafının küçük
+   varyasyonu. Aynen işlenirse aynı sayfada üç kez neredeyse aynı tanıtım paragrafı oluşur.
+   **Öneri:** hero'ya R16'nın 2. paragrafı (seri adları geçen), "SERİLERİMİZ" bölüm girişine R19; R16'nın
+   1. paragrafı atlanır.
+4. **Slider buton hedefleri Excel'de yok** — "Serileri İncele" → `/tr/urunler`, "Üretimimizi Keşfedin" →
+   `/tr/uretim`, "Ürün Özellikleri" → `/tr/urunler#ortak-ozellikler` varsayılacak. Ekran görüntülerinde
+   nokta sayısı 4 ile 5 arasında değişiyor — canlıda kaç slayt var işleme sırasında sayılacak; 5. slayt
+   varsa içeriği Excel'de tanımsız (Slider 1 değişmiyor).
+5. **"Universal Fit" istatistik kutusu** — R17 ile ürünler sayfası istatistik barındaki "35+ İHRACAT ÜLKESİ"
+   kutusu "Universal Fit" oluyor; bar sayı+etiket formatında (8+ · 3D–5D · 3 · 35+), "Universal Fit" sayı
+   değil → kutu tasarımı uyarlanacak. Ayrıca barda kalan "3D–5D HAVUZ KONSEPTİ" ile yeni rozetlerdeki
+   "4D KONSEPT" söylemi yan yana duracak — müşteri isterse o kutu da güncellenir (Excel'de talep yok).
+6. **R8 = "NEDEN PROMATS?" kontrast bozukluğu** — ekran görüntüsünden teşhis edildi: koyu zeminde koyu gri
+   paragraflar okunmuyor. İçerik değil **tasarım düzeltmesi** (metin rengi); kapsama dahil edilecek.
+   Görüntüdeki mevcut metin zaten yeni söylemle ("universal", "25'ten fazla") güncellenmiş durumda.
+7. **ISO 9001:2015 bloğu** — mevcut "SERTİFİKALARIMIZ" bölümü tek belge bloğuna dönüşüyor; Excel'de
+   "buna benzer bir ikon" diye örnek rozet görseli var. **Öneri:** benzer bir rozet SVG çizilir; müşterinin
+   gerçek sertifika görseli/logosu varsa o tercih edilir (sorulacak).
+8. **EN tarafı Excel'de yok** — site TR/EN; yalnız TR işlenirse EN'de eski "car-specific/araca özel" söylem
+   kalır ve yeni "universal" konumlandırmayla çelişir. **Öneri:** TR işlendikten sonra aynı script'te EN
+   çevirileri de güncellenir.
+9. **"Araca özel" söyleminin kapsam dışı kalıntıları** — Excel yalnız 3 sayfayı (anasayfa, ürünler, üretim)
+   kapsıyor; ürün detay sayfaları, SEO meta'ları ve footer'da "araca özel kalıp" iddiaları kalabilir.
+   İşleme sırasında DB genelinde taranıp liste çıkarılacak (silme kararı müşteriyle).
+10. **"Kullanım Notları" sayfası şablon kalıntısı** — "ürün sütunları" diye bahsettiği yapı bu dosyada yok
+    (4 sütun var, ürün başına sütun yok). Bu dosya için Ortak/Uyarlanabilir/Seriye Özel ayrımının pratik
+    karşılığı yok; yok sayılabilir.
+
 ### İşleme yöntemi
 
 - [ ] İçerikler **elle panelden değil**, tercihen bir seed/migration script'i ile işlensin (`backend/src/db/seed/sql/` veya tek seferlik `scripts/`), böylece TR/EN eşleşmesi izlenebilir olur.

@@ -26,7 +26,9 @@ export type UretimPageContent = {
   meta: { title: string; description: string };
   hero: { eyebrow: string; headline: TitleLines; text: string };
   stats: PmStat[];
-  gallery: { image: string; alt: string }[];
+  /** Galerinin ustunde gosterilen opsiyonel bolum basligi + giris metni. */
+  galleryHeading?: { titleLine1: string; titleLine2: string; intro: string };
+  gallery: { image: string; alt: string; title?: string; text?: string }[];
   capabilities: {
     titleLine1: string;
     titleLine2: string;
@@ -38,6 +40,16 @@ export type UretimPageContent = {
   shipping: { title: TitleLines; image: string; alt: string; paragraphs: string[]; cta: string };
   contact: PmContactLabels;
 };
+
+function GalleryCaption({ title, text }: { title?: string; text?: string }): React.JSX.Element | null {
+  if (!title && !text) return null;
+  return (
+    <div className="pm-gallery__caption">
+      {title ? <h3>{title}</h3> : null}
+      {text ? <p>{text}</p> : null}
+    </div>
+  );
+}
 
 export function PromatsUretimPage({ locale, content: c }: { locale: string; content: UretimPageContent }) {
 
@@ -54,17 +66,28 @@ export function PromatsUretimPage({ locale, content: c }: { locale: string; cont
       />
       <PmStats stats={c.stats} />
 
-      {/* GALERİ — bir geniş, altında iki eşit görsel */}
+      {/* GALERİ — bir geniş, altında iki eşit görsel; her görselin altında opsiyonel başlık + açıklama */}
       <section className="pm-gallery position-relative">
         <DevNote section="uretim-galeri" title="Üretim Galeri" />
         <div className="container">
+          {c.galleryHeading ? (
+            <div className="pm-section__head">
+              <PmSectionHeading
+                line1={c.galleryHeading.titleLine1}
+                line2={c.galleryHeading.titleLine2}
+                intro={c.galleryHeading.intro}
+              />
+            </div>
+          ) : null}
           <div className="pm-gallery__lead" data-aos="fade-up">
             <PromatsImage src={c.gallery[0]!.image} alt={c.gallery[0]!.alt} width={1400} height={749} assetBase="/assets" sizes="(max-width: 992px) 100vw, 1140px" />
+            <GalleryCaption title={c.gallery[0]!.title} text={c.gallery[0]!.text} />
           </div>
           <div className="pm-gallery__pair">
             {c.gallery.slice(1).map((item, index) => (
               <div className="pm-gallery__cell" key={item.image} data-aos="fade-up" data-aos-delay={index * 100}>
                 <PromatsImage src={item.image} alt={item.alt} width={1040} height={592} assetBase="/assets" sizes="(max-width: 992px) 100vw, 560px" />
+                <GalleryCaption title={item.title} text={item.text} />
               </div>
             ))}
           </div>

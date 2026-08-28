@@ -235,6 +235,28 @@
   margin-top: 34px;
 }
 
+/* Galeri görsellerinin altındaki başlık + açıklama (müşteri revizesi 2026-08). */
+.promats-public .promats-modern-page .pm-gallery__caption {
+  padding: 18px 6px 0;
+}
+
+.promats-public .promats-modern-page .pm-gallery__caption h3 {
+  font-family: var(--font-display);
+  color: var(--pm-x-ink);
+  font-size: 17px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 0 0 6px;
+}
+
+.promats-public .promats-modern-page .pm-gallery__caption p {
+  color: var(--pm-text-body, #707070);
+  font-size: 14px;
+  line-height: 1.65;
+  max-width: 720px;
+  margin: 0;
+}
+
 /* ===== YETKİNLİKLER ===== */
 
 .promats-public .promats-modern-page .pm-caps {
@@ -595,6 +617,28 @@
   margin: 0 0 34px;
 }
 
+/* Başlık altındaki opsiyonel tanıtım paragrafı (müşteri revizesi 2026-08). */
+.promats-public .promats-modern-page .pm-contact__text {
+  color: var(--pm-text-body, #707070);
+  font-size: 15px;
+  line-height: 1.7;
+  text-align: center;
+  max-width: 640px;
+  margin: -22px auto 34px;
+}
+
+/* ISO 9001:2015 rozeti — Kalite Yönetim Sistemi bloğu (hakkımızda). */
+.promats-public .promats-modern-page .pm-iso {
+  display: flex;
+  justify-content: center;
+  padding-top: 26px;
+}
+
+.promats-public .promats-modern-page .pm-iso img {
+  width: 220px;
+  height: 220px;
+}
+
 /* Ortak PromatsContactForm'un DOM'u (ad / e-posta / telefon / mesaj / gönder) değişmeden,
    tasarımdaki iki sütunlu yerleşime grid ile oturtulur. */
 .promats-public .promats-modern-page .pm-contact__form {
@@ -821,20 +865,21 @@
   position: relative;
   display: block;
   background: #f6f6f6;
-  padding: 26px 26px 18px;
+  /* Üst boşluk rozet yüksekliği kadar: rozet paspas görseline temas etmez (müşteri notu 2026-08). */
+  padding: 46px 26px 18px;
 }
 
 .promats-public .promats-modern-page .pm-product__media img {
   width: 100%;
-  height: 190px;
+  height: 200px;
   object-fit: contain;
   display: block;
 }
 
 .promats-public .promats-modern-page .pm-product__badge {
   position: absolute;
-  top: 16px;
-  left: 16px;
+  top: 14px;
+  left: 14px;
   z-index: 1;
   background: var(--pm-x-brand);
   color: #fff;
@@ -844,6 +889,11 @@
   text-transform: uppercase;
   padding: 5px 14px;
   border-radius: 999px;
+  /* Uzun etiket görselin üstüne taşmak yerine ikinci satıra kırılır. */
+  max-width: calc(100% - 28px);
+  white-space: normal;
+  line-height: 1.3;
+  text-align: left;
 }
 
 .promats-public .promats-modern-page .pm-product__body {

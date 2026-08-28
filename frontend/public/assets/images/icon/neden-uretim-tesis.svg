@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" width="52" height="52" role="img" aria-label="Modern üretim altyapısı">
+  <!-- fabrika silueti: testere çatı + baca -->
+  <path d="M5 45 V22 l11 8 v-8 l11 8 v-8 l11 8 V45 Z" fill="none" stroke="#000" stroke-width="3" stroke-linejoin="round" />
+  <rect x="40" y="12" width="6" height="33" fill="none" stroke="#000" stroke-width="3" stroke-linejoin="round" />
+  <line x1="12" y1="38" x2="17" y2="38" stroke="#000" stroke-width="3" stroke-linecap="round" />
+  <line x1="23" y1="38" x2="28" y2="38" stroke="#000" stroke-width="3" stroke-linecap="round" />
+</svg>
