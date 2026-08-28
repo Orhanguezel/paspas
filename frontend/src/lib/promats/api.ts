@@ -229,6 +229,19 @@ export async function getPageContent<T>(locale: string, page: string): Promise<T
   }
 }
 
+/**
+ * getPageContent'in yumuşak sürümü: CMS'te kayıt yoksa veya API erişilemezse
+ * null döner; çağıran taraf repo içindeki varsayılan içeriğe düşer
+ * (Hakkımızda gibi hem DB'den yönetilebilir hem kodda yedeği olan sayfalar).
+ */
+export async function getPageContentOptional<T>(locale: string, page: string): Promise<T | null> {
+  try {
+    return await fetchPromats<T>(`/page-content/${encodeURIComponent(page)}`, locale);
+  } catch {
+    return null;
+  }
+}
+
 export async function getArticles(locale: string): Promise<ArticleListItem[]> {
   return fetchPromats<ArticleListItem[]>('/articles', locale);
 }

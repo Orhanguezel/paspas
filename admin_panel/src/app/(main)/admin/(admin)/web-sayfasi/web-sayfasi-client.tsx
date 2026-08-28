@@ -33,9 +33,14 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+import { PageGalleryEditor, ProductFeaturesEditor } from './_components/feature-gallery-editors';
+import { PageContentEditor } from './_components/page-content-editor';
+import { HeroBannerForm, NedenPromatsForm } from './_components/web-detail-forms';
+import { parseHeroDetail, parseNedenDetail } from './_lib/promats-detail-html';
+
 type TableKey = 'products' | 'pages' | 'page-content' | 'articles' | 'menu' | 'texts' | 'settings' | 'theme' | 'home-sections' | 'files';
 type FieldKind = 'text' | 'textarea' | 'richtext' | 'number' | 'date' | 'toggle';
-type EditorSection = 'content' | 'media' | 'seo' | 'publishing';
+type EditorSection = 'content' | 'media' | 'seo' | 'publishing' | 'features' | 'gallery';
 type Field = { key: string; label: string; kind?: FieldKind; section?: EditorSection };
 type Row = Record<string, unknown>;
 
@@ -776,9 +781,19 @@ export default function WebSayfasiClient({ initialTab = 'products', landing = fa
               </SheetHeader>
               {tab !== 'page-content' && <div className="border-b px-5 py-3">
                 <Tabs value={editorSection} onValueChange={(value) => setEditorSection(value as EditorSection)}>
-                  <TabsList className="grid h-auto w-full grid-cols-4 gap-2 bg-transparent p-0">
+                  <TabsList className={`grid h-auto w-full gap-2 bg-transparent p-0 ${
+                    (tab === 'products' && Array.isArray(editor.body.features)) || (tab === 'pages' && Array.isArray(editor.body.gallery))
+                      ? 'grid-cols-5'
+                      : 'grid-cols-4'
+                  }`}>
                     <TabsTrigger value="content" className="gap-1.5 border bg-blue-50 text-blue-700 data-[state=active]:border-blue-400 data-[state=active]:bg-blue-100"><FileText className="size-4" /> İçerik</TabsTrigger>
                     <TabsTrigger value="media" className="gap-1.5 border bg-violet-50 text-violet-700 data-[state=active]:border-violet-400 data-[state=active]:bg-violet-100"><ImageIcon className="size-4" /> Medya</TabsTrigger>
+                    {tab === 'products' && Array.isArray(editor.body.features) && (
+                      <TabsTrigger value="features" className="gap-1.5 border bg-cyan-50 text-cyan-700 data-[state=active]:border-cyan-400 data-[state=active]:bg-cyan-100"><LayoutList className="size-4" /> Özellikler</TabsTrigger>
+                    )}
+                    {tab === 'pages' && Array.isArray(editor.body.gallery) && (
+                      <TabsTrigger value="gallery" className="gap-1.5 border bg-cyan-50 text-cyan-700 data-[state=active]:border-cyan-400 data-[state=active]:bg-cyan-100"><FolderOpen className="size-4" /> Galeri</TabsTrigger>
+                    )}
                     <TabsTrigger value="seo" className="gap-1.5 border bg-emerald-50 text-emerald-700 data-[state=active]:border-emerald-400 data-[state=active]:bg-emerald-100"><Search className="size-4" /> SEO</TabsTrigger>
                     <TabsTrigger value="publishing" className="gap-1.5 border bg-orange-50 text-orange-700 data-[state=active]:border-orange-400 data-[state=active]:bg-orange-100"><Eye className="size-4" /> Yayın</TabsTrigger>
                   </TabsList>
@@ -803,14 +818,24 @@ export default function WebSayfasiClient({ initialTab = 'products', landing = fa
                       <strong>{String(editor.body.page_key)}</strong> · {String(editor.body.locale).toUpperCase()}
                       <p className="mt-1 text-xs">Bu kayıt sayfanın tüm başlık, metin, SEO, buton ve bölüm içeriklerinin tek kaynağıdır.</p>
                     </div>
-                    <Label htmlFor="page-content-json">Sayfa içeriği</Label>
-                    <Textarea
-                      id="page-content-json"
-                      className="min-h-[560px] font-mono text-xs leading-5"
-                      value={String(editor.body.content_json ?? '')}
-                      onChange={(event) => setEditor({ ...editor, body: { ...editor.body, content_json: event.target.value } })}
+                    <PageContentEditor
+                      pageKey={String(editor.body.page_key ?? '')}
+                      jsonText={String(editor.body.content_json ?? '')}
+                      onJsonTextChange={(next) => setEditor({ ...editor, body: { ...editor.body, content_json: next } })}
                     />
                   </div>
+                ) : editorSection === 'features' && tab === 'products' ? (
+                  <ProductFeaturesEditor
+                    features={Array.isArray(editor.body.features) ? editor.body.features as Row[] : []}
+                    onChange={(next) => setEditor({ ...editor, body: { ...editor.body, features: next } })}
+                    onUploadImage={uploadEditorImage}
+                  />
+                ) : editorSection === 'gallery' && tab === 'pages' ? (
+                  <PageGalleryEditor
+                    gallery={Array.isArray(editor.body.gallery) ? editor.body.gallery as Row[] : []}
+                    onChange={(next) => setEditor({ ...editor, body: { ...editor.body, gallery: next } })}
+                    onUploadImage={uploadEditorImage}
+                  />
                 ) : (
                 <div className="grid gap-4 md:grid-cols-2">
                 {(fields[tab] ?? []).filter((field) => (field.section ?? 'content') === editorSection).map((field) => {
@@ -852,6 +877,22 @@ export default function WebSayfasiClient({ initialTab = 'products', landing = fa
                           }}
                           previewAspect="16x9"
                           previewObjectFit="contain"
+                        />
+                      ) : field.kind === 'richtext' && tab === 'pages' && field.key === 'detail'
+                        && Number(editor.body.position) === 1 ? (
+                        // Banner (slider) kaydi: HTML sozlesmesi kullaniciya acilmaz,
+                        // alanlar formdan duzenlenir ve HTML sablondan uretilir (G1).
+                        <HeroBannerForm
+                          initial={parseHeroDetail(String(value ?? ''))
+                            ?? { line1: '', line2: '', text: '', buttonLabel: '', buttonUrl: '' }}
+                          onChange={setValue}
+                        />
+                      ) : field.kind === 'richtext' && tab === 'pages' && field.key === 'detail'
+                        && /neden-promats|why-promats/.test(String(editor.body.slug ?? ''))
+                        && parseNedenDetail(String(value ?? '')) ? (
+                        <NedenPromatsForm
+                          initial={parseNedenDetail(String(value ?? ''))!}
+                          onChange={setValue}
                         />
                       ) : field.kind === 'richtext' ? (
                         <RichContentEditor

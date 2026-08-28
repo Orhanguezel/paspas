@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import { PromatsHakkimizdaPage } from '@/components/promats/PromatsHakkimizdaPage';
+import { PromatsHakkimizdaPage, hakkimizdaFallback, type HakkimizdaContent } from '@/components/promats/PromatsHakkimizdaPage';
 import PromatsStaticPage from '@/components/promats/PromatsStaticPage';
-import hakkimizdaContent from '@/config/pages/hakkimizda-page.json';
-import { assetPath, getSpecialPage, getSpecialPages, stripHtml } from '@/lib/promats/api';
+import { assetPath, getPageContentOptional, getSpecialPage, getSpecialPages, stripHtml } from '@/lib/promats/api';
 
 const PROMATS_LOCALES = ['tr', 'en'] as const;
 
@@ -35,7 +34,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale, etiket } = await params;
   if (isKurumsal(locale, etiket)) {
-    const c = (hakkimizdaContent as Record<string, (typeof hakkimizdaContent)['en']>)[locale === 'en' ? 'en' : 'tr'];
+    const c = (await getPageContentOptional<HakkimizdaContent>(locale, 'hakkimizda')) ?? hakkimizdaFallback(locale);
     return {
       title: c.meta.title,
       description: c.meta.description,
@@ -70,7 +69,8 @@ export default async function StaticPage({
 }) {
   const { locale, etiket } = await params;
   if (isKurumsal(locale, etiket)) {
-    return <PromatsHakkimizdaPage locale={locale} />;
+    const content = await getPageContentOptional<HakkimizdaContent>(locale, 'hakkimizda');
+    return <PromatsHakkimizdaPage locale={locale} content={content} />;
   }
   const page = await getSpecialPage(locale, etiket);
   if (!page) notFound();

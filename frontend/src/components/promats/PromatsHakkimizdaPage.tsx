@@ -13,7 +13,7 @@ type Value = { mark: string; title: string; body: string };
 type Milestone = { year: string; body: string };
 type Link = { label: string; href: string };
 
-type HakkimizdaContent = {
+export type HakkimizdaContent = {
   meta: { title: string; description: string };
   hero: { eyebrow: string; headline: string[]; text: string; cta: string };
   kimlik: { eyebrow: string; heading: string; paragraphs: string[]; image: string; imageAlt: string };
@@ -35,8 +35,13 @@ const CAP_ICON: Record<string, string> = {
   quality: '/assets/images/hakkimizda/icons/kalite-anlayisi.svg',
 };
 
-export function PromatsHakkimizdaPage({ locale }: { locale: string }) {
-  const c = (hakkimizdaContent as Record<string, HakkimizdaContent>)[locale === 'en' ? 'en' : 'tr']!;
+/** Repo içindeki varsayılan içerik — CMS'te kayıt yoksa yedek olarak kullanılır. */
+export function hakkimizdaFallback(locale: string): HakkimizdaContent {
+  return (hakkimizdaContent as Record<string, HakkimizdaContent>)[locale === 'en' ? 'en' : 'tr']!;
+}
+
+export function PromatsHakkimizdaPage({ locale, content }: { locale: string; content?: HakkimizdaContent | null }) {
+  const c = content ?? hakkimizdaFallback(locale);
 
   return (
     <div className="promats-modern-page promats-hakkimizda-page">

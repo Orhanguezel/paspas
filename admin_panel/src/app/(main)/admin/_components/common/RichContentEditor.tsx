@@ -71,6 +71,53 @@ function normalizeLegacyHtmlValue(raw: string | undefined | null): string {
   return raw;
 }
 
+// Yapistirilan icerikten Word/Docs copu temizlenir (G3): yalniz temel etiketler
+// kalir, class/style/mso nitelikleri atilir. Bu olmadan musteri Word'den
+// yapistirdiginda gizli stiller siteye tasiniyor ve tasarimi bozuyordu.
+const PASTE_ALLOWED_TAGS = new Set([
+  'P', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 'UL', 'OL', 'LI',
+  'H1', 'H2', 'H3', 'H4', 'A', 'IMG', 'TABLE', 'THEAD', 'TBODY', 'TR', 'TD', 'TH',
+]);
+
+function sanitizePastedNode(node: Node, output: HTMLElement): void {
+  if (node.nodeType === Node.TEXT_NODE) {
+    output.appendChild(document.createTextNode(node.textContent ?? ''));
+    return;
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return;
+  const el = node as HTMLElement;
+  const tag = el.tagName;
+  if (tag === 'STYLE' || tag === 'SCRIPT' || tag === 'META' || tag === 'LINK' || tag === 'XML') return;
+  if (!PASTE_ALLOWED_TAGS.has(tag)) {
+    // Bilinmeyen etiket (span, div, font, o:p...) acilir; icerigi korunur.
+    el.childNodes.forEach((child) => sanitizePastedNode(child, output));
+    return;
+  }
+  const clean = document.createElement(tag.toLowerCase());
+  if (tag === 'A') {
+    const href = el.getAttribute('href');
+    if (href && !/^\s*javascript:/i.test(href)) clean.setAttribute('href', href);
+  }
+  if (tag === 'IMG') {
+    const src = el.getAttribute('src');
+    if (!src || /^\s*(javascript|file):/i.test(src)) return;
+    clean.setAttribute('src', src);
+    clean.setAttribute('alt', el.getAttribute('alt') ?? '');
+    clean.setAttribute('style', 'max-width:100%; height:auto;');
+  }
+  el.childNodes.forEach((child) => sanitizePastedNode(child, clean));
+  if (tag !== 'IMG' && tag !== 'BR' && !clean.textContent?.trim() && !clean.querySelector('img')) return;
+  output.appendChild(clean);
+}
+
+export function sanitizePastedHtml(dirty: string): string {
+  if (typeof document === 'undefined') return dirty;
+  const doc = new DOMParser().parseFromString(dirty, 'text/html');
+  const output = document.createElement('div');
+  doc.body.childNodes.forEach((child) => sanitizePastedNode(child, output));
+  return output.innerHTML;
+}
+
 function insertHtmlAtCursor(html: string) {
   if (typeof window === 'undefined') return;
 
@@ -150,6 +197,26 @@ const RichContentEditor: React.FC<RichContentEditorProps> = ({
   const handleVisualInput = (e: React.FormEvent<HTMLDivElement>) => {
     if (disabled) return;
     propagateChange(e.currentTarget.innerHTML);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    if (disabled) return;
+    const htmlData = e.clipboardData?.getData('text/html');
+    const textData = e.clipboardData?.getData('text/plain');
+    if (!htmlData && !textData) return;
+    e.preventDefault();
+    focusEditor();
+    if (htmlData) {
+      insertHtmlAtCursor(sanitizePastedHtml(htmlData));
+    } else if (textData) {
+      const escaped = textData
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br>');
+      insertHtmlAtCursor(escaped);
+    }
+    if (editorRef.current) propagateChange(editorRef.current.innerHTML);
   };
 
   const focusEditor = () => editorRef.current?.focus();
@@ -378,6 +445,7 @@ const RichContentEditor: React.FC<RichContentEditorProps> = ({
                 }}
                 contentEditable={!disabled}
                 onInput={handleVisualInput}
+                onPaste={handlePaste}
                 suppressContentEditableWarning
               />
             </TabsContent>
