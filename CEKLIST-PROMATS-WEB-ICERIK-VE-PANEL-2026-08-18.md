@@ -62,7 +62,26 @@ Excel iki sayfadan oluşuyor: **Ürün İçerik Master** (91 satır, 40'ı yeni 
 
 - [ ] Excel'de **"FOKNSİYONEL TASARIM"** iki satırda birden yanlış yazılmış → doğrusu **"FONKSİYONEL TASARIM"**. Siteye işlerken düzeltilecek; kaynak dosyada da düzeltilmesi önerilir.
 
-### Açık sorular ve çelişkiler — 2026-08-27 incelemesi
+### ✅ UYGULANDI — 2026-08-28 (commit `1f654cb`)
+
+**Kullanıcı kararları (2026-08-27):** ihracat ülke sayısı **her yerde 35+**; **tüm içerikler TR+EN**.
+
+| İş | Nereye gitti |
+|---|---|
+| Slider 2-4 başlık/metin/buton (R3-R5) | `web_promats_special_pages` 21/23/25 (TR), 22/24/26 (EN) + slider artık **slayta özel metin** gösteriyor (önceden ilk banner'ın metni tüm slaytlarda sabitti) |
+| Ürünler başlığı altı giriş metni (R7) | `web_promats_static_texts` 2001 (TR) / 2002 (EN) + `PromatsHome` |
+| NEDEN PROMATS kontrast (R8) | CSS `.neden_promat p` kuralı + DB içeriği temiz `<span>` yapısına çevrildi (TR 4, EN 5), 25→35 |
+| Rozet barı (R10-R12) | NEDEN PROMATS detail içindeki `.neden_promat_iconbg` — 3 yeni SVG ikon (`/assets/images/icon/neden-*.svg`) |
+| Ürünler sayfası metinleri (R14-R19, R27-R29) | `site_settings` `page_content.products.locale.tr/en` |
+| Seri rozetleri (R21-R25) | `web_promats_products.s2_3_text` kısaltıldı; CSS: rozet sola üstte, görsele taşmaz, 2. satıra kırılır, görsel alanı büyütüldü |
+| Üretim sayfası (R39-R85) | `site_settings` `page_content.production.locale.tr/en` + galeri başlık/açıklama alanları (`galleryHeading`, `gallery[].title/text`) |
+| Hakkımızda (R87-R91) | `frontend/src/config/pages/hakkimizda-page.json` — hero/kimlik zaten Excel metniyle uyumluydu; değerler gövdeleri güncellendi; SERTİFİKALARIMIZ → tek **ISO 9001:2015** bloğu + rozet SVG |
+
+**Kayıt:** DB script `scripts/web-icerik-guncelleme-20260827.py` (uygulandı), yedek `.yedek/web-icerik-oncesi-20260827.sql` (special_pages + static_texts + products + site_settings, 291K).
+
+**Verilen kararlar (aşağıdaki açık soruların çözümü):** 1→35+ her yerde; 2→R24 "FONKSİYONEL KENAR"; 3→hero'ya R16 2. paragraf, Serilerimiz'e R19; 4→butonlar `/urunler`, `/uretim`, `/urunler#ozellikler`; 5→"Universal / Fit" kutusu, 3D–5D kutusu kaldı; 6→CSS kuralı + içerik temizliği; 7→benzer rozet SVG çizildi; 8→EN aynı script'te güncellendi; 9→"araca özel" kalıntı taraması yapıldı (ürünler/üretim sayfa metinleri temizlendi; ürün detay `detail_*` metinleri ayrı iş); 10→yok sayıldı.
+
+### Açık sorular ve çelişkiler — 2026-08-27 incelemesi (karara bağlandı, yukarıya bakın)
 
 Excel'in 29 gömülü ekran görüntüsü tek tek incelendi, canlı site ile karşılaştırıldı.
 İçeriğin ~%90'ı nettir; aşağıdakiler işlemeden önce karara bağlanmalı (önerilen karar yanında):
