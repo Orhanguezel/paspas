@@ -322,6 +322,55 @@ BANNER 2 panelden kaydedildi → DB'deki HTML öncekiyle birebir aynı, 297 öze
 yerinde, site metinleri sağlam. D maddesindeki "JSON'la çeviri akışı" ihtiyacı için ham JSON
 "Gelişmiş" bölümünde durmaya devam ediyor.
 
+## H. Müşteri revizesi 2. tur — "Promats web revize yeni.docx" (2026-08-28)
+
+Kaynak: [Promats web revize yeni.docx](Promats%20web%20revize%20yeni.docx) — 12 not, hepsi ekran
+görüntüsüne bağlı; tamamı eşlendi. Çoğunluk tasarım/CSS işi, 2'si içerik+kod karışık.
+
+### Site geneli
+
+- [ ] **H1 — Favicon + sekme başlığı:** "P" harfi yerine Promats logosu; başlık
+  "Universal Paspaslar | Promats" → **"Promats Oto Paspasları"** (EN: "Promats Car Mats").
+  Varsayım: yalnız site geneli varsayılan başlık değişir, sayfa bazlı SEO başlıkları korunur.
+- [ ] **H2 — Slider 1 "Ürünleri Keşfet" butonu:** tıklanmıyor ve tasarımı diğer slaytlardaki sarı
+  düğmeden farklı (sol çizgili düz yazı). Diğerleriyle aynı `btn btn-yellow` formatına getirilecek,
+  `/tr/urunler` (EN `/en/products`) linki verilecek — banner1 TR+EN `detail` güncellemesi
+  (artık G1 formu/şablonuyla güvenli).
+
+### Ürün detay sayfası (PromatsProductDetail)
+
+- [ ] **H3 — "5 Parça Tam Set"** düz başlık duruyor; diğer bölümlerle aynı formata (akordiyon
+  başlığı) getirilecek.
+- [ ] **H4 — "Kullanım Alanları" başlığı kalkacak;** bölüm başlığı içerikteki **"Temizlik ve Bakım"**
+  olacak (içerik `detail_usage`'ta; başlık render'da değiştirilir, DB'ye dokunulmaz).
+- [ ] **H5 — SSS ayrıştırma:** "Sık Sorulan Sorular" şu an Avantajlar akordiyonunun İÇİNDE
+  (`detail_advantages` HTML'inde h2). Ayrı başlık olacak, sayfanın en sonuna
+  ("Bu ürünle ilgileniyor musunuz"dan hemen önce) taşınacak, **sorular bold** olacak.
+  Önerilen yöntem: 20 üründe DB içeriğini elden geçirmek yerine render-time split —
+  advantages HTML'i "Sık Sorulan Sorular" h2'sinden ikiye bölünür, ikinci parça SSS bölümü
+  olarak sona konur; soru paragrafları (soru işaretiyle bitenler) bold'lanır. TR+EN aynı mantık
+  (EN başlık "Frequently Asked Questions").
+- [ ] **H6 — "X Serisi Hakkında Bilgi Alın" bloğu kaldırılacak** — alttaki ilgi CTA'sıyla mükerrer.
+
+### Üretim + Ürünler sayfaları (PmSectionHeading intro genişliği)
+
+- [ ] **H7 — "ÜRETİM TESİSİMİZ" intro metni** dar sütunda; yanlara genişletilecek.
+- [ ] **H8 — "ÜRÜN SERİLERİMİZ" intro** aynı oranda genişletilecek (aynı bileşen).
+- [ ] **H9 — "ORTAK ÖZELLİKLER" başlığı ortalanacak** (şu an sola hizalı) + intro aynı şekilde
+  genişletilecek.
+- [ ] **H10 — Ortak özellikler 1. kart görseli** ("1. Sınıf Kalite PVC") diğerleriyle aynı standartta
+  değil (çerçevesiz/oran farklı); karta diğerleriyle aynı çerçeve/oran verilecek.
+
+### İletişim
+
+- [ ] **H11 — İletişim formu düzeni:** "Konu Başlığı" ve "İlgilenilen Ürün Grubu" select'lerinde
+  label/placeholder çakışması ve hiza bozukluğu (müşteri kırmızıyla işaretledi). Alan dizilimi ve
+  select görünümü düzenlenecek.
+- [ ] **H12 — İletişim alt bloğu:** adres kartı + harita + "Yol Tarifi Al" hizaları gözden geçirilecek.
+
+> Uygulama sırası önerisi: H2 (çalışmayan buton — işlevsel hata) → H3-H6 (ürün detay) →
+> H7-H10 (CSS) → H1 → H11-H12. Sonrasında canlı görsel doğrulama TR+EN.
+
 ## Önerilen Sıra
 
 1. ~~**F — görsel yolu**~~ ✅ **TAMAMLANDI** (18 Ağu, commit `1e8b25d`)
