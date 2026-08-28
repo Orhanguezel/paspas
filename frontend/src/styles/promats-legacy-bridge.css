@@ -1776,6 +1776,12 @@ body.promats-offcanvas::before {
 .promats-public .pm-feature-cards {
   padding: clamp(4.5rem, 8vw, 7.5rem) 0;
   background: #f1f1f1;
+  /* Musteri revizesi 2026-08 (H9): baslik diger bolumler gibi ortalanir. */
+  text-align: center;
+}
+.promats-public .pm-feature-cards__grid,
+.promats-public .pm-feature-card__body {
+  text-align: left;
 }
 .promats-public .pm-feature-cards__grid {
   display: grid;
@@ -1861,6 +1867,7 @@ body.promats-offcanvas::before {
   min-width: 0;
 }
 .promats-public .promats-contact-form-card form > .form-group:has(textarea),
+.promats-public .promats-contact-form-card form > .form-group:has(.promats-multiselect),
 .promats-public .promats-contact-form-card form > .form-check,
 .promats-public .promats-contact-form-card form > .float-right,
 .promats-public .promats-contact-form-card form > .alert,
@@ -1876,9 +1883,17 @@ body.promats-offcanvas::before {
   display: grid;
   grid-template-columns: minmax(280px, 0.72fr) minmax(520px, 1.28fr);
   gap: clamp(32px, 5vw, 72px);
-  align-items: center;
+  /* Musteri revizesi 2026-08 (H12): kart harita yuksekligine oturur, buton ortalanir. */
+  align-items: stretch;
+}
+.promats-public .promats-contact-location__grid > div:last-child {
+  text-align: center;
 }
 .promats-public .promats-contact-address {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
   padding: 32px;
   border-radius: 22px;
   background: #fff;
