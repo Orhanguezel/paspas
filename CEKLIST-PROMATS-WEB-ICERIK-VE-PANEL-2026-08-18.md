@@ -286,6 +286,26 @@ Frontend (`PromatsImage` → `resolvePath` → `assetPath`) ve admin panel (`web
 
 > **Not:** TeklifRota kendi tarafında da dayanıklılık eklemişti (`ee2d678`). Artık iki taraf da doğru; onların telafi kodu zararsız (`/userfiles` gelince olduğu gibi geçiriyor).
 
+## G. Panel düzenleme ekranları teşhisi — 2026-08-28
+
+**Soru:** Müşteri panelden bu içerikleri neden düzeltemiyor?
+**Teknik arıza YOK:** admin uçlarının tamamı token'la 200 dönüyor (products/pages/page-content/articles/menu/texts/settings/theme/home-sections), 2 admin hesabı mevcut, PATCH yolu çalışıyor. Sorun yetki değil, **düzenleme modeli**:
+
+1. **Sayfa metinleri = çıplak JSON.** Ürünler/Üretim sayfa içerikleri ("Sayfa İçerikleri" sekmesi) tek parça ham JSON textarea'da düzenleniyor ([web-sayfasi-client.tsx:807](admin_panel/src/app/\(main\)/admin/\(admin\)/web-sayfasi/web-sayfasi-client.tsx#L807)). Anahtarlar İngilizce (`hero.headline`, `stats[].value`); tek tırnak hatasında "JSON biçimi geçersiz" → hiçbir şey kaydedilmiyor. Teknik olmayan kullanıcı için fiilen düzenlenemez.
+2. **Slider metinleri kırılgan HTML sözleşmesinin içinde.** Banner başlık/alt metin/buton, `detail` HTML'inde `<h1 class="hero-heading">` + `.sub-text` yapısında; frontend bunu REGEX ile ayrıştırıyor ([PromatsHeroContents.tsx:25](frontend/src/components/promats/PromatsHeroContents.tsx#L25)). Panelin görsel editörü `document.execCommand` tabanlı contentEditable — class'ları koruma garantisi yok; müşteri başlığı değiştirince `hero-heading` class'ı kaybolursa başlık sitede HİÇ görünmez. "Düzeltemiyor" şikayetinin ana sebebi bu.
+3. **Word yapıştırma sanitizasyonu yok.** NEDEN PROMATS kazası (R8) tam olarak böyle oldu: müşteri Word'den yapıştırdı, Mso çöpü + `<p>` yapısı geldi, koyu zeminde metin okunmaz oldu. Editörde paste temizliği yok.
+4. **Neden Promats rozet barı** aynı HTML blobun içinde (`neden_promat_iconbg`) — üç ikon+etiketi görsel editörde bozmadan değiştirmek pratikte imkânsız.
+5. **Hakkımızda sayfası panelden hiç düzenlenemez** — içerik repoda ([hakkimizda-page.json](frontend/src/config/pages/hakkimizda-page.json)); değişiklik deploy istiyor. "Ortak Özellikler" kartları da kodda gömülü (`SHARED_FEATURE_CARDS`).
+6. **Ürün özellikleri (297) + sayfa galerisi (8):** backend PATCH `features`/`gallery` children'ı destekliyor ([router.ts:672](backend/src/modules/web_promats/router.ts#L672)) ama panelde UI yok (E maddesi hâlâ açık — backend hazır, yalnız ekran eksik).
+
+### Önerilen çözüm sırası
+
+- [ ] **G1 (asıl çözüm):** Banner ve Neden Promats için yapılandırılmış form — "Başlık 1 / Başlık 2 / Alt metin / Buton yazısı / Buton linki" (+ Neden Promats: metin + 3 rozet etiketi). HTML'i panel şablondan üretir; regex sözleşmesi hiç bozulmaz.
+- [ ] **G2:** Sayfa İçerikleri sekmesine alan bazlı form (hero/stats/intro/contact alanları); ham JSON "Gelişmiş" bölümüne iner.
+- [ ] **G3:** RichContentEditor'e yapıştırma sanitizasyonu (Mso/class/style temizliği).
+- [ ] **G4:** `hakkimizda-page.json` içeriğini `page_content.hakkimizda.locale.tr/en` anahtarına taşı → panelden düzenlenebilir olur.
+- [ ] **G5:** Ürün formuna "Özellikler" sekmesi + sayfa galerisi ekranı (backend hazır).
+
 ## Önerilen Sıra
 
 1. ~~**F — görsel yolu**~~ ✅ **TAMAMLANDI** (18 Ağu, commit `1e8b25d`)
