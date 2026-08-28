@@ -281,23 +281,8 @@ const HAKKIMIZDA_SCHEMA: PcSchema = [
       ],
     }],
   },
-  {
-    title: 'Kapanış Bandı',
-    fields: [
-      { path: 'cta.eyebrow', label: 'Üst etiket' },
-      { path: 'cta.heading', label: 'Başlık' },
-      { path: 'cta.text', label: 'Metin', kind: 'area' },
-    ],
-    lists: [{
-      path: 'cta.links',
-      label: 'Bağlantılar',
-      template: { label: '', href: '' },
-      item: [
-        { path: 'label', label: 'Yazı' },
-        { path: 'href', label: 'Bağlantı (/uretim gibi)' },
-      ],
-    }],
-  },
+  // "Kapanis Bandi" grubu kaldirildi (2026-08-28): footer menusunu tekrarlayan koyu
+  // bant sitede artik render edilmiyor; panelde duzenletmek kafa karistirirdi.
 ];
 
 export const PAGE_CONTENT_SCHEMAS: Record<string, PcSchema> = {

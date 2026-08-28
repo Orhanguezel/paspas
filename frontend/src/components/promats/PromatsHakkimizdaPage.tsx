@@ -2,7 +2,6 @@ import { Fragment } from 'react';
 
 import { DevNote } from '@/components/devnote';
 import hakkimizdaContent from '@/config/pages/hakkimizda-page.json';
-import { localeHref as href } from '@/lib/promats/links';
 
 import PromatsImage from './PromatsImage';
 import { PmHero, PmSectionHeading } from './PromatsModernShell';
@@ -178,22 +177,9 @@ export function PromatsHakkimizdaPage({ locale, content }: { locale: string; con
         </div>
       </section>
 
-      {/* KAPANIŞ CTA — koyu bant + sayfa linkleri */}
-      <section className="pm-darkband pm-darkband--cta position-relative">
-        <DevNote section="hakkimizda-cta" title="Kurumsal CTA" />
-        <div className="container">
-          <div className="pm-darkband__center" data-aos="fade-up">
-            <span className="pm-darkband__eyebrow">{c.cta.eyebrow}</span>
-            <h2 className="pm-darkband__heading">{c.cta.heading}</h2>
-            <p className="pm-darkband__text">{c.cta.text}</p>
-            <div className="pm-cta-row">
-              {c.cta.links.map((link) => (
-                <a key={link.href} href={href(locale, link.href)} className="pm-btn pm-btn--ghost">{link.label}</a>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Kapanis CTA bandi kaldirildi (musteri notu 2026-08-28): footer menusunu
+          tekrarlayan koyu bant "ikinci footer" gibi algilaniyordu; sayfa dogrudan
+          site geneli tek footer'a (PromatsFooter, layout) baglanir. */}
     </div>
   );
 }

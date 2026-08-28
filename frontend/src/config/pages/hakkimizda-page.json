@@ -127,7 +127,7 @@
       "headingLine": "ISO 9001:2015",
       "intro": "Üretim ve kalite yönetim süreçlerimiz ISO 9001:2015 Kalite Yönetim Sistemi standardı kapsamında belgelendirilmiştir.",
       "badge": {
-        "image": "/assets/images/hakkimizda/iso-9001-2015.svg",
+        "image": "/assets/images/hakkimizda/iso-9001-2015.png",
         "alt": "ISO 9001:2015 Kalite Yönetim Sistemi belgesi"
       }
     },
@@ -309,7 +309,7 @@
       "headingLine": "ISO 9001:2015",
       "intro": "Our production and quality management processes are certified under the ISO 9001:2015 Quality Management System standard.",
       "badge": {
-        "image": "/assets/images/hakkimizda/iso-9001-2015.svg",
+        "image": "/assets/images/hakkimizda/iso-9001-2015.png",
         "alt": "ISO 9001:2015 Quality Management System certificate"
       }
     },
