@@ -298,13 +298,29 @@ Frontend (`PromatsImage` → `resolvePath` → `assetPath`) ve admin panel (`web
 5. **Hakkımızda sayfası panelden hiç düzenlenemez** — içerik repoda ([hakkimizda-page.json](frontend/src/config/pages/hakkimizda-page.json)); değişiklik deploy istiyor. "Ortak Özellikler" kartları da kodda gömülü (`SHARED_FEATURE_CARDS`).
 6. **Ürün özellikleri (297) + sayfa galerisi (8):** backend PATCH `features`/`gallery` children'ı destekliyor ([router.ts:672](backend/src/modules/web_promats/router.ts#L672)) ama panelde UI yok (E maddesi hâlâ açık — backend hazır, yalnız ekran eksik).
 
-### Önerilen çözüm sırası
+### Önerilen çözüm sırası — ✅ TAMAMLANDI (2026-08-28, release `20260828T171112Z-1dca5de`)
 
-- [ ] **G1 (asıl çözüm):** Banner ve Neden Promats için yapılandırılmış form — "Başlık 1 / Başlık 2 / Alt metin / Buton yazısı / Buton linki" (+ Neden Promats: metin + 3 rozet etiketi). HTML'i panel şablondan üretir; regex sözleşmesi hiç bozulmaz.
-- [ ] **G2:** Sayfa İçerikleri sekmesine alan bazlı form (hero/stats/intro/contact alanları); ham JSON "Gelişmiş" bölümüne iner.
-- [ ] **G3:** RichContentEditor'e yapıştırma sanitizasyonu (Mso/class/style temizliği).
-- [ ] **G4:** `hakkimizda-page.json` içeriğini `page_content.hakkimizda.locale.tr/en` anahtarına taşı → panelden düzenlenebilir olur.
-- [ ] **G5:** Ürün formuna "Özellikler" sekmesi + sayfa galerisi ekranı (backend hazır).
+- [x] **G1:** Banner ve Neden Promats yapılandırılmış formları — `_components/web-detail-forms.tsx` +
+  `_lib/promats-detail-html.ts`. HTML şablondan üretilir; canlı HTML ile round-trip **byte-byte aynı**
+  (bun testi + panelden gerçek kaydetme sonrası DB karşılaştırmasıyla kanıtlandı). Entity-encoded eski
+  kayıtlar (`&lt;h1...`) da çözülüp ayrıştırılıyor.
+- [x] **G2:** Sayfa İçerikleri alan bazlı form — `_components/page-content-editor.tsx` +
+  `_lib/page-content-schemas.ts` (products / production / hakkimizda şemaları). Ham JSON "Gelişmiş"
+  bölümüne indi; şemasız sayfalar (oem, partner, resources…) JSON'da kalır.
+- [x] **G3:** RichContentEditor yapıştırma sanitizasyonu — izinli etiket beyaz listesi, Word/Mso
+  class+style temizliği, javascript: href/src engeli.
+- [x] **G4:** Hakkımızda içeriği `page_content.hakkimizda.locale.tr/en` anahtarına taşındı
+  (seed: `scripts/hakkimizda-page-content-seed-20260828.py`); frontend DB'den okur
+  (`getPageContentOptional`), repo JSON'u yedek. Panelde "Sayfa İçerikleri"nde düzenlenebilir.
+- [x] **G5:** Ürün formuna "Özellikler" sekmesi (297 kayıt — tip/metin/görsel/sıra + yükleme) ve
+  sayfa formuna "Galeri" sekmesi eklendi; backend `replaceProductFeatures`/`replacePageGallery`
+  zaten hazırdı. Bu, E maddesinin panel ayağını da kapatır.
+
+**Canlı doğrulama (2026-08-28):** panel girişiyle 4 ekran tarayıcıda test edildi (banner formu,
+Neden Promats formu, production içerik formu, ürün Özellikler sekmesi — hepsi canlı veriyle dolu);
+BANNER 2 panelden kaydedildi → DB'deki HTML öncekiyle birebir aynı, 297 özellik + 8 galeri kaydı
+yerinde, site metinleri sağlam. D maddesindeki "JSON'la çeviri akışı" ihtiyacı için ham JSON
+"Gelişmiş" bölümünde durmaya devam ediyor.
 
 ## Önerilen Sıra
 
