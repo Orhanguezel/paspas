@@ -1,5 +1,8 @@
 # CLAUDE.md — Paspas Üretim ERP
 
+> **⚠ AÇIK GÜVENLİK BORCU (KRİTİK, 2026-09-28):** şifre sıfırlama ile hesap ele geçirme açığı düzeltilmedi.
+> Oturumun ilk işi: [GUVENLIK-ACIGI-SIFRE-SIFIRLAMA-2026-09-28.md](GUVENLIK-ACIGI-SIFRE-SIFIRLAMA-2026-09-28.md)
+
 Bu dosya Claude Code'un bu projede çalışırken uyması gereken tüm kuralları tanımlar.
 Tüm alt projeler (admin_panel, backend) bu dosyayı miras alır; her biri kendi ek kurallarını kendi CLAUDE.md dosyasında tutar.
 
