@@ -232,7 +232,7 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
   const watchAd = form.watch("ad");
   const watchRenk = form.watch("renk");
   const selectedCategory = categories.find((item) => item.kod === watchKategori);
-  const { data: subCategoryData, isFetching: subCategoriesFetching } = useListSubCategoriesAdminQuery(
+  const { currentData: subCategoryData, isFetching: subCategoriesFetching } = useListSubCategoriesAdminQuery(
     selectedCategory
       ? { category_id: selectedCategory.id, is_active: true, sort: "display_order", order: "asc", limit: 200 }
       : { is_active: true, sort: "display_order", order: "asc", limit: 200 },
@@ -374,7 +374,7 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
   }, [selectedCategory, isPrefilled, form, operationTypeRequired]);
 
   useEffect(() => {
-    if (subCategoriesFetching) return;
+    if (!open || subCategoriesFetching || !subCategoryData) return;
     const currentGroup = (form.getValues("urunGrubu") || "").trim();
     if (!currentGroup) return;
 
@@ -389,15 +389,15 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
       form.setValue("urunGrubu", "", { shouldDirty: true });
       form.setValue("altGrup", "", { shouldDirty: true });
     }
-  }, [categorySubGroups, form, subCategoriesFetching]);
+  }, [categorySubGroups, form, open, subCategoryData, subCategoriesFetching]);
 
   useEffect(() => {
-    if (subCategoriesFetching) return;
+    if (!open || subCategoriesFetching || !subCategoryData || !selectedGroup) return;
     const currentAltGroup = (form.getValues("altGrup") || "").trim();
     if (!currentAltGroup) return;
     const isValid = categoryAltGroups.some((item) => item.name === currentAltGroup);
     if (!isValid) form.setValue("altGrup", "", { shouldDirty: true });
-  }, [categoryAltGroups, form, subCategoriesFetching]);
+  }, [categoryAltGroups, form, open, selectedGroup, subCategoryData, subCategoriesFetching]);
 
   useEffect(() => {
     if (!open || isPrefilled || categories.length === 0) return;
