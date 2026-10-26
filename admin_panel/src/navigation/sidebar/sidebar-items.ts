@@ -6,6 +6,7 @@
 import {
   Activity,
   BarChart2,
+  Bot,
   BookOpenText,
   Building2,
   Calendar,
@@ -182,6 +183,7 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
     key: "system",
     items: [
       { key: "site_settings", url: "/admin/sistem", icon: Settings, roles: ["admin"] },
+      { key: "promats_mcp", url: "/admin/promats-mcp", icon: Bot, roles: ["admin"] },
       { key: "test_center", url: "/admin/test-merkezi", icon: FileSearch, roles: ["admin"] },
       { key: "admin_documentation", url: "/admin/dokumantasyon", icon: BookOpenText, roles: ["admin"] },
       { key: "proje_teklifi", url: "/admin/proje-teklifi", icon: Presentation, roles: ["admin"] },
@@ -246,6 +248,7 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   proje_teklifi: "Proje Teklifleri",
   web_sayfasi: "Promats İçerik Yönetimi",
   yazilim_gorevleri: "Yazılım Görevleri",
+  promats_mcp: "Promats Bağlantıları",
   teklif_talepleri: "Teklif Talepleri",
   teklifler: "Teklifler",
 };

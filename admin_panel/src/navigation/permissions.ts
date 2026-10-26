@@ -47,6 +47,7 @@ export type AdminNavKey =
   | "proje_teklifi"
   | "web_sayfasi"
   | "yazilim_gorevleri"
+  | "promats_mcp"
   | "teklif_talepleri"
   | "teklifler"
   | "iletisim_mesajlari";
@@ -102,6 +103,7 @@ const NAV_ROLES: Record<AdminNavKey, PanelRole[]> = {
   proje_teklifi: ["admin"],
   web_sayfasi: ["admin"],
   yazilim_gorevleri: ["admin"],
+  promats_mcp: ["admin"],
   teklif_talepleri: ["admin", "nakliyeci"],
   teklifler: ["admin", "nakliyeci"],
   iletisim_mesajlari: ["admin"],
@@ -142,6 +144,7 @@ export function canAccessAdminPath(role: PanelRole, pathname: string): boolean {
     { prefix: "/admin/proje-teklifi", key: "proje_teklifi" },
     { prefix: "/admin/web-sayfasi", key: "web_sayfasi" },
     { prefix: "/admin/yazilim-gorevleri", key: "yazilim_gorevleri" },
+    { prefix: "/admin/promats-mcp", key: "promats_mcp" },
     { prefix: "/admin/teklif-talepleri", key: "teklif_talepleri" },
     { prefix: "/admin/teklifler", key: "teklifler" },
     { prefix: "/admin/contacts", key: "iletisim_mesajlari" },
