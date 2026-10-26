@@ -174,6 +174,7 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
   const { currentData: receteForOps, isFetching: copyRecipeLoading, isError: copyRecipeError } = useGetUrunReceteAdminQuery(urun?.id ?? "", { skip: !urun?.id });
   const { currentData: copyMedia, isFetching: copyMediaLoading, isError: copyMediaError } = useListUrunMedyaAdminQuery(urun?.id ?? "", { skip: !copyMode || !urun?.id });
   const copyPrefilledId = useRef<string | null>(null);
+  const restoredAltGroupId = useRef<string | null>(null);
   const operasyonelYmSecenekleri = (receteForOps?.items ?? [])
     .filter((k) => k.malzemeKategori === "operasyonel_ym" && k.urunId)
     .map((k) => ({ id: k.urunId, ad: k.malzemeAd ?? k.malzemeKod ?? k.urunId }));
@@ -430,6 +431,7 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
     setDraftMediaUrls([]);
     setDraftCoverUrl("");
     copyPrefilledId.current = null;
+    restoredAltGroupId.current = null;
     if (urun) {
       // Reset ref so the edit effect doesn't trigger on form load
       form.reset({
@@ -491,6 +493,14 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
       });
     }
   }, [open, urun, categories, form.reset, copyMode]);
+
+  useEffect(() => {
+    if (!open || !urun || !subCategoryData || subCategoriesFetching || restoredAltGroupId.current === urun.id) return;
+    const sourceAltGroup = urun.altGrup?.trim();
+    if (sourceAltGroup && !categoryAltGroups.some((item) => item.name === sourceAltGroup)) return;
+    restoredAltGroupId.current = urun.id;
+    if (sourceAltGroup) form.setValue("altGrup", sourceAltGroup, { shouldDirty: false });
+  }, [open, urun, subCategoryData, subCategoriesFetching, categoryAltGroups, form]);
 
   useEffect(() => {
     if (!open || !copyMode || !urun || copyPrefilledId.current === urun.id || copyRecipeLoading || copyMediaLoading || receteForOps === undefined || copyMedia === undefined) return;
