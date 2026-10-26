@@ -1114,6 +1114,7 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
                   <DraftReceteSection
                     birim={form.watch("birim")}
                     allowedCategoryCodes={receteKategoriKodlari}
+                    sourceItems={copyMode ? receteForOps?.items : undefined}
                     rows={draftReceteRows}
                     onRowsChange={setDraftReceteRows}
                     aciklama={draftReceteAciklama}
@@ -1314,6 +1315,7 @@ interface ReceteSectionProps {
 interface DraftReceteSectionProps {
   birim: string;
   allowedCategoryCodes: string[];
+  sourceItems?: ReceteKalemDto[];
   rows: ReceteRow[];
   onRowsChange: (rows: ReceteRow[]) => void;
   aciklama: string;
@@ -1466,6 +1468,7 @@ function useReceteMalzemeOptions(
 function DraftReceteSection({
   birim,
   allowedCategoryCodes,
+  sourceItems,
   rows,
   onRowsChange,
   aciklama,
@@ -1473,7 +1476,7 @@ function DraftReceteSection({
 }: DraftReceteSectionProps) {
   const { t } = useLocaleContext();
   const tForm = (key: string) => t(`admin.erp.urunler.form.${key}`);
-  const malzemeOptions = useReceteMalzemeOptions(allowedCategoryCodes, undefined);
+  const malzemeOptions = useReceteMalzemeOptions(allowedCategoryCodes, sourceItems);
 
   useEffect(() => {
     const validIds = new Set(malzemeOptions.map((item) => item.id));
