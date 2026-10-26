@@ -198,7 +198,7 @@ export default function UrunlerClient() {
   }, [page, totalPages]);
 
   // Fetch full product with operasyonlar when editing
-  const { data: fullUrun } = useGetUrunAdminQuery(editingId ?? copyingId ?? "", { skip: !editingId && !copyingId });
+  const { currentData: fullUrun } = useGetUrunAdminQuery(editingId ?? copyingId ?? "", { skip: !editingId && !copyingId });
 
   const [deleteUrun, deleteState] = useDeleteUrunAdminMutation();
 

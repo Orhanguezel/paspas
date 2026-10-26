@@ -171,9 +171,8 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
   const { data: birimlerData } = useListBirimlerAdminQuery();
   // V20/R1 — operasyonun "Üretilen yarımamul" seçenekleri: ürünün aktif reçetesindeki
   // operasyonel_ym kalemleri. Yalnız düzenleme modunda (ürünün id'si varsa) çekilir.
-  const { data: receteForOps } = useGetUrunReceteAdminQuery(urun?.id ?? "", { skip: !urun?.id });
-  const { data: copyMedia, isLoading: copyMediaLoading, isError: copyMediaError } = useListUrunMedyaAdminQuery(urun?.id ?? "", { skip: !copyMode || !urun?.id });
-  const { isLoading: copyRecipeLoading, isError: copyRecipeError } = useGetUrunReceteAdminQuery(urun?.id ?? "", { skip: !copyMode || !urun?.id });
+  const { currentData: receteForOps, isFetching: copyRecipeLoading, isError: copyRecipeError } = useGetUrunReceteAdminQuery(urun?.id ?? "", { skip: !urun?.id });
+  const { currentData: copyMedia, isFetching: copyMediaLoading, isError: copyMediaError } = useListUrunMedyaAdminQuery(urun?.id ?? "", { skip: !copyMode || !urun?.id });
   const copyPrefilledId = useRef<string | null>(null);
   const operasyonelYmSecenekleri = (receteForOps?.items ?? [])
     .filter((k) => k.malzemeKategori === "operasyonel_ym" && k.urunId)
@@ -494,7 +493,7 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
   }, [open, urun, categories, form.reset, copyMode]);
 
   useEffect(() => {
-    if (!open || !copyMode || !urun || copyPrefilledId.current === urun.id || copyRecipeLoading || copyMediaLoading) return;
+    if (!open || !copyMode || !urun || copyPrefilledId.current === urun.id || copyRecipeLoading || copyMediaLoading || receteForOps === undefined || copyMedia === undefined) return;
     if (copyRecipeError || copyMediaError) return;
     setDraftReceteAciklama(receteForOps?.aciklama ?? "");
     setDraftReceteHedefMiktar(receteForOps?.hedefMiktar ?? 1);
@@ -508,7 +507,7 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
   }, [open, copyMode, urun, copyRecipeLoading, copyMediaLoading, copyRecipeError, copyMediaError, receteForOps, copyMedia]);
 
   async function onSubmit(values: FormValues) {
-    if (copyMode && (!urun || copyRecipeLoading || copyMediaLoading || copyRecipeError || copyMediaError || copyPrefilledId.current !== urun.id)) {
+    if (copyMode && (!urun || copyRecipeLoading || copyMediaLoading || copyRecipeError || copyMediaError || receteForOps === undefined || copyMedia === undefined || copyPrefilledId.current !== urun.id)) {
       toast.error("Kopyalanacak ürünün reçete ve medya bilgileri yüklenemedi.");
       return;
     }
@@ -1144,7 +1143,7 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
               {t("admin.common.cancel")}
             </Button>
-            <Button type="submit" disabled={busy || (copyMode && (!urun || copyRecipeLoading || copyMediaLoading || copyRecipeError || copyMediaError || copyPrefilledId.current !== urun.id))}>
+            <Button type="submit" disabled={busy || (copyMode && (!urun || copyRecipeLoading || copyMediaLoading || copyRecipeError || copyMediaError || receteForOps === undefined || copyMedia === undefined || copyPrefilledId.current !== urun.id))}>
               {busy ? t("admin.erp.common.saving") : t("admin.common.save")}
             </Button>
           </SheetFooter>
