@@ -202,7 +202,7 @@ export default function SiparisIslemleriTab() {
     const showSelection = gorunum !== "siparis";
     const emptyColSpan = 6 + (gorunum !== "musteri" ? 1 : 0) + (gorunum !== "urun" ? 1 : 0) + (showSelection ? 1 : 0);
     return (
-      <Table>
+      <Table className="min-w-[1120px] table-fixed">
         <TableHeader>
           <TableRow>
             {showSelection && (
@@ -210,14 +210,14 @@ export default function SiparisIslemleriTab() {
                 <Checkbox checked={tumSecilebilirlerSecili} onCheckedChange={tumunuSec} />
               </TableHead>
             )}
-            <TableHead>Sipariş No</TableHead>
-            {gorunum !== "musteri" && <TableHead>Müşteri</TableHead>}
+            <TableHead className="w-32">Sipariş No</TableHead>
+            {gorunum !== "musteri" && <TableHead className="w-44">Müşteri</TableHead>}
             {gorunum !== "urun" && <TableHead>Ürün</TableHead>}
-            <TableHead className="text-right">Stok</TableHead>
-            <TableHead className="text-right">Miktar</TableHead>
-            <TableHead className="text-right">Üretilen</TableHead>
-            <TableHead className="text-right">Sevk Edilen</TableHead>
-            <TableHead>Bitiş Tarihi</TableHead>
+            <TableHead className="w-28 text-right">Stok</TableHead>
+            <TableHead className="w-24 text-right">Miktar</TableHead>
+            <TableHead className="w-32 text-right">Üretilen</TableHead>
+            <TableHead className="w-32 text-right">Sevk Edilen</TableHead>
+            <TableHead className="w-40">Bitiş Tarihi</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
