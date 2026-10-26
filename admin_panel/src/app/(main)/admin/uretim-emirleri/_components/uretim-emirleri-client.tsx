@@ -553,7 +553,7 @@ function UretimDetayPaneli({ emirler }: { emirler: UretimEmriDto[] }) {
         return (
           <div
             key={`${emir.id}-${op.operasyonAdi}-${i}`}
-            className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm"
+            className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 py-3 text-sm"
           >
             {/* Ürün adı + Operasyonel YM adı (YM daha belirgin) */}
             <div className="min-w-56 flex-1">
@@ -582,7 +582,7 @@ function UretimDetayPaneli({ emirler }: { emirler: UretimEmriDto[] }) {
             <span className={`rounded px-2 py-0.5 font-medium text-[11px] ${durum.sinif}`}>{durum.metin}</span>
 
             {/* Üretilen miktar — plan aşımı kırpılmaz (S4) */}
-            <div className="min-w-24 text-right tabular-nums">
+            <div className="min-w-32 text-center tabular-nums">
               {op.uretilenMiktar > 0 ? (
                 <span className="font-semibold text-slate-900">
                   {op.uretilenMiktar.toLocaleString("tr-TR")}{" "}
@@ -592,8 +592,8 @@ function UretimDetayPaneli({ emirler }: { emirler: UretimEmriDto[] }) {
                 <span className="text-muted-foreground text-xs">—</span>
               )}
               {op.planlananMiktar > 0 && (
-                <div className="text-[10px] text-muted-foreground">
-                  hedef {op.planlananMiktar.toLocaleString("tr-TR")}
+                <div className="text-xs font-medium text-muted-foreground">
+                  hedef {op.planlananMiktar.toLocaleString("tr-TR")} Baskı
                 </div>
               )}
             </div>
@@ -883,6 +883,7 @@ export default function UretimEmirleriClient() {
     const ciftTarafli = emirler.length > 1;
     // Çift taraflı: her iki tarafın planlananı eşittir → mamul adedi = max(tek taraf).
     const planlananMiktar = grupPlanlanan(emirler);
+    const siparisPlanlananMiktar = Math.max(0, ...emirler.map((emir) => emir.siparisPlanlananMiktar ?? 0));
     // Taraflar arasında planlanan farklıysa satırda işaretlenir (throw edilmez).
     const asimetrik = grupAsimetrik(emirler);
     // Sağ/Sol taraflı bir emir tek başına geldiyse eşi başka sayfada demektir
@@ -916,6 +917,7 @@ export default function UretimEmirleriClient() {
       ciftTarafli,
       emirIds: emirler.map((e) => e.id),
       planlananMiktar,
+      siparisPlanlananMiktar,
       asimetrik,
       esiEksik,
       uretilenMiktar,
@@ -1251,8 +1253,11 @@ export default function UretimEmirleriClient() {
                           {/* Planlanan Miktar */}
                           <TableCell className="text-right">
                             <span className="font-bold text-sm text-slate-900">
-                              {agg.planlananMiktar.toLocaleString("tr-TR")}
+                              {(agg.siparisPlanlananMiktar || agg.planlananMiktar).toLocaleString("tr-TR")}
                             </span>
+                            {agg.siparisPlanlananMiktar > 0 && (
+                              <div className="text-xs font-medium text-muted-foreground">Takım</div>
+                            )}
                             {agg.asimetrik && (
                               <div className="font-medium text-[10px] text-amber-600">Taraflar farklı planlı</div>
                             )}

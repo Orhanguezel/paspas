@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import { ChevronLeft, ChevronRight, FileText, Pencil, Plus, RefreshCcw, Search, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, FileText, Pencil, Plus, RefreshCcw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -106,6 +106,7 @@ export default function UrunlerClient() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<UrunDto | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [copyingId, setCopyingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UrunDto | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -197,7 +198,7 @@ export default function UrunlerClient() {
   }, [page, totalPages]);
 
   // Fetch full product with operasyonlar when editing
-  const { data: fullUrun } = useGetUrunAdminQuery(editingId ?? "", { skip: !editingId });
+  const { data: fullUrun } = useGetUrunAdminQuery(editingId ?? copyingId ?? "", { skip: !editingId && !copyingId });
 
   const [deleteUrun, deleteState] = useDeleteUrunAdminMutation();
 
@@ -217,12 +218,21 @@ export default function UrunlerClient() {
   function openCreate() {
     setEditing(null);
     setEditingId(null);
+    setCopyingId(null);
     setFormOpen(true);
   }
 
   function openEdit(u: UrunDto) {
+    setCopyingId(null);
     setEditingId(u.id);
     setEditing(u);
+    setFormOpen(true);
+  }
+
+  function openCopy(u: UrunDto) {
+    setEditing(null);
+    setEditingId(null);
+    setCopyingId(u.id);
     setFormOpen(true);
   }
 
@@ -230,6 +240,7 @@ export default function UrunlerClient() {
     setFormOpen(false);
     setEditing(null);
     setEditingId(null);
+    setCopyingId(null);
   }
 
   async function confirmDelete() {
@@ -470,6 +481,7 @@ export default function UrunlerClient() {
                       isExpanded={isExpanded}
                       onToggle={() => setExpandedId(isExpanded ? null : u.id)}
                       onEdit={() => openEdit(u)}
+                      onCopy={() => openCopy(u)}
                       onDelete={() => setDeleteTarget(u)}
                       onShowImage={(url) => setLightboxUrl(url)}
                       canDelete={isAdmin && u.silinebilir !== false}
@@ -525,7 +537,7 @@ export default function UrunlerClient() {
       </div>
 
       {/* Form Sheet — use full product data when editing */}
-      <UrunForm open={formOpen} onClose={handleFormClose} urun={editingId && fullUrun ? fullUrun : editing} />
+      <UrunForm open={formOpen} onClose={handleFormClose} urun={copyingId ? fullUrun : editingId && fullUrun ? fullUrun : editing} copyMode={Boolean(copyingId)} />
 
       {/* Silme onayı */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
@@ -585,6 +597,7 @@ interface ExpandableProductRowProps {
   isExpanded: boolean;
   onToggle: () => void;
   onEdit: () => void;
+  onCopy: () => void;
   onDelete: () => void;
   onShowImage: (url: string) => void;
   canDelete: boolean;
@@ -598,6 +611,7 @@ function ExpandableProductRow({
   isExpanded,
   onToggle,
   onEdit,
+  onCopy,
   onDelete,
   onShowImage,
   canDelete,
@@ -680,6 +694,9 @@ function ExpandableProductRow({
           <div className="flex items-center justify-end gap-1">
             <Button variant="ghost" size="icon" onClick={onEdit}>
               <Pencil className="size-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onCopy} aria-label={`${u.kod} ürününü kopyala`} title="Kopyala">
+              <Copy className="size-4" />
             </Button>
             <Button
               variant="ghost"

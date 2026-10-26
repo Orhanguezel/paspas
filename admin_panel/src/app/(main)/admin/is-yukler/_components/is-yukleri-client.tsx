@@ -69,6 +69,12 @@ function fmtOnlyDate(value: string | null) {
 }
 
 function fmtDuration(totalDk: number) {
+  if (totalDk >= 1440) {
+    const gun = Math.floor(totalDk / 1440);
+    const saat = Math.floor((totalDk % 1440) / 60);
+    const dakika = totalDk % 60;
+    return [`${gun} gün`, saat ? `${saat} saat` : '', dakika ? `${dakika} dk` : ''].filter(Boolean).join(' ');
+  }
   if (totalDk < 60) return `${totalDk}dk`;
   const s = Math.floor(totalDk / 60);
   const d = totalDk % 60;
@@ -162,7 +168,7 @@ function ListRow({
       </div>
 
       {/* Miktar */}
-      <span className="w-16 shrink-0 text-right font-mono text-xs tabular-nums">{item.planlananMiktar?.toLocaleString('tr-TR')}</span>
+      <span className="w-24 shrink-0 text-right font-mono text-xs tabular-nums">{item.planlananMiktar?.toLocaleString('tr-TR')} Baskı</span>
 
       {/* Müşteri — md ve üstünde göster */}
       <span className="hidden md:block w-32 shrink-0 truncate text-xs text-muted-foreground">{item.musteriAd ?? '—'}</span>
@@ -261,7 +267,7 @@ function GridRow({
           {item.operasyonAdi && <span className="font-bold uppercase text-xs">{item.operasyonAdi}</span>}
         </div>
         <div className="flex flex-wrap gap-x-3 text-muted-foreground text-[10px]">
-          <span>Miktar: <span className="font-mono text-foreground">{item.planlananMiktar?.toLocaleString('tr-TR')}</span></span>
+          <span>Miktar: <span className="font-mono text-foreground">{item.planlananMiktar?.toLocaleString('tr-TR')} Baskı</span></span>
           <span><Clock3 className="inline size-2.5 mr-0.5" />{fmtDuration(item.hazirlikSuresiDk + item.planlananSureDk)}</span>
           {item.terminTarihi && <span>Termin: <span className="font-mono text-foreground">{fmtOnlyDate(item.terminTarihi)}</span></span>}
           {item.musteriAd && <span><User className="inline size-2.5 mr-0.5" />{item.musteriAd}</span>}
@@ -304,7 +310,7 @@ function MakineGrubuPanel({
       <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-1">
         <span className="font-mono text-sm font-bold text-slate-800">{group.makineKod}</span>
         <span className="text-sm font-medium">{group.makineAd}</span>
-        <div className="ml-auto flex items-center gap-3 text-[11px]">
+        <div className="ml-auto grid min-w-[360px] grid-cols-[40px_44px_100px_100px] items-center justify-between gap-3 text-xs max-sm:min-w-0 max-sm:grid-cols-2">
           <div className="text-center">
             <div className="text-muted-foreground">İş</div>
             <div className="font-semibold tabular-nums">{group.items.length}</div>
@@ -315,7 +321,7 @@ function MakineGrubuPanel({
           </div>
           <div className="text-center">
             <div className="text-muted-foreground">Süre</div>
-            <div className="font-semibold tabular-nums">{fmtDuration(toplamSure)}</div>
+            <div className="font-semibold tabular-nums whitespace-nowrap">{fmtDuration(toplamSure)}</div>
           </div>
           <div className="text-center">
             <div className="text-muted-foreground">Son Bitiş</div>

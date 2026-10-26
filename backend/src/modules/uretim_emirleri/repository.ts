@@ -51,6 +51,7 @@ export type OperasyonOzetRow = {
 type EnrichedUretimEmriRow = UretimEmriRow & {
   siparisKalemIds: string[];
   siparisNo: string | null;
+  siparisPlanlananMiktar: number | null;
   operasyonlar: OperasyonOzetRow[];
   siparisUrunKod: string | null;
   siparisUrunAd: string | null;
@@ -401,6 +402,7 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
         uretimEmriId: uretimEmriSiparisKalemleri.uretim_emri_id,
         siparisKalemIds: sql<string>`group_concat(distinct ${uretimEmriSiparisKalemleri.siparis_kalem_id})`,
         siparisNo: sql<string | null>`group_concat(distinct ${satisSiparisleri.siparis_no} order by ${satisSiparisleri.siparis_no} separator ', ')`,
+        siparisPlanlananMiktar: sql<string>`sum(${uretimEmriSiparisKalemleri.miktar})`,
         siparisUrunKod: sql<string | null>`group_concat(distinct ${urunler.kod} order by ${urunler.kod} separator ', ')`,
         siparisUrunAd: sql<string | null>`group_concat(distinct ${urunler.ad} order by ${urunler.ad} separator ', ')`,
         siparisUrunGorsel: sql<string | null>`max(${urunler.image_url})`,
@@ -460,6 +462,7 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
       {
         siparisKalemIds: row.siparisKalemIds ? String(row.siparisKalemIds).split(',') : [],
         siparisNo: row.siparisNo,
+        siparisPlanlananMiktar: Number(row.siparisPlanlananMiktar),
         siparisUrunKod: row.siparisUrunKod,
         siparisUrunAd: row.siparisUrunAd,
         siparisUrunGorsel: row.siparisUrunGorsel,
@@ -494,6 +497,7 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
       ...row,
       siparisKalemIds: j?.siparisKalemIds ?? [],
       siparisNo: j?.siparisNo ?? null,
+      siparisPlanlananMiktar: j?.siparisPlanlananMiktar ?? null,
       operasyonlar: [...operasyonlar]
         .sort((a, b) => a.sira - b.sira)
         .map((op) => ({

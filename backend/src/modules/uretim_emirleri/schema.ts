@@ -59,6 +59,7 @@ export type UretimEmriDto = {
   operasyonlar: UretimEmriOperasyonOzetDto[];
   siparisKalemIds: string[];
   siparisNo: string | null;
+  siparisPlanlananMiktar: number | null;
   siparisUrunKod: string | null;
   siparisUrunAd: string | null;
   siparisUrunGorsel: string | null;
@@ -103,6 +104,7 @@ type UretimEmriDtoRow = UretimEmriRow & {
   siparisKalemIds?: string[];
   operasyonlar?: OperasyonOzetGirdi[];
   siparisNo?: string | null;
+  siparisPlanlananMiktar?: number | null;
   siparisUrunKod?: string | null;
   siparisUrunAd?: string | null;
   siparisUrunGorsel?: string | null;
@@ -140,6 +142,7 @@ export function rowToDto(row: UretimEmriDtoRow): UretimEmriDto {
     })),
     siparisKalemIds: kalemIds,
     siparisNo: row.siparisNo ?? null,
+    siparisPlanlananMiktar: row.siparisPlanlananMiktar ?? null,
     siparisUrunKod: row.siparisUrunKod ?? null,
     siparisUrunAd: row.siparisUrunAd ?? null,
     siparisUrunGorsel: row.siparisUrunGorsel ?? null,

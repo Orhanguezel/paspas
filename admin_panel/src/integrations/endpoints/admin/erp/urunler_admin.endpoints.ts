@@ -163,10 +163,11 @@ export const urunlerAdminApi = baseApi.injectEndpoints({
       {
         urunId: string;
         aciklama?: string;
+        hedefMiktar?: number;
         items: { urunId: string; miktar: number; fireOrani: number; aciklama?: string; sira: number }[];
       }
     >({
-      query: ({ urunId, aciklama, items }) => ({ url: `${BASE}/${urunId}/recete`, method: "PUT", body: { aciklama, items } }),
+      query: ({ urunId, aciklama, hedefMiktar, items }) => ({ url: `${BASE}/${urunId}/recete`, method: "PUT", body: { aciklama, hedefMiktar, items } }),
       transformResponse: (res: unknown) => normalizeRecete(res),
       invalidatesTags: (_r, _e, { urunId }) => [
         { type: "Recete", id: `urun-${urunId}` },

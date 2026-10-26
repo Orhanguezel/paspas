@@ -2598,22 +2598,21 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
     )
     .orderBy(asc(makineler.kod));
 
-  const machineIds = rows.map((row) => row.makineId);
-  const recentRows = machineIds.length > 0
-    ? await db
-      .select({
-        id: vardiyaKayitlari.id,
-        makineId: vardiyaKayitlari.makine_id,
-        vardiyaTipi: vardiyaKayitlari.vardiya_tipi,
-        baslangic: vardiyaKayitlari.baslangic,
-        bitis: vardiyaKayitlari.bitis,
-      })
-      .from(vardiyaKayitlari)
-      .where(inArray(vardiyaKayitlari.makine_id, machineIds))
-      .orderBy(desc(vardiyaKayitlari.baslangic))
-      .limit(machineIds.length * 4)
-    : [];
-  // V22/R1 — 3 secenek: icinde bulunulan (acik) vardiya + gecmis 2. Cap 3.
+  // A global LIMIT can fill entirely with one busy machine's shifts, leaving
+  // another machine without its last two worked shifts.
+  const recentPerMachine = await Promise.all(rows.map((machine) => db
+    .select({
+      id: vardiyaKayitlari.id,
+      makineId: vardiyaKayitlari.makine_id,
+      vardiyaTipi: vardiyaKayitlari.vardiya_tipi,
+      baslangic: vardiyaKayitlari.baslangic,
+      bitis: vardiyaKayitlari.bitis,
+    })
+    .from(vardiyaKayitlari)
+    .where(eq(vardiyaKayitlari.makine_id, machine.makineId))
+    .orderBy(desc(vardiyaKayitlari.baslangic))
+    .limit(3)));
+  const recentRows = recentPerMachine.flat();
   const recentByMachine = new Map<string, Array<{ id: string; vardiyaTipi: string; baslangic: Date; bitis: Date | null }>>();
   for (const row of recentRows) {
     const list = recentByMachine.get(row.makineId) ?? [];
@@ -2632,7 +2631,7 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
 
   return rows.map((r) => {
     const recent = [...(recentByMachine.get(r.makineId) ?? [])];
-    // Acik vardiya listede yoksa 3. secenek olarak basa ekle (default o secilir).
+    // Acik vardiya listede yoksa ekle.
     if (r.acikVardiyaId && r.vardiyaTipi && r.baslangic && !recent.some((v) => v.id === r.acikVardiyaId)) {
       recent.unshift({
         id: r.acikVardiyaId,
@@ -2642,24 +2641,22 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
       });
     }
 
-    // İçinde bulunulan vardiyanın henüz gerçek kaydı yoksa (ör. bugün hiç üretim
-    // başlamamışken) sanal seçenek olarak başa ekle — default bu seçilir.
-    // Kullanıcı bu seçenekle veri girdiğinde kayıt submit anında oluşturulur.
+    // Current shift is always first, followed by the machine's last two worked
+    // shifts (including gaps such as an unplanned weekend).
     if (currentWindow) {
-      const currentRepresented = recent.some(
+      const currentEntry = recent.find(
         (v) =>
           v.bitis === null &&
           v.vardiyaTipi === currentWindow.vardiyaTipi &&
           new Date(v.baslangic).getTime() === currentWindow.baslangic.getTime(),
       );
-      if (!currentRepresented) {
-        recent.unshift({
+      const active = currentEntry ?? {
           id: buildVirtualShiftId(currentWindow),
           vardiyaTipi: currentWindow.vardiyaTipi,
           baslangic: currentWindow.baslangic,
           bitis: null,
-        });
-      }
+      };
+      recent.splice(0, recent.length, active, ...recent.filter((v) => v.id !== active.id).slice(0, 2));
     }
     return {
       makineId: r.makineId,

@@ -74,6 +74,7 @@ export interface UretimEmriDto {
   operasyonlar: UretimEmriOperasyonOzet[];
   siparisKalemIds: string[];
   siparisNo: string | null;
+  siparisPlanlananMiktar: number | null;
   siparisUrunKod: string | null;
   siparisUrunAd: string | null;
   siparisUrunGorsel: string | null;
@@ -252,6 +253,7 @@ export function normalizeUretimEmri(raw: unknown): UretimEmriDto {
       : [],
     siparisKalemIds: toStrArray(r.siparisKalemIds),
     siparisNo: r.siparisNo != null ? toStr(r.siparisNo) : null,
+    siparisPlanlananMiktar: r.siparisPlanlananMiktar != null ? toNum(r.siparisPlanlananMiktar) : null,
     siparisUrunKod: r.siparisUrunKod != null ? toStr(r.siparisUrunKod) : null,
     siparisUrunAd: r.siparisUrunAd != null ? toStr(r.siparisUrunAd) : null,
     siparisUrunGorsel: r.siparisUrunGorsel != null ? toStr(r.siparisUrunGorsel) : null,

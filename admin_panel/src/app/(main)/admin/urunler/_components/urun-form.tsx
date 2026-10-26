@@ -134,15 +134,25 @@ interface UrunFormProps {
   open: boolean;
   onClose: () => void;
   urun?: UrunDto | null;
+  copyMode?: boolean;
+}
+
+function nextCopyCode(code: string): string {
+  const match = /^(.*?)(\d+)$/.exec(code);
+  if (!match) return `${code}-1`;
+  const value = Number(match[2]);
+  if (!Number.isSafeInteger(value)) return `${code}-1`;
+  return `${match[1]}${String(value + 1).padStart(match[2].length, "0")}`;
 }
 
 const TEDARIK_OPTIONS: TedarikTipi[] = ["uretim", "satin_alma", "fason"];
 const OPERASYON_OPTIONS: OperasyonTipi[] = ["tek_tarafli", "cift_tarafli"];
 
 // ── Component ─────────────────────────────────────────────────
-export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
+export default function UrunForm({ open, onClose, urun, copyMode = false }: UrunFormProps) {
   const { t } = useLocaleContext();
-  const isEdit = !!urun;
+  const isEdit = !!urun && !copyMode;
+  const isPrefilled = !!urun;
   const [create, createState] = useCreateUrunAdminMutation();
   const [update, updateState] = useUpdateUrunAdminMutation();
   const [saveDraftMedya, saveDraftMedyaState] = useSaveUrunMedyaAdminMutation();
@@ -152,6 +162,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   const [activeTab, setActiveTab] = useState("bilgiler");
   const [draftReceteRows, setDraftReceteRows] = useState<ReceteRow[]>([]);
   const [draftReceteAciklama, setDraftReceteAciklama] = useState("");
+  const [draftReceteHedefMiktar, setDraftReceteHedefMiktar] = useState(1);
   const [draftMediaUrls, setDraftMediaUrls] = useState<string[]>([]);
   const [draftCoverUrl, setDraftCoverUrl] = useState("");
 
@@ -161,6 +172,9 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   // V20/R1 — operasyonun "Üretilen yarımamul" seçenekleri: ürünün aktif reçetesindeki
   // operasyonel_ym kalemleri. Yalnız düzenleme modunda (ürünün id'si varsa) çekilir.
   const { data: receteForOps } = useGetUrunReceteAdminQuery(urun?.id ?? "", { skip: !urun?.id });
+  const { data: copyMedia, isLoading: copyMediaLoading, isError: copyMediaError } = useListUrunMedyaAdminQuery(urun?.id ?? "", { skip: !copyMode || !urun?.id });
+  const { isLoading: copyRecipeLoading, isError: copyRecipeError } = useGetUrunReceteAdminQuery(urun?.id ?? "", { skip: !copyMode || !urun?.id });
+  const copyPrefilledId = useRef<string | null>(null);
   const operasyonelYmSecenekleri = (receteForOps?.items ?? [])
     .filter((k) => k.malzemeKategori === "operasyonel_ym" && k.urunId)
     .map((k) => ({ id: k.urunId, ad: k.malzemeAd ?? k.malzemeKod ?? k.urunId }));
@@ -211,7 +225,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   // Auto-suggest next product code for new products
   const { data: nextCodeData, refetch: refetchNextCode } = useGetNextCodeAdminQuery(
     { kategori: watchKategori },
-    { skip: isEdit },
+    { skip: isPrefilled },
   );
   const watchTedarikTipi = form.watch("tedarikTipi");
   const watchOperasyonTipi = form.watch("operasyonTipi");
@@ -257,7 +271,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
 
   // Auto-generate operation names for NEW products
   useEffect(() => {
-    if (isEdit) return;
+    if (isPrefilled) return;
     if (!showProductionFields) {
       replaceOps([]);
       return;
@@ -277,7 +291,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
       replaceOps([{ operasyonAdi: name, sira: 1, hazirlikSuresiDk: 60, cevrimSuresiSn: 45, montaj: false }]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- replaceOps identity changes every render, safe to omit
-  }, [watchOperasyonTipi, watchAd, watchRenk, showProductionFields, isEdit, operationTypeRequired]);
+  }, [watchOperasyonTipi, watchAd, watchRenk, showProductionFields, isPrefilled, operationTypeRequired]);
 
   // Handle operasyonTipi change for EXISTING products — event-driven, not effect-based
   const prevKategoriRef = useRef<string | null>(null);
@@ -314,7 +328,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
     const previousKategori = prevKategoriRef.current;
     prevKategoriRef.current = currentKategori;
 
-    if (!isEdit) {
+    if (!isPrefilled) {
       const nextTedarik = selectedCategory.varsayilan_tedarik_tipi as TedarikTipi;
       if (form.getValues("tedarikTipi") !== nextTedarik) {
         form.setValue("tedarikTipi", nextTedarik, { shouldDirty: true });
@@ -358,7 +372,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
     if (form.getValues("birim") !== nextBirim) {
       form.setValue("birim", nextBirim, { shouldDirty: true });
     }
-  }, [selectedCategory, isEdit, form, operationTypeRequired]);
+  }, [selectedCategory, isPrefilled, form, operationTypeRequired]);
 
   useEffect(() => {
     if (subCategoriesFetching) return;
@@ -387,7 +401,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   }, [categoryAltGroups, form, subCategoriesFetching]);
 
   useEffect(() => {
-    if (!open || isEdit || categories.length === 0) return;
+    if (!open || isPrefilled || categories.length === 0) return;
     const currentKategori = form.getValues("kategori");
     if (categories.some((item) => item.kod === currentKategori)) return;
 
@@ -395,17 +409,17 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
     if (!nextKategori) return;
 
     form.setValue("kategori", nextKategori, { shouldDirty: false });
-  }, [categories, open, isEdit, form]);
+  }, [categories, open, isPrefilled, form]);
 
   // Auto-fill kod from next-code suggestion (only for new products, only if user hasn't typed)
   useEffect(() => {
-    if (isEdit || !nextCodeData?.kod) return;
+    if (isPrefilled || !nextCodeData?.kod) return;
     const currentKod = form.getValues("kod");
     // Only auto-fill if empty or matches a previous auto-suggestion pattern
     if (!currentKod || /^(URN|YM|HM)-\d{4}$/.test(currentKod)) {
       form.setValue("kod", nextCodeData.kod);
     }
-  }, [nextCodeData, isEdit, form]);
+  }, [nextCodeData, isPrefilled, form]);
 
   // Reset form when sheet opens or urun changes
   useEffect(() => {
@@ -413,8 +427,10 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
     prevKategoriRef.current = null;
     setActiveTab("bilgiler");
     setDraftReceteRows([]);
+    setDraftReceteHedefMiktar(1);
     setDraftMediaUrls([]);
     setDraftCoverUrl("");
+    copyPrefilledId.current = null;
     if (urun) {
       // Reset ref so the edit effect doesn't trigger on form load
       form.reset({
@@ -422,12 +438,12 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
         tedarikTipi: urun.tedarikTipi ?? "uretim",
         urunGrubu: urun.urunGrubu ?? "",
         altGrup: urun.altGrup ?? "",
-        kod: urun.kod,
+        kod: copyMode ? nextCopyCode(urun.kod) : urun.kod,
         ad: urun.ad,
         aciklama: urun.aciklama ?? "",
         birim: urun.birim,
         renk: urun.renk ?? "",
-        stok: urun.stok ?? 0,
+        stok: copyMode ? 0 : (urun.stok ?? 0),
         kritikStok: urun.kritikStok ?? 0,
         stokTakipAktif: urun.stokTakipAktif ?? true,
         birimFiyat: urun.birimFiyat ?? undefined,
@@ -475,9 +491,27 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
         birimDonusumleri: [],
       });
     }
-  }, [open, urun, categories, form.reset]);
+  }, [open, urun, categories, form.reset, copyMode]);
+
+  useEffect(() => {
+    if (!open || !copyMode || !urun || copyPrefilledId.current === urun.id || copyRecipeLoading || copyMediaLoading) return;
+    if (copyRecipeError || copyMediaError) return;
+    setDraftReceteAciklama(receteForOps?.aciklama ?? "");
+    setDraftReceteHedefMiktar(receteForOps?.hedefMiktar ?? 1);
+    setDraftReceteRows((receteForOps?.items ?? []).map((item) => ({
+      key: crypto.randomUUID(), urunId: item.urunId, miktar: item.miktar,
+      aciklama: item.aciklama ?? "", sira: item.sira, fireOrani: item.fireOrani,
+    })));
+    setDraftMediaUrls((copyMedia ?? []).map((item) => item.url));
+    setDraftCoverUrl((copyMedia ?? []).find((item) => item.isCover)?.url ?? copyMedia?.[0]?.url ?? "");
+    copyPrefilledId.current = urun.id;
+  }, [open, copyMode, urun, copyRecipeLoading, copyMediaLoading, copyRecipeError, copyMediaError, receteForOps, copyMedia]);
 
   async function onSubmit(values: FormValues) {
+    if (copyMode && (!urun || copyRecipeLoading || copyMediaLoading || copyRecipeError || copyMediaError || copyPrefilledId.current !== urun.id)) {
+      toast.error("Kopyalanacak ürünün reçete ve medya bilgileri yüklenemedi.");
+      return;
+    }
     const coverUrl = draftCoverUrl || draftMediaUrls[0];
     const shouldWarnMissingRecipe = recipeOwnerEnabled;
     const payload: UrunCreatePayload = {
@@ -504,13 +538,14 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
         const validRows = draftValidRows.map(({ key: _key, aciklama, ...row }, idx) => ({
           ...row,
           aciklama: aciklama.trim() || undefined,
-          fireOrani: 0,
+          fireOrani: row.fireOrani ?? 0,
           sira: draftValidRows.length - idx,
         }));
         if (validRows.length > 0 || draftReceteAciklama.trim()) {
           await saveDraftRecete({
             urunId: created.id,
             aciklama: draftReceteAciklama.trim() || undefined,
+            hedefMiktar: draftReceteHedefMiktar,
             items: validRows,
           }).unwrap();
         }
@@ -518,9 +553,10 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
           await saveDraftMedya({
             urunId: created.id,
             items: draftMediaUrls.map((url, idx) => ({
-              tip: "image" as const,
+              tip: copyMedia?.find((item) => item.url === url)?.tip ?? "image",
               url,
-              baslik: values.ad.trim() || undefined,
+              storageAssetId: copyMedia?.find((item) => item.url === url)?.storageAssetId ?? undefined,
+              baslik: copyMedia?.find((item) => item.url === url)?.baslik ?? values.ad.trim(),
               sira: idx + 1,
               isCover: url === (coverUrl || draftMediaUrls[0]),
             })),
@@ -595,7 +631,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent className="flex w-full flex-col p-0 sm:max-w-2xl">
         <SheetHeader className="border-b px-6 py-4">
-          <SheetTitle>{isEdit ? t("admin.erp.urunler.editItem") : t("admin.erp.urunler.newItem")}</SheetTitle>
+          <SheetTitle>{copyMode ? "Ürünü Kopyala" : isEdit ? t("admin.erp.urunler.editItem") : t("admin.erp.urunler.newItem")}</SheetTitle>
         </SheetHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
@@ -1107,7 +1143,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
               {t("admin.common.cancel")}
             </Button>
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" disabled={busy || (copyMode && (!urun || copyRecipeLoading || copyMediaLoading || copyRecipeError || copyMediaError || copyPrefilledId.current !== urun.id))}>
               {busy ? t("admin.erp.common.saving") : t("admin.common.save")}
             </Button>
           </SheetFooter>
@@ -1290,6 +1326,7 @@ interface ReceteRow {
   miktar: number;
   aciklama: string;
   sira: number;
+  fireOrani?: number;
 }
 
 interface MalzemeOption {
