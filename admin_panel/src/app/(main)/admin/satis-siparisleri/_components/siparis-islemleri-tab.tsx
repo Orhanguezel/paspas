@@ -240,8 +240,8 @@ export default function SiparisIslemleriTab() {
                 <TableCell className="font-mono text-xs">{item.siparisNo}</TableCell>
                 {gorunum !== "musteri" && <TableCell>{item.musteriAd}</TableCell>}
                 {gorunum !== "urun" && (
-                  <TableCell>
-                    <div className="min-w-0">
+                  <TableCell className="whitespace-normal break-words">
+                    <div className="min-w-0 break-words">
                       <div>
                         <span className="mr-1 text-muted-foreground text-xs">{item.urunKod}</span>
                         {item.urunAd}
