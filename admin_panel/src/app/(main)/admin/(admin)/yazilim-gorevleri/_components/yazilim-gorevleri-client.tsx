@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   Download, ExternalLink, FileSpreadsheet, Image as ImageIcon, MessageSquare,
-  Mic, Paperclip, Plus, RefreshCcw, Square, Upload, X,
+  Mic, Paperclip, Plus, RefreshCcw, Search, Square, Upload, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -24,6 +24,7 @@ import type {
   PageFeedbackAttachment, PageFeedbackPriority, PageFeedbackStatus, PageFeedbackThread,
 } from '@/integrations/shared';
 import { resolveMediaUrl } from '@/lib/media-url';
+import { MatiMotionMark } from './mati-motion-mark';
 
 const COLUMNS: Array<{ status: PageFeedbackStatus; label: string; color: string }> = [
   { status: 'open', label: 'Açık', color: 'bg-blue-500' },
@@ -104,6 +105,29 @@ export default function YazilimGorevleriClient() {
   const recorderChunksRef = useRef<Blob[]>([]);
   const [recording, setRecording] = useState(false);
   const items = list.data?.items ?? [];
+  const [view, setView] = useState<'tasks' | 'releases'>('tasks');
+  const [layout, setLayout] = useState<'board' | 'list'>('board');
+  const [query, setQuery] = useState('');
+  const [pathQuery, setPathQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<PageFeedbackStatus | 'all'>('all');
+  const [recentOnly, setRecentOnly] = useState(false);
+  const [releaseQuery, setReleaseQuery] = useState('');
+  const visibleItems = useMemo(() => {
+    const text = query.trim().toLocaleLowerCase('tr-TR');
+    const path = pathQuery.trim().toLocaleLowerCase('tr-TR');
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    return items.filter((item) =>
+      (statusFilter === 'all' || item.status === statusFilter)
+      && (!text || [item.subject, item.pageTitle, item.pagePath, item.id, ...item.comments.map((comment) => comment.body)].join(' ').toLocaleLowerCase('tr-TR').includes(text))
+      && (!path || item.pagePath.toLocaleLowerCase('tr-TR').includes(path))
+      && (!recentOnly || new Date(item.updatedAt).getTime() >= cutoff)
+    );
+  }, [items, query, pathQuery, statusFilter, recentOnly]);
+  const releaseItems = useMemo(() => items.flatMap((item) => item.comments
+    .filter((comment) => comment.messageType === 'solution')
+    .map((comment) => ({ item, comment })))
+    .filter(({ item, comment }) => `${item.subject} ${item.pagePath} ${comment.body}`.toLocaleLowerCase('tr-TR').includes(releaseQuery.toLocaleLowerCase('tr-TR')))
+    .sort((a, b) => b.comment.createdAt.localeCompare(a.comment.createdAt)), [items, releaseQuery]);
   const selected = items.find((item) => item.id === selectedId);
   const stats = useMemo(() => ({
     active: items.filter((item) => !['resolved', 'closed'].includes(item.status)).length,
@@ -316,13 +340,19 @@ export default function YazilimGorevleriClient() {
 
   return (
     <div className="min-w-0 max-w-full space-y-4 overflow-x-hidden pb-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Yazılım Takibi</p>
-          <h1 className="text-3xl font-semibold">Yazılım Görevleri</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Paspas ERP ve Promats Web notlarını tek Kanban'da yönetin.</p>
+      <div className="rounded-2xl border bg-card/60 px-5 py-5 sm:px-7">
+        <div className="flex flex-wrap items-start gap-4">
+          <MatiMotionMark />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-muted-foreground">Çalışma Alanı &gt; Promats Desk</p>
+            <h1 className="mt-1 text-3xl font-bold tracking-tight">Promats Desk</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Paspas ERP ve Promats Web sayfalarından gelen fikirleri ve sorunları takip edin; yorumları ve çözümü aynı konuşmada görün.</p>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-6 flex flex-wrap items-center gap-2" role="tablist" aria-label="Promats Desk bölümleri">
+          <Button role="tab" aria-selected={view === 'tasks'} variant={view === 'tasks' ? 'default' : 'outline'} onClick={() => setView('tasks')}>Görevler</Button>
+          <Button role="tab" aria-selected={view === 'releases'} variant={view === 'releases' ? 'default' : 'outline'} onClick={() => setView('releases')}>Sürüm notları</Button>
+          <div className="ml-auto flex flex-wrap gap-2">
           <input ref={importRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={(event) => void importExcel(event.target.files?.[0])} />
           <Button variant="outline" onClick={() => void downloadTemplate()}><FileSpreadsheet className="mr-2 size-4" /> Şablon</Button>
           <Button variant="outline" onClick={() => importRef.current?.click()} disabled={saving}><Upload className="mr-2 size-4" /> Excel’den al</Button>
@@ -331,19 +361,55 @@ export default function YazilimGorevleriClient() {
             <RefreshCcw className={`mr-2 size-4 ${list.isFetching ? 'animate-spin' : ''}`} /> Yenile
           </Button>
           <Button onClick={() => setCreateOpen(true)}><Plus className="mr-2 size-4" /> Yeni görev</Button>
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3">
+      {view === 'tasks' && <div className="grid gap-2 sm:grid-cols-3">
         <Card className="p-3"><div className="text-xs text-muted-foreground">Aktif görev</div><strong className="text-xl">{stats.active}</strong></Card>
         <Card className="p-3"><div className="text-xs text-muted-foreground">Kritik görev</div><strong className="text-xl text-destructive">{stats.critical}</strong></Card>
         <Card className="p-3"><div className="text-xs text-muted-foreground">Promats Web</div><strong className="text-xl">{stats.promats}</strong></Card>
-      </div>
+      </div>}
 
-      <Card className="min-w-0 overflow-hidden p-2">
+      {view === 'tasks' && <div className="space-y-2 rounded-2xl border bg-card p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="relative min-w-52 flex-1 sm:max-w-sm">
+            <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" />
+            <span className="sr-only">Promats Desk notlarında ara</span>
+            <Input aria-label="Promats Desk notlarında ara" className="pl-9" placeholder="Not no, başlık veya yorum ara" value={query} onChange={(event) => setQuery(event.target.value)} />
+          </label>
+          <Input aria-label="Sayfa yolunu filtrele" className="min-w-48 flex-1 sm:max-w-xs" placeholder="Sayfa yolu filtrele: /admin/..." value={pathQuery} onChange={(event) => setPathQuery(event.target.value)} />
+          <div className="flex max-w-full gap-1 overflow-x-auto pb-1" aria-label="Durum filtresi">
+            {([{ status: 'all', label: 'Tümü' }, ...COLUMNS] as Array<{ status: PageFeedbackStatus | 'all'; label: string }>).map(({ status, label }) => <button key={status} type="button" aria-pressed={statusFilter === status} onClick={() => setStatusFilter(status)} className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${statusFilter === status ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'}`}>{label}</button>)}
+          </div>
+          <Button type="button" size="sm" variant={recentOnly ? 'default' : 'outline'} onClick={() => setRecentOnly((value) => !value)}>Son 24 saat</Button>
+          <div className="inline-flex rounded-lg border p-0.5" aria-label="Not görünümü">
+            <Button type="button" size="sm" variant={layout === 'board' ? 'secondary' : 'ghost'} onClick={() => setLayout('board')}>Pano</Button>
+            <Button type="button" size="sm" variant={layout === 'list' ? 'secondary' : 'ghost'} onClick={() => setLayout('list')}>Liste</Button>
+          </div>
+        </div>
+        {(query || pathQuery || statusFilter !== 'all' || recentOnly) && <p role="status" className="px-1 text-xs text-muted-foreground">{visibleItems.length} görev gösteriliyor.</p>}
+      </div>}
+
+      {view === 'releases' ? <div className="space-y-3">
+        <Input aria-label="Sürüm notlarında ara" placeholder="Konu, modül veya çözüm ara" value={releaseQuery} onChange={(event) => setReleaseQuery(event.target.value)} />
+        {releaseItems.map(({ item, comment }) => <Card key={comment.id} className="space-y-3 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2"><button type="button" className="text-left font-semibold hover:underline" onClick={() => setSelectedId(item.id)}>{item.subject}</button><span className="text-xs text-muted-foreground">{new Date(comment.createdAt).toLocaleString('tr-TR')}</span></div>
+          <p className="text-xs text-muted-foreground">{sourceLabel(item)} · {item.pagePath} · {COLUMNS.find((column) => column.status === item.status)?.label}</p>
+          <div><p className="text-xs font-semibold">İlk talep</p><p className="whitespace-pre-wrap text-sm">{item.comments.find((entry) => entry.messageType === 'report')?.body ?? item.comments[0]?.body}</p></div>
+          <div><p className="text-xs font-semibold text-emerald-600">Uygulanan çözüm</p><p className="whitespace-pre-wrap text-sm">{comment.body}</p></div>
+          <Button size="sm" variant="outline" onClick={() => setSelectedId(item.id)}>Tüm görüşmeleri aç</Button>
+        </Card>)}
+        {!releaseItems.length && <Card className="p-6 text-center text-sm text-muted-foreground">Sürüm notu bulunamadı.</Card>}
+      </div> : layout === 'list' ? <Card className="overflow-hidden p-2">
+        <div className="divide-y">{visibleItems.map((item) => <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} className="flex w-full flex-wrap items-center gap-2 px-3 py-3 text-left hover:bg-muted/50">
+          <span className="min-w-48 flex-1 font-medium">{item.subject}</span><Badge variant="outline">{sourceLabel(item)}</Badge><span className="text-xs text-muted-foreground">{moduleName(item)}</span><Badge variant="secondary">{COLUMNS.find((column) => column.status === item.status)?.label}</Badge><span className="text-xs text-muted-foreground">{new Date(item.updatedAt).toLocaleString('tr-TR')}</span>
+        </button>)}</div>
+        {!visibleItems.length && <p className="p-6 text-center text-sm text-muted-foreground">Bu filtrede yazılım görevi yok.</p>}
+      </Card> : <Card className="min-w-0 overflow-hidden p-2">
         <div className="grid min-w-0 gap-2 [grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr))]">
-          {COLUMNS.map((column) => {
-            const cards = items.filter((item) => item.status === column.status);
+          {COLUMNS.filter((column) => statusFilter === 'all' || statusFilter === column.status).map((column) => {
+            const cards = visibleItems.filter((item) => item.status === column.status);
             return (
               <fieldset
                 key={column.status}
@@ -395,7 +461,7 @@ export default function YazilimGorevleriClient() {
             );
           })}
         </div>
-      </Card>
+      </Card>}
 
       <Sheet open={Boolean(selected)} onOpenChange={(open) => !open && setSelectedId(undefined)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
