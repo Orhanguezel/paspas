@@ -532,7 +532,7 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
       aciklama: values.aciklama?.trim() || undefined,
       renk: values.renk?.trim() || undefined,
       imageUrl: !isEdit && coverUrl ? coverUrl : undefined,
-      imageAlt: !isEdit && coverUrl ? values.ad.trim() : undefined,
+      imageAlt: !isEdit && coverUrl ? (copyMode ? (urun?.imageAlt ?? undefined) : values.ad.trim()) : undefined,
       operasyonTipi: showOperasyonTipi ? values.operasyonTipi : null,
       operasyonlar: values.operasyonlar?.map((op) => ({
         ...op,
