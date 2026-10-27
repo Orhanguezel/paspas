@@ -548,7 +548,7 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
           ...row,
           aciklama: aciklama.trim() || undefined,
           fireOrani: row.fireOrani ?? 0,
-          sira: draftValidRows.length - idx,
+          sira: copyMode ? idx + 1 : draftValidRows.length - idx,
         }));
         if (validRows.length > 0 || draftReceteAciklama.trim()) {
           await saveDraftRecete({
@@ -601,7 +601,7 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
         setDraftMediaUrls([]);
         setDraftCoverUrl("");
         // Refetch next code so the new product gets a fresh code suggestion
-        refetchNextCode();
+        if (!isPrefilled) refetchNextCode();
       }
       onClose();
     } catch (err: unknown) {

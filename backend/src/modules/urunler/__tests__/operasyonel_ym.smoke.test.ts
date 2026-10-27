@@ -93,12 +93,14 @@ describe("operasyonel YM smoke", () => {
         ],
         ["op-sag", [{ id: "map-3", urunOperasyonId: "op-sag", makineId: "makine-c", oncelikSira: 1 }]],
       ]),
+      ["oym-sol", "oym-sag"],
     );
 
     expect(operations).toEqual([
       {
         operasyonAdi: "Sol Baskı",
         sira: 1,
+        uretilenUrunId: "oym-sol",
         kalipId: "kalip-sol",
         hazirlikSuresiDk: 25,
         cevrimSuresiSn: 12.5,
@@ -111,6 +113,7 @@ describe("operasyonel YM smoke", () => {
       {
         operasyonAdi: "Sağ Baskı",
         sira: 2,
+        uretilenUrunId: "oym-sag",
         kalipId: "kalip-sag",
         hazirlikSuresiDk: 40,
         cevrimSuresiSn: 15.25,
