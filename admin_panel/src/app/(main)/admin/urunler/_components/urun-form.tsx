@@ -563,7 +563,7 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
           }).unwrap();
         }
         if (copyMode && payload.operasyonlar?.length) {
-          await update({ id: created.id, body: { operasyonlar: payload.operasyonlar } }).unwrap();
+          await update({ id: created.id, body: { operasyonTipi: urun?.operasyonTipi ?? null, operasyonlar: payload.operasyonlar } }).unwrap();
         }
         if (draftMediaUrls.length > 0) {
           await saveDraftMedya({
@@ -572,7 +572,7 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
               tip: copyMedia?.find((item) => item.url === url)?.tip ?? "image",
               url,
               storageAssetId: copyMedia?.find((item) => item.url === url)?.storageAssetId ?? undefined,
-              baslik: copyMedia?.find((item) => item.url === url)?.baslik ?? values.ad.trim(),
+              baslik: copyMode ? (copyMedia?.find((item) => item.url === url)?.baslik ?? undefined) : values.ad.trim(),
               sira: idx + 1,
               isCover: url === (coverUrl || draftMediaUrls[0]),
             })),
