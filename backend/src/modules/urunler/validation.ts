@@ -39,6 +39,7 @@ const operasyonItemSchema = z.object({
   hazirlikSuresiDk: z.coerce.number().int().min(0).default(60),
   cevrimSuresiSn: z.coerce.number().min(0).default(45),
   montaj: z.boolean().default(false),
+  isActive: z.boolean().optional(),
   makineler: z.array(operasyonMakineSchema).optional(),
 });
 

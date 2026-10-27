@@ -72,6 +72,8 @@ const operasyonSchema = z.object({
   hazirlikSuresiDk: z.coerce.number().int().min(0).default(60),
   cevrimSuresiSn: z.coerce.number().min(0).default(45),
   montaj: z.boolean().default(false),
+  isActive: z.boolean().optional(),
+  makineler: z.array(z.object({ makineId: z.string(), oncelikSira: z.number().int().min(1) })).optional(),
 });
 
 const birimDonusumSchema = z.object({
@@ -464,6 +466,8 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
             hazirlikSuresiDk: op.hazirlikSuresiDk,
             cevrimSuresiSn: op.cevrimSuresiSn,
             montaj: op.montaj,
+            isActive: op.isActive,
+            makineler: op.makineler.map((machine) => ({ makineId: machine.makineId, oncelikSira: machine.oncelikSira })),
           })) ?? [],
         birimDonusumleri:
           urun.birimDonusumleri?.map((d) => ({
@@ -557,6 +561,9 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
             hedefMiktar: draftReceteHedefMiktar,
             items: validRows,
           }).unwrap();
+        }
+        if (copyMode && payload.operasyonlar?.length) {
+          await update({ id: created.id, body: { operasyonlar: payload.operasyonlar } }).unwrap();
         }
         if (draftMediaUrls.length > 0) {
           await saveDraftMedya({

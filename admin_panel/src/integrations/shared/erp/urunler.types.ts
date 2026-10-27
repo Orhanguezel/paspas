@@ -85,6 +85,7 @@ export interface OperasyonPayload {
   hazirlikSuresiDk: number;
   cevrimSuresiSn: number;
   montaj: boolean;
+  isActive?: boolean;
   makineler?: OperasyonMakinePayload[];
 }
 

@@ -398,6 +398,7 @@ async function insertOperasyonlar(urunId: string, items: OperasyonItem[]): Promi
     hazirlik_suresi_dk: item.hazirlikSuresiDk,
     cevrim_suresi_sn: item.cevrimSuresiSn.toFixed(2),
     montaj: item.montaj ? 1 : 0,
+    is_active: item.isActive === false ? 0 : 1,
   }));
   await db.insert(urunOperasyonlari).values(values);
 
