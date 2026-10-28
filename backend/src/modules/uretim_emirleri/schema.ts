@@ -23,6 +23,7 @@ export const uretimEmirleri = mysqlTable('uretim_emirleri', {
   siparis_kalem_id: char('siparis_kalem_id', { length: 36 }),
   urun_id: char('urun_id', { length: 36 }).notNull(),
   mamul_urun_id: char('mamul_urun_id', { length: 36 }).notNull(),
+  stok_hedef_urun_id: char('stok_hedef_urun_id', { length: 36 }),
   taraf: varchar('taraf', { length: 8 }).$type<Taraf>(),
   recete_id: char('recete_id', { length: 36 }),
   musteri_ozet: varchar('musteri_ozet', { length: 255 }),

@@ -291,6 +291,9 @@ export async function tryMontajForUretimEmri(
 ): Promise<MontajSonuc | null> {
   const emirRow = (await db.select().from(uretimEmirleri).where(eq(uretimEmirleri.id, uretimEmriId)).limit(1))[0];
   if (!emirRow) return null;
+  // Bu emir doğrudan bitmiş mamul stoğuna yazılıyor; ikinci montaj aynı ürünü
+  // tekrar stoğa alıp ara ürünü haksız yere tüketirdi.
+  if (emirRow.stok_hedef_urun_id === emirRow.mamul_urun_id) return null;
 
   const yariMamulRow = (await db.select().from(urunler).where(eq(urunler.id, emirRow.urun_id)).limit(1))[0];
   if (

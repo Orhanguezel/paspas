@@ -825,11 +825,11 @@ async function applyGunlukUretimStockDelta(
 
     const [emirRow] = await tx
       .select({
-        urunId: uretimEmirleri.urun_id,
+        urunId: sql<string>`COALESCE(${uretimEmirleri.stok_hedef_urun_id}, ${uretimEmirleri.urun_id})`,
         stokTakipAktif: urunler.stok_takip_aktif,
       })
       .from(uretimEmirleri)
-      .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+      .innerJoin(urunler, sql`${urunler.id} = COALESCE(${uretimEmirleri.stok_hedef_urun_id}, ${uretimEmirleri.urun_id})`)
       .where(eq(uretimEmirleri.id, kayit.uretimEmriId))
       .limit(1);
     if (!emirRow) return;
@@ -868,11 +868,11 @@ async function applyUretimStockDelta(
 
   const [emirRow] = await tx
     .select({
-      urun_id: uretimEmirleri.urun_id,
+      urun_id: sql<string>`COALESCE(${uretimEmirleri.stok_hedef_urun_id}, ${uretimEmirleri.urun_id})`,
       stokTakipAktif: urunler.stok_takip_aktif,
     })
     .from(uretimEmirleri)
-    .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+    .innerJoin(urunler, sql`${urunler.id} = COALESCE(${uretimEmirleri.stok_hedef_urun_id}, ${uretimEmirleri.urun_id})`)
     .where(eq(uretimEmirleri.id, uretimEmriId))
     .limit(1);
 
@@ -2035,11 +2035,11 @@ async function recordIncrementalProductionEntry(
   if (netMiktar > 0 && hasStockImpact) {
     const [emirRow] = await tx
       .select({
-        urun_id: uretimEmirleri.urun_id,
+        urun_id: sql<string>`COALESCE(${uretimEmirleri.stok_hedef_urun_id}, ${uretimEmirleri.urun_id})`,
         stokTakipAktif: urunler.stok_takip_aktif,
       })
       .from(uretimEmirleri)
-      .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+      .innerJoin(urunler, sql`${urunler.id} = COALESCE(${uretimEmirleri.stok_hedef_urun_id}, ${uretimEmirleri.urun_id})`)
       .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id))
       .limit(1);
 
