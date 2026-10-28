@@ -22,6 +22,7 @@ export interface MakineKuyruguDetayDto {
   asilUrunKod: string | null;
   asilUrunAd: string | null;
   planlananMiktar: number;
+  planlananTakimMiktar: number | null;
   uretilenMiktar: number;
   fireMiktar: number;
   montaj: boolean;
@@ -260,6 +261,7 @@ export function normalizeMakineKuyrugu(raw: unknown): MakineKuyruguDetayDto {
     asilUrunKod: r.asilUrunKod != null ? toStr(r.asilUrunKod) : null,
     asilUrunAd: r.asilUrunAd != null ? toStr(r.asilUrunAd) : null,
     planlananMiktar: toNum(r.planlananMiktar),
+    planlananTakimMiktar: r.planlananTakimMiktar != null ? toNum(r.planlananTakimMiktar) : null,
     uretilenMiktar: toNum(r.uretilenMiktar),
     fireMiktar: toNum(r.fireMiktar),
     montaj: toBool(r.montaj),

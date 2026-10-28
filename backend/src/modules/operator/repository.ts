@@ -742,6 +742,7 @@ export type MakineKuyruguDetayDto = {
   asilUrunKod: string | null;
   asilUrunAd: string | null;
   planlananMiktar: number;
+  planlananTakimMiktar: number | null;
   uretilenMiktar: number;
   fireMiktar: number;
   montaj: boolean;
@@ -1039,6 +1040,13 @@ export async function repoListMakineKuyrugu(
         m_ad: makineler.ad,
         ue_emir_no: uretimEmirleri.emir_no,
         ue_urun_id: uretimEmirleri.urun_id,
+        planlanan_takim_miktar: sql<string | null>`case when ${uretimEmirleri.stok_hedef_urun_id} is not null then (
+          select sum(uesk.miktar)
+          from uretim_emri_siparis_kalemleri uesk
+          inner join siparis_kalemleri sk on sk.id = uesk.siparis_kalem_id
+          where uesk.uretim_emri_id = ${uretimEmirleri.id}
+            and sk.urun_id = ${uretimEmirleri.stok_hedef_urun_id}
+        ) else null end`,
         u_kod: urunler.kod,
         u_ad: urunler.ad,
         // Asıl ürün türetme: aynı YM birden çok mamul reçetesinde geçebildiği için
@@ -1242,6 +1250,7 @@ export async function repoListMakineKuyrugu(
       asilUrunKod: r.asil_urun_kod ?? null,
       asilUrunAd: r.asil_urun_ad ?? null,
       planlananMiktar: Number(r.op_planlanan_miktar ?? 0),
+      planlananTakimMiktar: r.planlanan_takim_miktar == null ? null : Number(r.planlanan_takim_miktar),
       uretilenMiktar: Number(r.op_uretilen_miktar ?? 0),
       fireMiktar: Number(r.op_fire_miktar ?? 0),
       montaj: (r.op_montaj ?? 0) === 1,

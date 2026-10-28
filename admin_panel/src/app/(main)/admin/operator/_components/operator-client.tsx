@@ -77,6 +77,10 @@ function formatQuantity(value: number): string {
   return value.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
 }
 
+function displayedPlan(job: MakineKuyruguDetayDto): number {
+  return job.planlananTakimMiktar ?? job.planlananMiktar;
+}
+
 function PreviousTotalsCard({ job, hint }: { job: MakineKuyruguDetayDto; hint?: string }) {
   return (
     <div className="rounded-xl border bg-slate-50 p-4 text-sm">
@@ -216,7 +220,7 @@ function MakineKuyruguTab() {
 
   function pct(planned: number, produced: number): number {
     if (!planned) return 0;
-    return Math.min(100, Math.round((produced / planned) * 100));
+    return Math.min(100, Math.floor((produced / planned) * 100));
   }
 
   async function handleBaslat(item: MakineKuyruguDetayDto) {
@@ -296,8 +300,9 @@ function MakineKuyruguTab() {
   }
 
   function openFinish(item: MakineKuyruguDetayDto) {
-    // Default to planned quantity as the actual total (operator adjusts if needed)
-    setUretilenMiktar(String(item.planlananMiktar));
+    // Takım olarak izlenen emirde bu alan son ek üretimdir; planı otomatik
+    // doldurmak önceki günlük kayıtların üzerine yanlışlıkla ekler.
+    setUretilenMiktar(item.planlananTakimMiktar == null ? String(item.planlananMiktar) : "");
     setFireMiktar("0");
     setNotlar("");
     setFinishVardiya(null);
@@ -306,6 +311,10 @@ function MakineKuyruguTab() {
 
   async function confirmFinish() {
     if (!finishing) return;
+    if (finishing.planlananTakimMiktar != null && !uretilenMiktar.trim()) {
+      toast.error("Bu vardiyada ek üretilen takım sayısını girin.");
+      return;
+    }
     const u = parseFloat(uretilenMiktar || "0");
     const f = parseFloat(fireMiktar || "0");
     if (Number.isNaN(u) || u < 0) {
@@ -465,7 +474,7 @@ function MakineKuyruguTab() {
                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-6">
                             <div className="bg-slate-100/50 p-4 rounded-2xl">
                               <span className="text-xs font-bold text-slate-500 uppercase">Planlanan</span>
-                              <div className="text-2xl font-black text-slate-800 tabular-nums sm:text-3xl">{activeJob.planlananMiktar}</div>
+                              <div className="text-2xl font-black text-slate-800 tabular-nums sm:text-3xl">{formatQuantity(displayedPlan(activeJob))}{activeJob.planlananTakimMiktar != null ? " takım" : ""}</div>
                             </div>
                             <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
                               <span className="text-xs font-bold text-primary uppercase">Üretilen</span>
@@ -481,9 +490,9 @@ function MakineKuyruguTab() {
                           <div className="space-y-2 pt-2">
                             <div className="flex justify-between items-end">
                               <span className="text-sm font-bold text-slate-600">TAMAMLANMA</span>
-                              <span className="text-2xl font-black text-primary">{pct(activeJob.planlananMiktar, activeJob.uretilenMiktar)}%</span>
+                              <span className="text-2xl font-black text-primary">{pct(displayedPlan(activeJob), activeJob.uretilenMiktar)}%</span>
                             </div>
-                            <Progress value={pct(activeJob.planlananMiktar, activeJob.uretilenMiktar)} className="h-4 bg-slate-200" />
+                            <Progress value={pct(displayedPlan(activeJob), activeJob.uretilenMiktar)} className="h-4 bg-slate-200" />
                           </div>
                         </div>
 
@@ -682,7 +691,9 @@ function MakineKuyruguTab() {
             <p className="text-sm text-muted-foreground">
               <strong className="font-mono">{finishing?.emirNo}</strong> — {finishing ? getJobTitle(finishing) : ""}
             </p>
-            {finishing && <PreviousTotalsCard job={finishing} hint={t("admin.erp.operator.finishTotalHint")} />}
+            {finishing && <PreviousTotalsCard job={finishing} hint={finishing.planlananTakimMiktar != null
+              ? "Bu vardiyada ek üretilen takım sayısını girin; önceki kayıtlar yukarıda gösterilir."
+              : t("admin.erp.operator.finishTotalHint")} />}
             <VardiyaSecici
               value={finishVardiya}
               onChange={setFinishVardiya}
