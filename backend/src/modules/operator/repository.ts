@@ -741,6 +741,7 @@ export type MakineKuyruguDetayDto = {
   urunAd: string;
   asilUrunKod: string | null;
   asilUrunAd: string | null;
+  asilUrunId: string | null;
   planlananMiktar: number;
   planlananTakimMiktar: number | null;
   uretilenMiktar: number;
@@ -1040,6 +1041,20 @@ export async function repoListMakineKuyrugu(
         m_ad: makineler.ad,
         ue_emir_no: uretimEmirleri.emir_no,
         ue_urun_id: uretimEmirleri.urun_id,
+        asil_urun_id: sql<string | null>`case when ${urunler.kategori} in ('operasyonel_ym','yarimamul') then coalesce(
+          (select sk3.urun_id
+           from uretim_emri_siparis_kalemleri uesk
+           inner join siparis_kalemleri sk3 on sk3.id = uesk.siparis_kalem_id
+           where uesk.uretim_emri_id = ${uretimEmirleri.id}
+           limit 1),
+          ${uretimEmirleri.stok_hedef_urun_id},
+          (select r2.urun_id
+           from recete_kalemleri rk
+           inner join receteler r2 on r2.id = rk.recete_id and r2.is_active = 1
+           inner join urunler u2 on u2.id = r2.urun_id and u2.kategori = 'urun'
+           where rk.urun_id = ${uretimEmirleri.urun_id}
+           limit 1)
+        ) else null end`,
         planlanan_takim_miktar: sql<string | null>`case when ${uretimEmirleri.stok_hedef_urun_id} is not null then (
           select sum(uesk.miktar)
           from uretim_emri_siparis_kalemleri uesk
@@ -1057,8 +1072,9 @@ export async function repoListMakineKuyrugu(
            from uretim_emri_siparis_kalemleri uesk
            inner join siparis_kalemleri sk3 on sk3.id = uesk.siparis_kalem_id
            inner join urunler u3 on u3.id = sk3.urun_id
-           where uesk.uretim_emri_id = ${uretimEmirleri.id}
+          where uesk.uretim_emri_id = ${uretimEmirleri.id}
            limit 1),
+          (select u4.kod from urunler u4 where u4.id = ${uretimEmirleri.stok_hedef_urun_id} limit 1),
           (select u2.kod
            from recete_kalemleri rk
            inner join receteler r2 on r2.id = rk.recete_id and r2.is_active = 1
@@ -1073,6 +1089,7 @@ export async function repoListMakineKuyrugu(
            inner join urunler u3 on u3.id = sk3.urun_id
            where uesk.uretim_emri_id = ${uretimEmirleri.id}
            limit 1),
+          (select u4.ad from urunler u4 where u4.id = ${uretimEmirleri.stok_hedef_urun_id} limit 1),
           (select u2.ad
            from recete_kalemleri rk
            inner join receteler r2 on r2.id = rk.recete_id and r2.is_active = 1
@@ -1249,6 +1266,7 @@ export async function repoListMakineKuyrugu(
       urunAd: r.u_ad ?? '',
       asilUrunKod: r.asil_urun_kod ?? null,
       asilUrunAd: r.asil_urun_ad ?? null,
+      asilUrunId: r.asil_urun_id ?? null,
       planlananMiktar: Number(r.op_planlanan_miktar ?? 0),
       planlananTakimMiktar: r.planlanan_takim_miktar == null ? null : Number(r.planlanan_takim_miktar),
       uretilenMiktar: Number(r.op_uretilen_miktar ?? 0),

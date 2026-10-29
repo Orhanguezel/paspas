@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
@@ -203,31 +205,13 @@ function buildTrendMetrics(gunler: Array<{
 }
 
 type ViewMode = "vardiya" | "makine" | "kalip" | "trend";
-type RangePreset = "gun" | "hafta" | "ay" | "ozel" | "vardiya-cifti";
-type VardiyaCiftiMode = "gunduz-gece" | "gece-gunduz";
-
-function defaultShiftPairRange(): { baslangicTarih: string; bitisTarih: string; vardiyaCifti: VardiyaCiftiMode } {
-  const now = new Date();
-  const h = now.getHours() + now.getMinutes() / 60;
-  const today = todayIsoDate();
-
-  if (h >= 7.5 && h < 19.5) {
-    return { baslangicTarih: shiftIsoDate(today, -1), bitisTarih: today, vardiyaCifti: "gunduz-gece" };
-  }
-
-  if (h >= 19.5) {
-    return { baslangicTarih: shiftIsoDate(today, -1), bitisTarih: today, vardiyaCifti: "gece-gunduz" };
-  }
-
-  return { baslangicTarih: shiftIsoDate(today, -2), bitisTarih: shiftIsoDate(today, -1), vardiyaCifti: "gece-gunduz" };
-}
+type RangePreset = "bugun" | "dun" | "uc-gun" | "yedi-gun" | "otuz-gun" | "ozel";
 
 export default function VardiyaAnaliziClient() {
-  const [defaultPair] = useState(defaultShiftPairRange);
-  const [tarih, setTarih] = useState(defaultPair.bitisTarih);
-  const [rangePreset, setRangePreset] = useState<RangePreset>("vardiya-cifti");
-  const [customBaslangic, setCustomBaslangic] = useState(defaultPair.baslangicTarih);
-  const [customBitis, setCustomBitis] = useState(defaultPair.bitisTarih);
+  const [tarih, setTarih] = useState(todayIsoDate);
+  const [rangePreset, setRangePreset] = useState<RangePreset>("dun");
+  const [customBaslangic, setCustomBaslangic] = useState(yesterdayIsoDate);
+  const [customBitis, setCustomBitis] = useState(yesterdayIsoDate);
   const [view, setView] = useState<ViewMode>("vardiya");
   const [trendGunSayisi, setTrendGunSayisi] = useState<7 | 30>(7);
   const [detay, setDetay] = useState<DetayTarget | null>(null);
@@ -243,37 +227,22 @@ export default function VardiyaAnaliziClient() {
   // aşağıdaki makine checkbox'larından filtreler.
 
   const range = useMemo(() => {
-    if (rangePreset === "gun") {
+    if (rangePreset === "bugun" || rangePreset === "dun") {
+      const selectedDate = rangePreset === "dun" ? shiftIsoDate(tarih, -1) : tarih;
       return {
-        label: "Günlük görünüm",
-        query: { tarih },
-        subtitle: formatDateLabel(tarih),
+        label: rangePreset === "dun" ? "Dün" : "Bugün",
+        query: { tarih: selectedDate },
+        subtitle: formatDateLabel(selectedDate),
       };
     }
 
-    if (rangePreset === "hafta") {
-      const baslangicTarih = shiftIsoDate(tarih, -6);
+    if (rangePreset === "uc-gun" || rangePreset === "yedi-gun" || rangePreset === "otuz-gun") {
+      const days = rangePreset === "uc-gun" ? 3 : rangePreset === "yedi-gun" ? 7 : 30;
+      const baslangicTarih = shiftIsoDate(tarih, 1 - days);
       return {
-        label: "Son 7 gün",
+        label: `Son ${days} gün`,
         query: { baslangicTarih, bitisTarih: tarih },
         subtitle: `${formatDateLabel(baslangicTarih)} - ${formatDateLabel(tarih)}`,
-      };
-    }
-
-    if (rangePreset === "ay") {
-      const baslangicTarih = shiftIsoDate(tarih, -29);
-      return {
-        label: "Son 30 gün",
-        query: { baslangicTarih, bitisTarih: tarih },
-        subtitle: `${formatDateLabel(baslangicTarih)} - ${formatDateLabel(tarih)}`,
-      };
-    }
-
-    if (rangePreset === "vardiya-cifti") {
-      return {
-        label: "Vardiya çifti",
-        query: defaultPair,
-        subtitle: `${formatDateLabel(defaultPair.baslangicTarih)} - ${formatDateLabel(defaultPair.bitisTarih)}`,
       };
     }
 
@@ -283,15 +252,13 @@ export default function VardiyaAnaliziClient() {
       query: sorted,
       subtitle: `${formatDateLabel(sorted.baslangicTarih)} - ${formatDateLabel(sorted.bitisTarih)}`,
     };
-  }, [customBaslangic, customBitis, defaultPair, rangePreset, tarih]);
+  }, [customBaslangic, customBitis, rangePreset, tarih]);
 
   const analizQuery = useMemo(() => ({
     ...range.query,
     makineId: selectedMakineIds.length > 0 ? selectedMakineIds : undefined,
-    vardiyaTipi: rangePreset === "vardiya-cifti"
-      ? undefined
-      : selectedVardiyaTipleri.length > 0 ? selectedVardiyaTipleri : undefined,
-  }), [range.query, rangePreset, selectedMakineIds, selectedVardiyaTipleri]);
+    vardiyaTipi: selectedVardiyaTipleri.length > 0 ? selectedVardiyaTipleri : undefined,
+  }), [range.query, selectedMakineIds, selectedVardiyaTipleri]);
 
   const { data, isLoading, isFetching, refetch } = useGetVardiyaAnaliziAdminQuery(
     analizQuery,
@@ -508,15 +475,8 @@ export default function VardiyaAnaliziClient() {
       return;
     }
 
+    setTarih(todayIsoDate());
     setRangePreset(next);
-  }
-
-  function resetToday() {
-    const today = todayIsoDate();
-    setTarih(today);
-    setCustomBaslangic(today);
-    setCustomBitis(today);
-    setRangePreset("gun");
   }
 
   function toggleVardiyaTipi(tip: string) {
@@ -579,82 +539,26 @@ export default function VardiyaAnaliziClient() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-md border p-0.5">
-            <Button
-              size="sm"
-              variant={view === "vardiya" ? "default" : "ghost"}
-              className="h-7 px-3"
-              onClick={() => setView("vardiya")}
-            >
-              Vardiya Bazlı
-            </Button>
-            <Button
-              size="sm"
-              variant={view === "makine" ? "default" : "ghost"}
-              className="h-7 px-3"
-              onClick={() => setView("makine")}
-            >
-              Makine Bazlı
-            </Button>
-            <Button
-              size="sm"
-              variant={view === "kalip" ? "default" : "ghost"}
-              className="h-7 px-3"
-              onClick={() => setView("kalip")}
-            >
-              Kalıp Bazlı
-            </Button>
-            <Button
-              size="sm"
-              variant={view === "trend" ? "default" : "ghost"}
-              className="h-7 px-3"
-              onClick={() => setView("trend")}
-            >
-              Trend
-            </Button>
-          </div>
-          <div className="flex rounded-md border p-0.5">
-            <Button
-              size="sm"
-              variant={rangePreset === "gun" ? "default" : "ghost"}
-              className="h-7 px-3"
-              onClick={() => applyPreset("gun")}
-            >
-              Gün
-            </Button>
-            <Button
-              size="sm"
-              variant={rangePreset === "vardiya-cifti" ? "default" : "ghost"}
-              className="h-7 px-3"
-              onClick={() => applyPreset("vardiya-cifti")}
-            >
-              Vardiya Çifti
-            </Button>
-            <Button
-              size="sm"
-              variant={rangePreset === "hafta" ? "default" : "ghost"}
-              className="h-7 px-3"
-              onClick={() => applyPreset("hafta")}
-            >
-              7 Gün
-            </Button>
-            <Button
-              size="sm"
-              variant={rangePreset === "ay" ? "default" : "ghost"}
-              className="h-7 px-3"
-              onClick={() => applyPreset("ay")}
-            >
-              30 Gün
-            </Button>
-            <Button
-              size="sm"
-              variant={rangePreset === "ozel" ? "default" : "ghost"}
-              className="h-7 px-3"
-              onClick={() => applyPreset("ozel")}
-            >
-              Özel
-            </Button>
-          </div>
+          <Select value={view} onValueChange={(value) => setView(value as ViewMode)}>
+            <SelectTrigger aria-label="Görünüm" className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="vardiya">Vardiya Bazlı</SelectItem>
+              <SelectItem value="makine">Makine Bazlı</SelectItem>
+              <SelectItem value="kalip">Kalıp Bazlı</SelectItem>
+              <SelectItem value="trend">Trend</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={rangePreset} onValueChange={(value) => applyPreset(value as RangePreset)}>
+            <SelectTrigger aria-label="Tarih aralığı" className="w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="bugun">Bugün</SelectItem>
+              <SelectItem value="dun">Dün</SelectItem>
+              <SelectItem value="uc-gun">3 gün</SelectItem>
+              <SelectItem value="yedi-gun">7 gün</SelectItem>
+              <SelectItem value="otuz-gun">30 gün</SelectItem>
+              <SelectItem value="ozel">Özel aralık</SelectItem>
+            </SelectContent>
+          </Select>
           {rangePreset === "ozel" ? (
             <>
               <Input
@@ -670,14 +574,7 @@ export default function VardiyaAnaliziClient() {
                 className="w-auto"
               />
             </>
-          ) : (
-            <Input
-              type="date"
-              value={tarih}
-              onChange={(e) => setTarih(e.target.value)}
-              className="w-auto"
-            />
-          )}
+          ) : null}
           <div className="flex items-center gap-2 rounded-md border px-2 py-1">
             {[
               ["gunduz", "Gündüz"],
@@ -693,21 +590,19 @@ export default function VardiyaAnaliziClient() {
             ))}
           </div>
           {makineSecenekleri.length > 0 && (
-            <div className="flex max-w-full flex-wrap items-center gap-2 rounded-md border px-2 py-1">
-              {makineSecenekleri.slice(0, 6).map((makine) => (
-                <label key={makine.id} className="flex items-center gap-1.5 text-xs">
-                  <Checkbox
-                    checked={selectedMakineIds.includes(makine.id)}
-                    onCheckedChange={() => toggleMakine(makine.id)}
-                  />
-                  {makine.ad}
-                </label>
-              ))}
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">Makineler {selectedMakineIds.length > 0 ? `(${selectedMakineIds.length})` : "(Tümü)"}</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="max-h-80 overflow-y-auto">
+                {makineSecenekleri.map((makine) => (
+                  <DropdownMenuCheckboxItem key={makine.id} checked={selectedMakineIds.includes(makine.id)} onCheckedChange={() => toggleMakine(makine.id)} onSelect={(event) => event.preventDefault()}>
+                    {makine.ad}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
-          <Button variant="outline" size="sm" onClick={resetToday}>
-            Bugün
-          </Button>
           <Button variant="outline" size="sm" onClick={handleExcelExport} disabled={exportDisabled}>
             <FileSpreadsheet className="mr-1 size-4" />
             Excel
@@ -724,33 +619,23 @@ export default function VardiyaAnaliziClient() {
 
       {/* Özet Kartları */}
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={`ozet-skeleton-${i}`} className="h-20" />
           ))}
         </div>
       ) : ozet ? (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
-          <MetricCard icon={<Package className="size-4" />} label="Net Üretim" value={ozet.toplamUretim.toLocaleString("tr-TR")} />
-          <MetricCard
-            icon={<AlertTriangle className="size-4 text-amber-500" />}
-            label="Fire"
-            value={ozet.toplamFire.toLocaleString("tr-TR")}
-          />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <MetricCard icon={<Package className="size-4" />} label="Net Üretim / Fire" value={`${ozet.toplamUretim.toLocaleString("tr-TR")} / ${ozet.toplamFire.toLocaleString("tr-TR")}`} />
           <MetricCard
             icon={<Clock className="size-4" />}
-            label="Çalışma Süresi"
+            label="Hesaplanan Çalışma"
             value={formatDk(ozet.toplamCalismaDk)}
           />
           <MetricCard
             icon={<AlertTriangle className="size-4 text-amber-500" />}
-            label="Duruş Süresi"
-            value={formatDk(ozet.toplamDurusDk)}
-          />
-          <MetricCard
-            icon={<Wrench className="size-4" />}
-            label="Duruş Sayısı"
-            value={`${ozet.durusSayisi} adet`}
+            label="Duruş Sayısı / Süresi"
+            value={`${ozet.durusSayisi} / ${formatDk(ozet.toplamDurusDk)}`}
           />
           <MetricCard
             icon={<Factory className="size-4 text-primary" />}
@@ -759,6 +644,10 @@ export default function VardiyaAnaliziClient() {
           />
         </div>
       ) : null}
+
+      <p className="text-xs text-muted-foreground">
+        Hesaplanan çalışma = vardiya kaydının başlangıç ve bitiş süresi eksi duruşlar. Gerçek vardiya kaydı olmayan üretimlerde tanımlı vardiya aralığı kullanılır; 12 saat bu aralıktan gelebilir. Verim. Vardiya, duruşları da içeren toplam vardiya süresini esas alır.
+      </p>
 
       <Separator />
 
@@ -930,13 +819,10 @@ function VardiyaYoneticiGorunumu({
                   {records.length} üretim kaydı • {makine?.vardiyaSayisi ?? shifts.length} vardiya
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-8">
-                <MiniMetric label="Net Üretim" value={(makine?.toplamUretim ?? 0).toLocaleString("tr-TR")} />
-                <MiniMetric label="Fire" value={(makine?.fireToplam ?? 0).toLocaleString("tr-TR")} />
-                <MiniMetric label="Duruş Sayısı" value={`${makine?.durusSayisi ?? 0}`} />
-                <MiniMetric label="Toplam Duruş" value={formatDk(makine?.durusToplamDk ?? 0)} />
-                <MiniMetric label="Net Çalışma" value={formatDk(makine?.calismaSuresiDk ?? 0)} />
-                <MiniMetric label="Verim. Net" value={formatPercent(makine?.verimlilikNet ?? null)} />
+              <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-5">
+                <MiniMetric label="Net / Fire" value={`${(makine?.toplamUretim ?? 0).toLocaleString("tr-TR")} / ${(makine?.fireToplam ?? 0).toLocaleString("tr-TR")}`} />
+                <MiniMetric label="Duruş / Süre" value={`${makine?.durusSayisi ?? 0} / ${formatDk(makine?.durusToplamDk ?? 0)}`} />
+                <MiniMetric label="Hesaplanan Çalışma" value={formatDk(makine?.calismaSuresiDk ?? 0)} />
                 <MiniMetric label="Verim. Vardiya" value={formatPercent(makine?.verimlilikVardiya ?? null)} />
                 <MiniMetric label="OEE" value={formatPercent(makine?.oee ?? null)} />
               </div>
@@ -957,11 +843,15 @@ function VardiyaYoneticiGorunumu({
 
                 return (
                   <div key={`${makineId}-${shift}`} className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <h3 className="font-semibold text-sm">{vardiyaLabel(shiftType)} · {slotDateLabel(shift)}</h3>
-                      <Badge variant="outline" className="font-mono">
-                        Net {netTotal.toLocaleString("tr-TR")} • Fire {fireTotal.toLocaleString("tr-TR")} • Verim. Net {formatPercent(vardiyaTotal?.verimlilikNet ?? null)} • Vardiya {formatPercent(vardiyaTotal?.verimlilikVardiya ?? null)}
-                      </Badge>
+                      <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-5">
+                        <MiniMetric label="Net / Fire" value={`${(vardiyaTotal?.uretim.netToplam ?? netTotal).toLocaleString("tr-TR")} / ${(vardiyaTotal?.uretim.fireToplam ?? fireTotal).toLocaleString("tr-TR")}`} />
+                        <MiniMetric label="Duruş / Süre" value={`${vardiyaTotal ? vardiyaTotal.duruslar.arizaSayisi + vardiyaTotal.duruslar.kalipDegisimSayisi + vardiyaTotal.duruslar.bakimSayisi + vardiyaTotal.duruslar.digerSayisi : 0} / ${formatDk(vardiyaTotal?.durusToplamDk ?? 0)}`} />
+                        <MiniMetric label="Hesaplanan Çalışma" value={formatDk(vardiyaTotal?.calismaSuresiDk ?? 0)} />
+                        <MiniMetric label="Verim. Vardiya" value={formatPercent(vardiyaTotal?.verimlilikVardiya ?? null)} />
+                        <MiniMetric label="OEE" value={formatPercent(vardiyaTotal?.oee ?? null)} />
+                      </div>
                     </div>
                     <div className="overflow-auto rounded-md border">
                       <Table>

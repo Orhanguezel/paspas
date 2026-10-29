@@ -9,27 +9,36 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useGetReceteAdminQuery } from "@/integrations/endpoints/admin/erp/receteler_admin.endpoints";
 import { useGetUretimEmriAdminQuery } from "@/integrations/endpoints/admin/erp/uretim_emirleri_admin.endpoints";
+import { useGetUrunReceteAdminQuery } from "@/integrations/endpoints/admin/erp/urunler_admin.endpoints";
 import { resolveMediaUrl } from "@/lib/media-url";
 
 interface Props {
   emirId: string | null;
+  urunId?: string | null;
+  urunAd?: string;
+  urunKod?: string;
   onOpenChange: (open: boolean) => void;
 }
 
-export function ReceteDetayModal({ emirId, onOpenChange }: Props) {
+export function ReceteDetayModal({ emirId, urunId, urunAd, urunKod, onOpenChange }: Props) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const { data: emri, isLoading: emriLoading } = useGetUretimEmriAdminQuery(emirId ?? "", {
     skip: !emirId,
   });
 
-  const { data: recete, isLoading: receteLoading } = useGetReceteAdminQuery(emri?.receteId ?? "", {
-    skip: !emri?.receteId,
+  const { data: emirRecete, isLoading: emirReceteLoading } = useGetReceteAdminQuery(emri?.receteId ?? "", {
+    skip: !emirId || !!urunId || !emri?.receteId,
+  });
+  const { data: urunRecete, isLoading: urunReceteLoading } = useGetUrunReceteAdminQuery(urunId ?? "", {
+    skip: !emirId || !urunId,
   });
 
+  const recete = urunId ? urunRecete : emirRecete;
+  const receteLoading = urunId ? urunReceteLoading : emirReceteLoading;
   const isLoading = emriLoading || receteLoading;
-  const displayUrunKod = emri?.urunKod ?? null;
-  const displayUrunAd = emri?.urunAd ?? "";
-  const displayUrunGorsel = emri?.urunGorsel ?? null;
+  const displayUrunKod = urunId ? urunKod : emri?.urunKod ?? null;
+  const displayUrunAd = urunId ? urunAd ?? "" : emri?.urunAd ?? "";
+  const displayUrunGorsel = urunId ? null : emri?.urunGorsel ?? null;
 
   return (
     <Dialog open={!!emirId} onOpenChange={onOpenChange}>
@@ -82,10 +91,10 @@ export function ReceteDetayModal({ emirId, onOpenChange }: Props) {
                     )}
                     <h2 className="text-4xl font-black tracking-tight leading-tight text-foreground">{displayUrunAd}</h2>
                   </div>
-                  {emri.receteAd && (
+                  {(recete?.ad || (!urunId && emri.receteAd)) && (
                     <div className="text-xl text-muted-foreground font-medium flex items-center justify-center md:justify-start gap-2">
                       <div className="size-1.5 rounded-full bg-primary/40" />
-                      {emri.receteAd}
+                      {recete?.ad ?? emri.receteAd}
                     </div>
                   )}
                 </div>
@@ -192,13 +201,13 @@ export function ReceteDetayModal({ emirId, onOpenChange }: Props) {
                 </div>
               )}
 
-              {emri.receteId && !recete && !receteLoading && (
+              {(urunId || emri.receteId) && !recete && !receteLoading && (
                 <div className="py-20 flex flex-col items-center justify-center text-muted-foreground gap-4 bg-muted/10 rounded-3xl border border-dashed">
                   <AlertTriangle className="size-12 opacity-20" />
                   <p className="text-lg font-medium">Reçete bilgileri yüklenemedi.</p>
                 </div>
               )}
-              {!emri.receteId && (
+              {!urunId && !emri.receteId && (
                 <div className="py-20 flex flex-col items-center justify-center text-muted-foreground gap-4 bg-muted/10 rounded-3xl border border-dashed">
                   <AlertTriangle className="size-12 opacity-20" />
                   <p className="text-lg font-medium">Bu üretim emrine reçete tanımlı değil.</p>

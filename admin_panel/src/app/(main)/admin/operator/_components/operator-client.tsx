@@ -77,10 +77,6 @@ function formatQuantity(value: number): string {
   return value.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
 }
 
-function displayedPlan(job: MakineKuyruguDetayDto): number {
-  return job.planlananTakimMiktar ?? job.planlananMiktar;
-}
-
 function PreviousTotalsCard({ job, hint }: { job: MakineKuyruguDetayDto; hint?: string }) {
   return (
     <div className="rounded-xl border bg-slate-50 p-4 text-sm">
@@ -179,7 +175,7 @@ function MakineKuyruguTab() {
   const [dailyFireMiktar, setDailyFireMiktar] = useState("0");
   const [dailyNotlar, setDailyNotlar] = useState("");
   const [dailyVardiya, setDailyVardiya] = useState<{ vardiyaId: string } | null>(null);
-  const [receteDetayEmirId, setReceteDetayEmirId] = useState<string | null>(null);
+  const [receteDetayTarget, setReceteDetayTarget] = useState<{ emirId: string; urunId: string | null; urunAd: string; urunKod: string } | null>(null);
 
   const [resuming, setResuming] = useState<MakineKuyruguDetayDto | null>(null);
   const [resumeNotlar, setResumeNotlar] = useState("");
@@ -474,7 +470,8 @@ function MakineKuyruguTab() {
                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-6">
                             <div className="bg-slate-100/50 p-4 rounded-2xl">
                               <span className="text-xs font-bold text-slate-500 uppercase">Planlanan</span>
-                              <div className="text-2xl font-black text-slate-800 tabular-nums sm:text-3xl">{formatQuantity(displayedPlan(activeJob))}{activeJob.planlananTakimMiktar != null ? " takım" : ""}</div>
+                              <div className="text-2xl font-black text-slate-800 tabular-nums sm:text-3xl">{formatQuantity(activeJob.planlananMiktar)}</div>
+                              {activeJob.planlananTakimMiktar != null && <div className="mt-1 text-xs text-slate-500">Sipariş hedefi: {formatQuantity(activeJob.planlananTakimMiktar)} takım</div>}
                             </div>
                             <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
                               <span className="text-xs font-bold text-primary uppercase">Üretilen</span>
@@ -490,9 +487,9 @@ function MakineKuyruguTab() {
                           <div className="space-y-2 pt-2">
                             <div className="flex justify-between items-end">
                               <span className="text-sm font-bold text-slate-600">TAMAMLANMA</span>
-                              <span className="text-2xl font-black text-primary">{pct(displayedPlan(activeJob), activeJob.uretilenMiktar)}%</span>
+                              <span className="text-2xl font-black text-primary">{pct(activeJob.planlananMiktar, activeJob.uretilenMiktar)}%</span>
                             </div>
-                            <Progress value={pct(displayedPlan(activeJob), activeJob.uretilenMiktar)} className="h-4 bg-slate-200" />
+                            <Progress value={pct(activeJob.planlananMiktar, activeJob.uretilenMiktar)} className="h-4 bg-slate-200" />
                           </div>
                         </div>
 
@@ -501,7 +498,7 @@ function MakineKuyruguTab() {
                           <Button
                             variant="outline"
                             className="h-14 text-base font-bold rounded-2xl border-2"
-                            onClick={() => setReceteDetayEmirId(activeJob.uretimEmriId)}
+                            onClick={() => setReceteDetayTarget({ emirId: activeJob.uretimEmriId, urunId: activeJob.asilUrunId, urunAd: getJobTitle(activeJob), urunKod: activeJob.asilUrunKod ?? activeJob.urunKod })}
                           >
                             Reçete Detayı
                           </Button>
@@ -663,7 +660,7 @@ function MakineKuyruguTab() {
                                 <Button
                                   variant="outline"
                                   className="mt-2 h-9 w-full rounded-xl font-semibold"
-                                  onClick={() => setReceteDetayEmirId(job.uretimEmriId)}
+                                  onClick={() => setReceteDetayTarget({ emirId: job.uretimEmriId, urunId: job.asilUrunId, urunAd: getJobTitle(job), urunKod: job.asilUrunKod ?? job.urunKod })}
                                 >
                                   Reçete Detayı
                                 </Button>
@@ -884,7 +881,7 @@ function MakineKuyruguTab() {
         </SheetContent>
       </Sheet>
 
-      <ReceteDetayModal emirId={receteDetayEmirId} onOpenChange={(open) => !open && setReceteDetayEmirId(null)} />
+      <ReceteDetayModal emirId={receteDetayTarget?.emirId ?? null} urunId={receteDetayTarget?.urunId ?? null} urunAd={receteDetayTarget?.urunAd} urunKod={receteDetayTarget?.urunKod} onOpenChange={(open) => !open && setReceteDetayTarget(null)} />
     </>
   );
 }
