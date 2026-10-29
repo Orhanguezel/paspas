@@ -77,6 +77,12 @@ function formatQuantity(value: number): string {
   return value.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
 }
 
+function progressTarget(job: MakineKuyruguDetayDto): number {
+  return job.montaj && job.planlananTakimMiktar != null
+    ? job.planlananTakimMiktar
+    : job.planlananMiktar;
+}
+
 function PreviousTotalsCard({ job, hint }: { job: MakineKuyruguDetayDto; hint?: string }) {
   return (
     <div className="rounded-xl border bg-slate-50 p-4 text-sm">
@@ -216,7 +222,7 @@ function MakineKuyruguTab() {
 
   function pct(planned: number, produced: number): number {
     if (!planned) return 0;
-    return Math.min(100, Math.floor((produced / planned) * 100));
+    return Math.min(100, Math.round((produced / planned) * 100));
   }
 
   async function handleBaslat(item: MakineKuyruguDetayDto) {
@@ -470,12 +476,12 @@ function MakineKuyruguTab() {
                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-6">
                             <div className="bg-slate-100/50 p-4 rounded-2xl">
                               <span className="text-xs font-bold text-slate-500 uppercase">Planlanan</span>
-                              <div className="text-2xl font-black text-slate-800 tabular-nums sm:text-3xl">{formatQuantity(activeJob.planlananMiktar)}</div>
-                              {activeJob.planlananTakimMiktar != null && <div className="mt-1 text-xs text-slate-500">Sipariş hedefi: {formatQuantity(activeJob.planlananTakimMiktar)} takım</div>}
+                              <div className="text-2xl font-black text-slate-800 tabular-nums sm:text-3xl">{formatQuantity(progressTarget(activeJob))}{activeJob.montaj && activeJob.planlananTakimMiktar != null ? " takım" : ""}</div>
+                              {activeJob.montaj && activeJob.planlananTakimMiktar != null && <div className="mt-1 text-xs text-slate-500">Operasyon planı: {formatQuantity(activeJob.planlananMiktar)}</div>}
                             </div>
                             <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
                               <span className="text-xs font-bold text-primary uppercase">Üretilen</span>
-                              <div className="text-2xl font-black text-primary tabular-nums sm:text-3xl">{activeJob.uretilenMiktar}</div>
+                              <div className="text-2xl font-black text-primary tabular-nums sm:text-3xl">{activeJob.uretilenMiktar}{activeJob.montaj ? " takım" : ""}</div>
                             </div>
                              <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100">
                               <span className="text-xs font-bold text-rose-500 uppercase">Fire</span>
@@ -487,9 +493,9 @@ function MakineKuyruguTab() {
                           <div className="space-y-2 pt-2">
                             <div className="flex justify-between items-end">
                               <span className="text-sm font-bold text-slate-600">TAMAMLANMA</span>
-                              <span className="text-2xl font-black text-primary">{pct(activeJob.planlananMiktar, activeJob.uretilenMiktar)}%</span>
+                              <span className="text-2xl font-black text-primary">{pct(progressTarget(activeJob), activeJob.uretilenMiktar)}%</span>
                             </div>
-                            <Progress value={pct(activeJob.planlananMiktar, activeJob.uretilenMiktar)} className="h-4 bg-slate-200" />
+                            <Progress value={pct(progressTarget(activeJob), activeJob.uretilenMiktar)} className="h-4 bg-slate-200" />
                           </div>
                         </div>
 

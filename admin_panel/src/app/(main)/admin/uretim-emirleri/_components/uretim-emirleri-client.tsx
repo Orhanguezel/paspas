@@ -893,7 +893,12 @@ export default function UretimEmirleriClient() {
     const uretilen = grupUretilen(emirler);
     const uretilenMiktar = uretilen.miktar ?? 0;
     const uretilenVar = uretilen.miktar !== null;
-    const yuzde = planlananMiktar > 0 ? Math.min(100, Math.round((uretilenMiktar / planlananMiktar) * 100)) : 0;
+    // Montaj üretimi takım cinsinden gelir; aynı birimdeki sipariş hedefiyle karşılaştır.
+    // Operasyonun parça hedefiyle bölmek yüzdeyi yarıya düşürür (UE-2026-0190).
+    const ilerlemeHedefi = uretilen.birim === "Takım" && siparisPlanlananMiktar > 0
+      ? siparisPlanlananMiktar
+      : planlananMiktar;
+    const yuzde = ilerlemeHedefi > 0 ? Math.min(100, Math.round((uretilenMiktar / ilerlemeHedefi) * 100)) : 0;
     const makineAdlari = Array.from(new Set(emirler.map((e) => e.makineAdlari).filter((x): x is string => Boolean(x))));
     const tumAtanmamis = emirler.every((e) => e.makineAtamaSayisi === 0);
     const silinebilir = emirler.every((e) => e.silinebilir);
@@ -918,6 +923,7 @@ export default function UretimEmirleriClient() {
       emirIds: emirler.map((e) => e.id),
       planlananMiktar,
       siparisPlanlananMiktar,
+      ilerlemeHedefi,
       asimetrik,
       esiEksik,
       uretilenMiktar,
@@ -1253,11 +1259,9 @@ export default function UretimEmirleriClient() {
                           {/* Planlanan Miktar */}
                           <TableCell className="text-right">
                             <span className="font-bold text-sm text-slate-900">
-                              {(agg.siparisPlanlananMiktar || agg.planlananMiktar).toLocaleString("tr-TR")}
+                              {agg.ilerlemeHedefi.toLocaleString("tr-TR")}
                             </span>
-                            {agg.siparisPlanlananMiktar > 0 && (
-                              <div className="text-xs font-medium text-muted-foreground">Takım</div>
-                            )}
+                            <div className="text-xs font-medium text-muted-foreground">{agg.uretilenBirim}</div>
                             {agg.asimetrik && (
                               <div className="font-medium text-[10px] text-amber-600">Taraflar farklı planlı</div>
                             )}
