@@ -63,7 +63,6 @@ import { registerMenuPreferencesAdmin } from '@/modules/menu_preferences/router'
 import { registerPromatsMcpAdmin } from '@/modules/promats_mcp/admin.routes';
 import { registerPromatsMcp } from '@/modules/promats_mcp/mcp';
 import { registerPromatsOAuthMetadata, registerPromatsOAuthPublic } from '@/modules/promats_mcp/oauth';
-import { registerProjeTeklifiNotlariAdmin } from '@/modules/projeTeklifiNotlari/router';
 import { registerWebPromatsAdmin, registerWebPromatsPublic } from '@/modules/web_promats/router';
 import { registerCrm } from '@/modules/crm/router';
 import { registerContactMessagesAdmin, registerContactMessagesPublic } from '@/modules/contact_messages/router';
@@ -258,7 +257,6 @@ export async function createApp() {
     await api.register(registerPageFeedbackAdmin, { prefix: '/admin' });
     await api.register(registerMenuPreferencesAdmin, { prefix: '/admin' });
     await api.register(registerPromatsMcpAdmin, { prefix: '/admin' });
-    await api.register(registerProjeTeklifiNotlariAdmin, { prefix: '/admin' });
     await api.register(registerWebPromatsAdmin, { prefix: '/admin' });
     await api.register(registerCrm, { prefix: '/admin' });
     await api.register(registerContactMessagesAdmin, { prefix: '/admin' });

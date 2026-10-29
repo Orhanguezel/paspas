@@ -252,7 +252,6 @@ export const tags = [
   'LoginSettings',
   'TestCenter',
   'PageFeedback',
-  'ProjeTeklifiNot',
   'Teklif',
   'Teklifler',
   'TeklifTalep',

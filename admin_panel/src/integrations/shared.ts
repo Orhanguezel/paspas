@@ -37,7 +37,6 @@ export * from '@/integrations/shared/dashboard.types';
 export * from '@/integrations/shared/db_admin';
 export * from '@/integrations/shared/test_center';
 export * from '@/integrations/shared/pageFeedback';
-export * from '@/integrations/shared/projeTeklifiNotlari';
 export * from '@/integrations/shared/apiSettings';
 export * from '@/integrations/shared/review_admin.types';
 export * from '@/integrations/shared/review.types';

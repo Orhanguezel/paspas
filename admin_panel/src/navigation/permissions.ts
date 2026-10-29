@@ -44,7 +44,6 @@ export type AdminNavKey =
   | "test_center"
   | "admin_documentation"
   | "vardiya_analizi"
-  | "proje_teklifi"
   | "web_sayfasi"
   | "yazilim_gorevleri"
   | "promats_mcp"
@@ -100,7 +99,6 @@ const NAV_ROLES: Record<AdminNavKey, PanelRole[]> = {
   test_center: ["admin"],
   admin_documentation: ["admin"],
   vardiya_analizi: ["admin"],
-  proje_teklifi: ["admin"],
   web_sayfasi: ["admin"],
   yazilim_gorevleri: ["admin"],
   promats_mcp: ["admin"],
@@ -141,7 +139,6 @@ export function canAccessAdminPath(role: PanelRole, pathname: string): boolean {
     { prefix: "/admin/receteler", key: "urunler" },
     { prefix: "/admin/test-merkezi", key: "test_center" },
     { prefix: "/admin/dokumantasyon", key: "admin_documentation" },
-    { prefix: "/admin/proje-teklifi", key: "proje_teklifi" },
     { prefix: "/admin/web-sayfasi", key: "web_sayfasi" },
     { prefix: "/admin/yazilim-gorevleri", key: "yazilim_gorevleri" },
     { prefix: "/admin/promats-mcp", key: "promats_mcp" },

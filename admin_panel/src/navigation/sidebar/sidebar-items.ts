@@ -30,7 +30,6 @@ import {
   Package,
   PanelsTopLeft,
   Play,
-  Presentation,
   Ruler,
   Settings,
   ShoppingCart,
@@ -177,7 +176,6 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
       { key: "promats_mcp", url: "/admin/promats-mcp", icon: Bot, roles: ["admin"] },
       { key: "test_center", url: "/admin/test-merkezi", icon: FileSearch, roles: ["admin"] },
       { key: "admin_documentation", url: "/admin/dokumantasyon", icon: BookOpenText, roles: ["admin"] },
-      { key: "proje_teklifi", url: "/admin/proje-teklifi", icon: Presentation, roles: ["admin"] },
     ],
   },
 ];
@@ -237,7 +235,6 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   test_center: "Test Merkezi",
   admin_documentation: "Dokumantasyon",
   vardiya_analizi: "Vardiya Analizi",
-  proje_teklifi: "Proje Teklifleri",
   web_sayfasi: "Promats İçerik Yönetimi",
   yazilim_gorevleri: "Yazılım Görevleri",
   promats_mcp: "Promats Bağlantıları",
