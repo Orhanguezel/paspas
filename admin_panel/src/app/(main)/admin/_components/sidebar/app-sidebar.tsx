@@ -29,7 +29,7 @@ import { buildAdminSidebarItems } from '@/navigation/sidebar/sidebar-items';
 import type { NavGroup } from '@/navigation/sidebar/sidebar-items';
 
 import { useAdminSettings } from '../admin-settings-provider';
-import { NavMain } from './nav-main';
+import { PersonalMenuControls } from './personal-menu-controls';
 import { NavUser } from './nav-user';
 
 const VALID_ROLES = new Set<string>(['admin', 'operator', 'satin_almaci', 'nakliyeci']);
@@ -196,7 +196,7 @@ export function AppSidebar({
 
       <SidebarContent>
         {/* ✅ NavMain NavGroup[] bekliyor */}
-        <NavMain items={groupsForMe} showQuickCreate={false} />
+        <PersonalMenuControls groups={groupsForMe} userId={currentUser.id} />
       </SidebarContent>
 
       <SidebarFooter>

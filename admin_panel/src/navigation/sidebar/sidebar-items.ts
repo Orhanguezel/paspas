@@ -51,6 +51,7 @@ export interface NavSubItem {
 }
 
 export interface NavMainItem {
+  key: AdminNavItemKey;
   title: string;
   url: string;
   icon?: LucideIcon;
@@ -60,6 +61,7 @@ export interface NavMainItem {
 
 export interface NavGroup {
   id: number;
+  key: AdminNavGroupKey;
   label?: string;
   items: NavMainItem[];
 }
@@ -68,7 +70,7 @@ export type AdminSidebarRole = PanelRole;
 
 export type AdminNavItemKey = AdminNavKey;
 
-export type AdminNavGroupKey = "overview" | "production" | "logistics" | "teklif" | "website" | "system";
+export type AdminNavGroupKey = "overview" | "production" | "logistics" | "teklif" | "website" | "system" | "other";
 
 export type AdminNavConfigItem = {
   key: AdminNavItemKey;
@@ -91,9 +93,6 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
     id: 1,
     key: "overview",
     items: [
-      { key: "yazilim_gorevleri", url: "/admin/yazilim-gorevleri", icon: ClipboardList, roles: ["admin"] },
-      { key: "iletisim_mesajlari", url: "/admin/contacts", icon: Inbox, roles: ["admin"] },
-
       // V2: görevler (tasks/notifications) buraya eklenecek
       // { key: 'gorevler', url: '/admin/gorevler', icon: ClipboardList, roles: ['admin', 'operator', 'satin_almaci'] },
       {
@@ -164,24 +163,16 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
       { key: "hareketler", url: "/admin/hareketler", icon: Activity, roles: ["admin", "satin_almaci"] },
     ],
   },
-  // ─── Teklif Modülü ───
+  // ─── Seyrek kullanılan modüller ───
   {
     id: 4,
-    key: "teklif",
+    key: "other",
     items: [
+      { key: "yazilim_gorevleri", url: "/admin/yazilim-gorevleri", icon: ClipboardList, roles: ["admin"] },
+      { key: "iletisim_mesajlari", url: "/admin/contacts", icon: Inbox, roles: ["admin"] },
       { key: "teklif_talepleri", url: "/admin/teklif-talepleri", icon: Inbox, roles: ["admin", "nakliyeci"] },
       { key: "teklifler", url: "/admin/teklifler", icon: FileSignature, roles: ["admin", "nakliyeci"] },
-    ],
-  },
-  {
-    id: 5,
-    key: "website",
-    items: [{ key: "web_sayfasi", url: "/admin/web-sayfasi", icon: PanelsTopLeft, roles: ["admin"] }],
-  },
-  {
-    id: 6,
-    key: "system",
-    items: [
+      { key: "web_sayfasi", url: "/admin/web-sayfasi", icon: PanelsTopLeft, roles: ["admin"] },
       { key: "site_settings", url: "/admin/sistem", icon: Settings, roles: ["admin"] },
       { key: "promats_mcp", url: "/admin/promats-mcp", icon: Bot, roles: ["admin"] },
       { key: "test_center", url: "/admin/test-merkezi", icon: FileSearch, roles: ["admin"] },
@@ -200,6 +191,7 @@ const FALLBACK_GROUP_LABELS: Record<AdminNavGroupKey, string> = {
   overview: "Genel",
   production: "Üretim Süreçleri",
   logistics: "Lojistik & Stok",
+  other: "Diğer Modüller",
   teklif: "Teklif Modülü",
   website: "Web Sitesi",
   system: "Sistem Yönetimi",
@@ -300,6 +292,7 @@ export function buildAdminSidebarItems(
 
       return {
         id: group.id,
+        key: group.key,
         label,
         items: group.items
           .filter((item) => {
@@ -308,6 +301,7 @@ export function buildAdminSidebarItems(
             return allowed.includes(role);
           })
           .map((item) => ({
+            key: item.key,
             title: getTitle(item),
             url: item.url,
             icon: item.icon,
