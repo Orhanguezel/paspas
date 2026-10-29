@@ -59,6 +59,7 @@ import { registerSevkiyat } from '@/modules/sevkiyat/router';
 import { registerMalKabul } from '@/modules/mal_kabul/router';
 import { registerVardiyaAnalizi } from '@/modules/vardiya_analizi/router';
 import { registerPageFeedbackAdmin } from '@/modules/page_feedback/router';
+import { registerMenuPreferencesAdmin } from '@/modules/menu_preferences/router';
 import { registerPromatsMcpAdmin } from '@/modules/promats_mcp/admin.routes';
 import { registerPromatsMcp } from '@/modules/promats_mcp/mcp';
 import { registerPromatsOAuthMetadata, registerPromatsOAuthPublic } from '@/modules/promats_mcp/oauth';
@@ -255,6 +256,7 @@ export async function createApp() {
     await api.register(registerMalKabul,        { prefix: '/admin' });
     await api.register(registerVardiyaAnalizi,  { prefix: '/admin' });
     await api.register(registerPageFeedbackAdmin, { prefix: '/admin' });
+    await api.register(registerMenuPreferencesAdmin, { prefix: '/admin' });
     await api.register(registerPromatsMcpAdmin, { prefix: '/admin' });
     await api.register(registerProjeTeklifiNotlariAdmin, { prefix: '/admin' });
     await api.register(registerWebPromatsAdmin, { prefix: '/admin' });

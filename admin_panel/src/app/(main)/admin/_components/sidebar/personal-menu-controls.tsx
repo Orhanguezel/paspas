@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { ArrowDown, ArrowUp, Eye, EyeOff, RotateCcw, Settings2, Star } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useGetMenuPreferenceQuery, usePutMenuPreferenceMutation } from '@/integrations/endpoints/admin/menu_preference.endpoints';
 import type { NavGroup, NavMainItem } from '@/navigation/sidebar/sidebar-items';
 import { emptyPersonalMenu, moveKey, normalizePersonalMenu, personalMenuView, sortByKeys, type PersonalMenu } from '@/navigation/sidebar/personal-menu';
 
@@ -13,32 +15,38 @@ import { NavMain } from './nav-main';
 
 export function PersonalMenuControls({ groups, userId }: { groups: readonly NavGroup[]; userId: string }) {
   const path = usePathname();
-  const storageKey = `paspas-admin-menu-v1:${userId}`;
-  const [preference, setPreference] = useState<PersonalMenu>(emptyPersonalMenu);
-  const [loadedKey, setLoadedKey] = useState('');
+  const query = useGetMenuPreferenceQuery(userId, { refetchOnFocus: true });
+  const [putPreference] = usePutMenuPreferenceMutation();
+  const [local, setLocal] = useState<PersonalMenu | null>(null);
   const [open, setOpen] = useState(false);
   const groupsRef = useRef(groups);
+  const localRef = useRef(local);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   groupsRef.current = groups;
+  localRef.current = local;
 
+  useEffect(() => { setLocal(null); }, [userId]);
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(storageKey);
-      setPreference(normalizePersonalMenu(groupsRef.current, raw ? JSON.parse(raw) : null));
-    } catch {
-      setPreference(emptyPersonalMenu());
-    }
-    setLoadedKey(storageKey);
-  }, [storageKey]);
+    if (!local) return;
+    const value = normalizePersonalMenu(groupsRef.current, local);
+    const saved = JSON.stringify(local);
+    const timer = window.setTimeout(() => {
+      const job = saveQueueRef.current.then(() => putPreference(value).unwrap());
+      saveQueueRef.current = job.then(() => undefined, () => undefined);
+      void job.then(async () => {
+        if (localRef.current && JSON.stringify(localRef.current) === saved) {
+          await query.refetch();
+          if (localRef.current && JSON.stringify(localRef.current) === saved) setLocal(null);
+        }
+      }).catch(() => toast.error('Menü tercihi kaydedilemedi.'));
+    }, 450);
+    return () => window.clearTimeout(timer);
+  }, [local, putPreference, query.refetch]);
 
-  useEffect(() => {
-    if (loadedKey !== storageKey) return;
-    window.localStorage.setItem(storageKey, JSON.stringify(normalizePersonalMenu(groups, preference)));
-  }, [groups, loadedKey, preference, storageKey]);
-
-  const current = loadedKey === storageKey ? normalizePersonalMenu(groups, preference) : emptyPersonalMenu();
+  const current = normalizePersonalMenu(groups, local ?? query.data?.value);
   const view = useMemo(() => personalMenuView(groups, current, path), [groups, current, path]);
   const update = (change: (before: PersonalMenu) => PersonalMenu) =>
-    setPreference((before) => normalizePersonalMenu(groups, change(before)));
+    setLocal((before) => normalizePersonalMenu(groups, change(before ?? current)));
   const toggleFavorite = (key: string) => update((before) => ({
     ...before, favorites: before.favorites.includes(key) ? before.favorites.filter((item) => item !== key) : [...before.favorites, key],
   }));
@@ -69,6 +77,7 @@ export function PersonalMenuControls({ groups, userId }: { groups: readonly NavG
           <SheetDescription>Favorilerinizi, bölüm ve sayfa sırasını düzenleyin. Gizleme erişim yetkinizi değiştirmez.</SheetDescription>
         </SheetHeader>
         <div className="space-y-5 p-4">
+          {query.isError && <p role="alert" className="text-sm text-destructive">Menü tercihi okunamadı. Kaydetmeden önce bağlantıyı yenileyin.</p>}
           <div className="flex items-center justify-between gap-2"><h3 className="font-semibold">Bölüm sırası</h3>
             <Button type="button" size="sm" variant="outline" onClick={() => update(() => emptyPersonalMenu())}><RotateCcw className="mr-1 size-4" />Varsayılana sıfırla</Button>
           </div>
@@ -94,7 +103,7 @@ export function PersonalMenuControls({ groups, userId }: { groups: readonly NavG
               })}</div>
             </section>;
           })}
-          <p className="text-xs text-muted-foreground">Değişiklikler bu tarayıcıda kullanıcı hesabınız için otomatik kaydedilir.</p>
+          <p className="text-xs text-muted-foreground">Değişiklikler hesabınıza otomatik kaydedilir.</p>
         </div>
       </SheetContent>
     </Sheet>
