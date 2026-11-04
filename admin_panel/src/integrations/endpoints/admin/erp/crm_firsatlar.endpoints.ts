@@ -19,6 +19,10 @@ export const crmFirsatlarApi = baseApi.injectEndpoints({
     crmPipelines: b.query<CrmPipeline[], void>({ query: () => `${root}/pipelines` }),
     crmDeals: b.query<{ items: CrmDeal[]; total: number }, { q?: string; limit?: number; offset?: number }>({
       query: (params) => ({ url: `${root}/firsatlar`, params: { limit: 500, ...params } }),
+      transformResponse: (items: CrmDeal[], meta) => ({
+        items,
+        total: Number(meta?.response?.headers.get('x-total-count') ?? items.length),
+      }),
       providesTags: [{ type: 'Firsatlar' as const, id: 'LIST' }],
     }),
     crmDeal: b.query<CrmDeal, string>({ query: (id) => `${root}/firsatlar/${id}`, providesTags: (_r, _e, id) => [{ type: 'Firsat' as const, id }] }),
@@ -40,7 +44,10 @@ export const crmFirsatlarApi = baseApi.injectEndpoints({
       query: ({ id, ...body }) => ({ url: `${root}/aktiviteler`, method: 'POST', body: { ...body, refType: 'firsat', refId: id } }),
       invalidatesTags: (_r, _e, { id }) => [{ type: 'FirsatAktiviteler' as const, id }],
     }),
-    crmCustomersForDeals: b.query<{ items: Array<{ id: string; ad: string }> }, void>({ query: () => '/admin/musteriler?tur=musteri&limit=500' }),
+    crmCustomersForDeals: b.query<{ items: Array<{ id: string; ad: string }> }, void>({
+      query: () => '/admin/musteriler?tur=musteri&limit=500',
+      transformResponse: (items: Array<{ id: string; ad: string }>) => ({ items }),
+    }),
   }),
 });
 
