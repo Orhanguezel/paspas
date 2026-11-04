@@ -2553,6 +2553,21 @@ export async function repoUpdateGunlukUretimKaydi(
     const nextEk = body.ekUretimMiktari ?? prevEk;
     const nextFire = body.fireMiktari ?? prevFire;
     const nextNet = body.netMiktar ?? Math.max(0, nextEk - nextFire);
+    const nextKayitTarihi = body.kayitTarihi ? new Date(body.kayitTarihi) : existing.kayit_tarihi;
+    let nextVardiyaKayitId = existing.vardiya_kayit_id;
+    if (body.kayitTarihi && existing.makine_id) {
+      // Tarih başka vardiyaya taşındığında eski vardiya bağlantısını bırakma.
+      const [matchingShift] = await tx.select({ id: vardiyaKayitlari.id })
+        .from(vardiyaKayitlari)
+        .where(and(
+          eq(vardiyaKayitlari.makine_id, existing.makine_id),
+          lte(vardiyaKayitlari.baslangic, nextKayitTarihi),
+          sql`COALESCE(${vardiyaKayitlari.bitis}, DATE_ADD(${vardiyaKayitlari.baslangic}, INTERVAL 12 HOUR)) > ${nextKayitTarihi}`,
+        ))
+        .orderBy(desc(vardiyaKayitlari.baslangic))
+        .limit(1);
+      nextVardiyaKayitId = matchingShift?.id ?? null;
+    }
 
     netDelta = nextNet - prevNet;
     fireDelta = nextFire - prevFire;
@@ -2563,6 +2578,8 @@ export async function repoUpdateGunlukUretimKaydi(
         ek_uretim_miktari: nextEk.toFixed(4),
         fire_miktari: nextFire.toFixed(4),
         net_miktar: nextNet.toFixed(4),
+        kayit_tarihi: nextKayitTarihi,
+        vardiya_kayit_id: nextVardiyaKayitId,
         notlar: body.notlar === undefined ? existing.notlar : (body.notlar?.trim() || null),
       })
       .where(eq(operatorGunlukKayitlari.id, kayitId));

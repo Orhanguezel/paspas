@@ -72,6 +72,7 @@ export const gunlukUretimBodySchema = z.object({
 });
 
 export const gunlukUretimPatchBodySchema = z.object({
+  kayitTarihi: z.string().datetime({ offset: true }).optional(),
   ekUretimMiktari: z.coerce.number().min(0).optional(),
   fireMiktari: z.coerce.number().min(0).optional(),
   netMiktar: z.coerce.number().min(0).optional(),

@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/table";
 
 import { useListMakinelerAdminQuery } from "@/integrations/endpoints/admin/erp/makine_havuzu_admin.endpoints";
+import { useAuthStatusQuery } from "@/integrations/endpoints/users/auth_public.endpoints";
 import {
   useGetVardiyaAnaliziAdminQuery,
   useGetVardiyaTrendAdminQuery,
@@ -52,6 +53,7 @@ import {
   type KalipRollup,
   type MakineRollup,
   type UretimKaydiOzet,
+  type GunlukUretimKaydiPatchPayload,
   type VardiyaAnalizItem,
 } from "@/integrations/endpoints/admin/erp/vardiya_analizi_admin.endpoints";
 import {
@@ -208,6 +210,8 @@ type ViewMode = "vardiya" | "makine" | "kalip" | "trend";
 type RangePreset = "bugun" | "dun" | "uc-gun" | "yedi-gun" | "otuz-gun" | "ozel";
 
 export default function VardiyaAnaliziClient() {
+  const { data: authStatus } = useAuthStatusQuery();
+  const isAdmin = authStatus?.is_admin === true;
   const [tarih, setTarih] = useState(todayIsoDate);
   const [rangePreset, setRangePreset] = useState<RangePreset>("dun");
   const [customBaslangic, setCustomBaslangic] = useState(yesterdayIsoDate);
@@ -513,7 +517,7 @@ export default function VardiyaAnaliziClient() {
     toast.success("PDF yazdırma penceresi açıldı.");
   }
 
-  async function handleUpdateKayit(body: { ekUretimMiktari: number; fireMiktari: number; netMiktar: number; notlar: string | null }) {
+  async function handleUpdateKayit(body: GunlukUretimKaydiPatchPayload) {
     if (!editingKayit) return;
     try {
       await updateGunlukKayit({ id: editingKayit.id, body }).unwrap();
@@ -728,6 +732,7 @@ export default function VardiyaAnaliziClient() {
       <UretimKaydiEditDialog
         kayit={editingKayit}
         open={!!editingKayit}
+        canEditDate={isAdmin}
         isSaving={isUpdatingKayit}
         onClose={() => setEditingKayit(null)}
         onSubmit={handleUpdateKayit}
@@ -989,16 +994,19 @@ function MiniMetric({ label, value }: { label: string; value: string }) {
 function UretimKaydiEditDialog({
   kayit,
   open,
+  canEditDate,
   isSaving,
   onClose,
   onSubmit,
 }: {
   kayit: UretimKaydiOzet | null;
   open: boolean;
+  canEditDate: boolean;
   isSaving: boolean;
   onClose: () => void;
-  onSubmit: (body: { ekUretimMiktari: number; fireMiktari: number; netMiktar: number; notlar: string | null }) => Promise<void>;
+  onSubmit: (body: GunlukUretimKaydiPatchPayload) => Promise<void>;
 }) {
+  const [kayitTarihi, setKayitTarihi] = useState("");
   const [ekUretimMiktari, setEkUretimMiktari] = useState("0");
   const [fireMiktari, setFireMiktari] = useState("0");
   const [netMiktar, setNetMiktar] = useState("0");
@@ -1006,6 +1014,8 @@ function UretimKaydiEditDialog({
 
   useEffect(() => {
     if (!kayit) return;
+    const date = new Date(kayit.baslangic);
+    setKayitTarihi(new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16));
     setEkUretimMiktari(String(kayit.ekUretimMiktari ?? kayit.netMiktar + kayit.fireMiktar));
     setFireMiktari(String(kayit.fireMiktar ?? 0));
     setNetMiktar(String(kayit.netMiktar ?? 0));
@@ -1014,6 +1024,11 @@ function UretimKaydiEditDialog({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const date = new Date(kayitTarihi);
+    if (canEditDate && (!kayitTarihi || Number.isNaN(date.getTime()))) {
+      toast.error("Geçerli bir kayıt tarihi girin.");
+      return;
+    }
     const ek = Number(ekUretimMiktari);
     const fire = Number(fireMiktari);
     const net = Number(netMiktar);
@@ -1030,6 +1045,8 @@ function UretimKaydiEditDialog({
       return;
     }
     await onSubmit({
+      ...(canEditDate && kayit && date.getTime() !== new Date(kayit.baslangic).getTime()
+        ? { kayitTarihi: date.toISOString() } : {}),
       ekUretimMiktari: ek,
       fireMiktari: fire,
       netMiktar: net,
@@ -1045,6 +1062,13 @@ function UretimKaydiEditDialog({
         </DialogHeader>
         {kayit && (
           <form className="space-y-4" onSubmit={handleSubmit}>
+            {canEditDate && (
+              <div className="space-y-1.5">
+                <Label htmlFor="kayit-tarihi">Kayıt tarihi ve saati</Label>
+                <Input id="kayit-tarihi" type="datetime-local" value={kayitTarihi}
+                  onChange={(event) => setKayitTarihi(event.target.value)} required />
+              </div>
+            )}
             <div className="rounded-md border bg-muted/30 p-3 text-sm">
               <div className="font-medium">{kayit.urunAd}</div>
               <div className="text-muted-foreground text-xs">

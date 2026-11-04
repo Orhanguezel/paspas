@@ -224,6 +224,7 @@ export type VardiyaDetayResponse = {
 };
 
 export type GunlukUretimKaydiPatchPayload = {
+  kayitTarihi?: string;
   ekUretimMiktari?: number;
   fireMiktari?: number;
   netMiktar?: number;
