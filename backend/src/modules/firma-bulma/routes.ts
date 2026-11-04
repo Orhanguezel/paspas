@@ -78,6 +78,11 @@ export async function registerFirmaBulma(app: FastifyInstance) {
     if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_sorgu' } });
     return motor.firmaDetayi(parsed.data);
   });
+  app.get('/firma-bulma/firma-bilgileri', { preHandler: read }, async (req, reply) => {
+    const parsed = z.object({ name: z.string().trim().min(2).max(255), country: z.string().trim().max(120).optional() }).safeParse(req.query);
+    if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_firma_sorgusu' } });
+    return motor.firmaBilgileri(parsed.data.name, parsed.data.country);
+  });
   app.get('/firma-bulma/ayna/iz', { preHandler: read }, async () => {
     const saved = await profile();
     if (!saved.aynaAdlari.length) return { names: [], totals: null, spellings: [], buyers: [], timeline: [], products: [], shipments: [] };
