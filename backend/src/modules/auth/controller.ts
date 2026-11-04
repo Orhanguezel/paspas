@@ -9,7 +9,7 @@ import { randomUUID, createHash } from "crypto";
 import { db } from "@/db/client";
 import { users, refresh_tokens } from "./schema";
 import { userRoles } from "@/modules/userRoles/schema";
-import { getPrimaryRole } from "@/modules/userRoles/service";
+import { getAssignedRoles, getPrimaryRole } from "@/modules/userRoles/service";
 import { desc, eq, like, and } from "drizzle-orm";
 import { hash as argonHash, verify as argonVerify } from "argon2";
 import bcrypt from "bcryptjs";
@@ -38,6 +38,7 @@ interface JWTPayload {
   sub: string;
   email?: string;
   role?: Role;
+  roles?: Role[];
   purpose?: "password_reset";
   iat?: number;
   exp?: number;
@@ -222,8 +223,9 @@ export async function issueTokens(
   role: Role,
 ) {
   const jwt = getJWT(app);
+  const roles = await getAssignedRoles(u.id);
   const access = jwt.sign(
-    { sub: u.id, email: u.email ?? undefined, role },
+    { sub: u.id, email: u.email ?? undefined, role, roles },
     { expiresIn: `${ACCESS_MAX_AGE}s` },
   );
 
@@ -500,8 +502,9 @@ export function makeAuthController(app: FastifyInstance) {
           .send({ error: { message: "invalid_user" } });
 
       const role = await getPrimaryRole(u.id);
+      const roles = await getAssignedRoles(u.id);
       const access = jwt.sign(
-        { sub: u.id, email: u.email ?? undefined, role },
+        { sub: u.id, email: u.email ?? undefined, role, roles },
         { expiresIn: `${ACCESS_MAX_AGE}s` },
       );
       const newRaw = await rotateRefresh(raw, u.id);
@@ -663,9 +666,10 @@ export function makeAuthController(app: FastifyInstance) {
 
       try {
         const p = jwt.verify(token);
-        const role = await getPrimaryRole(p.sub);
+        const roles = await getAssignedRoles(p.sub);
+        const role = roles[0] ?? "operator";
         return reply.send({
-          user: { id: p.sub, email: p.email ?? null, role },
+          user: { id: p.sub, email: p.email ?? null, role, roles },
         });
       } catch {
         return reply
@@ -681,11 +685,12 @@ export function makeAuthController(app: FastifyInstance) {
 
       try {
         const p = jwt.verify(token);
-        const role = await getPrimaryRole(p.sub);
+        const roles = await getAssignedRoles(p.sub);
+        const role = roles[0] ?? "operator";
         return reply.send({
           authenticated: true,
           is_admin: role === "admin",
-          user: { id: p.sub, email: p.email ?? null, role },
+          user: { id: p.sub, email: p.email ?? null, role, roles },
         });
       } catch {
         return reply.send({

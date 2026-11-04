@@ -25,6 +25,12 @@ function resolveRole(me: ReturnType<typeof normalizeMeFromStatus>): PanelRole | 
   return VALID_ROLES.has(mapped) ? (mapped as PanelRole) : null;
 }
 
+function resolveRoles(me: ReturnType<typeof normalizeMeFromStatus>): PanelRole[] {
+  if (!me) return [];
+  return me.roles.map((role) => DB_TO_PANEL[role] ?? role)
+    .filter((role): role is PanelRole => VALID_ROLES.has(role));
+}
+
 export default function AdminAuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -57,7 +63,7 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
       return;
     }
 
-    if (canAccessAdminPath(role, pathname)) return;
+    if (canAccessAdminPath(resolveRoles(me), pathname)) return;
 
     // Yetkisiz sayfa → rolün ana sayfasına yönlendir
     router.replace(ROLE_HOME[role]);
@@ -67,7 +73,7 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
 
   const me = normalizeMeFromStatus(q.data as AuthStatusResponse | undefined);
   const role = resolveRole(me);
-  if (!role || !canAccessAdminPath(role, pathname)) return null;
+  if (!role || !canAccessAdminPath(resolveRoles(me), pathname)) return null;
 
   return <>{children}</>;
 }

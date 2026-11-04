@@ -245,8 +245,9 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
 export function buildAdminSidebarItems(
   copy?: Partial<AdminNavCopy> | null,
   t?: TranslateFn,
-  role: AdminSidebarRole = "admin",
+  role: AdminSidebarRole | AdminSidebarRole[] = "admin",
 ): NavGroup[] {
+  const roles = Array.isArray(role) ? role : [role];
   const labels = copy?.labels ?? ({} as AdminNavCopy["labels"]);
   const items = copy?.items ?? ({} as AdminNavCopy["items"]);
 
@@ -263,8 +264,8 @@ export function buildAdminSidebarItems(
     return subItems
       .filter((sub) => {
         const allowed = sub.roles ?? getAdminNavRoles(sub.key);
-        if (!allowed?.length) return role === "admin";
-        return allowed.includes(role);
+        if (!allowed?.length) return roles.includes("admin");
+        return roles.some((current) => allowed.includes(current));
       })
       .map((sub) => ({
         title: getTitle(sub),
@@ -294,8 +295,8 @@ export function buildAdminSidebarItems(
         items: group.items
           .filter((item) => {
             const allowed = item.roles ?? getAdminNavRoles(item.key);
-            if (!allowed?.length) return role === "admin";
-            return allowed.includes(role);
+            if (!allowed?.length) return roles.includes("admin");
+            return roles.some((current) => allowed.includes(current));
           })
           .map((item) => ({
             key: item.key,

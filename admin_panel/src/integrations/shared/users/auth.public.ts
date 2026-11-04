@@ -9,6 +9,7 @@ export interface AuthUser {
   email_verified: number | boolean;
   is_active: number | boolean;
   role: UserRoleName;
+  roles?: UserRoleName[];
 }
 
 export interface AuthTokenResponse {
@@ -24,6 +25,7 @@ export interface AuthStatusResponse {
     id: string;
     email: string | null;
     role: UserRoleName;
+    roles?: UserRoleName[];
   };
 }
 
@@ -32,6 +34,7 @@ export interface AuthMeResponse {
     id: string;
     email: string | null;
     role: UserRoleName;
+    roles?: UserRoleName[];
   };
 }
 
@@ -39,6 +42,7 @@ export type AuthMeNormalized = {
   id: string;
   email: string | null;
   role: UserRoleName;
+  roles: UserRoleName[];
   isAdmin: boolean;
   authenticated: boolean;
 };
@@ -107,11 +111,15 @@ export function normalizeMeFromStatus(res?: AuthStatusResponse | null): AuthMeNo
   const id = String(user.id ?? '').trim();
   if (!id) return null;
   const role = coerceRole(user.role);
-  const isAdmin = (res as any).is_admin === true || role === 'admin';
+  const roles: UserRoleName[] = Array.isArray(user.roles) && user.roles.length > 0
+    ? [...new Set((user.roles as unknown[]).map(coerceRole))]
+    : [role];
+  const isAdmin = (res as any).is_admin === true || roles.includes('admin');
   return {
     id,
     email: user.email ?? null,
     role,
+    roles,
     isAdmin,
     authenticated: true,
   };

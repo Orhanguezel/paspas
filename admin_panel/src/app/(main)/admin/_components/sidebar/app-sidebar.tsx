@@ -169,7 +169,9 @@ export function AppSidebar({
   const resolvedRole: PanelRole = VALID_ROLES.has(mappedRole)
     ? (mappedRole as PanelRole)
     : 'admin';
-  const groupsForMe: NavGroup[] = buildAdminSidebarItems(copy.nav, wrappedT, resolvedRole);
+  const effectiveRoles = statusData?.user?.roles?.map((role) => DB_TO_PANEL[role] ?? role)
+    .filter((role): role is PanelRole => VALID_ROLES.has(role)) ?? [resolvedRole];
+  const groupsForMe: NavGroup[] = buildAdminSidebarItems(copy.nav, wrappedT, effectiveRoles);
   const homeHref = ROLE_HOME[resolvedRole] ?? '/admin/dashboard';
   const panelLabel = baseName || 'ERP';
   const panelSub = companyInfo.sidebarSubtitle || 'Uretim Yonetim Sistemi';

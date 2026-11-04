@@ -4,7 +4,7 @@ import { z } from "zod";
 import { randomUUID } from "crypto";
 import { db } from "@/db/client";
 import { users, refresh_tokens } from "@/modules/auth/schema";
-import { getPrimaryRole } from "@/modules/userRoles/service";
+import { getAssignedRoles } from "@/modules/userRoles/service";
 import { userRoles } from "@/modules/userRoles/schema";
 import { profiles } from "@/modules/profiles/schema";
 import { and, asc, desc, eq, inArray, like, or } from "drizzle-orm";
@@ -80,7 +80,7 @@ async function hydrateAdminUsers(rows: UserRow[]) {
   const withRole = await Promise.all(
     rows.map(async (u) => ({
       ...u,
-      role: await getPrimaryRole(u.id),
+      roles: await getAssignedRoles(u.id),
     })),
   );
 
@@ -108,7 +108,8 @@ async function hydrateAdminUsers(rows: UserRow[]) {
       is_active: u.is_active,
       created_at: u.created_at,
       last_login_at: u.last_sign_in_at,
-      role: u.role,
+      role: u.roles[0] ?? "operator",
+      roles: u.roles,
       wallet_balance: toNum(u.wallet_balance),
       erp_personel_kodu: u.erp_personel_kodu ?? null,
       erp_departman: u.erp_departman ?? null,
@@ -169,8 +170,9 @@ export function makeAdminController(_app: FastifyInstance) {
 
       const withRole = await hydrateAdminUsers(base);
 
-      const filtered = q.role
-        ? withRole.filter((u) => u.role === q.role)
+      const requestedRole = q.role;
+      const filtered = requestedRole
+        ? withRole.filter((u) => u.roles.includes(requestedRole))
         : withRole;
       return reply.send(filtered);
     },

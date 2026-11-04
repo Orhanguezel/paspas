@@ -112,8 +112,9 @@ export function getAdminNavRoles(key: AdminNavKey): PanelRole[] {
 }
 
 // Bir rolün belirli bir URL'e erişip erişemeyeceğini kontrol eder
-export function canAccessAdminPath(role: PanelRole, pathname: string): boolean {
-  if (role === "admin") return true;
+export function canAccessAdminPath(role: PanelRole | PanelRole[], pathname: string): boolean {
+  const roles = Array.isArray(role) ? role : [role];
+  if (roles.includes("admin")) return true;
 
   // Her modülün URL prefix'ini izinli rollerle eşleştir
   const PATH_ROLE_MAP: Array<{ prefix: string; key: AdminNavKey }> = [
@@ -154,7 +155,7 @@ export function canAccessAdminPath(role: PanelRole, pathname: string): boolean {
 
   for (const { prefix, key } of PATH_ROLE_MAP) {
     if (clean === prefix || clean.startsWith(`${prefix}/`)) {
-      return NAV_ROLES[key].includes(role);
+      return roles.some((current) => NAV_ROLES[key].includes(current));
     }
   }
 

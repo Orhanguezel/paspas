@@ -645,7 +645,7 @@ export default function UrunForm({ open, onClose, urun, copyMode = false }: Urun
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="flex w-full flex-col p-0 sm:max-w-2xl">
+      <SheetContent className="flex w-full flex-col p-0 sm:max-w-5xl">
         <SheetHeader className="border-b px-6 py-4">
           <SheetTitle>{copyMode ? "Ürünü Kopyala" : isEdit ? t("admin.erp.urunler.editItem") : t("admin.erp.urunler.newItem")}</SheetTitle>
         </SheetHeader>
@@ -1369,7 +1369,7 @@ function MalzemeCombobox({ malzemeOptions, value, onChange, placeholder, label }
   const selected = malzemeOptions.find((m) => m.id === value);
 
   return (
-    <div className="space-y-1 sm:col-span-3">
+    <div className="min-w-0 space-y-1">
       <Label className="text-xs">{label}</Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -1553,8 +1553,8 @@ function DraftReceteSection({
         const rowCost = getRowCost(row);
 
         return (
-          <div key={row.key} className="space-y-2 rounded-lg border bg-muted/30 p-3">
-            <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-6">
+          <div key={row.key} className="border-b py-3 last:border-b-0">
+            <div className="grid grid-cols-1 items-end gap-2 md:grid-cols-[minmax(12rem,2fr)_7rem_minmax(9rem,1fr)_7rem_7rem_2.5rem]">
               <MalzemeCombobox
                 malzemeOptions={malzemeOptions}
                 value={row.urunId}
@@ -1563,7 +1563,7 @@ function DraftReceteSection({
                 label={tForm("receteMalzeme")}
               />
               <div className="space-y-1">
-                <Label className="text-xs">{tForm("receteMiktar")}</Label>
+                <Label className="text-xs">{tForm("receteMiktar")} ({birim || "—"})</Label>
                 <Input
                   type="number"
                   step="0.0001"
@@ -1573,6 +1573,26 @@ function DraftReceteSection({
                 />
               </div>
 
+              <div className="space-y-1">
+                <Label className="text-xs">Açıklama</Label>
+                <Input
+                  value={row.aciklama}
+                  onChange={(e) => updateRow(idx, "aciklama", e.target.value)}
+                  placeholder="Satır açıklaması"
+                />
+              </div>
+              <div className="space-y-1 text-xs">
+                <Label className="text-xs">{tForm("receteSonAlis")}</Label>
+                <div className="flex h-9 items-center tabular-nums text-muted-foreground">
+                  {malzeme?.birimFiyat?.toLocaleString("tr-TR", { style: "currency", currency: "TRY" }) ?? "—"}
+                </div>
+              </div>
+              <div className="space-y-1 text-xs">
+                <Label className="text-xs">{tForm("receteSatirMaliyet")}</Label>
+                <div className="flex h-9 items-center font-medium tabular-nums">
+                  {malzeme ? rowCost.toLocaleString("tr-TR", { style: "currency", currency: "TRY" }) : "—"}
+                </div>
+              </div>
               <div className="flex items-end">
                 <Button
                   type="button"
@@ -1585,30 +1605,6 @@ function DraftReceteSection({
                 </Button>
               </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Açıklama</Label>
-              <Input
-                value={row.aciklama}
-                onChange={(e) => updateRow(idx, "aciklama", e.target.value)}
-                placeholder="Reçete satırı açıklaması"
-              />
-            </div>
-
-            {malzeme && (
-              <div className="flex items-center gap-4 text-muted-foreground text-xs">
-                <span>
-                  {tForm("receteSonAlis")}:{" "}
-                  {malzeme.birimFiyat?.toLocaleString("tr-TR", { style: "currency", currency: "TRY" }) ?? "—"}
-                </span>
-                <span>
-                  {tForm("receteSatirMaliyet")}:{" "}
-                  {rowCost.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
-                </span>
-                <span>
-                  {tForm("birim")}: {birim || "—"}
-                </span>
-              </div>
-            )}
           </div>
         );
       })}
@@ -1782,8 +1778,8 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
         const malzeme = malzemeOptions.find((u) => u.id === row.urunId);
         const rowCost = getRowCost(row);
         return (
-          <div key={row.key} className="space-y-2 rounded-lg border bg-muted/30 p-3">
-            <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-6">
+          <div key={row.key} className="border-b py-3 last:border-b-0">
+            <div className="grid grid-cols-1 items-end gap-2 md:grid-cols-[minmax(12rem,2fr)_7rem_minmax(9rem,1fr)_7rem_7rem_2.5rem]">
               <MalzemeCombobox
                 malzemeOptions={malzemeOptions}
                 value={row.urunId}
@@ -1792,7 +1788,7 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
                 label={tForm("receteMalzeme")}
               />
               <div className="space-y-1">
-                <Label className="text-xs">{tForm("receteMiktar")}</Label>
+                <Label className="text-xs">{tForm("receteMiktar")} ({malzeme?.birim ?? "—"})</Label>
                 <Input
                   type="number"
                   step="0.0001"
@@ -1800,6 +1796,27 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
                   value={row.miktar}
                   onChange={(e) => updateRow(idx, "miktar", Number(e.target.value))}
                 />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Açıklama</Label>
+                <Input
+                  value={row.aciklama}
+                  onChange={(e) => updateRow(idx, "aciklama", e.target.value)}
+                  placeholder="Satır açıklaması"
+                  disabled={busy}
+                />
+              </div>
+              <div className="space-y-1 text-xs">
+                <Label className="text-xs">{tForm("receteSonAlis")}</Label>
+                <div className="flex h-9 items-center tabular-nums text-muted-foreground">
+                  {malzeme?.birimFiyat?.toLocaleString("tr-TR", { style: "currency", currency: "TRY" }) ?? "—"}
+                </div>
+              </div>
+              <div className="space-y-1 text-xs">
+                <Label className="text-xs">{tForm("receteSatirMaliyet")}</Label>
+                <div className="flex h-9 items-center font-medium tabular-nums">
+                  {malzeme ? rowCost.toLocaleString("tr-TR", { style: "currency", currency: "TRY" }) : "—"}
+                </div>
               </div>
               <div className="flex items-end">
                 <Button
@@ -1813,26 +1830,6 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
                 </Button>
               </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Açıklama</Label>
-              <Input
-                value={row.aciklama}
-                onChange={(e) => updateRow(idx, "aciklama", e.target.value)}
-                placeholder="Reçete satırı açıklaması"
-              />
-            </div>
-            {malzeme && (
-              <div className="flex items-center gap-4 text-muted-foreground text-xs">
-                <span>
-                  {tForm("receteSonAlis")}:{" "}
-                  {malzeme.birimFiyat?.toLocaleString("tr-TR", { style: "currency", currency: "TRY" }) ?? "—"}
-                </span>
-                <span>
-                  {tForm("receteSatirMaliyet")}:{" "}
-                  {rowCost.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
-                </span>
-              </div>
-            )}
           </div>
         );
       })}

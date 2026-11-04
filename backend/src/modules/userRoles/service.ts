@@ -23,19 +23,15 @@ const ROLE_WEIGHT: Record<RoleName, number> = {
   operator: 1,
 };
 
-/** Kullanıcının rollerini çekip en yüksek öncelikli olanı döndürür. */
-export async function getPrimaryRole(userId: string): Promise<RoleName> {
+/** Kullanıcının bütün rollerini öncelik sırasıyla döndürür. */
+export async function getAssignedRoles(userId: string): Promise<RoleName[]> {
   const rows = await db.select().from(userRoles).where(eq(userRoles.user_id, userId));
-  if (!rows?.length) return "operator";
-  let best: RoleName = "operator";
-  let bestWeight = 0;
-  for (const r of rows) {
-    const normalized = LEGACY_ROLE_MAP[String(r.role)] ?? "operator";
-    const w = ROLE_WEIGHT[normalized] ?? 0;
-    if (w > bestWeight) {
-      best = normalized;
-      bestWeight = w;
-    }
-  }
-  return best;
+  if (!rows.length) return ["operator"];
+  return [...new Set(rows.map((r) => LEGACY_ROLE_MAP[String(r.role)] ?? "operator"))]
+    .sort((a, b) => ROLE_WEIGHT[b] - ROLE_WEIGHT[a]);
+}
+
+/** Eski tek-rol tüketicileri için birincil rol. */
+export async function getPrimaryRole(userId: string): Promise<RoleName> {
+  return (await getAssignedRoles(userId))[0] ?? "operator";
 }

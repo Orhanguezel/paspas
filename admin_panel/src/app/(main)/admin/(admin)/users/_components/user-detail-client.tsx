@@ -38,10 +38,6 @@ import { useListMakinelerAdminQuery } from '@/integrations/endpoints/admin/erp/m
 
 const ALL_ROLES: UserRoleName[] = ['admin', 'operator', 'satin_almaci', 'sevkiyatci'];
 
-function isAdminFromView(u: AdminUserView): boolean {
-  return u.roles.includes('admin');
-}
-
 export default function UserDetailClient({ id }: { id: string }) {
   const router = useRouter();
   const t = useAdminT();
@@ -236,9 +232,11 @@ export default function UserDetailClient({ id }: { id: string }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge variant={isAdminFromView(u) ? 'default' : 'secondary'}>
-            {roleLabel((u.roles[0] ?? 'operator') as UserRoleName)}
-          </Badge>
+          {u.roles.map((role) => (
+            <Badge key={role} variant={role === 'admin' ? 'default' : 'secondary'}>
+              {roleLabel(role)}
+            </Badge>
+          ))}
           {u.is_active ? (
             <Badge variant="secondary">{t('admin.users.detail.statusActive')}</Badge>
           ) : (

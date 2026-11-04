@@ -847,8 +847,8 @@ function VardiyaYoneticiGorunumu({
                 const shiftType = slotTipi(shift);
 
                 return (
-                  <div key={`${makineId}-${shift}`} className="space-y-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div key={`${makineId}-${shift}`} className={`overflow-hidden rounded-xl border shadow-sm ${shiftType === "gece" ? "border-indigo-200 dark:border-indigo-900" : "border-sky-200 dark:border-sky-900"}`}>
+                    <div className={`flex flex-wrap items-center justify-between gap-3 border-b p-3 ${shiftType === "gece" ? "border-indigo-200 bg-indigo-50 text-indigo-950 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-100" : "border-sky-200 bg-sky-50 text-sky-950 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-100"}`}>
                       <h3 className="font-semibold text-sm">{vardiyaLabel(shiftType)} · {slotDateLabel(shift)}</h3>
                       <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-5">
                         <MiniMetric label="Net / Fire" value={`${(vardiyaTotal?.uretim.netToplam ?? netTotal).toLocaleString("tr-TR")} / ${(vardiyaTotal?.uretim.fireToplam ?? fireTotal).toLocaleString("tr-TR")}`} />
@@ -858,7 +858,7 @@ function VardiyaYoneticiGorunumu({
                         <MiniMetric label="OEE" value={formatPercent(vardiyaTotal?.oee ?? null)} />
                       </div>
                     </div>
-                    <div className="overflow-auto rounded-md border">
+                    <div className="overflow-auto bg-background">
                       <Table>
                         <TableHeader>
                           <TableRow>
