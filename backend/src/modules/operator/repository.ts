@@ -2695,6 +2695,10 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
 
   // İçinde bulunulan vardiya penceresi (tüm makineler için ortak — tanımlar global).
   const currentWindow = await getCurrentShiftWindow(now);
+  const optionWindow = currentWindow ?? (await listActiveVardiyaTanimlari())
+    .map((tanim) => buildShiftWindow(now, tanim))
+    .filter((window) => window.baslangic <= now)
+    .sort((a, b) => b.baslangic.getTime() - a.baslangic.getTime())[0] ?? null;
 
   return rows.map((r) => {
     const recent = [...(recentByMachine.get(r.makineId) ?? [])];
@@ -2710,21 +2714,20 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
 
     // An operator may need to enter production for a worked day before a shift
     // record exists. Offer the previous two calendar days as virtual shifts.
-    if (currentWindow) {
+    if (optionWindow) {
       const currentEntry = recent.find(
         (v) =>
-          v.bitis === null &&
-          v.vardiyaTipi === currentWindow.vardiyaTipi &&
-          new Date(v.baslangic).getTime() === currentWindow.baslangic.getTime(),
+          v.vardiyaTipi === optionWindow.vardiyaTipi &&
+          new Date(v.baslangic).getTime() === optionWindow.baslangic.getTime(),
       );
       const active = currentEntry ?? {
-          id: buildVirtualShiftId(currentWindow),
-          vardiyaTipi: currentWindow.vardiyaTipi,
-          baslangic: currentWindow.baslangic,
+          id: buildVirtualShiftId(optionWindow),
+          vardiyaTipi: optionWindow.vardiyaTipi,
+          baslangic: optionWindow.baslangic,
           bitis: null,
       };
       const options = [active];
-      const tanim = currentWindow;
+      const tanim = optionWindow;
       for (let daysAgo = 1; daysAgo <= 2; daysAgo += 1) {
         const date = new Date(tanim.baslangic);
         date.setDate(date.getDate() - daysAgo);
