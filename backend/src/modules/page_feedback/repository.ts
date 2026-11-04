@@ -127,7 +127,7 @@ export async function repoCreatePageFeedbackComment(
   if (!existing.thread) return { thread: null, comments: [] };
 
   const commentId = randomUUID();
-  const userName = await resolveUserName(userId);
+  const userName = body.authorName ?? await resolveUserName(userId);
   await db.insert(pageFeedbackComments).values({
     id: commentId,
     thread_id: threadId,

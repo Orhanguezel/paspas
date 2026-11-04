@@ -35,6 +35,7 @@ export const createPageFeedbackSchema = z.object({
 export const createPageFeedbackCommentSchema = z.object({
   body: z.string().trim().min(1).max(10000),
   messageType: feedbackMessageTypeSchema.optional().default('comment'),
+  authorName: z.literal('Aktif360').optional(),
   attachments: z.array(attachmentSchema).max(10).optional().default([]),
 });
 

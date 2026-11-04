@@ -18,6 +18,8 @@ import {
   updatePageFeedbackSchema,
 } from './validation';
 import { transcribeAudio } from './transcript';
+import { hydrateDesk } from './desk';
+import { hasAnyRole } from '@/common/middleware/roles';
 
 function getUserId(req: unknown): string | null {
   const r = req as { user?: { sub?: string; id?: string } };
@@ -54,7 +56,7 @@ export const listPageFeedback: RouteHandler = async (req, reply) => {
     const { items, comments, total } = await repoListPageFeedback(parsed.data);
     reply.header('x-total-count', String(total));
     return reply.send({
-      items: items.map((row) => threadRowToDto(row, comments.filter((comment) => comment.thread_id === row.id))),
+      items: await hydrateDesk(items.map((row) => threadRowToDto(row, comments.filter((comment) => comment.thread_id === row.id)))),
       total,
     });
   } catch (error) {
@@ -68,7 +70,7 @@ export const getPageFeedback: RouteHandler = async (req, reply) => {
     const id = String((req.params as { id?: string }).id || '');
     const { thread, comments } = await repoGetPageFeedback(id);
     if (!thread) return reply.code(404).send({ error: { message: 'not_bulunamadi' } });
-    return reply.send(threadRowToDto(thread, comments));
+    return reply.send((await hydrateDesk([threadRowToDto(thread, comments)]))[0]);
   } catch (error) {
     req.log.error({ error }, 'get_page_feedback_failed');
     return sendInternalError(reply);
@@ -97,6 +99,7 @@ export const addPageFeedbackComment: RouteHandler = async (req, reply) => {
     const id = String((req.params as { id?: string }).id || '');
     const parsed = createPageFeedbackCommentSchema.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_istek_govdesi', issues: parsed.error.flatten() } });
+    if (parsed.data.authorName && !hasAnyRole(req, ['admin'])) return reply.code(403).send({ error: { message: 'forbidden' } });
     const { thread, comments, createdCommentId } = await repoCreatePageFeedbackComment(id, parsed.data, getUserId(req));
     if (!thread) return reply.code(404).send({ error: { message: 'not_bulunamadi' } });
     void transcribeAudio(createdCommentId, parsed.data.body, parsed.data.attachments);

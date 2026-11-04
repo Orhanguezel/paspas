@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   Download, ExternalLink, FileSpreadsheet, Image as ImageIcon, MessageSquare,
@@ -25,14 +25,15 @@ import type {
 } from '@/integrations/shared';
 import { resolveMediaUrl } from '@/lib/media-url';
 import { MatiMotionMark } from './mati-motion-mark';
+import { DeskPanel } from './desk-panel';
 
-const COLUMNS: Array<{ status: PageFeedbackStatus; label: string; color: string }> = [
-  { status: 'open', label: 'Açık', color: 'bg-blue-500' },
-  { status: 'needs_info', label: 'Bilgi Bekliyor', color: 'bg-amber-500' },
-  { status: 'in_review', label: 'İncelemede', color: 'bg-violet-500' },
-  { status: 'planned', label: 'Planlandı', color: 'bg-cyan-500' },
-  { status: 'resolved', label: 'Çözüldü', color: 'bg-emerald-500' },
-  { status: 'closed', label: 'Kapandı', color: 'bg-slate-500' },
+const COLUMNS: Array<{ status: PageFeedbackStatus; label: string; color: string; header: string }> = [
+  { status: 'open', label: 'Açık', color: 'bg-blue-500', header: 'border-blue-200 bg-blue-100/80' },
+  { status: 'needs_info', label: 'Bilgi Bekliyor', color: 'bg-amber-500', header: 'border-amber-200 bg-amber-100/80' },
+  { status: 'in_review', label: 'İncelemede', color: 'bg-blue-500', header: 'border-blue-200 bg-blue-100/80' },
+  { status: 'planned', label: 'Planlandı', color: 'bg-blue-500', header: 'border-blue-200 bg-blue-100/80' },
+  { status: 'resolved', label: 'Çözüldü', color: 'bg-emerald-500', header: 'border-emerald-200 bg-emerald-100/80' },
+  { status: 'closed', label: 'Kapandı', color: 'bg-slate-500', header: 'border-slate-200 bg-slate-100/80' },
 ];
 
 function moduleName(thread: PageFeedbackThread) {
@@ -105,12 +106,14 @@ export default function YazilimGorevleriClient() {
   const recorderChunksRef = useRef<Blob[]>([]);
   const [recording, setRecording] = useState(false);
   const items = list.data?.items ?? [];
-  const [view, setView] = useState<'tasks' | 'releases'>('tasks');
+  const [view, setView] = useState<'chat' | 'tasks' | 'releases'>('tasks');
   const [layout, setLayout] = useState<'board' | 'list'>('board');
   const [query, setQuery] = useState('');
   const [pathQuery, setPathQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<PageFeedbackStatus | 'all'>('all');
   const [recentOnly, setRecentOnly] = useState(false);
+  const [phaseFilter, setPhaseFilter] = useState<'all' | 'ongoing' | 'approval' | 'unclassified'>('all');
+  const [actionFilter, setActionFilter] = useState<'all' | 'biz' | 'talep_sahibi' | 'baska' | 'kimse' | 'unclassified'>('all');
   const [releaseQuery, setReleaseQuery] = useState('');
   const visibleItems = useMemo(() => {
     const text = query.trim().toLocaleLowerCase('tr-TR');
@@ -121,20 +124,22 @@ export default function YazilimGorevleriClient() {
       && (!text || [item.subject, item.pageTitle, item.pagePath, item.id, ...item.comments.map((comment) => comment.body)].join(' ').toLocaleLowerCase('tr-TR').includes(text))
       && (!path || item.pagePath.toLocaleLowerCase('tr-TR').includes(path))
       && (!recentOnly || new Date(item.updatedAt).getTime() >= cutoff)
+      && (phaseFilter === 'all' || (phaseFilter === 'unclassified' ? !item.nextAction?.workPhase : item.nextAction?.workPhase === phaseFilter))
+      && (actionFilter === 'all' || (actionFilter === 'unclassified' ? !item.nextAction : item.nextAction?.party === actionFilter))
     );
-  }, [items, query, pathQuery, statusFilter, recentOnly]);
+  }, [items, query, pathQuery, statusFilter, recentOnly, phaseFilter, actionFilter]);
   const releaseItems = useMemo(() => items.flatMap((item) => item.comments
     .filter((comment) => comment.messageType === 'solution')
     .map((comment) => ({ item, comment })))
     .filter(({ item, comment }) => `${item.subject} ${item.pagePath} ${comment.body}`.toLocaleLowerCase('tr-TR').includes(releaseQuery.toLocaleLowerCase('tr-TR')))
     .sort((a, b) => b.comment.createdAt.localeCompare(a.comment.createdAt)), [items, releaseQuery]);
   const selected = items.find((item) => item.id === selectedId);
-  const stats = useMemo(() => ({
-    active: items.filter((item) => !['resolved', 'closed'].includes(item.status)).length,
-    critical: items.filter((item) => item.priority === 'critical').length,
-    promats: items.filter((item) => item.sourceApp === 'promats-web').length,
-  }), [items]);
-
+  useEffect(() => {
+    if (!selectedId) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setSelectedId(undefined); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedId]);
   async function move(id: string, status: PageFeedbackStatus) {
     try {
       await update({ id, body: { status } }).unwrap();
@@ -344,12 +349,13 @@ export default function YazilimGorevleriClient() {
         <div className="flex flex-wrap items-start gap-4">
           <MatiMotionMark />
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted-foreground">Çalışma Alanı &gt; Promats Desk</p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight">Promats Desk</h1>
+            <p className="text-xs text-muted-foreground">Çalışma Alanı &gt; Aktif360 Desk</p>
+            <h1 className="mt-1 text-3xl font-bold tracking-tight">Aktif360 Desk</h1>
             <p className="mt-1 text-sm text-muted-foreground">Paspas ERP ve Promats Web sayfalarından gelen fikirleri ve sorunları takip edin; yorumları ve çözümü aynı konuşmada görün.</p>
           </div>
         </div>
-        <div className="mt-6 flex flex-wrap items-center gap-2" role="tablist" aria-label="Promats Desk bölümleri">
+        <div className="mt-6 flex flex-wrap items-center gap-2" role="tablist" aria-label="Aktif360 Desk bölümleri">
+          <Button role="tab" aria-selected={view === 'chat'} variant={view === 'chat' ? 'default' : 'outline'} onClick={() => setView('chat')}><MessageSquare className="mr-2 size-4" />Sohbet</Button>
           <Button role="tab" aria-selected={view === 'tasks'} variant={view === 'tasks' ? 'default' : 'outline'} onClick={() => setView('tasks')}>Görevler</Button>
           <Button role="tab" aria-selected={view === 'releases'} variant={view === 'releases' ? 'default' : 'outline'} onClick={() => setView('releases')}>Sürüm notları</Button>
           <div className="ml-auto flex flex-wrap gap-2">
@@ -365,30 +371,26 @@ export default function YazilimGorevleriClient() {
         </div>
       </div>
 
-      {view === 'tasks' && <div className="grid gap-2 sm:grid-cols-3">
-        <Card className="p-3"><div className="text-xs text-muted-foreground">Aktif görev</div><strong className="text-xl">{stats.active}</strong></Card>
-        <Card className="p-3"><div className="text-xs text-muted-foreground">Kritik görev</div><strong className="text-xl text-destructive">{stats.critical}</strong></Card>
-        <Card className="p-3"><div className="text-xs text-muted-foreground">Promats Web</div><strong className="text-xl">{stats.promats}</strong></Card>
-      </div>}
-
       {view === 'tasks' && <div className="space-y-2 rounded-2xl border bg-card p-3">
         <div className="flex flex-wrap items-center gap-2">
           <label className="relative min-w-52 flex-1 sm:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" />
-            <span className="sr-only">Promats Desk notlarında ara</span>
-            <Input aria-label="Promats Desk notlarında ara" className="pl-9" placeholder="Not no, başlık veya yorum ara" value={query} onChange={(event) => setQuery(event.target.value)} />
+            <span className="sr-only">Aktif360 Desk notlarında ara</span>
+            <Input aria-label="Aktif360 Desk notlarında ara" className="pl-9" placeholder="Not no, başlık veya yorum ara" value={query} onChange={(event) => setQuery(event.target.value)} />
           </label>
           <Input aria-label="Sayfa yolunu filtrele" className="min-w-48 flex-1 sm:max-w-xs" placeholder="Sayfa yolu filtrele: /admin/..." value={pathQuery} onChange={(event) => setPathQuery(event.target.value)} />
           <div className="flex max-w-full gap-1 overflow-x-auto pb-1" aria-label="Durum filtresi">
             {([{ status: 'all', label: 'Tümü' }, ...COLUMNS] as Array<{ status: PageFeedbackStatus | 'all'; label: string }>).map(({ status, label }) => <button key={status} type="button" aria-pressed={statusFilter === status} onClick={() => setStatusFilter(status)} className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${statusFilter === status ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'}`}>{label}</button>)}
           </div>
           <Button type="button" size="sm" variant={recentOnly ? 'default' : 'outline'} onClick={() => setRecentOnly((value) => !value)}>Son 24 saat</Button>
+          <select aria-label="İş aşaması filtresi" className="h-9 min-w-40 rounded-lg border bg-background px-3 text-sm" value={phaseFilter} onChange={(event) => setPhaseFilter(event.target.value as typeof phaseFilter)}><option value="all">Tüm aşamalar</option><option value="ongoing">Çalışma sürüyor</option><option value="approval">Test/onay bekleniyor</option><option value="unclassified">Aşama belirlenmedi</option></select>
+          <select aria-label="Aksiyon sahibi filtresi" className="h-9 min-w-40 rounded-lg border bg-background px-3 text-sm" value={actionFilter} onChange={(event) => setActionFilter(event.target.value as typeof actionFilter)}><option value="all">Tüm aksiyonlar</option><option value="biz">Aktif360</option><option value="talep_sahibi">Talep sahibi</option><option value="baska">Başka sorumlu</option><option value="kimse">Kimse</option><option value="unclassified">Belirlenmedi</option></select>
           <div className="inline-flex rounded-lg border p-0.5" aria-label="Not görünümü">
             <Button type="button" size="sm" variant={layout === 'board' ? 'secondary' : 'ghost'} onClick={() => setLayout('board')}>Pano</Button>
             <Button type="button" size="sm" variant={layout === 'list' ? 'secondary' : 'ghost'} onClick={() => setLayout('list')}>Liste</Button>
           </div>
         </div>
-        {(query || pathQuery || statusFilter !== 'all' || recentOnly) && <p role="status" className="px-1 text-xs text-muted-foreground">{visibleItems.length} görev gösteriliyor.</p>}
+        {(query || pathQuery || statusFilter !== 'all' || recentOnly || phaseFilter !== 'all' || actionFilter !== 'all') && <p role="status" className="px-1 text-xs text-muted-foreground">{visibleItems.length} görev gösteriliyor.</p>}
       </div>}
 
       {view === 'releases' ? <div className="space-y-3">
@@ -401,103 +403,56 @@ export default function YazilimGorevleriClient() {
           <Button size="sm" variant="outline" onClick={() => setSelectedId(item.id)}>Tüm görüşmeleri aç</Button>
         </Card>)}
         {!releaseItems.length && <Card className="p-6 text-center text-sm text-muted-foreground">Sürüm notu bulunamadı.</Card>}
-      </div> : layout === 'list' ? <Card className="overflow-hidden p-2">
-        <div className="divide-y">{visibleItems.map((item) => <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} className="flex w-full flex-wrap items-center gap-2 px-3 py-3 text-left hover:bg-muted/50">
-          <span className="min-w-48 flex-1 font-medium">{item.subject}</span><Badge variant="outline">{sourceLabel(item)}</Badge><span className="text-xs text-muted-foreground">{moduleName(item)}</span><Badge variant="secondary">{COLUMNS.find((column) => column.status === item.status)?.label}</Badge><span className="text-xs text-muted-foreground">{new Date(item.updatedAt).toLocaleString('tr-TR')}</span>
-        </button>)}</div>
+      </div> : view === 'chat' ? <Card className="space-y-2 p-3">
+        <h2 className="text-sm font-semibold">Son konuşmalar</h2>
+        {items.filter((item) => item.comments.length).sort((a, b) => b.lastCommentAt.localeCompare(a.lastCommentAt)).slice(0, 50).map((item) => {
+          const last = item.comments.at(-1);
+          return <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} className="w-full rounded-xl border border-blue-100 p-3 text-left hover:bg-blue-50/60"><span className="flex items-center justify-between gap-2 text-sm font-medium"><span>{item.subject}</span><span className="text-xs text-muted-foreground">{new Date(item.lastCommentAt).toLocaleString('tr-TR')}</span></span><span className="mt-1 block line-clamp-2 text-xs text-muted-foreground">{last?.createdByName || 'Kullanıcı'}: {last?.body}</span></button>;
+        })}
+        {!items.length && <p className="py-6 text-center text-sm text-muted-foreground">Henüz konuşma yok.</p>}
+      </Card> : layout === 'list' ? <Card className="overflow-x-auto p-2">
+        <table className="w-full min-w-[1180px] text-left text-sm"><thead className="bg-slate-100 text-xs text-muted-foreground"><tr><th className="p-3">Not no</th><th className="p-3">Başlık</th><th className="p-3">Talep sahibi</th><th className="p-3">Durum</th><th className="p-3">Yayın kanıtı</th><th className="p-3">Sıradaki aksiyon</th><th className="p-3">Son mesajı yazan</th><th className="p-3">Son işlem</th><th className="p-3">Son mesaj</th></tr></thead><tbody>{visibleItems.map((item) => { const last = item.comments.at(-1); return <tr key={item.id} className="border-t align-top"><td className="whitespace-nowrap p-3 font-mono text-xs">{item.id.slice(0, 8).toUpperCase()}</td><td className="min-w-52 p-3"><button type="button" className="text-left font-medium text-blue-600 hover:underline" onClick={() => setSelectedId(item.id)}>{item.subject}</button><p className="text-xs text-muted-foreground">{sourceLabel(item)} · {moduleName(item)}</p></td><td className="p-3">{item.createdByName || 'Kullanıcı'}</td><td className="whitespace-nowrap p-3">{COLUMNS.find((column) => column.status === item.status)?.label}</td><td className="max-w-48 p-3 text-xs">{item.release ? `${item.release.state === 'deployed' ? 'Yayın doğrulandı' : item.release.state === 'withdrawn' ? 'Yayından kaldırıldı' : 'Yayınlanmadı'} · ${item.release.evidence}` : 'Yayın doğrulanmadı'}</td><td className="p-3">{item.nextAction?.party === 'biz' ? 'Aktif360' : item.nextAction?.party === 'talep_sahibi' ? 'Talep sahibi' : item.nextAction?.party === 'baska' ? 'Başka sorumlu' : item.nextAction?.party === 'kimse' ? 'Kimse' : 'Belirlenmedi'}</td><td className="p-3">{last?.createdByName || 'Kullanıcı'}</td><td className="whitespace-nowrap p-3 text-xs">{new Date(item.updatedAt).toLocaleString('tr-TR')}</td><td className="max-w-64 p-3 text-xs"><p className="line-clamp-3">{last?.body}</p></td></tr>; })}</tbody></table>
         {!visibleItems.length && <p className="p-6 text-center text-sm text-muted-foreground">Bu filtrede yazılım görevi yok.</p>}
-      </Card> : <Card className="min-w-0 overflow-hidden p-2">
-        <div className="grid min-w-0 gap-2 [grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr))]">
+      </Card> : <div className="min-w-0 overflow-x-auto pb-2">
+        <div className="grid min-w-[1320px] grid-cols-6 gap-3">
           {COLUMNS.filter((column) => statusFilter === 'all' || statusFilter === column.status).map((column) => {
             const cards = visibleItems.filter((item) => item.status === column.status);
-            return (
-              <fieldset
-                key={column.status}
-                className="min-w-0 rounded-lg border bg-muted/20"
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  const draggedId = event.dataTransfer.getData('text/plain') || draggingIdRef.current;
-                  if (draggedId) void move(draggedId, column.status);
-                  draggingIdRef.current = null;
-                  setDragging(undefined);
-                }}
-              >
-                <div className="flex items-center justify-between border-b bg-card p-2">
-                  <span className="flex items-center gap-2 text-sm font-medium">
-                    <i className={`size-2 rounded-full ${column.color}`} />{column.label}
-                  </span>
-                  <Badge variant="secondary">{cards.length}</Badge>
-                </div>
-                <div className="min-h-24 space-y-1.5 p-1.5">
-                  {cards.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      draggable
-                      onDragStart={(event) => {
-                        draggingIdRef.current = item.id;
-                        setDragging(item.id);
-                        event.dataTransfer.effectAllowed = 'move';
-                        event.dataTransfer.setData('text/plain', item.id);
-                      }}
-                      onDragEnd={() => {
-                        draggingIdRef.current = null;
-                        setDragging(undefined);
-                      }}
-                      onClick={() => setSelectedId(item.id)}
-                      className={`min-w-0 w-full rounded-md border bg-card p-2 text-left shadow-sm hover:border-primary/50 ${['high', 'critical'].includes(item.priority) ? 'border-destructive/50' : ''}`}
-                    >
-                      <div className="mb-1.5 flex items-center justify-between gap-2">
-                        <Badge variant="outline" className="text-[10px]">{sourceLabel(item)}</Badge>
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground"><MessageSquare className="size-3" />{item.comments.length}</span>
-                      </div>
-                      <span className="line-clamp-2 break-words text-xs font-medium leading-5">{item.subject}</span>
-                      <span className="mt-1 block truncate text-xs text-muted-foreground">{moduleName(item)} · {item.pagePath}</span>
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-            );
+            return <section key={column.status} className="min-w-0 rounded-2xl border border-blue-100 bg-slate-50/70 p-2" aria-label={column.label}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                const draggedId = event.dataTransfer.getData('text/plain') || draggingIdRef.current;
+                if (draggedId) void move(draggedId, column.status);
+                draggingIdRef.current = null; setDragging(undefined);
+              }}>
+              <div className={`flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-medium ${column.header}`}><span>{column.label}</span><Badge variant="secondary" className="rounded-full">{cards.length}</Badge></div>
+              <div className="mt-2 max-h-[700px] min-h-32 space-y-2 overflow-y-auto pr-0.5">
+                {cards.length ? cards.map((item) => {
+                  const last = item.comments.at(-1);
+                  return <article key={item.id} role="button" tabIndex={0} aria-label={`${item.subject} notunu aç`}
+                    draggable onDragStart={(event) => { draggingIdRef.current = item.id; setDragging(item.id); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', item.id); }}
+                    onDragEnd={() => { draggingIdRef.current = null; setDragging(undefined); }}
+                    onClick={() => setSelectedId(item.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(item.id); } }}
+                    className={`cursor-pointer rounded-2xl border bg-card p-3 text-left shadow-sm transition hover:border-blue-400 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${['high', 'critical'].includes(item.priority) ? 'border-red-300 bg-red-50/50' : 'border-blue-100'} ${dragging === item.id ? 'opacity-50' : ''}`}>
+                    <div className="flex items-start justify-between gap-1"><h3 className="line-clamp-3 text-sm font-medium leading-5">{item.subject}</h3><span className="shrink-0 text-[10px] text-muted-foreground">{item.comments.length} yorum</span></div>
+                    <p className="mt-2 line-clamp-5 break-words text-xs leading-4 text-muted-foreground">{sourceLabel(item)} · {moduleName(item)} · {item.pagePath} · Son işlem: {new Date(item.updatedAt).toLocaleString('tr-TR')} · Sıradaki: {item.nextAction?.party === 'biz' ? 'Aktif360' : item.nextAction?.party === 'talep_sahibi' ? 'Talep sahibi' : item.nextAction?.party === 'baska' ? 'Başka sorumlu' : item.nextAction?.party === 'kimse' ? 'Kimse' : 'Belirlenmedi'} · Son mesaj: {last?.createdByName || 'Kullanıcı'} · {last?.body || ''}</p>
+                    <select aria-label={`${item.subject} durumunu değiştir`} value={item.status} onClick={(event) => event.stopPropagation()} onChange={(event) => { event.stopPropagation(); void move(item.id, event.target.value as PageFeedbackStatus); }} className="mt-2 h-9 w-full rounded-lg border bg-background px-2 text-xs">{COLUMNS.map((option) => <option key={option.status} value={option.status}>{option.label}</option>)}</select>
+                  </article>;
+                }) : <p className="rounded-xl border border-dashed border-blue-100 bg-card/60 px-3 py-5 text-center text-xs text-muted-foreground">Bu durumda yazılım görevi yok.</p>}
+              </div>
+            </section>;
           })}
         </div>
-      </Card>}
+      </div>}
 
       <Sheet open={Boolean(selected)} onOpenChange={(open) => !open && setSelectedId(undefined)}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
+        <SheetContent className="w-full overflow-y-auto bg-slate-50 sm:max-w-[760px]">
           {selected ? <>
             <SheetHeader>
-              <SheetTitle>{selected.subject}</SheetTitle>
-              <SheetDescription>{sourceLabel(selected)} · {moduleName(selected)} · {selected.pagePath}</SheetDescription>
+              <SheetTitle className="font-serif text-2xl">Aktif360 Desk notu</SheetTitle>
+              <SheetDescription className="sr-only">Seçilen yazılım görevi, aksiyon, yayın kanıtı ve konuşma.</SheetDescription>
             </SheetHeader>
-            <div className="space-y-3 px-4 pb-6">
-              <div className="grid gap-2 sm:grid-cols-2">
-                <Select value={selected.status} onValueChange={(value) => void move(selected.id, value as PageFeedbackStatus)}>
-                  <SelectTrigger><SelectValue placeholder="Durum seçin" /></SelectTrigger>
-                  <SelectContent>
-                    {COLUMNS.map((column) => <SelectItem key={column.status} value={column.status}>{column.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button asChild variant="outline">
-                  <Link href={relatedUrl(selected)}><ExternalLink className="mr-2 size-4" />İlgili sayfaya git</Link>
-                </Button>
-              </div>
-                  {selected.comments.map((comment) => (
-                <div key={comment.id} className="rounded-lg border p-3">
-                  <div className="mb-2 text-xs text-muted-foreground">{comment.createdByName || 'Kullanıcı'} · {new Date(comment.createdAt).toLocaleString('tr-TR')}</div>
-                  <p className="whitespace-pre-wrap text-sm">{comment.body}</p>
-                  {comment.attachments.map((attachment) => {
-                    const url = resolveMediaUrl(attachment.url);
-                    return attachment.mime.startsWith('audio/')
-                      // biome-ignore lint/a11y/useMediaCaption: Kullanıcı sesli notları için ayrı altyazı dosyası bulunmaz.
-                      ? <audio key={attachment.assetId} controls src={url} className="mt-3 w-full" />
-                      : attachment.mime.startsWith('image/')
-                        ? <a key={attachment.assetId} href={url} target="_blank" rel="noreferrer" className="mt-3 block overflow-hidden rounded-lg border"><img src={url} alt={attachment.name} className="max-h-72 w-full object-contain" /></a>
-                        : <a key={attachment.assetId} href={url} target="_blank" rel="noreferrer" className="mt-2 block text-xs underline">{attachment.name}</a>;
-                  })}
-                </div>
-              ))}
-            </div>
+            <DeskPanel key={selected.id} thread={selected} onStatus={(status) => void move(selected.id, status)} />
           </> : null}
         </SheetContent>
       </Sheet>
