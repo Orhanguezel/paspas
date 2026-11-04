@@ -1,6 +1,6 @@
 .stage{position:relative;display:inline-grid;flex:none;width:96px;height:96px;place-items:center;isolation:isolate}
-.orbit{position:absolute;inset:3px;border:1px dashed #9bb6ff;border-radius:50%;background:radial-gradient(circle,#eff5ff 0%,#ffffff88 60%,transparent 75%)}
-.character{position:relative;z-index:1;width:82px;height:82px;object-fit:contain;transform-origin:50% 85%;filter:drop-shadow(0 9px 8px #2346a020);animation:idle 4s infinite}
+.orbit{position:absolute;inset:8px;border:1px solid #009ed866;border-radius:50%;background:radial-gradient(circle,#dff6fd 0%,#ecfaff88 55%,transparent 75%)}
+.character{position:relative;z-index:1;width:76px;height:92px;object-fit:contain;transform-origin:50% 85%;filter:drop-shadow(0 12px 10px #00384b20);animation:idle 4s infinite}
 .stage:hover .character{animation:hello .6s infinite alternate}
 @keyframes idle{50%{transform:translateY(-7px) rotate(2deg)}}
 @keyframes hello{from{transform:rotate(-4deg)}to{transform:translateY(-9px) rotate(4deg)}}
