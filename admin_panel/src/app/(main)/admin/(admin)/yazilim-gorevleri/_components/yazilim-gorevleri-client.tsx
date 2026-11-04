@@ -355,9 +355,9 @@ export default function YazilimGorevleriClient() {
           </div>
         </div>
         <div className="mt-6 flex flex-wrap items-center gap-2" role="tablist" aria-label="Aktif360 Desk bölümleri">
-          <Button role="tab" aria-selected={view === 'chat'} variant={view === 'chat' ? 'default' : 'outline'} onClick={() => setView('chat')}><MessageSquare className="mr-2 size-4" />Sohbet</Button>
-          <Button role="tab" aria-selected={view === 'tasks'} variant={view === 'tasks' ? 'default' : 'outline'} onClick={() => setView('tasks')}>Görevler</Button>
-          <Button role="tab" aria-selected={view === 'releases'} variant={view === 'releases' ? 'default' : 'outline'} onClick={() => setView('releases')}>Sürüm notları</Button>
+          <Button role="tab" aria-selected={view === 'chat'} variant={view === 'chat' ? 'default' : 'outline'} className={view === 'chat' ? 'bg-blue-600 text-white hover:bg-blue-700' : ''} onClick={() => setView('chat')}><MessageSquare className="mr-2 size-4" />Sohbet</Button>
+          <Button role="tab" aria-selected={view === 'tasks'} variant={view === 'tasks' ? 'default' : 'outline'} className={view === 'tasks' ? 'bg-blue-600 text-white hover:bg-blue-700' : ''} onClick={() => setView('tasks')}>Görevler</Button>
+          <Button role="tab" aria-selected={view === 'releases'} variant={view === 'releases' ? 'default' : 'outline'} className={view === 'releases' ? 'bg-blue-600 text-white hover:bg-blue-700' : ''} onClick={() => setView('releases')}>Sürüm notları</Button>
           <div className="ml-auto flex flex-wrap gap-2">
           <input ref={importRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={(event) => void importExcel(event.target.files?.[0])} />
           <Button variant="outline" onClick={() => void downloadTemplate()}><FileSpreadsheet className="mr-2 size-4" /> Şablon</Button>
@@ -366,7 +366,7 @@ export default function YazilimGorevleriClient() {
           <Button variant="outline" onClick={() => void list.refetch()} disabled={list.isFetching}>
             <RefreshCcw className={`mr-2 size-4 ${list.isFetching ? 'animate-spin' : ''}`} /> Yenile
           </Button>
-          <Button onClick={() => setCreateOpen(true)}><Plus className="mr-2 size-4" /> Yeni görev</Button>
+          <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={() => setCreateOpen(true)}><Plus className="mr-2 size-4" /> Yeni görev</Button>
           </div>
         </div>
       </div>
@@ -380,7 +380,7 @@ export default function YazilimGorevleriClient() {
           </label>
           <Input aria-label="Sayfa yolunu filtrele" className="min-w-48 flex-1 sm:max-w-xs" placeholder="Sayfa yolu filtrele: /admin/..." value={pathQuery} onChange={(event) => setPathQuery(event.target.value)} />
           <div className="flex max-w-full gap-1 overflow-x-auto pb-1" aria-label="Durum filtresi">
-            {([{ status: 'all', label: 'Tümü' }, ...COLUMNS] as Array<{ status: PageFeedbackStatus | 'all'; label: string }>).map(({ status, label }) => <button key={status} type="button" aria-pressed={statusFilter === status} onClick={() => setStatusFilter(status)} className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${statusFilter === status ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'}`}>{label}</button>)}
+            {([{ status: 'all', label: 'Tümü' }, ...COLUMNS] as Array<{ status: PageFeedbackStatus | 'all'; label: string }>).map(({ status, label }) => <button key={status} type="button" aria-pressed={statusFilter === status} onClick={() => setStatusFilter(status)} className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium ${statusFilter === status ? 'border-blue-600 bg-blue-600 text-white' : 'bg-background hover:bg-muted'}`}>{label}</button>)}
           </div>
           <Button type="button" size="sm" variant={recentOnly ? 'default' : 'outline'} onClick={() => setRecentOnly((value) => !value)}>Son 24 saat</Button>
           <select aria-label="İş aşaması filtresi" className="h-9 min-w-40 rounded-lg border bg-background px-3 text-sm" value={phaseFilter} onChange={(event) => setPhaseFilter(event.target.value as typeof phaseFilter)}><option value="all">Tüm aşamalar</option><option value="ongoing">Çalışma sürüyor</option><option value="approval">Test/onay bekleniyor</option><option value="unclassified">Aşama belirlenmedi</option></select>
