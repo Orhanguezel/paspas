@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { ChevronDown, ChevronRight, MailIcon, PlusCircleIcon, Star } from 'lucide-react';
+import { ChevronDown, ChevronRight, MailIcon, PlusCircleIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,6 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -55,15 +54,11 @@ const NavItemExpanded = ({
   isActive,
   isSubmenuOpen,
   comingSoonText,
-  favorite,
-  onToggleFavorite,
 }: {
   item: NavMainItem;
   isActive: (url: string, subItems?: NavMainItem['subItems']) => boolean;
   isSubmenuOpen: (subItems?: NavMainItem['subItems']) => boolean;
   comingSoonText: string;
-  favorite?: boolean;
-  onToggleFavorite?: (key: string) => void;
 }) => {
   return (
     <Collapsible
@@ -100,12 +95,6 @@ const NavItemExpanded = ({
             </SidebarMenuButton>
           )}
         </CollapsibleTrigger>
-
-        {onToggleFavorite && <SidebarMenuAction type="button" title={favorite ? 'Favorilerimden çıkar' : 'Favorilerime ekle'}
-          aria-label={`${item.title}: ${favorite ? 'favorilerimden çıkar' : 'favorilerime ekle'}`}
-          onClick={(event) => { event.preventDefault(); event.stopPropagation(); onToggleFavorite(item.key); }}>
-          <Star className={favorite ? 'fill-current text-amber-500' : ''} />
-        </SidebarMenuAction>}
 
         {item.subItems && (
           <CollapsibleContent>
@@ -293,8 +282,6 @@ export function NavMain({ items, favorites = [], onToggleFavorite, showQuickCrea
                     isActive={isItemActive}
                     isSubmenuOpen={isSubmenuOpen}
                     comingSoonText={t('admin.sidebar.comingSoon')}
-                    favorite={favorites.includes(item.key)}
-                    onToggleFavorite={onToggleFavorite}
                   />
                 );
               })}

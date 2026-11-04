@@ -23,7 +23,7 @@ export function getUretimDisplay(item: SiparisIslemSatiri): IslemDisplay {
   if (item.uretilenMiktar > 0) {
     return {
       kind: "progress",
-      text: `${formatQuantity(item.uretilenMiktar)} / ${formatQuantity(item.miktar)}`,
+      text: formatQuantity(item.uretilenMiktar),
     };
   }
   if (item.uretimDurumu === "makineye_atandi") {
@@ -48,7 +48,7 @@ export function getSevkDisplay(item: SiparisIslemSatiri): IslemDisplay {
   }
   return {
     kind: "progress",
-    text: `${formatQuantity(item.sevkEdilenMiktar)} / ${formatQuantity(item.miktar)}`,
+    text: formatQuantity(item.sevkEdilenMiktar),
   };
 }
 

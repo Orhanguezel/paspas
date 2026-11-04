@@ -40,14 +40,14 @@ describe("sipariş işlemleri sunum kuralları", () => {
   it("makineye atama, ilerleme ve bitirme durumlarını ayırır", () => {
     expect(getUretimDisplay({ ...baseItem, uretimDurumu: "makineye_atandi" }).text).toBe("Makineye Atandı");
     expect(getUretimDisplay({ ...baseItem, uretimDurumu: "uretiliyor" }).text).toBe("Üretiliyor");
-    expect(getUretimDisplay({ ...baseItem, uretimDurumu: "uretiliyor", uretilenMiktar: 35 }).text).toBe("35 / 100");
+    expect(getUretimDisplay({ ...baseItem, uretimDurumu: "uretiliyor", uretilenMiktar: 35 }).text).toBe("35");
     expect(getUretimDisplay({ ...baseItem, uretimDurumu: "uretim_tamamlandi", uretilenMiktar: 100 }).text).toBe(
       "Tamamlandı",
     );
   });
 
   it("sevk ilerlemesini sipariş miktarına göre gösterir", () => {
-    expect(getSevkDisplay({ ...baseItem, sevkEdilenMiktar: 15 }).text).toBe("15 / 100");
+    expect(getSevkDisplay({ ...baseItem, sevkEdilenMiktar: 15 }).text).toBe("15");
     expect(getSevkDisplay({ ...baseItem, sevkEdilenMiktar: 100 })).toEqual({ kind: "complete", text: "Tamamlandı" });
   });
 

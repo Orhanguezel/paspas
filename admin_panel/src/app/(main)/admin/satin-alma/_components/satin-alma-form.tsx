@@ -116,7 +116,7 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
           terminTarihi: '',
           aciklama: '',
         });
-        setKalemler([]);
+        setKalemler([{ urunId: '', miktar: '1', birimFiyat: '0', terminTarihi: '' }]);
       }
     }
   }, [open, siparis, detailSiparis, reset, nextNoData]);
@@ -185,7 +185,7 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="right" className="w-full p-0 sm:max-w-2xl">
+      <SheetContent side="right" className="flex w-full flex-col p-0 sm:max-w-4xl">
         <SheetHeader className="border-b px-4 py-4 sm:px-6">
           <SheetTitle>{isEdit ? t('admin.erp.satinAlma.editItem') : t('admin.erp.satinAlma.newItem')}</SheetTitle>
         </SheetHeader>
@@ -259,15 +259,9 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
                 </Button>
               </div>
 
-              {kalemler.length === 0 && (
-                <p className="py-3 text-center text-sm text-muted-foreground">
-                  Henüz kalem eklenmedi. Yukarıdaki butona tıklayarak malzeme ekleyin.
-                </p>
-              )}
-
               {kalemler.map((kalem, idx) => (
-                <div key={`kalem-${idx}`} className="flex flex-wrap items-end gap-2 rounded-md border p-3">
-                  <div className="min-w-50 flex-1 space-y-1">
+                <div key={`kalem-${idx}`} className="flex flex-wrap items-end gap-2 rounded-md border p-3 sm:flex-nowrap">
+                  <div className="min-w-0 basis-full space-y-1 sm:basis-auto sm:flex-[2]">
                     <Label className="text-xs">Malzeme</Label>
                     <MalzemeCombobox
                       urunler={urunler}
@@ -318,7 +312,7 @@ export default function SatinAlmaForm({ open, onClose, siparis }: Props) {
                 </div>
               ))}
 
-              {kalemler.length > 0 && (() => {
+              {(() => {
                 const dipToplam = kalemler.reduce((s, k) => s + (Number(k.miktar) || 0) * (Number(k.birimFiyat) || 0), 0);
                 const kdvTutari = dipToplam * (kdvOrani / 100);
                 const genelToplam = dipToplam + kdvTutari;

@@ -477,11 +477,15 @@ function buildVirtualShiftId(pencere: VardiyaPenceresi): string {
   return `${VIRTUAL_SHIFT_PREFIX}${pencere.vardiyaTipi}:${pencere.baslangic.getTime()}`;
 }
 
-function parseVirtualShiftId(id: string | null | undefined): { vardiyaTipi: VardiyaTipi } | null {
+function parseVirtualShiftId(id: string | null | undefined): { vardiyaTipi: VardiyaTipi; baslangic: Date } | null {
   if (!id || !id.startsWith(VIRTUAL_SHIFT_PREFIX)) return null;
-  const vardiyaTipi = id.slice(VIRTUAL_SHIFT_PREFIX.length).split(':')[0];
+  const parts = id.slice(VIRTUAL_SHIFT_PREFIX.length).split(':');
+  if (parts.length !== 2 || !/^\d{13}$/.test(parts[1] ?? '')) return null;
+  const vardiyaTipi = parts[0];
   if (vardiyaTipi !== 'gunduz' && vardiyaTipi !== 'gece') return null;
-  return { vardiyaTipi };
+  const baslangic = new Date(Number(parts[1]));
+  if (Number.isNaN(baslangic.getTime())) return null;
+  return { vardiyaTipi, baslangic };
 }
 
 /**
@@ -498,6 +502,38 @@ async function materializeVirtualShift(
 ): Promise<string | null> {
   const virtual = parseVirtualShiftId(vardiyaKayitId);
   if (!virtual) return vardiyaKayitId ?? null;
+  const tanimlar = await listActiveVardiyaTanimlari();
+  const tanim = tanimlar.find((item) => item.vardiyaTipi === virtual.vardiyaTipi);
+  if (!tanim) throw new Error('vardiya_tanimi_bulunamadi');
+  const pencere = buildShiftWindowFromStart(virtual.baslangic, tanim);
+  if (pencere.baslangic.getTime() !== virtual.baslangic.getTime()
+    || virtual.baslangic.getTime() > now.getTime()
+    || now.getTime() - virtual.baslangic.getTime() > 7 * 24 * 60 * 60 * 1000) {
+    throw new Error('vardiya_tarihi_gecersiz');
+  }
+
+  const [existing] = await tx.select({ id: vardiyaKayitlari.id })
+    .from(vardiyaKayitlari)
+    .where(and(
+      eq(vardiyaKayitlari.makine_id, makineId),
+      eq(vardiyaKayitlari.vardiya_tipi, virtual.vardiyaTipi),
+      eq(vardiyaKayitlari.baslangic, virtual.baslangic),
+    ))
+    .limit(1);
+  if (existing) return existing.id;
+
+  if (pencere.bitis <= now) {
+    const id = randomUUID();
+    await tx.insert(vardiyaKayitlari).values({
+      id,
+      makine_id: makineId,
+      operator_user_id: operatorUserId,
+      vardiya_tipi: virtual.vardiyaTipi,
+      baslangic: pencere.baslangic,
+      bitis: pencere.bitis,
+    });
+    return id;
+  }
   const shift = await ensureAutomaticShiftForMachine(tx, {
     makineId,
     operatorUserId,
@@ -1488,6 +1524,10 @@ export async function repoUretimBitir(
       kayitTarihi: now,
       vardiyaKayitId: submittedVardiyaKayitId,
     });
+    const selectedShift = vardiyaKayitId
+      ? await findShiftByIdForMachine(tx, vardiyaKayitId, kqRow.makine_id)
+      : null;
+    const productionDate = selectedShift?.bitis ? new Date(selectedShift.bitis) : now;
 
     await tx.insert(operatorGunlukKayitlari).values({
       id: randomUUID(),
@@ -1502,7 +1542,7 @@ export async function repoUretimBitir(
       net_miktar: sonEkNet.toFixed(4),
       birim_tipi: body.birimTipi,
       notlar: body.notlar ?? null,
-      kayit_tarihi: now,
+      kayit_tarihi: productionDate,
     });
 
     // Single-op and montaj operations affect stock immediately.
@@ -2668,8 +2708,8 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
       });
     }
 
-    // Current shift is always first, followed by the machine's last two worked
-    // shifts (including gaps such as an unplanned weekend).
+    // An operator may need to enter production for a worked day before a shift
+    // record exists. Offer the previous two calendar days as virtual shifts.
     if (currentWindow) {
       const currentEntry = recent.find(
         (v) =>
@@ -2683,7 +2723,21 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
           baslangic: currentWindow.baslangic,
           bitis: null,
       };
-      recent.splice(0, recent.length, active, ...recent.filter((v) => v.id !== active.id).slice(0, 2));
+      const options = [active];
+      const tanim = currentWindow;
+      for (let daysAgo = 1; daysAgo <= 2; daysAgo += 1) {
+        const date = new Date(tanim.baslangic);
+        date.setDate(date.getDate() - daysAgo);
+        const recorded = recent.find((v) => v.vardiyaTipi === tanim.vardiyaTipi
+          && new Date(v.baslangic).getTime() === date.getTime());
+        options.push(recorded ?? {
+          id: buildVirtualShiftId({ ...tanim, baslangic: date }),
+          vardiyaTipi: tanim.vardiyaTipi,
+          baslangic: date,
+          bitis: null,
+        });
+      }
+      recent.splice(0, recent.length, ...options);
     }
     return {
       makineId: r.makineId,

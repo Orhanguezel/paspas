@@ -71,7 +71,7 @@ export default function StoklarClient() {
     ...(negatifOnly ? { negatifOnly: true } : {}),
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
-    sort: durum === "all" ? "ad" : "kritik_stok",
+    sort: durum === "all" ? "kod" : "kritik_stok",
     order: durum === "all" ? "asc" : "desc",
   } as const;
 
