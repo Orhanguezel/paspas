@@ -65,6 +65,7 @@ import { registerPromatsMcp } from '@/modules/promats_mcp/mcp';
 import { registerPromatsOAuthMetadata, registerPromatsOAuthPublic } from '@/modules/promats_mcp/oauth';
 import { registerWebPromatsAdmin, registerWebPromatsPublic } from '@/modules/web_promats/router';
 import { registerCrm } from '@/modules/crm/router';
+import { registerFirmaBulma } from '@/modules/firma-bulma/routes';
 import { registerContactMessagesAdmin, registerContactMessagesPublic } from '@/modules/contact_messages/router';
 
 // Storage config (site_settings + env)
@@ -259,6 +260,7 @@ export async function createApp() {
     await api.register(registerPromatsMcpAdmin, { prefix: '/admin' });
     await api.register(registerWebPromatsAdmin, { prefix: '/admin' });
     await api.register(registerCrm, { prefix: '/admin' });
+    await api.register(registerFirmaBulma, { prefix: '/admin' });
     await api.register(registerContactMessagesAdmin, { prefix: '/admin' });
 
     // --- Public modüller → /api/... ---

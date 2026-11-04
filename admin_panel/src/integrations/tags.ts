@@ -256,6 +256,11 @@ export const tags = [
   'Teklifler',
   'TeklifTalep',
   'TeklifTalepleri',
+  'Firsat',
+  'Firsatlar',
+  'FirsatAktiviteler',
+  'FirmaBulmaProfil',
+  'FirmaBulmaAdaylar',
 ] as const;
 
 export type tag = typeof tags[number];

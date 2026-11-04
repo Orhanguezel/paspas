@@ -31,8 +31,10 @@ import {
   PanelsTopLeft,
   Play,
   Ruler,
+  Radar,
   Settings,
   ShoppingCart,
+  Target,
   Timer,
   Truck,
   Users,
@@ -170,6 +172,8 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
       { key: "yazilim_gorevleri", url: "/admin/yazilim-gorevleri", icon: ClipboardList, roles: ["admin"] },
       { key: "iletisim_mesajlari", url: "/admin/contacts", icon: Inbox, roles: ["admin"] },
       { key: "teklif_talepleri", url: "/admin/teklif-talepleri", icon: Inbox, roles: ["admin", "nakliyeci"] },
+      { key: "firma_bulma", url: "/admin/firma-bulma", icon: Radar, roles: ["admin", "nakliyeci"] },
+      { key: "firsat", url: "/admin/firsat", icon: Target, roles: ["admin", "nakliyeci"] },
       { key: "teklifler", url: "/admin/teklifler", icon: FileSignature, roles: ["admin", "nakliyeci"] },
       { key: "web_sayfasi", url: "/admin/web-sayfasi", icon: PanelsTopLeft, roles: ["admin"] },
       { key: "site_settings", url: "/admin/sistem", icon: Settings, roles: ["admin"] },
@@ -240,6 +244,8 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   promats_mcp: "Promats Bağlantıları",
   teklif_talepleri: "Teklif Talepleri",
   teklifler: "Teklifler",
+  firma_bulma: "Firma Bulma",
+  firsat: "Fırsat ve Pipeline",
 };
 
 export function buildAdminSidebarItems(

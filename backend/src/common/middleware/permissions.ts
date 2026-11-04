@@ -18,6 +18,7 @@ export type AdminPermissionKey =
   | 'admin.teklif_talepleri'
   | 'admin.teklif_onay'
   | 'admin.crm_firsatlar'
+  | 'admin.firma_bulma'
   | 'admin.crm_pipeline'
   | 'admin.crm_aktiviteler'
   | 'admin.crm_dashboard'
@@ -87,6 +88,7 @@ const ADMIN_PERMISSION_MAP: Record<AdminPermissionKey, AppRole[]> = {
   'admin.teklif_talepleri': ADMIN_AND_SEVKIYATCI,
   'admin.teklif_onay': ADMIN_ONLY,
   'admin.crm_firsatlar': ADMIN_AND_SEVKIYATCI,
+  'admin.firma_bulma': ADMIN_AND_SEVKIYATCI,
   'admin.crm_pipeline': ADMIN_ONLY,
   'admin.crm_aktiviteler': ADMIN_AND_SEVKIYATCI,
   'admin.crm_dashboard': ADMIN_AND_SEVKIYATCI,
@@ -129,6 +131,7 @@ const MODULE_META: Record<AdminPermissionKey, { label: string; group: string }> 
   'admin.teklif_talepleri': { label: 'Teklif Talepleri', group: 'Teklif' },
   'admin.teklif_onay': { label: 'Teklif İskonto Onayı', group: 'Teklif' },
   'admin.crm_firsatlar': { label: 'CRM Fırsatlar', group: 'CRM' },
+  'admin.firma_bulma': { label: 'Firma Bulma', group: 'CRM' },
   'admin.crm_pipeline': { label: 'CRM Pipeline Yönetimi', group: 'CRM' },
   'admin.crm_aktiviteler': { label: 'CRM Aktiviteler', group: 'CRM' },
   'admin.crm_dashboard': { label: 'CRM Dashboard', group: 'CRM' },

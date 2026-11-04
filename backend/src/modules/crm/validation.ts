@@ -13,10 +13,11 @@ export const dealCreateSchema = z.object({
   talepId: z.string().uuid().optional().nullable(), title: z.string().trim().min(1).max(255), amount: z.coerce.number().min(0).default(0),
   currency: currency.default('TRY'), probability: z.coerce.number().int().min(0).max(100).optional().nullable(),
   expectedCloseDate: z.string().date().optional().nullable(), ownerUserId: z.string().uuid().optional().nullable(), source: z.string().max(64).optional().nullable(),
+  nextAction: z.string().trim().max(500).optional().nullable(), nextActionDate: z.string().date().optional().nullable(),
 });
 export const dealPatchSchema = dealCreateSchema.omit({ pipelineId: true, stageId: true, talepId: true }).partial()
   .refine((v) => Object.keys(v).length > 0, 'En az bir alan gerekli');
-export const dealMoveSchema = z.object({ stageId: z.string().uuid(), lostReasonId: z.string().uuid().optional() });
+export const dealMoveSchema = z.object({ stageId: z.string().uuid(), lostReasonId: z.string().uuid().optional(), nextActionDate: z.string().date().optional() });
 export const lossReasonCreateSchema=z.object({code:z.string().trim().regex(/^[a-z0-9_]+$/).max(64),name:z.string().trim().min(1).max(160),sort:z.coerce.number().int().min(0).default(0),isActive:z.boolean().default(true)});
 export const lossReasonPatchSchema=lossReasonCreateSchema.partial().refine(v=>Object.keys(v).length>0,'En az bir alan gerekli');
 export const talepToDealSchema = z.object({
