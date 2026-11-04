@@ -46,7 +46,7 @@ export default function FirsatPage() {
     { label: 'İlk temas', min: 0, max: 29, target: 'İlk Görüşme', color: '#94a3b8' },
     { label: 'Nitelendirme', min: 30, max: 49, target: 'İhtiyaç Belirlendi', color: '#0ea5e9' },
     { label: 'Teklif verildi', min: 50, max: 69, target: 'Teklif Gönderildi', color: '#f59e0b' },
-    { label: 'Müzakere', min: 70, max: 84, target: 'Pazarlık', color: '#8b5cf6' },
+    { label: 'Müzakere', min: 70, max: 89, target: 'Pazarlık', color: '#8b5cf6' },
   ];
   const grouped = stages.length ? boardGroups.map((group) => ({ ...group, stage: stages.find((stage) => stage.name === group.target) ?? stages[0], items: openDeals.filter((deal) => { const stage = stages.find((s) => s.id === deal.stage_id); return stage && stage.sort >= group.min && stage.sort <= group.max; }) })) : [];
   const won = deals.filter((deal) => deal.status === 'won').length;
