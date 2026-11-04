@@ -6,7 +6,7 @@ export function MatiMotionMark() {
   return (
     <span className={styles.stage} aria-hidden="true">
       <span className={styles.orbit} />
-      <Image className={styles.character} src="/internal/page-feedback/aktif360-avatar.png" alt="" width={512} height={512} sizes="96px" priority />
+      <Image className={styles.character} src="/internal/page-feedback/aktif360-robot.png" alt="" width={512} height={512} sizes="96px" unoptimized priority />
     </span>
   );
 }
