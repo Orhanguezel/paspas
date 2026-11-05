@@ -349,12 +349,12 @@ export default function YazilimGorevleriClient() {
         <div className="flex flex-wrap items-start gap-4">
           <MatiMotionMark />
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted-foreground">Çalışma Alanı &gt; Aktif360 Desk</p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight">Aktif360 Desk</h1>
+            <p className="text-xs text-muted-foreground">Çalışma Alanı &gt; Promats Desk</p>
+            <h1 className="mt-1 text-3xl font-bold tracking-tight">Promats Desk</h1>
             <p className="mt-1 text-sm text-muted-foreground">Paspas ERP ve Promats Web sayfalarından gelen fikirleri ve sorunları takip edin; yorumları ve çözümü aynı konuşmada görün.</p>
           </div>
         </div>
-        <div className="mt-6 flex flex-wrap items-center gap-2" role="tablist" aria-label="Aktif360 Desk bölümleri">
+        <div className="mt-6 flex flex-wrap items-center gap-2" role="tablist" aria-label="Promats Desk bölümleri">
           <Button role="tab" aria-selected={view === 'chat'} variant={view === 'chat' ? 'default' : 'outline'} className={view === 'chat' ? 'bg-blue-600 text-white hover:bg-blue-700' : ''} onClick={() => setView('chat')}><MessageSquare className="mr-2 size-4" />Sohbet</Button>
           <Button role="tab" aria-selected={view === 'tasks'} variant={view === 'tasks' ? 'default' : 'outline'} className={view === 'tasks' ? 'bg-blue-600 text-white hover:bg-blue-700' : ''} onClick={() => setView('tasks')}>Görevler</Button>
           <Button role="tab" aria-selected={view === 'releases'} variant={view === 'releases' ? 'default' : 'outline'} className={view === 'releases' ? 'bg-blue-600 text-white hover:bg-blue-700' : ''} onClick={() => setView('releases')}>Sürüm notları</Button>
@@ -375,8 +375,8 @@ export default function YazilimGorevleriClient() {
         <div className="flex flex-wrap items-center gap-2">
           <label className="relative min-w-52 flex-1 sm:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" />
-            <span className="sr-only">Aktif360 Desk notlarında ara</span>
-            <Input aria-label="Aktif360 Desk notlarında ara" className="pl-9" placeholder="Not no, başlık veya yorum ara" value={query} onChange={(event) => setQuery(event.target.value)} />
+            <span className="sr-only">Promats Desk notlarında ara</span>
+            <Input aria-label="Promats Desk notlarında ara" className="pl-9" placeholder="Not no, başlık veya yorum ara" value={query} onChange={(event) => setQuery(event.target.value)} />
           </label>
           <Input aria-label="Sayfa yolunu filtrele" className="min-w-48 flex-1 sm:max-w-xs" placeholder="Sayfa yolu filtrele: /admin/..." value={pathQuery} onChange={(event) => setPathQuery(event.target.value)} />
           <div className="flex max-w-full gap-1 overflow-x-auto pb-1" aria-label="Durum filtresi">
@@ -449,7 +449,7 @@ export default function YazilimGorevleriClient() {
         <SheetContent className="w-full overflow-y-auto bg-slate-50 sm:max-w-[760px]">
           {selected ? <>
             <SheetHeader>
-              <SheetTitle className="font-serif text-2xl">Aktif360 Desk notu</SheetTitle>
+              <SheetTitle className="font-serif text-2xl">Promats Desk notu</SheetTitle>
               <SheetDescription className="sr-only">Seçilen yazılım görevi, aksiyon, yayın kanıtı ve konuşma.</SheetDescription>
             </SheetHeader>
             <DeskPanel key={selected.id} thread={selected} onStatus={(status) => void move(selected.id, status)} />
