@@ -16,7 +16,7 @@ export const firmaBulmaApi = baseApi.injectEndpoints({
     firmaDurum: b.query<{ yapilandirildi: boolean; kaynak: string; iletisimHavuzuHazir: boolean }, void>({ query: () => `${root}/durum` }),
     firmaProfil: b.query<FirmaProfil, void>({ query: () => `${root}/profil`, providesTags: ['FirmaBulmaProfil'] }),
     firmaProfilKaydet: b.mutation<FirmaProfil, FirmaProfil>({ query: (body) => ({ url: `${root}/profil`, method: 'PUT', body }), invalidatesTags: ['FirmaBulmaProfil'] }),
-    firmaGtipKaynaklari: b.query<{ codes: Array<{ code: string; productCount: number; productNames: string[]; source: string }>; sourceProductCount: number; note: string }, void>({ query: () => `${root}/gtip-kaynaklari` }),
+    firmaGtipKaynaklari: b.query<{ codes: Array<{ code: string; productCount: number; productNames: string[]; source: string }>; sourceProductCount: number; note: string }, void>({ query: () => `${root}/gtip-kaynaklari`, providesTags: ['FirmaBulmaProfil'] }),
     firmaUrunGtip: b.query<{ items: PromatsUrunGtip[] }, void>({ query: () => `${root}/urun-gtip`, providesTags: ['FirmaBulmaProfil'] }),
     firmaUrunGtipKaydet: b.mutation<{ ok: boolean }, { id: string; gtipKodu: string; kaynak: string }>({ query: ({ id, ...body }) => ({ url: `${root}/urun-gtip/${id}`, method: 'PUT', body }), invalidatesTags: ['FirmaBulmaProfil'] }),
     firmaHsAra: b.query<{ items: Array<{ hsCode: string; description: string | null; recordCount: number }> }, string>({ query: (q) => `${root}/hs-ara?q=${encodeURIComponent(q)}` }),

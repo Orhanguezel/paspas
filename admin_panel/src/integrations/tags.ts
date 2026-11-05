@@ -260,6 +260,7 @@ export const tags = [
   'Firsatlar',
   'FirsatAktiviteler',
   'FirmaBulmaProfil',
+  'FirmaNumaraSerisi',
   'FirmaBulmaAdaylar',
 ] as const;
 
