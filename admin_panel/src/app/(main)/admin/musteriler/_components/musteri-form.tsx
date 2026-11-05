@@ -35,6 +35,7 @@ import type { MusteriDto } from '@/integrations/shared/erp/musteriler.types';
 
 const schema = z.object({
   tur:      z.enum(['musteri', 'tedarikci']).default('musteri'),
+  musteriDurumu: z.enum(['aday', 'aktif', 'pasif']).default('aktif'),
   kod:      z.string().min(1, 'kodRequired').optional(),
   ad:       z.string().min(1, 'adRequired'),
   ilgiliKisi: z.string().optional(),
@@ -65,6 +66,7 @@ type FormValues = z.infer<typeof schema>;
 
 const emptyDefaults: FormValues = {
   tur: 'musteri',
+  musteriDurumu: 'aktif',
   kod: '',
   ad: '',
   ilgiliKisi: '',
@@ -117,6 +119,7 @@ export default function MusteriForm({ open, onClose, musteri }: MusteriFormProps
     if (musteri) {
       form.reset({
         tur:      musteri.tur,
+        musteriDurumu: musteri.musteriDurumu,
         kod:      musteri.kod,
         ad:       musteri.ad,
         ilgiliKisi: musteri.ilgiliKisi ?? '',
@@ -214,6 +217,17 @@ export default function MusteriForm({ open, onClose, musteri }: MusteriFormProps
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
           <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 space-y-4">
+            <div className="space-y-2">
+              <Label>Firma durumu</Label>
+              <Select value={form.watch('musteriDurumu')} onValueChange={(v) => form.setValue('musteriDurumu', v as FormValues['musteriDurumu'], { shouldDirty: true })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="aday">Aday</SelectItem>
+                  <SelectItem value="aktif">Müşteri</SelectItem>
+                  <SelectItem value="pasif">Pasif müşteri</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {/* Kod + Ad */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">

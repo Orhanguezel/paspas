@@ -63,7 +63,7 @@ export default function MusteriDetayClient({ id, embedded = false }: Props) {
           </Button>}
           <div>
             <h1 className="text-lg font-semibold">{musteri.ad}</h1>
-            <p className="text-sm text-muted-foreground">{musteri.kod}</p>
+            <p className="text-sm text-muted-foreground">Firma ID: {musteri.kod}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -153,8 +153,8 @@ export default function MusteriDetayClient({ id, embedded = false }: Props) {
             </div>
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">{t('admin.erp.musteriler.columns.durum')}</span>
-              <Badge variant={musteri.isActive ? 'default' : 'secondary'}>
-                {musteri.isActive ? t('admin.erp.common.active') : t('admin.erp.common.inactive')}
+              <Badge variant={musteri.musteriDurumu === 'aday' ? 'outline' : musteri.isActive ? 'default' : 'secondary'}>
+                {musteri.musteriDurumu === 'aday' ? 'Aday' : musteri.musteriDurumu === 'pasif' ? 'Pasif müşteri' : 'Müşteri'}
               </Badge>
             </div>
             <div className="flex justify-between gap-3">

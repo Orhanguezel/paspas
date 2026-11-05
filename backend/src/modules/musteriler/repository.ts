@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, desc, eq, like, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, like, ne, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 
 import { db } from '@/db/client';
@@ -27,6 +27,13 @@ function buildWhere(query: ListQuery): SQL | undefined {
   }
   if (query.musteriDurumu) {
     conditions.push(eq(musteriler.musteri_durumu, query.musteriDurumu));
+  }
+  if (query.gorunum === 'musteriler') {
+    conditions.push(ne(musteriler.musteri_durumu, 'aday'));
+  } else if (query.gorunum === 'adaylar') {
+    conditions.push(eq(musteriler.musteri_durumu, 'aday'));
+  } else if (query.gorunum === 'arastirmalar') {
+    conditions.push(sql`EXISTS (SELECT 1 FROM crm_company_research r WHERE r.customer_id = ${musteriler.id})`);
   }
   if (typeof query.isActive === 'boolean') {
     conditions.push(eq(musteriler.is_active, query.isActive ? 1 : 0));
