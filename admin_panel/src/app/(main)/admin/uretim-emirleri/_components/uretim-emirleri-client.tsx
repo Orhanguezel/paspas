@@ -1153,7 +1153,7 @@ export default function UretimEmirleriClient() {
                 {/* table-fixed: Urun sutunu artan tum genisligi yutup diger
                     sutunlari sikistirmasin; genislikler oransal dagilir
                     (YN 70fe2d32). */}
-                <Table className="table-fixed">
+                <Table className={`table-fixed ${isPlanlaTab ? "min-w-[1200px]" : "min-w-[980px]"}`}>
                   <TableHeader className="bg-muted/30">
                     <TableRow>
                       <TableHead className="w-[3%]" />
