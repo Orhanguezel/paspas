@@ -156,9 +156,34 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
         {researchLoading && <p className="text-sm text-muted-foreground">Araştırmalar yükleniyor…</p>}
         {!researchLoading && researchItems.length === 0 && <p className="text-sm text-muted-foreground">Araştırma kaydı bulunamadı.</p>}
         {researchItems.map(item => <button key={item.id} type="button" className="rounded-lg border bg-card p-4 text-left shadow-sm hover:border-primary" onClick={()=>setSelectedId(item.customer_id)}><strong className="text-sm">{item.company_name}</strong><p className="mt-1 line-clamp-3 text-sm">{item.finding}</p><div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground"><span>{item.information_type==='research'?'Araştırma':'Müşteri beyanı'}</span><span>{item.source_label||item.source_url||'Kaynak belirtilmedi'}</span></div></button>)}
-      </div> :
-      <div className="w-full min-w-0 max-w-full overflow-x-auto rounded-md border">
-        <Table>
+      </div> : <>
+      {crmMode && <div className="grid gap-3 xl:hidden sm:grid-cols-2">
+        {isLoading && Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-40" />)}
+        {!isLoading && items.length === 0 && <p className="text-sm text-muted-foreground">{t('admin.erp.musteriler.notFound')}</p>}
+        {!isLoading && items.map((m) => <article key={m.id} className="min-w-0 rounded-md border bg-card p-3 shadow-sm">
+          <div className="flex min-w-0 items-start justify-between gap-2">
+            <div className="min-w-0"><h2 className="break-words font-semibold">{m.ad}</h2><p className="break-all font-mono text-xs text-muted-foreground">{m.kod}</p></div>
+            <Badge variant={m.tur === 'tedarikci' ? 'secondary' : 'default'} className="shrink-0">{t(`admin.erp.musteriler.types.${m.tur}`)}</Badge>
+          </div>
+          {(m.musteriDurumu === 'aday' || m.musteriDurumu === 'pasif') && <p className="mt-1 text-xs text-muted-foreground">{m.musteriDurumu === 'aday' ? 'Aday' : 'Pasif'}</p>}
+          <dl className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
+            <dt className="text-muted-foreground">İlgili kişi</dt><dd className="min-w-0 break-words">{m.ilgiliKisi ?? '—'}</dd>
+            <dt className="text-muted-foreground">Telefon</dt><dd className="min-w-0 break-all">{m.telefon ?? '—'}</dd>
+            <dt className="text-muted-foreground">E-posta</dt><dd className="min-w-0 break-all">{m.email ?? '—'}</dd>
+            <dt className="text-muted-foreground">Web sitesi</dt><dd className="min-w-0 break-all">{m.websiteUrl ? <a href={m.websiteUrl} target="_blank" rel="noreferrer" className="text-primary underline">{formatHost(m.websiteUrl)}</a> : '—'}</dd>
+            <dt className="text-muted-foreground">Bayi segmenti</dt><dd className="min-w-0 break-words">{m.bayiSegment ? t(`admin.erp.musteriler.segments.${m.bayiSegment}`) : '—'}</dd>
+            <dt className="text-muted-foreground">İskonto</dt><dd>{m.iskonto > 0 ? `%${m.iskonto}` : '—'}</dd>
+          </dl>
+          <div className="mt-3 flex flex-wrap gap-2 border-t pt-3">
+            <Button variant="outline" size="sm" onClick={() => setSelectedId(m.id)}><Eye className="mr-1 size-4" />Detay</Button>
+            <Button variant="outline" size="sm" onClick={() => openEdit(m)}><Pencil className="mr-1 size-4" />Düzenle</Button>
+            <Button variant="outline" size="sm" className="text-destructive" onClick={() => setDeleteTarget(m)}><Trash2 className="mr-1 size-4" />Sil</Button>
+          </div>
+        </article>)}
+      </div>}
+      <div className={`w-full min-w-0 max-w-full overflow-x-auto rounded-md border ${crmMode ? 'hidden xl:block' : ''}`}>
+        <Table className={crmMode ? 'table-fixed' : undefined}>
+          {crmMode && <colgroup><col className="w-[9%]" /><col className="w-[7%]" /><col className="w-[17%]" /><col className="w-[9%]" /><col className="w-[10%]" /><col className="w-[13%]" /><col className="w-[9%]" /><col className="w-[8%]" /><col className="w-[6%]" /><col className="w-[12%]" /></colgroup>}
           <TableHeader>
             <TableRow>
               <TableHead>{t('admin.erp.musteriler.columns.kod')}</TableHead>
@@ -168,9 +193,9 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
               <TableHead>{t('admin.erp.musteriler.columns.telefon')}</TableHead>
               <TableHead>{t('admin.erp.musteriler.columns.email')}</TableHead>
               <TableHead>{t('admin.erp.musteriler.columns.website')}</TableHead>
-              <TableHead>{t('admin.erp.musteriler.columns.bayiSegment')}</TableHead>
+              <TableHead className={crmMode ? 'whitespace-normal leading-tight' : undefined}>{t('admin.erp.musteriler.columns.bayiSegment')}</TableHead>
               <TableHead className="text-right">{t('admin.erp.musteriler.columns.iskonto')}</TableHead>
-              <TableHead className="w-20" />
+              <TableHead className={crmMode ? 'w-auto' : 'w-20'} />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -192,7 +217,7 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
 
             {!isLoading && items.map((m) => (
               <TableRow key={m.id}>
-                <TableCell className="font-mono text-xs whitespace-nowrap">{m.kod}</TableCell>
+                <TableCell className={crmMode ? 'break-all whitespace-normal font-mono text-xs' : 'font-mono text-xs whitespace-nowrap'}>{m.kod}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap items-center gap-1">
                     <Badge variant={m.tur === 'tedarikci' ? 'secondary' : 'default'}>
@@ -206,19 +231,19 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="font-medium">{m.ad}</TableCell>
-                <TableCell>{m.ilgiliKisi ?? '—'}</TableCell>
-                <TableCell>{m.telefon ?? '—'}</TableCell>
-                <TableCell>{m.email ?? '—'}</TableCell>
-                <TableCell>
+                <TableCell className={crmMode ? 'break-words whitespace-normal font-medium' : 'font-medium'}>{m.ad}</TableCell>
+                <TableCell className={crmMode ? 'break-words whitespace-normal' : undefined}>{m.ilgiliKisi ?? '—'}</TableCell>
+                <TableCell className={crmMode ? 'break-all whitespace-normal' : undefined}>{m.telefon ?? '—'}</TableCell>
+                <TableCell className={crmMode ? 'break-all whitespace-normal' : undefined}>{m.email ?? '—'}</TableCell>
+                <TableCell className={crmMode ? 'break-all whitespace-normal' : undefined}>
                   {m.websiteUrl ? (
-                    <a className="inline-flex items-center gap-1 text-primary hover:underline" href={m.websiteUrl} target="_blank" rel="noreferrer">
+                    <a className="text-primary hover:underline" href={m.websiteUrl} target="_blank" rel="noreferrer">
                       {formatHost(m.websiteUrl)}
-                      <ExternalLink className="size-3" />
+                      {!crmMode && <ExternalLink className="ml-1 inline size-3" />}
                     </a>
                   ) : '—'}
                 </TableCell>
-                <TableCell>
+                <TableCell className={crmMode ? 'break-words whitespace-normal' : undefined}>
                   {m.bayiSegment ? (
                     <Badge variant="outline">{t(`admin.erp.musteriler.segments.${m.bayiSegment}`)}</Badge>
                   ) : '—'}
@@ -228,13 +253,14 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
-                    {crmMode ? <Button variant="ghost" size="icon" aria-label={`${m.ad} detayını aç`} onClick={() => setSelectedId(m.id)}><Eye className="size-4" /></Button> : <Button variant="ghost" size="icon" asChild><Link href={`/admin/musteriler/${m.id}`}><Eye className="size-4" /></Link></Button>}
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(m)}>
+                    {crmMode ? <Button variant="ghost" size="icon-sm" aria-label={`${m.ad} detayını aç`} onClick={() => setSelectedId(m.id)}><Eye className="size-4" /></Button> : <Button variant="ghost" size="icon" asChild><Link href={`/admin/musteriler/${m.id}`}><Eye className="size-4" /></Link></Button>}
+                    <Button variant="ghost" size={crmMode ? 'icon-sm' : 'icon'} aria-label={`${m.ad} düzenle`} onClick={() => openEdit(m)}>
                       <Pencil className="size-4" />
                     </Button>
                     <Button
                       variant="ghost"
-                      size="icon"
+                      size={crmMode ? 'icon-sm' : 'icon'}
+                      aria-label={`${m.ad} sil`}
                       className="text-destructive hover:text-destructive"
                       onClick={() => setDeleteTarget(m)}
                     >
@@ -246,7 +272,7 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
             ))}
           </TableBody>
         </Table>
-      </div>}
+      </div></>}
 
       <MusteriForm open={formOpen} onClose={() => setFormOpen(false)} musteri={editing} />
 
