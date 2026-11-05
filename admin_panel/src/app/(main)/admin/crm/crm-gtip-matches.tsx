@@ -25,7 +25,7 @@ export default function CrmGtipMatches({ id }: { id: string }) {
             key={`${match.name}-${match.role}-${index}`} type="button"
             className="min-w-0 rounded-md border p-3 text-left hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
             aria-expanded={selected?.name === match.name && selected.role === match.role}
-            onClick={() => setSelected({ name: match.name, role: match.role, country: match.country })}
+            onClick={() => setSelected({ name: match.name, role: match.role, country: match.country, queryCountry: null })}
           >
             <strong className="block break-words">{match.name}</strong>
             <span className="block text-xs text-muted-foreground">{match.matchType === 'exact' ? 'Ad eşleşmesi' : match.matchType === 'name_prefix' ? 'Ad başlangıcı eşleşmesi' : 'İlk dört harf eşleşmesi'} · {match.role === 'alici' ? 'Alıcı' : 'Tedarikçi'}{match.country ? ` · ${match.country}` : ''} · {match.recordCount.toLocaleString('tr-TR')} kaynak kaydı</span>

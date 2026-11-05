@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { Building2, ExternalLink, Package, TrendingUp, Truck, X } from 'lucide-react';
 import { useFirmaBilgileriQuery, useFirmaDetayQuery, useFirmaGtipKaynaklariQuery } from '@/integrations/endpoints/admin/erp/firma_bulma.endpoints';
 
-export type CustomsCompany = { name: string; role: 'alici' | 'tedarikci'; country: string | null };
+export type CustomsCompany = { name: string; role: 'alici' | 'tedarikci'; country: string | null; queryCountry?: string | null };
 
 const number = new Intl.NumberFormat('tr-TR');
 const section = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
@@ -20,7 +20,8 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 export default function CustomsCompanyDrawer({ company, onClose }: { company: CustomsCompany; onClose: () => void }) {
-  const { data, isFetching, isError } = useFirmaDetayQuery({ buyer: company.name, country: company.country, role: company.role });
+  const detailCountry = company.queryCountry === undefined ? company.country : company.queryCountry;
+  const { data, isFetching, isError } = useFirmaDetayQuery({ buyer: company.name, country: detailCountry, role: company.role });
   const contacts = useFirmaBilgileriQuery({ name: company.name, country: company.country });
   const ownProducts = useFirmaGtipKaynaklariQuery();
   const contact = contacts.data?.items?.[company.name];
@@ -39,7 +40,7 @@ export default function CustomsCompanyDrawer({ company, onClose }: { company: Cu
     <aside role="dialog" aria-modal="true" aria-label={`${company.name} gümrük firma kartı`} className="h-dvh w-full max-w-[760px] overflow-x-hidden overflow-y-auto bg-slate-50 shadow-2xl">
       <header className="sticky top-0 z-10 flex items-start gap-3 border-b bg-white px-4 py-4 sm:px-6">
         <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700"><Building2 className="size-5" /></div>
-        <div className="min-w-0 flex-1"><h2 className="break-words text-lg font-bold text-slate-950">{company.name}</h2><p className="text-xs text-slate-500">{company.country || 'Ülke belirtilmedi'} · {company.role === 'alici' ? 'Alıcı' : 'Tedarikçi'} · Gümrük firma kartı</p></div>
+        <div className="min-w-0 flex-1"><h2 className="break-words text-lg font-bold text-slate-950">{company.name}</h2><p className="text-xs text-slate-500">{company.country ? `${company.queryCountry === null ? 'Sözlük ülkesi' : 'Ülke'}: ${company.country}` : 'Ülke belirtilmedi'} · {company.role === 'alici' ? 'Alıcı' : 'Tedarikçi'} · Gümrük firma kartı</p></div>
         <button type="button" onClick={onClose} aria-label="Gümrük firma kartını kapat" className="rounded-lg border p-2 hover:bg-slate-50"><X className="size-4" /></button>
       </header>
       <div className="space-y-4 p-4 sm:p-6">
