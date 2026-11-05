@@ -59,6 +59,9 @@ export default function FirmaKurulumuPage() {
   }
   async function save() {
     if (!selected.key) return;
+    if (tab === 'teklif' && form.quote_prefix && !/^[A-Z0-9-]{1,8}$/.test(form.quote_prefix.trim().toUpperCase())) return toast.error('Teklif öneki 1–8 harf, rakam veya kısa çizgi olmalı.');
+    if (tab === 'teklif' && form.validity_days && (!Number.isInteger(Number(form.validity_days)) || Number(form.validity_days) < 1 || Number(form.validity_days) > 365)) return toast.error('Geçerlilik süresi 1–365 gün olmalı.');
+    if (tab === 'kurlar' && form.default_currency && !['TRY','EUR','USD'].includes(form.default_currency)) return toast.error('Varsayılan para birimi TRY, EUR veya USD olmalı.');
     setBusy(true);
     try {
       await upsert({ items: [{ key: selected.key, value: form }] }).unwrap();
@@ -102,5 +105,5 @@ function RowsTab({ title, hint, form, setField, columns }: { title: string; hint
 }
 
 function CurrencyTab({ form, setField }: { form: Form; setField: (field: string, value: string) => void }) {
-  return <section className={card}><h2 className="font-black">Para birimi ve kur</h2><p className="mt-1 text-sm text-slate-500">Teklifler için kullanılacak para birimi ve manuel kur kayıtlarını burada tutun.</p><div className="mt-4 grid gap-4 sm:grid-cols-2">{[['default_currency','Varsayılan para birimi'],['base_currency','Ana para birimi'],['eur_rate','EUR kuru'],['usd_rate','USD kuru'],['rate_date','Kur tarihi']].map(([field,label]) => <label key={field} className="text-xs font-bold">{label}<input value={form[field] ?? ''} onChange={(event) => setField(field,event.target.value)} className={input}/></label>)}</div></section>;
+  return <section className={card}><h2 className="font-black">Para birimi ve kur</h2><p className="mt-1 text-sm text-slate-500">Varsayılan para birimi yeni teklif formuna uygulanır. Manuel kur kayıtları burada tutulur.</p><div className="mt-4 grid gap-4 sm:grid-cols-2">{[['default_currency','Varsayılan para birimi'],['base_currency','Ana para birimi'],['eur_rate','EUR kuru'],['usd_rate','USD kuru'],['rate_date','Kur tarihi']].map(([field,label]) => <label key={field} className="text-xs font-bold">{label}{field.includes('currency') ? <select value={form[field] ?? ''} onChange={(event) => setField(field,event.target.value)} className={input}><option value="">Seçin</option>{['TRY','EUR','USD'].map((code) => <option key={code}>{code}</option>)}</select> : <input type={field === 'rate_date' ? 'date' : 'number'} step={field === 'rate_date' ? undefined : '0.0001'} min={field === 'rate_date' ? undefined : '0'} value={form[field] ?? ''} onChange={(event) => setField(field,event.target.value)} className={input}/>}</label>)}</div></section>;
 }

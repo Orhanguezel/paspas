@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Plus, RefreshCcw, Pencil, Trash2, Search, Eye, ExternalLink } from 'lucide-react';
+import { Plus, RefreshCcw, Pencil, Trash2, Search, Eye, ExternalLink, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocaleContext } from '@/i18n/LocaleProvider';
 
@@ -42,6 +42,7 @@ import {
 } from '@/integrations/endpoints/admin/erp/musteriler_admin.endpoints';
 import type { MusteriDto } from '@/integrations/shared/erp/musteriler.types';
 import MusteriForm from './musteri-form';
+import MusteriDetayClient from '../[id]/_components/musteri-detay-client';
 
 function formatHost(url: string): string {
   try {
@@ -51,7 +52,7 @@ function formatHost(url: string): string {
   }
 }
 
-export default function MusterilerClient() {
+export default function MusterilerClient({ crmMode = false }: { crmMode?: boolean }) {
   const { t } = useLocaleContext();
   const searchParams = useSearchParams();
   // URL'de tur parametresi yoksa varsayılan olarak sadece müşterileri göster
@@ -61,6 +62,7 @@ export default function MusterilerClient() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<MusteriDto | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MusteriDto | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(() => crmMode && /^[0-9a-f-]{36}$/i.test(searchParams.get('firma') ?? '') ? searchParams.get('firma') : null);
 
   const queryParams = {
     ...(search ? { search } : {}),
@@ -98,7 +100,7 @@ export default function MusterilerClient() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold">
-            {turFilter === 'musteri' ? t('admin.erp.musteriler.types.musteri')
+            {crmMode ? 'Müşteri 360' : turFilter === 'musteri' ? t('admin.erp.musteriler.types.musteri')
               : turFilter === 'tedarikci' ? t('admin.erp.musteriler.types.tedarikci')
               : t('admin.erp.musteriler.title')}
           </h1>
@@ -141,7 +143,7 @@ export default function MusterilerClient() {
         </Select>
       </div>
 
-      <div className="rounded-md border">
+      <div className="max-w-full overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -212,11 +214,7 @@ export default function MusterilerClient() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" asChild>
-                      <Link href={`/admin/musteriler/${m.id}`}>
-                        <Eye className="size-4" />
-                      </Link>
-                    </Button>
+                    {crmMode ? <Button variant="ghost" size="icon" aria-label={`${m.ad} detayını aç`} onClick={() => setSelectedId(m.id)}><Eye className="size-4" /></Button> : <Button variant="ghost" size="icon" asChild><Link href={`/admin/musteriler/${m.id}`}><Eye className="size-4" /></Link></Button>}
                     <Button variant="ghost" size="icon" onClick={() => openEdit(m)}>
                       <Pencil className="size-4" />
                     </Button>
@@ -237,6 +235,8 @@ export default function MusterilerClient() {
       </div>
 
       <MusteriForm open={formOpen} onClose={() => setFormOpen(false)} musteri={editing} />
+
+      {crmMode && selectedId && <div className="fixed inset-0 z-[90] bg-slate-950/50" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedId(null); }}><aside role="dialog" aria-modal="true" aria-label="Müşteri 360 detayı" className="absolute inset-y-0 right-0 w-full max-w-[800px] overflow-y-auto bg-slate-50 p-4 shadow-2xl sm:p-6"><div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-black">Müşteri 360</h2><Button variant="outline" size="icon" onClick={() => setSelectedId(null)} aria-label="Kapat"><X className="size-4"/></Button></div><MusteriDetayClient id={selectedId} embedded /></aside></div>}
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
         <AlertDialogContent>

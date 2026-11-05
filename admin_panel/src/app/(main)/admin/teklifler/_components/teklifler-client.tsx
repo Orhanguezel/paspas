@@ -132,7 +132,7 @@ export default function TekliflerClient() {
         <div className="flex"><Input className="w-36" placeholder="Filtre adı" value={savedName} onChange={e=>setSavedName(e.target.value)}/><Button variant="outline" size="icon" onClick={saveFilter}><Save className="size-4"/></Button></div>
       </div>
 
-      <div className="rounded-md border">
+      <div className="max-w-full overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>

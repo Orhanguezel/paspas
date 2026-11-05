@@ -18,9 +18,10 @@ import { TALEP_DURUM_BADGE, TALEP_DURUM_LABELS, TEKLIF_DURUM_BADGE, TEKLIF_DURUM
 
 interface Props {
   id: string;
+  embedded?: boolean;
 }
 
-export default function MusteriDetayClient({ id }: Props) {
+export default function MusteriDetayClient({ id, embedded = false }: Props) {
   const { t } = useLocaleContext();
   const { data: musteri, isLoading, refetch } = useGetMusteriAdminQuery(id);
   const { data: siparisler } = useListSatisSiparisleriAdminQuery({ musteriId: id });
@@ -54,11 +55,11 @@ export default function MusteriDetayClient({ id }: Props) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild>
+          {!embedded && <Button variant="ghost" size="icon" asChild>
             <Link href="/admin/musteriler">
               <ArrowLeft className="size-4" />
             </Link>
-          </Button>
+          </Button>}
           <div>
             <h1 className="text-lg font-semibold">{musteri.ad}</h1>
             <p className="text-sm text-muted-foreground">{musteri.kod}</p>

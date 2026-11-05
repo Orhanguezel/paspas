@@ -17,6 +17,7 @@ import { musteriler } from '@/modules/musteriler/schema';
 import { repoGetNextSiparisNo } from '@/modules/satis_siparisleri/repository';
 import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/schema';
 import { urunler } from '@/modules/urunler/schema';
+import { siteSettings } from '@/modules/siteSettings/schema';
 
 import {
   type TeklifKalemRow,
@@ -124,19 +125,41 @@ function satirToplamHesapla(miktar: number, birimFiyat: number, iskontoOrani: nu
 
 // ── Yıllık numara (TK-YYYY-NNNN) — yarış-güvenli sayaç ───────
 
+async function salesDefaults() {
+  const rows = await db.select({ key: siteSettings.key, value: siteSettings.value })
+    .from(siteSettings).where(inArray(siteSettings.key, ['promats_setup_quote', 'promats_setup_numbers']));
+  const get = (key: string): Record<string, unknown> => {
+    try { return JSON.parse(rows.find((row) => row.key === key)?.value ?? '{}') as Record<string, unknown>; }
+    catch { return {}; }
+  };
+  const quote = get('promats_setup_quote');
+  const numbers = get('promats_setup_numbers');
+  let seriesRows: unknown = numbers.rows;
+  if (typeof seriesRows === 'string') { try { seriesRows = JSON.parse(seriesRows); } catch { seriesRows = []; } }
+  const offerSeries = Array.isArray(seriesRows) ? seriesRows.find((row) => Array.isArray(row) && String(row[0]).toLocaleLowerCase('tr') === 'teklif') : null;
+  const rawPrefix = String((offerSeries as unknown[])?.[1] ?? quote.quote_prefix ?? 'TK').trim().toUpperCase();
+  const prefix = /^[A-Z0-9-]{1,8}$/.test(rawPrefix) ? rawPrefix : 'TK';
+  const requestedNext = Number((offerSeries as unknown[])?.[2] ?? 0);
+  const nextNumber = Number.isSafeInteger(requestedNext) && requestedNext > 0 && requestedNext <= 999999 ? requestedNext : 1;
+  const validity = Number(quote.validity_days);
+  const validityDays = Number.isInteger(validity) && validity > 0 && validity <= 365 ? validity : null;
+  return { prefix, nextNumber, validityDays, paymentTerms: String(quote.payment_terms ?? '').trim().slice(0, 500) };
+}
+
 async function generateTeklifNo(): Promise<string> {
   const year = new Date().getFullYear();
+  const defaults = await salesDefaults();
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
     await conn.query(
-      'INSERT INTO teklif_no_sayaclari (yil, son_no) VALUES (?, LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE son_no = LAST_INSERT_ID(son_no + 1)',
-      [year],
+      'INSERT INTO teklif_no_sayaclari (yil, son_no) VALUES (?, LAST_INSERT_ID(?)) ON DUPLICATE KEY UPDATE son_no = LAST_INSERT_ID(GREATEST(son_no + 1, ?))',
+      [year, defaults.nextNumber, defaults.nextNumber],
     );
     const [rows] = await conn.query('SELECT LAST_INSERT_ID() AS no');
     await conn.commit();
     const no = Number((rows as Array<{ no: number }>)[0]?.no ?? 1);
-    return `TK-${year}-${String(no).padStart(4, '0')}`;
+    return `${defaults.prefix}-${year}-${String(no).padStart(4, '0')}`;
   } catch (err) {
     await conn.rollback();
     throw err;
@@ -293,6 +316,7 @@ export async function repoRevokePublicToken(id: string): Promise<ReturnType<type
 }
 
 export async function repoCreateTeklif(body: TeklifCreateBody, userId: string | null): Promise<ReturnType<typeof teklifRowToDto>> {
+  const defaults = await salesDefaults();
   // Mevcut müşteri ya da satır içi yeni "aday müşteri"
   let musteriId = body.musteriId ?? null;
   if (!musteriId && body.yeniMusteri) {
@@ -320,7 +344,8 @@ export async function repoCreateTeklif(body: TeklifCreateBody, userId: string | 
     para_birimi: body.paraBirimi,
     kdv_orani: String(body.kdvOrani),
     kdv_dahil: body.kdvDahil ? 1 : 0,
-    gecerlilik_tarihi: body.gecerlilikTarihi ? new Date(body.gecerlilikTarihi) : null,
+    gecerlilik_tarihi: body.gecerlilikTarihi ? new Date(body.gecerlilikTarihi) : defaults.validityDays ? new Date(Date.now() + defaults.validityDays * 86_400_000) : null,
+    odeme_kosullari: defaults.paymentTerms || null,
     goruntuleme_token: randomUUID(),
     goruntuleme_token_expires_at: new Date(Date.now() + 30 * 86_400_000),
     created_by: userId,
@@ -724,6 +749,7 @@ export async function repoCreateTalepPublic(body: TalepPublicBody, ipHash: strin
 export async function repoDonusturTalep(
   talepId: string, body: TalepDonusturBody, userId: string | null,
 ): Promise<{ teklifId: string; musteriId: string; aktarilanKalemSayisi: number }> {
+  const defaults = await salesDefaults();
   const connection=await pool.getConnection();
   try{
     await connection.beginTransaction();
@@ -733,8 +759,8 @@ export async function repoDonusturTalep(
     if(musteriId){const[existing]=await connection.execute<RowDataPacket[]>('SELECT id FROM musteriler WHERE id=? AND tur=\'musteri\' AND is_active=1',[musteriId]);if(!existing[0])throw new Error('musteri_bulunamadi');}
     if(!musteriId&&body.yeniMusteri){musteriId=randomUUID();const kod=`MUS-WEB-${musteriId.replaceAll('-','').slice(0,12).toUpperCase()}`;await connection.execute("INSERT INTO musteriler(id,tur,musteri_durumu,kod,ad,telefon,email,adres,is_active)VALUES(?,'musteri','aday',?,?,?,?,?,1)",[musteriId,kod,body.yeniMusteri.ad,body.yeniMusteri.telefon??null,body.yeniMusteri.email??null,body.yeniMusteri.adres??null]);}
     if(!musteriId)throw new Error('musteri_gerekli');
-    const year=new Date().getFullYear();await connection.execute('INSERT INTO teklif_no_sayaclari(yil,son_no)VALUES(?,LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE son_no=LAST_INSERT_ID(son_no+1)',[year]);const[numbers]=await connection.execute<RowDataPacket[]>('SELECT LAST_INSERT_ID() no');const teklifNo=`TK-${year}-${String(numbers[0].no).padStart(4,'0')}`;
-    const teklifId=randomUUID();await connection.execute("INSERT INTO teklifler(id,teklif_no,musteri_id,talep_id,durum,dil,para_birimi,aciklama,goruntuleme_token,goruntuleme_token_expires_at,created_by)VALUES(?,?,?,?,'taslak',?,?,?,?,DATE_ADD(CURRENT_TIMESTAMP,INTERVAL 30 DAY),?)",[teklifId,teklifNo,musteriId,talepId,talep.dil??'tr',body.paraBirimi,talep.mesaj??null,randomUUID(),userId]);
+    const year=new Date().getFullYear();await connection.execute('INSERT INTO teklif_no_sayaclari(yil,son_no)VALUES(?,LAST_INSERT_ID(?)) ON DUPLICATE KEY UPDATE son_no=LAST_INSERT_ID(GREATEST(son_no+1,?))',[year,defaults.nextNumber,defaults.nextNumber]);const[numbers]=await connection.execute<RowDataPacket[]>('SELECT LAST_INSERT_ID() no');const teklifNo=`${defaults.prefix}-${year}-${String(numbers[0].no).padStart(4,'0')}`;
+    const teklifId=randomUUID();await connection.execute("INSERT INTO teklifler(id,teklif_no,musteri_id,talep_id,durum,dil,para_birimi,aciklama,gecerlilik_tarihi,odeme_kosullari,goruntuleme_token,goruntuleme_token_expires_at,created_by)VALUES(?,?,?,?,'taslak',?,?,?,?,?,?,DATE_ADD(CURRENT_TIMESTAMP,INTERVAL 30 DAY),?)",[teklifId,teklifNo,musteriId,talepId,talep.dil??'tr',body.paraBirimi,talep.mesaj??null,defaults.validityDays?new Date(Date.now()+defaults.validityDays*86_400_000):null,defaults.paymentTerms||null,randomUUID(),userId]);
     const selected=Array.isArray(talep.secili_urunler)?talep.secili_urunler:[];let aktarilanKalemSayisi=0;
     for(const raw of selected){const item=raw&&typeof raw==='object'?raw as Record<string,unknown>:{};const ref=typeof item.urunId==='string'?item.urunId:null;let product:RowDataPacket|undefined;if(ref){const[products]=await connection.execute<RowDataPacket[]>('SELECT id,kod,ad,birim FROM urunler WHERE id=? AND is_active=1 LIMIT 1',[ref]);product=products[0];}const ad=String(item.ad??product?.ad??item.slug??'Web ürün önerisi').slice(0,255),miktar=Math.max(1,Number(item.miktar??1)||1);await connection.execute('INSERT INTO teklif_kalemleri(id,teklif_id,urun_id,urun_kod,urun_ad,aciklama,birim,miktar,birim_fiyat,iskonto_orani,satir_toplam,sira)VALUES(?,?,?,?,?,?,?,?,0,0,0,?)',[randomUUID(),teklifId,product?.id??null,product?.kod??null,product?.ad??ad,ad,product?.birim??'adet',miktar,aktarilanKalemSayisi]);aktarilanKalemSayisi++;}
     await connection.execute("UPDATE teklif_talepleri SET durum='teklife_donustu',musteri_id=?,teklif_id=? WHERE id=?",[musteriId,teklifId,talepId]);
