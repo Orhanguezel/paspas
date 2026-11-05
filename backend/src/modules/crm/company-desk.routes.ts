@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { makeAdminPermissionGuard } from '@/common/middleware/permissions';
 import { addCompanyContact, addCompanyResearch, getCompanyDesk, listCompanyResearch, saveCompanyProduct, saveCompanyProfile } from './company-desk.repository';
 import { writeCrmAudit } from './audit';
+import { crmFirmaAdaylari } from '@/modules/firma-bulma/ihracat-motoru';
 
 const idSchema = z.object({ id: z.string().uuid() });
 const profileSchema = z.object({ buyerType: z.string().trim().max(100).nullable().optional(), companyNote: z.string().trim().max(5000).nullable().optional() });
@@ -25,6 +26,12 @@ export async function registerCompanyDesk(app: FastifyInstance) {
   const guard = makeAdminPermissionGuard('admin.crm_pipeline');
   app.get('/crm/arastirmalar', { preHandler: guard }, async (req,reply) => { const p=z.object({q:z.string().trim().max(160).optional()}).safeParse(req.query); if(!p.success)return reply.code(400).send({error:{message:'gecersiz_sorgu_parametreleri'}}); return reply.send(await listCompanyResearch(p.data.q)); });
   app.get('/crm/sirketler/:id/masa', { preHandler: guard }, async (req, reply) => { const id=customerId(req,reply); if(!id)return; const data=await getCompanyDesk(id); return data?reply.send(data):reply.code(404).send({error:{message:'firma_bulunamadi'}}); });
+  app.get('/crm/sirketler/:id/gtip-adaylari', { preHandler: guard }, async (req, reply) => {
+    const id = customerId(req, reply); if (!id) return;
+    const data = await getCompanyDesk(id);
+    if (!data) return reply.code(404).send({ error: { message: 'firma_bulunamadi' } });
+    return reply.send(await crmFirmaAdaylari(String(data.company.ad)));
+  });
   app.put('/crm/sirketler/:id/profil', { preHandler: guard }, async (req,reply) => { const id=customerId(req,reply),body=parse(profileSchema,req.body,reply); if(!id||!body)return; const result=await saveCompanyProfile(id,body); if(!result)return reply.code(404).send({error:{message:'firma_bulunamadi'}}); await record(req,'CRM_COMPANY_PROFILE_UPDATED','company-profile',result); return reply.send(result); });
   app.post('/crm/sirketler/:id/kisiler', { preHandler: guard }, async (req,reply) => { const id=customerId(req,reply),body=parse(contactSchema,req.body,reply); if(!id||!body)return; const result=await addCompanyContact(id,body); if(!result)return reply.code(404).send({error:{message:'firma_bulunamadi'}}); await record(req,'CRM_CONTACT_CREATED','company-contacts',result); return reply.code(201).send(result); });
   app.post('/crm/sirketler/:id/arastirmalar', { preHandler: guard }, async (req,reply) => { const id=customerId(req,reply),body=parse(researchSchema,req.body,reply); if(!id||!body)return; const result=await addCompanyResearch(id,body); if(!result)return reply.code(404).send({error:{message:'firma_bulunamadi'}}); await record(req,'CRM_RESEARCH_CREATED','company-research',result); return reply.code(201).send(result); });

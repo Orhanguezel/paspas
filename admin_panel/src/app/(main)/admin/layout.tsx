@@ -45,7 +45,7 @@ export default function Layout({ children }: Readonly<{ children: ReactNode }>) 
 
           <SidebarInset
             className={cn(
-              'flex flex-col',
+              'min-w-0 flex flex-col',
               '[html[data-content-layout=centered]_&]:mx-auto! [html[data-content-layout=centered]_&]:max-w-screen-2xl!',
               'max-[113rem]:peer-data-[variant=inset]:mr-2! min-[101rem]:peer-data-[variant=inset]:peer-data-[state=collapsed]:peer-data-[state=collapsed]:mr-auto!',
             )}

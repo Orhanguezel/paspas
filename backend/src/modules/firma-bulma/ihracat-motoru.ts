@@ -119,6 +119,29 @@ function ay(deger: unknown) {
 
 function like(deger: string) { return `%${deger.replace(/[!%_]/g, (c) => `!${c}`)}%`; }
 
+/** CRM kartı için kaynak havuzunda salt okunur, adın ilk dört harfiyle aday arama. */
+export async function crmFirmaAdaylari(name: string) {
+  const cleaned = name.trim().replace(/\s+/g, ' ').slice(0, 160);
+  const fourth = [...cleaned].reduce((state, char, index) => /[\p{L}\p{N}]/u.test(char) && state.count < 4 ? { count: state.count + 1, end: index + 1 } : state, { count: 0, end: 0 });
+  if (fourth.count < 4) return { prefix: cleaned, matches: [], hasMore: false };
+  const prefix = [...cleaned].slice(0, fourth.end).join('');
+  const escaped = (value: string) => value.replace(/[!%_]/g, (char) => `!${char}`);
+  const [rows] = await db().query<RowDataPacket[]>(`SELECT company_name,role,record_count,country,last_shipment
+    FROM customs_company_dictionary WHERE company_name LIKE ? ESCAPE '!'
+    ORDER BY CASE WHEN company_name=? THEN 0 WHEN company_name LIKE ? ESCAPE '!' THEN 1
+      WHEN company_name LIKE ? ESCAPE '!' THEN 2 ELSE 3 END,record_count DESC,company_name
+    LIMIT 41`, [`${escaped(prefix)}%`, cleaned, `${escaped(cleaned)}%`, `${escaped(cleaned.split(' ')[0])}%`]);
+  const normalized = (value: string) => value.normalize('NFKD').replace(/\p{M}/gu, '').toUpperCase().replace(/[^\p{L}\p{N}]/gu, '');
+  const target = normalized(cleaned);
+  return { prefix, hasMore: rows.length > 40, matches: rows.slice(0, 40).map(row => {
+    const candidateName = String(row.company_name);
+    const candidate = normalized(candidateName);
+    return { name: candidateName, role: row.role === 'tedarikci' ? 'tedarikci' : 'alici', country: row.country ? String(row.country) : null,
+      recordCount: Number(row.record_count), lastShipment: row.last_shipment ?? null,
+      matchType: candidate === target ? 'exact' : candidate.startsWith(target) ? 'name_prefix' : 'first_four' };
+  }) };
+}
+
 export async function oneriler(q: string) {
   // TENANT_SCOPE_REVIEWED: Bu sorgular ERP firmalar tablosuna değil, ayrı salt-okunur
   // ortak customs_* sözlüklerine gider; dönüşteki `firmalar` bir yanıt alanıdır.

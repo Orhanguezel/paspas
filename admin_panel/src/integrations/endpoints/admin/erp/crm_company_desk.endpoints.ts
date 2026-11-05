@@ -9,6 +9,7 @@ export type CompanyDesk = {
   activities: Array<{ id: string; type: string; subject: string; body: string | null; result: string | null; done: number; done_at: string | null; due_at: string | null; planned_start_at: string | null; created_at: string }>;
 };
 export type CompanyResearchListItem = CompanyDesk['research'][number] & {customer_id:string;company_name:string;company_code:string;created_at:string};
+export type CrmGtipCandidates = { prefix: string; hasMore: boolean; matches: Array<{ name: string; role: 'alici' | 'tedarikci'; country: string | null; recordCount: number; lastShipment: string | null; matchType: 'exact' | 'name_prefix' | 'first_four' }> };
 
 const root = '/admin/crm/sirketler';
 const tag = (id: string) => [{ type: 'CrmCompanyDesk' as const, id }];
@@ -16,6 +17,7 @@ export const crmCompanyDeskApi = baseApi.enhanceEndpoints({ addTagTypes: ['CrmCo
   endpoints: (b) => ({
     companyResearchList: b.query<CompanyResearchListItem[], string>({ query: q => ({url:'/admin/crm/arastirmalar',params:q?{q}:undefined}), providesTags:[{type:'CrmCompanyDesk' as const,id:'RESEARCH_LIST'}] }),
     companyDesk: b.query<CompanyDesk, string>({ query: id => `${root}/${id}/masa`, providesTags: (_r,_e,id) => tag(id) }),
+    companyGtipCandidates: b.query<CrmGtipCandidates, string>({ query: id => `${root}/${id}/gtip-adaylari` }),
     saveCompanyProfile: b.mutation<unknown,{id:string; body:{buyerType?:string|null;companyNote?:string|null}}>({ query: ({id,body}) => ({url:`${root}/${id}/profil`,method:'PUT',body}), invalidatesTags: (_r,_e,{id}) => tag(id) }),
     addCompanyContact: b.mutation<unknown,{id:string; body:{name:string;title?:string;email?:string;phone?:string;note?:string}}>({ query: ({id,body}) => ({url:`${root}/${id}/kisiler`,method:'POST',body}), invalidatesTags: (_r,_e,{id}) => tag(id) }),
     addCompanyResearch: b.mutation<unknown,{id:string; body:{finding:string;informationType:'research'|'customer_statement';sourceUrl?:string;sourceLabel?:string;observedAt?:string;verificationStatus:'unverified'|'verified'|'disputed'}}>({ query: ({id,body}) => ({url:`${root}/${id}/arastirmalar`,method:'POST',body}), invalidatesTags: (_r,_e,{id}) => [...tag(id),{type:'CrmCompanyDesk' as const,id:'RESEARCH_LIST'}] }),
@@ -24,4 +26,4 @@ export const crmCompanyDeskApi = baseApi.enhanceEndpoints({ addTagTypes: ['CrmCo
     completeCompanyActivity: b.mutation<unknown,{companyId:string;activityId:string;result:string}>({ query: ({activityId,result}) => ({url:`/admin/crm/aktiviteler/${activityId}`,method:'PATCH',body:{done:true,result}}), invalidatesTags: (_r,_e,{companyId}) => tag(companyId) }),
   }),
 });
-export const { useCompanyResearchListQuery, useCompanyDeskQuery, useSaveCompanyProfileMutation, useAddCompanyContactMutation, useAddCompanyResearchMutation, useSaveCompanyProductMutation, useAddCompanyActivityMutation, useCompleteCompanyActivityMutation } = crmCompanyDeskApi;
+export const { useCompanyResearchListQuery, useCompanyDeskQuery, useCompanyGtipCandidatesQuery, useSaveCompanyProfileMutation, useAddCompanyContactMutation, useAddCompanyResearchMutation, useSaveCompanyProductMutation, useAddCompanyActivityMutation, useCompleteCompanyActivityMutation } = crmCompanyDeskApi;

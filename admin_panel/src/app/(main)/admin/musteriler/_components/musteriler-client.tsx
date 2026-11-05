@@ -101,7 +101,7 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
   }
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 max-w-full space-y-4 overflow-x-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold">
@@ -157,7 +157,7 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
         {!researchLoading && researchItems.length === 0 && <p className="text-sm text-muted-foreground">Araştırma kaydı bulunamadı.</p>}
         {researchItems.map(item => <button key={item.id} type="button" className="rounded-lg border bg-card p-4 text-left shadow-sm hover:border-primary" onClick={()=>setSelectedId(item.customer_id)}><strong className="text-sm">{item.company_name}</strong><p className="mt-1 line-clamp-3 text-sm">{item.finding}</p><div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground"><span>{item.information_type==='research'?'Araştırma':'Müşteri beyanı'}</span><span>{item.source_label||item.source_url||'Kaynak belirtilmedi'}</span></div></button>)}
       </div> :
-      <div className="max-w-full overflow-x-auto rounded-md border">
+      <div className="w-full min-w-0 max-w-full overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -250,7 +250,7 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
 
       <MusteriForm open={formOpen} onClose={() => setFormOpen(false)} musteri={editing} />
 
-      {crmMode && selectedId && <div className="fixed inset-0 z-[90] bg-slate-950/50" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedId(null); }}><aside role="dialog" aria-modal="true" aria-label="Müşteri 360 detayı" className="absolute inset-y-0 right-0 w-full max-w-[800px] overflow-y-auto bg-slate-50 p-4 shadow-2xl sm:p-6"><div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-black">Müşteri 360</h2><Button variant="outline" size="icon" onClick={() => setSelectedId(null)} aria-label="Kapat"><X className="size-4"/></Button></div><MusteriDetayClient id={selectedId} embedded /></aside></div>}
+      {crmMode && selectedId && <div className="fixed inset-0 z-[90] bg-slate-950/50" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedId(null); }}><aside role="dialog" aria-modal="true" aria-label="Müşteri 360 detayı" className="absolute inset-y-0 right-0 w-full max-w-[800px] overflow-x-hidden overflow-y-auto bg-slate-50 p-4 shadow-2xl sm:p-6"><div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-black">Müşteri 360</h2><Button variant="outline" size="icon" onClick={() => setSelectedId(null)} aria-label="Kapat"><X className="size-4"/></Button></div><MusteriDetayClient id={selectedId} embedded /></aside></div>}
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
         <AlertDialogContent>

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAddCompanyActivityMutation, useAddCompanyContactMutation, useAddCompanyResearchMutation, useCompanyDeskQuery, useCompleteCompanyActivityMutation, useSaveCompanyProductMutation, useSaveCompanyProfileMutation } from '@/integrations/endpoints/admin/erp/crm_company_desk.endpoints';
+import CrmGtipMatches from './crm-gtip-matches';
 
 const groups = [
   { id: 'PROMATS', label: 'PROMATS · Oto paspas' },
@@ -48,8 +49,9 @@ export default function CompanyDesk({ id }: { id: string }) {
   const planned = data.activities.filter(a => a.type === 'task' && !a.done);
   const actual = data.activities.filter(a => a.type !== 'task' || a.done);
 
-  return <div className="space-y-4">
+  return <div className="min-w-0 space-y-4">
     <p className="text-sm text-muted-foreground">Araştırma bulguları, müşteri beyanları, kişiler ve ürün ilgisi bu firma kartına bağlıdır. Taslak, gönderilmiş mesaj ve yanıt ayrı olaylardır.</p>
+    <CrmGtipMatches key={id} id={id} />
     <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Firma profili</CardTitle></CardHeader><CardContent><form key={data.profile?.buyer_type ?? 'new'} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]" onSubmit={event=>{event.preventDefault();const form=new FormData(event.currentTarget);run(()=>saveProfile({id,body:{buyerType:String(form.get('buyerType')||'').trim()||null,companyNote:String(form.get('companyNote')||'').trim()||null}}).unwrap(),'Firma profili kaydedildi.');}}><Input name="buyerType" defaultValue={data.profile?.buyer_type ?? ''} placeholder="Alıcı tipi (ör. distribütör)" /><Input name="companyNote" defaultValue={data.profile?.company_note ?? ''} placeholder="Firma özeti" /><Button size="sm" disabled={busy}>Kaydet</Button></form></CardContent></Card>
     <div className="grid gap-4 lg:grid-cols-3">
       {groups.map(group => {

@@ -53,7 +53,7 @@ export default function MusteriDetayClient({ id, embedded = false }: Props) {
   const items = siparisler?.items ?? [];
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           {!embedded && <Button variant="ghost" size="icon" asChild>
@@ -80,7 +80,7 @@ export default function MusteriDetayClient({ id, embedded = false }: Props) {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid min-w-0 gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">{t('admin.erp.musteriler.summary.contact')}</CardTitle>
@@ -165,8 +165,8 @@ export default function MusteriDetayClient({ id, embedded = false }: Props) {
         </Card>
       </div>
 
-      <Tabs defaultValue={embedded ? 'ihracat' : 'teklifler'} className="space-y-4">
-        <TabsList className="max-w-full justify-start overflow-x-auto">
+      <Tabs defaultValue={embedded ? 'ihracat' : 'teklifler'} className="min-w-0 space-y-4">
+        <TabsList className="flex h-auto max-w-full flex-wrap justify-start gap-1">
           <TabsTrigger value="ihracat">İhracat Masası</TabsTrigger>
           <TabsTrigger value="teklifler">Teklifler ({teklifler?.total ?? 0})</TabsTrigger>
           <TabsTrigger value="talepler">Talepler ({talepler?.total ?? 0})</TabsTrigger>
