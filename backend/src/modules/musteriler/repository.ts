@@ -179,6 +179,26 @@ export async function repoDelete(id: string): Promise<void> {
       db.select({ table_name: sql<string>`'satin_alma_siparisleri'`, cnt: sql<number>`count(*)` })
         .from(sql`satin_alma_siparisleri`)
         .where(sql`tedarikci_id = ${id}`),
+    )
+    .unionAll(
+      db.select({ table_name: sql<string>`'crm_company_profiles'`, cnt: sql<number>`count(*)` })
+        .from(sql`crm_company_profiles`)
+        .where(sql`customer_id = ${id}`),
+    )
+    .unionAll(
+      db.select({ table_name: sql<string>`'crm_company_contacts'`, cnt: sql<number>`count(*)` })
+        .from(sql`crm_company_contacts`)
+        .where(sql`customer_id = ${id}`),
+    )
+    .unionAll(
+      db.select({ table_name: sql<string>`'crm_company_research'`, cnt: sql<number>`count(*)` })
+        .from(sql`crm_company_research`)
+        .where(sql`customer_id = ${id}`),
+    )
+    .unionAll(
+      db.select({ table_name: sql<string>`'crm_company_product_interest'`, cnt: sql<number>`count(*)` })
+        .from(sql`crm_company_product_interest`)
+        .where(sql`customer_id = ${id}`),
     );
 
   const blocking = deps.filter((d) => Number(d.cnt) > 0);
@@ -188,6 +208,10 @@ export async function repoDelete(id: string): Promise<void> {
       sevk_emirleri: 'sevk emri',
       sevkiyat_kalemleri: 'sevkiyat kalemi',
       satin_alma_siparisleri: 'satın alma siparişi',
+      crm_company_profiles: 'ihracat firma profili',
+      crm_company_contacts: 'ihracat yetkilisi',
+      crm_company_research: 'ihracat araştırması',
+      crm_company_product_interest: 'ürün ilgisi',
     };
     const reasons = blocking.map((d) => `${Number(d.cnt)} ${labels[d.table_name] ?? d.table_name}`);
     throw Object.assign(new Error('musteri_bagimliligi_var'), { blocking: blocking.map((d) => d.table_name), reasons });

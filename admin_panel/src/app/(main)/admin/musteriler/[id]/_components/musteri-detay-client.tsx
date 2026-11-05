@@ -166,7 +166,7 @@ export default function MusteriDetayClient({ id, embedded = false }: Props) {
       </div>
 
       <Tabs defaultValue={embedded ? 'ihracat' : 'teklifler'} className="space-y-4">
-        <TabsList>
+        <TabsList className="max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="ihracat">İhracat Masası</TabsTrigger>
           <TabsTrigger value="teklifler">Teklifler ({teklifler?.total ?? 0})</TabsTrigger>
           <TabsTrigger value="talepler">Talepler ({talepler?.total ?? 0})</TabsTrigger>

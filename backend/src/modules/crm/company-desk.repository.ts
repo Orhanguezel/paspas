@@ -31,7 +31,7 @@ export async function saveCompanyProfile(customerId: string, body: { buyerType?:
   if (!current) return null;
   await pool.execute(`INSERT INTO crm_company_profiles (customer_id,buyer_type,company_note) VALUES (?,?,?)
     ON DUPLICATE KEY UPDATE buyer_type=VALUES(buyer_type),company_note=VALUES(company_note)`,
-  [customerId, body.buyerType ?? current.profile?.buyer_type ?? null, body.companyNote ?? current.profile?.company_note ?? null]);
+  [customerId, body.buyerType === undefined ? current.profile?.buyer_type ?? null : body.buyerType, body.companyNote === undefined ? current.profile?.company_note ?? null : body.companyNote]);
   return (await getCompanyDesk(customerId))?.profile;
 }
 
