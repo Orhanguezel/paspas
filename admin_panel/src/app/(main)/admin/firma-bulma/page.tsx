@@ -1,5 +1,6 @@
 'use client';
 
+import CustomsCompanyDrawer from './customs-company-drawer';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { BarChart3, Building2, Database, Radar, Search, Users, X } from 'lucide-react';
@@ -9,7 +10,7 @@ import {
   useFirmaDurumQuery, useFirmaProfilQuery, useFirmaProfilKaydetMutation,
   useFirmaGtipKaynaklariQuery, useFirmaProfilTaraMutation,
   useFirmaAdaylarQuery, useFirmaAdayDurumMutation, useFirmaAdayCrmMutation,
-  useFirmaAynaQuery, useFirmaSektorQuery, useFirmaTradeQuery, useFirmaDetayQuery, useFirmaBilgileriQuery,
+  useFirmaAynaQuery, useFirmaSektorQuery, useFirmaTradeQuery, useFirmaBilgileriQuery,
 } from '@/integrations/endpoints/admin/erp/firma_bulma.endpoints';
 
 type Tab = 'profil' | 'ayna' | 'sektor' | 'ara' | 'adaylar';
@@ -110,8 +111,7 @@ function TradeTab() {
 }
 
 function TradeDetail({ item, onClose }: { item: FirmaSonuc; onClose: () => void }) {
-  const { data, isFetching, error } = useFirmaDetayQuery({ buyer: item.ad, country: item.ulke, role: item.rol });
-  return <div className="fixed inset-0 z-[90] bg-slate-950/50" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}><aside role="dialog" aria-modal="true" aria-label="Firma detayı" className="absolute inset-y-0 right-0 w-full max-w-[760px] overflow-y-auto bg-slate-50 p-5 shadow-2xl"><div className="flex justify-between"><div><h2 className="text-xl font-black">{item.ad}</h2><p className="text-xs text-slate-500">{item.ulke || 'Ülke bilinmiyor'} · {item.rol}</p></div><button onClick={onClose} aria-label="Kapat"><X size={20} /></button></div>{isFetching && <p className="mt-5 text-sm">Yükleniyor…</p>}{error && <p className="mt-5 text-sm text-rose-700">{errorText(error)}</p>}{data && <><section className={`mt-4 ${card}`}><div className="grid grid-cols-2 gap-3 text-sm"><p>Sevkiyat<br /><strong>{data.totals.shipments}</strong></p><p>Tedarikçi<br /><strong>{data.totals.suppliers}</strong></p><p>İlk kayıt<br /><strong>{date(data.totals.firstDate)}</strong></p><p>Son kayıt<br /><strong>{date(data.totals.lastDate)}</strong></p></div></section><section className={`mt-4 ${card}`}><ContactCard name={item.ad} country={item.ulke} /><h3 className="font-black">Sevkiyat kanıtı</h3><div className="mt-3 space-y-2">{data.shipments.items.map((shipment) => <div key={shipment.id} className="rounded-xl border p-3 text-xs"><strong>{shipment.hsCode}</strong> · {date(shipment.date)} · {shipment.exporter || 'Tedarikçi bilinmiyor'}<p className="mt-1 text-slate-500">{shipment.description || 'Ürün açıklaması yok'} · {shipment.source || 'Kaynak belirtilmedi'}</p></div>)}</div></section></>}</aside></div>;
+  return <CustomsCompanyDrawer company={{ name: item.ad, country: item.ulke, role: item.rol }} onClose={onClose} />;
 }
 
 function ContactCard({ name, country }: { name: string; country: string | null }) {
