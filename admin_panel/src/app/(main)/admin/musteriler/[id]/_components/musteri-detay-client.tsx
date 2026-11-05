@@ -15,6 +15,7 @@ import { useListSatisSiparisleriAdminQuery } from '@/integrations/endpoints/admi
 import { useListTekliflerAdminQuery, useListTeklifTalepleriAdminQuery } from '@/integrations/endpoints/admin/erp/teklifler_admin.endpoints';
 import { SIPARIS_DURUM_LABELS, SIPARIS_DURUM_COLORS } from '@/integrations/shared/erp/satis_siparisleri.types';
 import { TALEP_DURUM_BADGE, TALEP_DURUM_LABELS, TEKLIF_DURUM_BADGE, TEKLIF_DURUM_LABELS } from '@/integrations/shared/erp/teklifler.types';
+import CompanyDesk from '../../../crm/company-desk';
 
 interface Props {
   id: string;
@@ -164,12 +165,15 @@ export default function MusteriDetayClient({ id, embedded = false }: Props) {
         </Card>
       </div>
 
-      <Tabs defaultValue="teklifler" className="space-y-4">
+      <Tabs defaultValue={embedded ? 'ihracat' : 'teklifler'} className="space-y-4">
         <TabsList>
+          <TabsTrigger value="ihracat">İhracat Masası</TabsTrigger>
           <TabsTrigger value="teklifler">Teklifler ({teklifler?.total ?? 0})</TabsTrigger>
           <TabsTrigger value="talepler">Talepler ({talepler?.total ?? 0})</TabsTrigger>
           <TabsTrigger value="siparisler">Siparişler ({items.length})</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="ihracat"><CompanyDesk id={id} /></TabsContent>
 
         <TabsContent value="teklifler">
           <Card>

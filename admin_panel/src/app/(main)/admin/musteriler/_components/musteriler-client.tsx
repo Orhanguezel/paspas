@@ -43,6 +43,7 @@ import {
 import type { MusteriDto } from '@/integrations/shared/erp/musteriler.types';
 import MusteriForm from './musteri-form';
 import MusteriDetayClient from '../[id]/_components/musteri-detay-client';
+import { useCompanyResearchListQuery } from '@/integrations/endpoints/admin/erp/crm_company_desk.endpoints';
 
 function formatHost(url: string): string {
   try {
@@ -59,6 +60,7 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
   const initialTur = searchParams.get('tur') ?? 'musteri';
   const [search, setSearch] = useState('');
   const [turFilter, setTurFilter] = useState(initialTur);
+  const [crmView, setCrmView] = useState<'sirketler'|'arastirmalar'|'musteriler'>('sirketler');
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<MusteriDto | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MusteriDto | null>(null);
@@ -67,11 +69,14 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
   const queryParams = {
     ...(search ? { search } : {}),
     ...(turFilter ? { tur: turFilter } : {}),
+    ...(crmMode && crmView === 'musteriler' ? { musteriDurumu: 'aktif' } : {}),
+    ...(crmMode ? { limit: 500 } : {}),
   };
   const { data, isLoading, isFetching, refetch } = useListMusterilerAdminQuery(
     Object.keys(queryParams).length > 0 ? queryParams : undefined,
   );
   const [deleteMusteri, deleteState] = useDeleteMusteriAdminMutation();
+  const { data: researchItems = [], isLoading: researchLoading } = useCompanyResearchListQuery(search, { skip: !crmMode || crmView !== 'arastirmalar' });
 
   const items = data?.items ?? [];
 
@@ -100,12 +105,12 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold">
-            {crmMode ? 'Müşteri 360' : turFilter === 'musteri' ? t('admin.erp.musteriler.types.musteri')
+            {crmMode ? 'Satış ve CRM · İhracat Masası' : turFilter === 'musteri' ? t('admin.erp.musteriler.types.musteri')
               : turFilter === 'tedarikci' ? t('admin.erp.musteriler.types.tedarikci')
               : t('admin.erp.musteriler.title')}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {t('admin.erp.common.totalCount', { count: String(data?.total ?? 0), item: t('admin.erp.musteriler.singular').toLowerCase() })}
+            {crmMode && crmView === 'arastirmalar' ? `${researchItems.length} araştırma kaydı` : t('admin.erp.common.totalCount', { count: String(data?.total ?? 0), item: t('admin.erp.musteriler.singular').toLowerCase() })}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -118,6 +123,10 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
         </div>
       </div>
 
+      {crmMode && <div className="flex flex-wrap gap-2" role="tablist" aria-label="CRM görünümleri">
+        {([['sirketler','Şirketler'],['arastirmalar','Araştırmalar'],['musteriler','Müşteriler']] as const).map(([value,label]) => <Button key={value} size="sm" variant={crmView===value?'default':'outline'} role="tab" aria-selected={crmView===value} onClick={()=>setCrmView(value)}>{label}</Button>)}
+      </div>}
+
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -128,7 +137,7 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Select
+        {(!crmMode || crmView !== 'arastirmalar') && <Select
           value={turFilter || 'all'}
           onValueChange={(v) => setTurFilter(v === 'all' ? '' : v)}
         >
@@ -140,9 +149,14 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
             <SelectItem value="musteri">{t('admin.erp.musteriler.types.musteri')}</SelectItem>
             <SelectItem value="tedarikci">{t('admin.erp.musteriler.types.tedarikci')}</SelectItem>
           </SelectContent>
-        </Select>
+        </Select>}
       </div>
 
+      {crmMode && crmView === 'arastirmalar' ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {researchLoading && <p className="text-sm text-muted-foreground">Araştırmalar yükleniyor…</p>}
+        {!researchLoading && researchItems.length === 0 && <p className="text-sm text-muted-foreground">Araştırma kaydı bulunamadı.</p>}
+        {researchItems.map(item => <button key={item.id} type="button" className="rounded-lg border bg-card p-4 text-left shadow-sm hover:border-primary" onClick={()=>setSelectedId(item.customer_id)}><strong className="text-sm">{item.company_name}</strong><p className="mt-1 line-clamp-3 text-sm">{item.finding}</p><div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground"><span>{item.information_type==='research'?'Araştırma':'Müşteri beyanı'}</span><span>{item.source_label||item.source_url||'Kaynak belirtilmedi'}</span></div></button>)}
+      </div> :
       <div className="max-w-full overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
@@ -232,7 +246,7 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
             ))}
           </TableBody>
         </Table>
-      </div>
+      </div>}
 
       <MusteriForm open={formOpen} onClose={() => setFormOpen(false)} musteri={editing} />
 
