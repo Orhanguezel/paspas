@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useAddCompanyActivityMutation, useAddCompanyContactMutation, useAddCompanyResearchMutation, useCompanyDeskQuery, useSaveCompanyProductMutation, useSaveCompanyProfileMutation } from '@/integrations/endpoints/admin/erp/crm_company_desk.endpoints';
+import { useAddCompanyActivityMutation, useAddCompanyContactMutation, useAddCompanyResearchMutation, useCompanyDeskQuery, useCompleteCompanyActivityMutation, useSaveCompanyProductMutation, useSaveCompanyProfileMutation } from '@/integrations/endpoints/admin/erp/crm_company_desk.endpoints';
 
 const groups = [
   { id: 'PROMATS', label: 'PROMATS · Oto paspas' },
@@ -22,6 +22,7 @@ export default function CompanyDesk({ id }: { id: string }) {
   const [saveProduct] = useSaveCompanyProductMutation();
   const [saveProfile] = useSaveCompanyProfileMutation();
   const [addActivity] = useAddCompanyActivityMutation();
+  const [completeActivity] = useCompleteCompanyActivityMutation();
   const [finding, setFinding] = useState('');
   const [source, setSource] = useState('');
   const [sourceType, setSourceType] = useState<'research' | 'customer_statement'>('research');
@@ -32,6 +33,8 @@ export default function CompanyDesk({ id }: { id: string }) {
   const [taskDate, setTaskDate] = useState('');
   const [actualSubject, setActualSubject] = useState('');
   const [actualResult, setActualResult] = useState('');
+  const [actualContact, setActualContact] = useState('');
+  const [actualChannel, setActualChannel] = useState<'call'|'meeting'|'email'|'whatsapp'>('email');
   const [busy, setBusy] = useState(false);
 
   async function run(action: () => Promise<unknown>, success: string) {
@@ -77,12 +80,12 @@ export default function CompanyDesk({ id }: { id: string }) {
     </div>
     <div className="grid gap-4 lg:grid-cols-2">
       <Card><CardHeader><CardTitle className="text-sm">Gerçekleşen temaslar ve sonuçlar</CardTitle></CardHeader><CardContent className="space-y-3">
-        {actual.map(a=><div key={a.id} className="rounded-md border p-2 text-sm"><strong>{a.subject}</strong><p className="text-xs text-muted-foreground">{a.type} · {new Date(a.created_at).toLocaleDateString('tr-TR')}</p><p>{a.result || a.body || 'Sonuç kaydı yok'}</p></div>)}
-        <Input placeholder="Görüşme konusu" value={actualSubject} onChange={e=>setActualSubject(e.target.value)} /><Input placeholder="Gerçekleşen sonuç" value={actualResult} onChange={e=>setActualResult(e.target.value)} />
-        <Button size="sm" disabled={busy||!actualSubject.trim()||!actualResult.trim()} onClick={()=>run(async()=>{await addActivity({id,body:{type:'note',subject:actualSubject.trim(),result:actualResult.trim()}}).unwrap();setActualSubject('');setActualResult('');},'Temas kaydedildi.')}>Sonuç işle</Button>
+        {actual.map(a=><div key={a.id} className="rounded-md border p-2 text-sm"><strong>{a.subject}</strong><p className="text-xs text-muted-foreground">{a.type} · {new Date(a.created_at).toLocaleDateString('tr-TR')}{a.body ? ` · ${a.body}` : ''}</p><p>{a.result || 'Sonuç kaydı yok'}</p></div>)}
+        <div className="grid gap-2 sm:grid-cols-2"><select className={fieldClass} aria-label="Temas kanalı" value={actualChannel} onChange={e=>setActualChannel(e.target.value as typeof actualChannel)}><option value="email">E-posta</option><option value="whatsapp">WhatsApp</option><option value="call">Telefon</option><option value="meeting">Toplantı</option></select><Input placeholder="Görüşülen kişi" value={actualContact} onChange={e=>setActualContact(e.target.value)} /></div><Input placeholder="Görüşme konusu" value={actualSubject} onChange={e=>setActualSubject(e.target.value)} /><Input placeholder="Gerçekleşen sonuç" value={actualResult} onChange={e=>setActualResult(e.target.value)} />
+        <Button size="sm" disabled={busy||!actualSubject.trim()||!actualResult.trim()||!actualContact.trim()} onClick={()=>run(async()=>{await addActivity({id,body:{type:actualChannel,subject:actualSubject.trim(),body:actualContact.trim(),result:actualResult.trim()}}).unwrap();setActualSubject('');setActualResult('');setActualContact('');},'Temas kaydedildi.')}>Sonuç işle</Button>
       </CardContent></Card>
       <Card><CardHeader><CardTitle className="text-sm">Planlanan sonraki işler</CardTitle></CardHeader><CardContent className="space-y-3">
-        {planned.map(a=><div key={a.id} className="rounded-md border p-2 text-sm"><strong>{a.subject}</strong><p className="text-xs text-muted-foreground">{a.due_at ? new Date(a.due_at).toLocaleString('tr-TR') : 'Tarih belirlenmedi'}</p></div>)}
+        {planned.map(a=><div key={a.id} className="rounded-md border p-2 text-sm"><strong>{a.subject}</strong><p className="text-xs text-muted-foreground">{a.due_at ? new Date(a.due_at).toLocaleString('tr-TR') : 'Tarih belirlenmedi'}</p><div className="mt-2 flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={busy} onClick={()=>run(()=>completeActivity({companyId:id,activityId:a.id,result:'Tamamlandı'}).unwrap(),'Takip tamamlandı.')}>Tamamlandı</Button><Button size="sm" variant="outline" disabled={busy} onClick={()=>run(()=>completeActivity({companyId:id,activityId:a.id,result:'Sonuç alınamadı'}).unwrap(),'Sonuç alınamadı kaydedildi.')}>Sonuç alınamadı</Button></div></div>)}
         <Input placeholder="Sonraki adım" value={taskSubject} onChange={e=>setTaskSubject(e.target.value)} /><Input type="datetime-local" aria-label="Takip tarihi" value={taskDate} onChange={e=>setTaskDate(e.target.value)} />
         <Button size="sm" disabled={busy||!taskSubject.trim()||!taskDate} onClick={()=>run(async()=>{await addActivity({id,body:{type:'task',subject:taskSubject.trim(),dueAt:new Date(taskDate).toISOString()}}).unwrap();setTaskSubject('');setTaskDate('');},'Takip planlandı.')}>Takip planla</Button>
       </CardContent></Card>
