@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import {
   type FirmaAday, type FirmaProfil, type FirmaSonuc,
   useFirmaDurumQuery, useFirmaProfilQuery, useFirmaProfilKaydetMutation,
-  useFirmaGtipKaynaklariQuery, useFirmaHsAraQuery, useFirmaProfilTaraMutation,
+  useFirmaGtipKaynaklariQuery, useFirmaProfilTaraMutation,
   useFirmaAdaylarQuery, useFirmaAdayDurumMutation, useFirmaAdayCrmMutation,
   useFirmaAynaQuery, useFirmaSektorQuery, useFirmaTradeQuery, useFirmaDetayQuery, useFirmaBilgileriQuery,
 } from '@/integrations/endpoints/admin/erp/firma_bulma.endpoints';
@@ -31,7 +31,7 @@ export default function FirmaBulmaPage() {
     </nav>
     {isLoading && <p className="text-sm text-slate-500">Gümrük bağlantısı kontrol ediliyor…</p>}
     {error && <p role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-700">Gümrük bağlantısı kontrol edilemedi: {errorText(error)}</p>}
-    {status?.yapilandirildi && <p className="flex items-center gap-2 text-xs font-bold text-emerald-700"><Database size={14} /> Sunplex gümrük havuzu · salt okunur bağlantı hazır</p>}
+    {status?.yapilandirildi && <p className="flex items-center gap-2 text-xs font-bold text-emerald-700"><Database size={14} /> Gümrük veri havuzu · salt okunur bağlantı hazır</p>}
     {status?.yapilandirildi === false && <p role="alert" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">Gümrük veri havuzu bağlantısı hazır değil.</p>}
     {status?.yapilandirildi && tab === 'profil' && <ProfileTab />}
     {status?.yapilandirildi && tab === 'ayna' && <MirrorTab />}
@@ -45,24 +45,22 @@ function ProfileTab() {
   const { data: saved, isLoading } = useFirmaProfilQuery();
   const { data: sources } = useFirmaGtipKaynaklariQuery();
   const [form, setForm] = useState<FirmaProfil>({ sektor: null, hsKodlari: [], hedefUlkeler: [], aynaAdlari: [] });
-  const [hsInput, setHsInput] = useState('');
   const [countries, setCountries] = useState('');
   const [aliases, setAliases] = useState('');
   const [filter, setFilter] = useState('tumu');
-  const { data: hsSuggestions } = useFirmaHsAraQuery(hsInput, { skip: hsInput.trim().length < 2 });
   const [save, saveState] = useFirmaProfilKaydetMutation();
   const [scan, scanState] = useFirmaProfilTaraMutation();
   useEffect(() => { if (saved) { setForm(saved); setCountries(saved.hedefUlkeler.join(', ')); setAliases(saved.aynaAdlari.join(', ')); } }, [saved]);
-  const addCode = (code: string) => { const cleaned = code.replace(/\D/g, ''); if (cleaned.length < 6 || cleaned.length > 12) return toast.error('HS kodu 6–12 haneli olmalı.'); setForm((p) => ({ ...p, hsKodlari: [...new Set([...p.hsKodlari, cleaned])].slice(0, 20) })); setHsInput(''); };
+  const addCode = (code: string) => { const cleaned = code.replace(/\D/g, '').slice(0,6); if (!sources?.codes.some((item) => item.code === cleaned)) return toast.error('Önce Promats ürününe GTİP kodu bağlayın.'); setForm((p) => ({ ...p, hsKodlari: [...new Set([...p.hsKodlari, cleaned])].slice(0, 20) })); };
   async function persist() { try { await save({ ...form, hedefUlkeler: countries.split(',').map((s) => s.trim()).filter(Boolean), aynaAdlari: aliases.split(',').map((s) => s.trim()).filter(Boolean) }).unwrap(); toast.success('Firma profili kaydedildi.'); return true; } catch (error) { toast.error(errorText(error)); return false; } }
   async function runScan() { if (!await persist()) return; try { const result = await scan({ limit: 100 }).unwrap(); toast.success(`${result.bulunan} firma kaydı tarandı.`); } catch (error) { toast.error(errorText(error)); } }
   return <div className="space-y-4">
     <section className={card}><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-black">Firma profiliniz</h2><p className="mt-1 text-xs text-slate-500">Seçilen HS kodundan ithalat yapmış firmalar aranır. Bu, ürününüzü kullandıkları anlamına gelmez.</p></div><button onClick={() => void runScan()} disabled={scanState.isLoading || saveState.isLoading || isLoading} className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white">{scanState.isLoading ? 'Taranıyor…' : 'Potansiyel müşteri tara'}</button></div>
       <div className="mt-4 grid gap-4 lg:grid-cols-2"><label className="text-xs font-bold">Sektör<input value={form.sektor ?? ''} onChange={(e) => setForm({ ...form, sektor: e.target.value || null })} className={`mt-1 ${input}`} placeholder="Sektör" /></label><label className="text-xs font-bold">Hedef ülkeler · virgülle ayırın<input value={countries} onChange={(e) => setCountries(e.target.value)} className={`mt-1 ${input}`} placeholder="GERMANY, FRANCE" /></label><label className="lg:col-span-2 text-xs font-bold">Firma Aynası için kendi şirket ünvanlarınız · virgülle ayırın<input value={aliases} onChange={(e) => setAliases(e.target.value)} className={`mt-1 ${input}`} placeholder="Resmî ihracatçı ünvanı" /></label></div>
-      <div className="mt-4"><label className="text-xs font-bold">HS / GTİP kodu</label><div className="mt-1 flex gap-2"><input value={hsInput} onChange={(e) => setHsInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCode(hsInput); } }} className={input} placeholder="6–12 haneli kod veya açıklama ara" /><button onClick={() => addCode(hsInput)} className="rounded-xl border px-3 text-sm font-bold">Ekle</button></div>{hsSuggestions?.items?.length ? <div className="mt-1 max-h-44 overflow-auto rounded-xl border bg-white">{hsSuggestions.items.map((item) => <button key={item.hsCode} onClick={() => addCode(item.hsCode)} className="block w-full border-b px-3 py-2 text-left text-xs hover:bg-slate-50"><strong>{item.hsCode}</strong> · {item.description || 'Açıklama yok'} · {item.recordCount} kayıt</button>)}</div> : null}<div className="mt-2 flex flex-wrap gap-2">{form.hsKodlari.map((code) => <button key={code} onClick={() => setForm({ ...form, hsKodlari: form.hsKodlari.filter((x) => x !== code) })} className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">{code} ×</button>)}</div></div>
+      <div className="mt-4"><p className="text-xs font-bold">Aramada kullanılacak Promats HS6 aileleri</p><p className="mt-1 text-xs text-slate-500">Aşağıdaki ürün kodlarından seçim yapın. Kod eklemek için Firma Kurulumu’na gidin.</p><div className="mt-2 flex flex-wrap gap-2">{form.hsKodlari.map((code) => <button key={code} onClick={() => setForm({ ...form, hsKodlari: form.hsKodlari.filter((x) => x !== code) })} className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">{code} ×</button>)}</div></div>
       <div className="mt-4 flex justify-end"><button onClick={() => void persist()} disabled={saveState.isLoading} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold">Profili kaydet</button></div>
     </section>
-    <section className={card}><h2 className="font-black">Sunplex GTİP kaynakları</h2><p className="mt-1 text-xs text-amber-800">{sources?.note || 'Kodlar yalnız kaynak ürünlere aittir.'}</p><div className="mt-3 flex flex-wrap gap-2">{sources?.codes.map((source) => <button key={source.code} onClick={() => addCode(source.code)} title={source.productNames.join(', ')} className="rounded-xl border border-slate-200 px-3 py-2 text-left text-xs hover:bg-slate-50"><strong>{source.code}</strong><span className="ml-2 text-slate-500">{source.productCount} Sunplex ürünü</span></button>)}</div></section>
+    <section className={card}><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-black">Promats ürün GTİP kodları</h2><Link href="/admin/firma-kurulumu#urunler" className="text-xs font-bold text-indigo-700">Ürün eşlemelerini yönet</Link></div><p className="mt-1 text-xs text-slate-600">{sources?.note || 'Ürün kodları Firma Kurulumu içinden yönetilir.'}</p><div className="mt-3 flex flex-wrap gap-2">{sources?.codes.map((source) => <button key={source.code} onClick={() => addCode(source.code)} title={source.productNames.join(', ')} className="rounded-xl border border-slate-200 px-3 py-2 text-left text-xs hover:bg-slate-50"><strong>{source.code}</strong><span className="ml-2 text-slate-500">{source.productCount} Promats ürünü</span></button>)}</div>{!sources?.codes.length && <p className="mt-3 text-xs text-amber-800">Henüz doğrulanmış Promats ürün GTİP eşlemesi yok.</p>}</section>
     <div className="flex items-center justify-between"><h2 className="font-black">Potansiyel müşteriler</h2><select value={filter} onChange={(e) => setFilter(e.target.value)} className="rounded-xl border px-3 py-2 text-sm">{[['tumu', 'Tümü'], ['aday', 'Aday'], ['nitelikli', 'Nitelikli'], ['elenmis', 'Elenmiş'], ['crm_aktarildi', 'CRM’e aktarıldı']].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
     <CandidatesTab durum={filter} />
   </div>;

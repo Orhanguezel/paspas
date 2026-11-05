@@ -71,7 +71,7 @@ export type AdminSidebarRole = PanelRole;
 
 export type AdminNavItemKey = AdminNavKey;
 
-export type AdminNavGroupKey = "overview" | "production" | "logistics" | "teklif" | "website" | "system" | "other";
+export type AdminNavGroupKey = "overview" | "production" | "logistics" | "sales" | "teklif" | "website" | "system" | "other";
 
 export type AdminNavConfigItem = {
   key: AdminNavItemKey;
@@ -167,14 +167,22 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
   // ─── Seyrek kullanılan modüller ───
   {
     id: 4,
+    key: "sales",
+    items: [
+      { key: "firma_kurulumu", url: "/admin/firma-kurulumu", icon: Settings, roles: ["admin"] },
+      { key: "firma_bulma", url: "/admin/firma-bulma", icon: Radar, roles: ["admin", "nakliyeci"] },
+      { key: "crm", url: "/admin/crm", icon: Users, roles: ["admin"] },
+      { key: "firsat", url: "/admin/firsat", icon: Target, roles: ["admin", "nakliyeci"] },
+      { key: "teklifler", url: "/admin/teklifler", icon: FileSignature, roles: ["admin", "nakliyeci"] },
+    ],
+  },
+  {
+    id: 5,
     key: "other",
     items: [
       { key: "yazilim_gorevleri", url: "/admin/yazilim-gorevleri", icon: ClipboardList, roles: ["admin"] },
       { key: "iletisim_mesajlari", url: "/admin/contacts", icon: Inbox, roles: ["admin"] },
       { key: "teklif_talepleri", url: "/admin/teklif-talepleri", icon: Inbox, roles: ["admin", "nakliyeci"] },
-      { key: "firma_bulma", url: "/admin/firma-bulma", icon: Radar, roles: ["admin", "nakliyeci"] },
-      { key: "firsat", url: "/admin/firsat", icon: Target, roles: ["admin", "nakliyeci"] },
-      { key: "teklifler", url: "/admin/teklifler", icon: FileSignature, roles: ["admin", "nakliyeci"] },
       { key: "web_sayfasi", url: "/admin/web-sayfasi", icon: PanelsTopLeft, roles: ["admin"] },
       { key: "site_settings", url: "/admin/sistem", icon: Settings, roles: ["admin"] },
       { key: "promats_mcp", url: "/admin/promats-mcp", icon: Bot, roles: ["admin"] },
@@ -193,6 +201,7 @@ const FALLBACK_GROUP_LABELS: Record<AdminNavGroupKey, string> = {
   overview: "Genel",
   production: "Üretim Süreçleri",
   logistics: "Lojistik & Stok",
+  sales: "Satış ve CRM",
   other: "Diğer Modüller",
   teklif: "Teklif Modülü",
   website: "Web Sitesi",
@@ -244,6 +253,8 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   promats_mcp: "Promats Bağlantıları",
   teklif_talepleri: "Teklif Talepleri",
   teklifler: "Teklifler",
+  firma_kurulumu: "Firma Kurulumu",
+  crm: "CRM",
   firma_bulma: "Firma Bulma",
   firsat: "Fırsat ve Pipeline",
 };

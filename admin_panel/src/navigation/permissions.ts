@@ -10,6 +10,8 @@ export type AdminNavKey =
   | "urunler"
   | "musteriler"
   | "firma_bulma"
+  | "firma_kurulumu"
+  | "crm"
   | "firsat"
   | "is_ortaklari"
   | "makineler"
@@ -67,6 +69,8 @@ const NAV_ROLES: Record<AdminNavKey, PanelRole[]> = {
   urunler: ["admin", "operator", "satin_almaci"],
   musteriler: ["admin", "satin_almaci"],
   firma_bulma: ["admin", "nakliyeci"],
+  firma_kurulumu: ["admin"],
+  crm: ["admin"],
   firsat: ["admin", "nakliyeci"],
   is_ortaklari: ["admin", "satin_almaci"],
   makineler: ["admin", "operator"],
@@ -133,6 +137,8 @@ export function canAccessAdminPath(role: PanelRole | PanelRole[], pathname: stri
     { prefix: "/admin/users", key: "kullanicilar" },
     { prefix: "/admin/musteriler", key: "musteriler" },
     { prefix: "/admin/firma-bulma", key: "firma_bulma" },
+    { prefix: "/admin/firma-kurulumu", key: "firma_kurulumu" },
+    { prefix: "/admin/crm", key: "crm" },
     { prefix: "/admin/firsat", key: "firsat" },
     { prefix: "/admin/dashboard", key: "dashboard" },
     { prefix: "/admin/sevkiyat", key: "sevkiyat" },

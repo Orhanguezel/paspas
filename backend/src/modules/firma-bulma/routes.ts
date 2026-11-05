@@ -4,6 +4,7 @@ import type { RowDataPacket } from 'mysql2';
 import { z } from 'zod';
 import { pool } from '@/db/client';
 import { makeAdminPermissionGuard } from '@/common/middleware/permissions';
+import { getErpCompanyProfile } from '@/modules/siteSettings/service';
 import * as motor from './ihracat-motoru';
 import { uygunlukHesapla } from './uygunluk';
 
@@ -19,7 +20,10 @@ const asDate = (value: unknown) => { const parsed = new Date(String(value ?? '')
 async function profile() {
   const [rows] = await pool.execute<Row[]>('SELECT * FROM firma_bulma_profili WHERE id=1');
   const row = rows[0];
-  return { sektor: row?.sektor ? String(row.sektor) : null, hsKodlari: json<string[]>(row?.hs_kodlari_json, []), hedefUlkeler: json<string[]>(row?.hedef_ulkeler_json, []), aynaAdlari: json<string[]>(row?.ayna_adlari_json, []) };
+  const [mapped] = await pool.execute<Row[]>(`SELECT DISTINCT LEFT(g.gtip_kodu,6) AS code FROM promats_urun_gtip g JOIN urunler u ON u.id=g.urun_id WHERE u.kategori='urun' AND u.is_active=1`);
+  const allowed = new Set(mapped.map((item) => String(item.code)));
+  const company = await getErpCompanyProfile();
+  return { sektor: row?.sektor ? String(row.sektor) : 'Otomotiv paspas üretimi', hsKodlari: json<string[]>(row?.hs_kodlari_json, []).filter((code) => allowed.has(code.slice(0,6))), hedefUlkeler: json<string[]>(row?.hedef_ulkeler_json, []), aynaAdlari: json<string[]>(row?.ayna_adlari_json, company.legalName ? [company.legalName] : []) };
 }
 
 function candidate(row: Row) {
@@ -29,6 +33,7 @@ function candidate(row: Row) {
 export async function registerFirmaBulma(app: FastifyInstance) {
   const read = makeAdminPermissionGuard('admin.firma_bulma');
   const write = makeAdminPermissionGuard('admin.firma_bulma');
+  const setup = makeAdminPermissionGuard('admin.app_settings');
 
   app.get('/firma-bulma/durum', { preHandler: read }, async () => motor.motorDurumu());
   app.get('/firma-bulma/profil', { preHandler: read }, profile);
@@ -36,22 +41,39 @@ export async function registerFirmaBulma(app: FastifyInstance) {
     const parsed = profileSchema.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_profil', issues: parsed.error.flatten() } });
     const input = parsed.data;
+    const [mapped] = await pool.execute<Row[]>(`SELECT DISTINCT LEFT(g.gtip_kodu,6) AS code FROM promats_urun_gtip g JOIN urunler u ON u.id=g.urun_id WHERE u.kategori='urun' AND u.is_active=1`);
+    const allowed = new Set(mapped.map((item) => String(item.code)));
+    if (input.hsKodlari.some((code) => !allowed.has(code.slice(0,6)))) return reply.code(400).send({ error: { message: 'Önce Firma Kurulumu içinde Promats ürününe GTİP bağlayın.' } });
     await pool.execute(`INSERT INTO firma_bulma_profili (id,sektor,hs_kodlari_json,hedef_ulkeler_json,ayna_adlari_json,updated_by)
       VALUES (1,?,?,?,?,?) ON DUPLICATE KEY UPDATE sektor=VALUES(sektor),hs_kodlari_json=VALUES(hs_kodlari_json),hedef_ulkeler_json=VALUES(hedef_ulkeler_json),ayna_adlari_json=VALUES(ayna_adlari_json),updated_by=VALUES(updated_by)`,
       [input.sektor, JSON.stringify([...new Set(input.hsKodlari)]), JSON.stringify([...new Set(input.hedefUlkeler)]), JSON.stringify([...new Set(input.aynaAdlari)]), actor(req)]);
     return profile();
   });
   app.get('/firma-bulma/gtip-kaynaklari', { preHandler: read }, async () => {
-    const sourceProducts = await motor.kaynakUrunGtipleri();
+    const [productRows] = await pool.execute<Row[]>(`SELECT u.ad,g.gtip_kodu FROM promats_urun_gtip g JOIN urunler u ON u.id=g.urun_id WHERE u.is_active=1 AND u.kategori='urun'`);
     const grouped = new Map<string, { code: string; productCount: number; productNames: string[]; ownShipments: number; observedCodes: string[]; descriptions: string[]; source: string }>();
-    for (const product of sourceProducts) {
-      const code = product.code.slice(0, 6);
-      const item = grouped.get(code) ?? { code, productCount: 0, productNames: [], ownShipments: 0, observedCodes: [], descriptions: [], source: 'Sunplex doğrulanmış ürün kartı' };
+    for (const product of productRows) {
+      const code = String(product.gtip_kodu).slice(0, 6);
+      const item = grouped.get(code) ?? { code, productCount: 0, productNames: [], ownShipments: 0, observedCodes: [], descriptions: [], source: 'Promats ürün kartı' };
       item.productCount += 1;
-      if (item.productNames.length < 5) item.productNames.push(product.ad);
+      if (item.productNames.length < 5) item.productNames.push(String(product.ad));
       grouped.set(code, item);
     }
-    return { codes: [...grouped.values()].sort((a, b) => a.code.localeCompare(b.code)), sourceProductCount: sourceProducts.length, source: 'sunplex_erp.urunler', note: 'Bu kodlar Sunplex ürünlerine aittir; Paspas ürünlerine otomatik eşlenmez.' };
+    return { codes: [...grouped.values()].sort((a, b) => a.code.localeCompare(b.code)), sourceProductCount: productRows.length, source: 'promats_urun_gtip', note: 'Yalnız Promats Firma Kurulumu içinde ürünlere bağlanan GTİP kodları gösterilir.' };
+  });
+  app.get('/firma-bulma/urun-gtip', { preHandler: setup }, async () => {
+    const [rows] = await pool.execute<Row[]>(`SELECT u.id,u.kod,u.ad,u.kategori,u.is_active,g.gtip_kodu,g.kaynak,g.updated_at FROM urunler u LEFT JOIN promats_urun_gtip g ON g.urun_id=u.id WHERE u.kategori='urun' AND u.is_active=1 ORDER BY u.ad LIMIT 2000`);
+    return { items: rows.map((row) => ({ id: row.id, kod: row.kod, ad: row.ad, gtipKodu: row.gtip_kodu ?? null, kaynak: row.kaynak ?? null, updatedAt: row.updated_at ?? null })) };
+  });
+  app.put('/firma-bulma/urun-gtip/:id', { preHandler: setup }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const parsed = z.object({ gtipKodu: z.union([hs, z.literal('')]), kaynak: z.string().trim().min(3).max(255) }).safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: { message: 'gecersiz_gtip_kaniti' } });
+    const [products] = await pool.execute<Row[]>(`SELECT id FROM urunler WHERE id=? AND kategori='urun' AND is_active=1`, [id]);
+    if (!products.length) return reply.code(404).send({ error: { message: 'urun_bulunamadi' } });
+    if (!parsed.data.gtipKodu) await pool.execute('DELETE FROM promats_urun_gtip WHERE urun_id=?', [id]);
+    else await pool.execute(`INSERT INTO promats_urun_gtip (urun_id,gtip_kodu,kaynak,updated_by) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE gtip_kodu=VALUES(gtip_kodu),kaynak=VALUES(kaynak),updated_by=VALUES(updated_by)`, [id, parsed.data.gtipKodu, parsed.data.kaynak, actor(req)]);
+    return { ok: true };
   });
   app.get('/firma-bulma/hs-ara', { preHandler: read }, async (req, reply) => {
     const parsed = z.object({ q: z.string().trim().min(2).max(60) }).safeParse(req.query);

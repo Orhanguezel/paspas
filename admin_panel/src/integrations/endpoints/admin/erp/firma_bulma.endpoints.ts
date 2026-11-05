@@ -8,6 +8,7 @@ export type FirmaAynasi = { names: string[]; totals: { shipments: number; buyers
 export type SektorAnalizi = { status: string; period: { start: string; end: string } | null; markets: Array<{ country: string; current: number; previous: number; buyers: number; exporters: number; score: number | null; competition: string; eligible: boolean }>; coverage: { records: number; unknownDestination: number }; notes: string[] };
 export type FirmaDetay = { buyer: { name: string; country: string | null }; totals: { shipments: number; firstDate: string | null; lastDate: string | null; suppliers: number; products: number }; shipments: { items: Array<{ id: string; date: string | null; exporter: string | null; hsCode: string; description: string | null; source: string | null }> }; suppliers: Array<{ name: string; shipments: number }>; products: Array<{ hsCode: string; shipments: number }> };
 export type FirmaIletisim = { website: string | null; emails: string[]; phones: string[]; people: Array<{ fullName: string | null; title: string | null; email: string | null }>; address: string | null; sources: string[] };
+export type PromatsUrunGtip = { id: string; kod: string; ad: string; gtipKodu: string | null; kaynak: string | null; updatedAt: string | null };
 
 const root = '/admin/firma-bulma';
 export const firmaBulmaApi = baseApi.injectEndpoints({
@@ -16,6 +17,8 @@ export const firmaBulmaApi = baseApi.injectEndpoints({
     firmaProfil: b.query<FirmaProfil, void>({ query: () => `${root}/profil`, providesTags: ['FirmaBulmaProfil'] }),
     firmaProfilKaydet: b.mutation<FirmaProfil, FirmaProfil>({ query: (body) => ({ url: `${root}/profil`, method: 'PUT', body }), invalidatesTags: ['FirmaBulmaProfil'] }),
     firmaGtipKaynaklari: b.query<{ codes: Array<{ code: string; productCount: number; productNames: string[]; source: string }>; sourceProductCount: number; note: string }, void>({ query: () => `${root}/gtip-kaynaklari` }),
+    firmaUrunGtip: b.query<{ items: PromatsUrunGtip[] }, void>({ query: () => `${root}/urun-gtip`, providesTags: ['FirmaBulmaProfil'] }),
+    firmaUrunGtipKaydet: b.mutation<{ ok: boolean }, { id: string; gtipKodu: string; kaynak: string }>({ query: ({ id, ...body }) => ({ url: `${root}/urun-gtip/${id}`, method: 'PUT', body }), invalidatesTags: ['FirmaBulmaProfil'] }),
     firmaHsAra: b.query<{ items: Array<{ hsCode: string; description: string | null; recordCount: number }> }, string>({ query: (q) => `${root}/hs-ara?q=${encodeURIComponent(q)}` }),
     firmaProfilTara: b.mutation<{ bulunan: number }, { limit: number }>({ query: (body) => ({ url: `${root}/profil-tara`, method: 'POST', body }), invalidatesTags: ['FirmaBulmaAdaylar'] }),
     firmaAdaylar: b.query<{ items: FirmaAday[] }, string>({ query: (durum) => `${root}/potansiyeller?durum=${durum}`, providesTags: ['FirmaBulmaAdaylar'] }),
@@ -28,4 +31,4 @@ export const firmaBulmaApi = baseApi.injectEndpoints({
     firmaBilgileri: b.query<{ items: Record<string, FirmaIletisim | null> }, { name: string; country?: string | null }>({ query: (p) => `${root}/firma-bilgileri?${new URLSearchParams(Object.entries(p).filter(([, value]) => value !== undefined && value !== null && value !== '').map(([key, value]) => [key, String(value)])).toString()}` }),
   }),
 });
-export const { useFirmaDurumQuery, useFirmaProfilQuery, useFirmaProfilKaydetMutation, useFirmaGtipKaynaklariQuery, useFirmaHsAraQuery, useFirmaProfilTaraMutation, useFirmaAdaylarQuery, useFirmaAdayDurumMutation, useFirmaAdayCrmMutation, useFirmaAynaQuery, useFirmaSektorQuery, useFirmaTradeQuery, useFirmaDetayQuery, useFirmaBilgileriQuery } = firmaBulmaApi;
+export const { useFirmaDurumQuery, useFirmaProfilQuery, useFirmaProfilKaydetMutation, useFirmaGtipKaynaklariQuery, useFirmaUrunGtipQuery, useFirmaUrunGtipKaydetMutation, useFirmaHsAraQuery, useFirmaProfilTaraMutation, useFirmaAdaylarQuery, useFirmaAdayDurumMutation, useFirmaAdayCrmMutation, useFirmaAynaQuery, useFirmaSektorQuery, useFirmaTradeQuery, useFirmaDetayQuery, useFirmaBilgileriQuery } = firmaBulmaApi;
