@@ -20,6 +20,7 @@ export const firmaBulmaApi = baseApi.injectEndpoints({
     firmaUrunGtip: b.query<{ items: PromatsUrunGtip[] }, void>({ query: () => `${root}/urun-gtip`, providesTags: ['FirmaBulmaProfil'] }),
     firmaUrunGtipKaydet: b.mutation<{ ok: boolean }, { id: string; gtipKodu: string; kaynak: string }>({ query: ({ id, ...body }) => ({ url: `${root}/urun-gtip/${id}`, method: 'PUT', body }), invalidatesTags: ['FirmaBulmaProfil'] }),
     firmaHsAra: b.query<{ items: Array<{ hsCode: string; description: string | null; recordCount: number }> }, string>({ query: (q) => `${root}/hs-ara?q=${encodeURIComponent(q)}` }),
+    firmaGtipOneriler: b.query<{ gtip: Array<{ kod: string; aciklama: string | null; sektor: string | null; kayit: number }>; firmalar: unknown[] }, string>({ query: (q) => `${root}/oneriler?q=${encodeURIComponent(q)}` }),
     firmaProfilTara: b.mutation<{ bulunan: number }, { limit: number }>({ query: (body) => ({ url: `${root}/profil-tara`, method: 'POST', body }), invalidatesTags: ['FirmaBulmaAdaylar'] }),
     firmaAdaylar: b.query<{ items: FirmaAday[] }, string>({ query: (durum) => `${root}/potansiyeller?durum=${durum}`, providesTags: ['FirmaBulmaAdaylar'] }),
     firmaAdayDurum: b.mutation<{ ok: boolean }, { id: string; durum: string }>({ query: ({ id, durum }) => ({ url: `${root}/potansiyeller/${id}/durum`, method: 'PATCH', body: { durum } }), invalidatesTags: ['FirmaBulmaAdaylar'] }),
@@ -31,4 +32,4 @@ export const firmaBulmaApi = baseApi.injectEndpoints({
     firmaBilgileri: b.query<{ items: Record<string, FirmaIletisim | null> }, { name: string; country?: string | null }>({ query: (p) => `${root}/firma-bilgileri?${new URLSearchParams(Object.entries(p).filter(([, value]) => value !== undefined && value !== null && value !== '').map(([key, value]) => [key, String(value)])).toString()}` }),
   }),
 });
-export const { useFirmaDurumQuery, useFirmaProfilQuery, useFirmaProfilKaydetMutation, useFirmaGtipKaynaklariQuery, useFirmaUrunGtipQuery, useFirmaUrunGtipKaydetMutation, useFirmaHsAraQuery, useFirmaProfilTaraMutation, useFirmaAdaylarQuery, useFirmaAdayDurumMutation, useFirmaAdayCrmMutation, useFirmaAynaQuery, useFirmaSektorQuery, useFirmaTradeQuery, useFirmaDetayQuery, useFirmaBilgileriQuery } = firmaBulmaApi;
+export const { useFirmaDurumQuery, useFirmaProfilQuery, useFirmaProfilKaydetMutation, useFirmaGtipKaynaklariQuery, useFirmaUrunGtipQuery, useFirmaUrunGtipKaydetMutation, useFirmaHsAraQuery, useFirmaGtipOnerilerQuery, useFirmaProfilTaraMutation, useFirmaAdaylarQuery, useFirmaAdayDurumMutation, useFirmaAdayCrmMutation, useFirmaAynaQuery, useFirmaSektorQuery, useFirmaTradeQuery, useFirmaDetayQuery, useFirmaBilgileriQuery } = firmaBulmaApi;
