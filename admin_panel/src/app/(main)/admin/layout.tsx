@@ -20,11 +20,13 @@ import AdminAuthGate from './_components/admin-auth-gate';
 import { AdminNotificationsLive } from './_components/admin-notifications-live';
 import { AdminSettingsProvider } from './_components/admin-settings-provider';
 import { PageFeedbackWidget } from './_components/page-feedback/page-feedback-widget';
+import MobileOperationalMode from './_components/mobile-operational-mode';
 
 export default function Layout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <AdminAuthGate>
       <AdminSettingsProvider>
+        <MobileOperationalMode />
         {/* Gate inside; when ok, render layout */}
         <SidebarProvider defaultOpen>
           <AppSidebar
@@ -73,7 +75,7 @@ export default function Layout({ children }: Readonly<{ children: ReactNode }>) 
             </header>
 
             <div className="flex flex-1 flex-col overflow-hidden">
-              <div className="min-w-0 flex-1 overflow-auto p-4 md:p-6">
+              <div data-slot="admin-content" className="min-w-0 flex-1 overflow-auto p-4 md:p-6">
                 {children}
               </div>
               <AdminFooter />

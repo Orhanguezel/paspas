@@ -236,4 +236,28 @@ describeIntegration("gerçek veri mal kabul", () => {
     const hareketRows = await getMovementRows([red.id]);
     expect(hareketRows).toHaveLength(0);
   });
+
+  it("aynı teslimat anahtarını eşzamanlı ve tekrarlı gönderince stoğu yalnız bir kez artırır", async () => {
+    const siparis = await createSiparis(10);
+    const request = {
+      requestId: '11111111-1111-4111-8111-111111111303',
+      kaynakTipi: 'satin_alma' as const,
+      satinAlmaSiparisId: siparis.siparis.id,
+      satinAlmaKalemId: siparis.items[0].id,
+      urunId: ids.urun,
+      tedarikciId: ids.tedarikci,
+      gelenMiktar: 4,
+      kaliteDurumu: 'kabul' as const,
+    };
+    const [first, repeated] = await Promise.all([repoCreate(request, null), repoCreate(request, null)]);
+    expect(first.id).toBe(request.requestId);
+    expect(repeated.id).toBe(first.id);
+    expect(await getStock()).toBe(4);
+    expect(getAcceptedAmount(await repoGetSatinAlma(siparis.siparis.id))).toBe(4);
+    expect(await getMovementRows([first.id])).toHaveLength(1);
+    expect((await repoCreate(request, null)).id).toBe(first.id);
+    expect(await getStock()).toBe(4);
+    await expect(repoCreate({ ...request, gelenMiktar: 5 }, null)).rejects.toThrow('mal_kabul_istek_anahtari_cakisti');
+    expect(await getStock()).toBe(4);
+  });
 });

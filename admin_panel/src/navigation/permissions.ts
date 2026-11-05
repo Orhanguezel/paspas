@@ -123,6 +123,7 @@ export function getAdminNavRoles(key: AdminNavKey): PanelRole[] {
 export function canAccessAdminPath(role: PanelRole | PanelRole[], pathname: string): boolean {
   const roles = Array.isArray(role) ? role : [role];
   if (roles.includes("admin")) return true;
+  if (pathname === '/admin/alan-sec') return roles.includes('operator') || roles.includes('satin_almaci');
 
   // Her modülün URL prefix'ini izinli rollerle eşleştir
   const PATH_ROLE_MAP: Array<{ prefix: string; key: AdminNavKey }> = [

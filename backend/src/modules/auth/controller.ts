@@ -432,6 +432,7 @@ export function makeAuthController(app: FastifyInstance) {
       await ensureProfileRow(u.id);
 
       const role = await getPrimaryRole(u.id);
+      const roles = await getAssignedRoles(u.id);
       const { access, refresh } = await issueTokens(app, u, role);
 
       setAccessCookie(reply, access, req);
@@ -448,6 +449,7 @@ export function makeAuthController(app: FastifyInstance) {
           email_verified: u.email_verified,
           is_active: u.is_active,
           role,
+          roles,
         },
       });
     },

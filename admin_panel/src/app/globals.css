@@ -249,3 +249,22 @@ html {
 .disable-transitions * {
   transition: none !important;
 }
+
+@media (max-width: 767px) {
+  body.mobile-operational-view [data-slot="sidebar-gap"],
+  body.mobile-operational-view [data-slot="sidebar-container"],
+  body.mobile-operational-view [data-slot="sidebar-inset"] > header,
+  body.mobile-operational-view [data-slot="sidebar-inset"] footer {
+    display: none !important;
+  }
+  body.mobile-operational-view [data-slot="sidebar-inset"] {
+    min-width: 0;
+    width: 100%;
+    margin: 0;
+  }
+  body.mobile-operational-view [data-slot="admin-content"] {
+    padding: 16px;
+    width: 100%;
+    overflow-x: hidden;
+  }
+}
