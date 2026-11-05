@@ -153,9 +153,8 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
         {!isLoading && items.map((m) => <article key={m.id} className="min-w-0 rounded-md border bg-card p-3 shadow-sm">
           <div className="flex min-w-0 items-start justify-between gap-2">
             <div className="min-w-0"><h2 className="break-words font-semibold">{m.ad}</h2><p className="break-all font-mono text-xs text-muted-foreground">Firma ID: {m.kod}</p></div>
-            <Badge variant={m.tur === 'tedarikci' ? 'secondary' : 'default'} className="shrink-0">{t(`admin.erp.musteriler.types.${m.tur}`)}</Badge>
+            <Badge variant={m.musteriDurumu === 'aday' ? 'outline' : m.tur === 'tedarikci' ? 'secondary' : 'default'} className="shrink-0">{m.musteriDurumu === 'aday' ? 'Aday' : m.musteriDurumu === 'pasif' ? 'Pasif firma' : t(`admin.erp.musteriler.types.${m.tur}`)}</Badge>
           </div>
-          {(m.musteriDurumu === 'aday' || m.musteriDurumu === 'pasif') && <p className="mt-1 text-xs text-muted-foreground">{m.musteriDurumu === 'aday' ? 'Aday' : 'Pasif'}</p>}
           <dl className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
             <dt className="text-muted-foreground">İlgili kişi</dt><dd className="min-w-0 break-words">{m.ilgiliKisi ?? '—'}</dd>
             <dt className="text-muted-foreground">Telefon</dt><dd className="min-w-0 break-all">{m.telefon ?? '—'}</dd>
@@ -177,7 +176,7 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
           <TableHeader>
             <TableRow>
               <TableHead>Firma ID</TableHead>
-              <TableHead>{t('admin.erp.musteriler.form.tur')}</TableHead>
+              <TableHead>Durum</TableHead>
               <TableHead>{t('admin.erp.musteriler.columns.ad')}</TableHead>
               <TableHead>{t('admin.erp.musteriler.columns.ilgiliKisi')}</TableHead>
               <TableHead>{t('admin.erp.musteriler.columns.telefon')}</TableHead>
@@ -209,17 +208,9 @@ export default function MusterilerClient({ crmMode = false }: { crmMode?: boolea
               <TableRow key={m.id}>
                 <TableCell className="break-all whitespace-normal font-mono text-xs">{m.kod}</TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap items-center gap-1">
-                    <Badge variant={m.tur === 'tedarikci' ? 'secondary' : 'default'}>
-                      {t(`admin.erp.musteriler.types.${m.tur}`)}
-                    </Badge>
-                    {m.musteriDurumu === 'aday' && (
-                      <Badge variant="outline" className="border-amber-400 bg-amber-50 text-amber-700">Aday</Badge>
-                    )}
-                    {m.musteriDurumu === 'pasif' && (
-                      <Badge variant="outline" className="text-muted-foreground">Pasif</Badge>
-                    )}
-                  </div>
+                  <Badge variant={m.musteriDurumu === 'aday' ? 'outline' : m.tur === 'tedarikci' ? 'secondary' : 'default'} className={m.musteriDurumu === 'aday' ? 'border-amber-400 bg-amber-50 text-amber-700' : ''}>
+                    {m.musteriDurumu === 'aday' ? 'Aday' : m.musteriDurumu === 'pasif' ? 'Pasif firma' : t(`admin.erp.musteriler.types.${m.tur}`)}
+                  </Badge>
                 </TableCell>
                 <TableCell className="break-words whitespace-normal font-medium">{m.ad}</TableCell>
                 <TableCell className="break-words whitespace-normal">{m.ilgiliKisi ?? '—'}</TableCell>
