@@ -39,6 +39,12 @@ export const uretimEmirleriAdminApi = baseApi.injectEndpoints({
       providesTags: (_r, _e, id) => [{ type: 'UretimEmri' as const, id }],
     }),
 
+    getUretimEmriMamulGroupAdmin: b.query<UretimEmriDto[], string>({
+      query: (id) => ({ url: `${BASE}/${id}/mamul-group` }),
+      transformResponse: (res: unknown) => Array.isArray(res) ? res.map(normalizeUretimEmri) : [],
+      providesTags: [{ type: 'UretimEmirleri', id: 'LIST' }],
+    }),
+
     listUretimEmriAdaylariAdmin: b.query<UretimEmriAdayDto[], void>({
       query: () => ({ url: `${BASE}/adaylar` }),
       transformResponse: (res: unknown) =>
@@ -173,6 +179,7 @@ export const {
   useListUretimEmirleriAdminQuery,
   useListUretimEmriAdaylariAdminQuery,
   useGetUretimEmriAdminQuery,
+  useGetUretimEmriMamulGroupAdminQuery,
   useGetNextEmirNoAdminQuery,
   useCreateUretimEmriAdminMutation,
   useUpdateUretimEmriAdminMutation,

@@ -50,6 +50,7 @@ export type UretimEmriOperasyonOzetDto = {
   durum: string;
   /** Emir satiri altindaki detay panelinde planlanan/gerceklesen bitis ayri renkte gosterilir. */
   planlananBitis: string | null;
+  gercekBaslangic: string | null;
   gercekBitis: string | null;
 };
 
@@ -96,8 +97,9 @@ export type UretimEmriDto = {
 };
 
 /** Repository ham satiri: tarihler Date olabilir, rowToDto ISO string'e cevirir. */
-type OperasyonOzetGirdi = Omit<UretimEmriOperasyonOzetDto, 'planlananBitis' | 'gercekBitis'> & {
+type OperasyonOzetGirdi = Omit<UretimEmriOperasyonOzetDto, 'planlananBitis' | 'gercekBaslangic' | 'gercekBitis'> & {
   planlananBitis?: Date | string | null;
+  gercekBaslangic?: Date | string | null;
   gercekBitis?: Date | string | null;
 };
 
@@ -139,6 +141,7 @@ export function rowToDto(row: UretimEmriDtoRow): UretimEmriDto {
     operasyonlar: (row.operasyonlar ?? []).map((operasyon) => ({
       ...operasyon,
       planlananBitis: toDateTimeString(operasyon.planlananBitis),
+      gercekBaslangic: toDateTimeString(operasyon.gercekBaslangic),
       gercekBitis: toDateTimeString(operasyon.gercekBitis),
     })),
     siparisKalemIds: kalemIds,

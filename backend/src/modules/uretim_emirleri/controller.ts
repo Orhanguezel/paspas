@@ -1,7 +1,7 @@
 import type { FastifyReply, RouteHandler } from 'fastify';
 
 import { rowToDto } from './schema';
-import { repoCreate, repoDelete, repoGetById, repoGetHammaddeYeterlilik, repoGetNextEmirNo, repoGetOperasyonlar, repoGetUretimKarsilastirma, repoList, repoListAdaylar, repoUpdate } from './repository';
+import { repoCreate, repoDelete, repoGetById, repoGetMamulGroup, repoGetHammaddeYeterlilik, repoGetNextEmirNo, repoGetOperasyonlar, repoGetUretimKarsilastirma, repoList, repoListAdaylar, repoUpdate } from './repository';
 import { checkHammaddeYeterlilik } from './hammadde_service';
 import { createUretimEmirleriFromSiparisKalemi, SiparisUretimEmirHatasi, updateMamulEmri, getKalanOperasyonelYarimamuller, sifirlaOperasyonelYarimamuller } from './service';
 import { createSchema, listQuerySchema, patchSchema } from './validation';
@@ -59,6 +59,18 @@ export const getUretimEmri: RouteHandler = async (req, reply) => {
     return reply.send(rowToDto(row));
   } catch (error) {
     req.log.error({ error }, 'get_uretim_emri_failed');
+    return sendInternalError(reply);
+  }
+};
+
+export const getUretimEmriMamulGroup: RouteHandler = async (req, reply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const rows = await repoGetMamulGroup(id);
+    if (!rows.length) return reply.code(404).send({ error: { message: 'uretim_emri_bulunamadi' } });
+    return reply.send(rows.map(rowToDto));
+  } catch (error) {
+    req.log.error({ error }, 'get_uretim_emri_mamul_group_failed');
     return sendInternalError(reply);
   }
 };

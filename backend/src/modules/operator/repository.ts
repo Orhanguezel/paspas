@@ -10,7 +10,7 @@ import { urunler } from '@/modules/urunler/schema';
 import { hareketler } from '@/modules/hareketler/schema';
 import { musteriler } from '@/modules/musteriler/schema';
 import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/schema';
-import { refreshSiparisDurum, getSiparisIdsByUretimEmriId, getKalemIdsByUretimEmriId } from '@/modules/satis_siparisleri/repository';
+import { refreshSiparisDurum, getSiparisIdsByUretimEmriId, getKalemIdsByUretimEmriId, reconcileKalemUretimDurum } from '@/modules/satis_siparisleri/repository';
 import { transitionMultipleKalemDurum } from '@/modules/satis_siparisleri/kalem-durum.service';
 import { receteler, receteKalemleri } from '@/modules/receteler/schema';
 import { tryMontajForUretimEmri, tryPendingMontajlarAfterStokArtis } from '@/modules/uretim_emirleri/service';
@@ -1724,53 +1724,6 @@ export async function repoUretimBitir(
       await iptalRezervasyon(kqRef2.uretim_emri_id);
     }
 
-    // Cift tarafli uretim kontrolu:
-    // montaj operasyonu VEYA tek taraflı VEYA tüm operasyonlar bitti (UE tamamlandi) ise kalem tamamlandi
-    let shouldCompleteKalem = isEmirTamamlandi;
-    if (!shouldCompleteKalem && kqRef2.emir_operasyon_id) {
-      const [op] = await db
-        .select({ montaj: uretimEmriOperasyonlari.montaj })
-        .from(uretimEmriOperasyonlari)
-        .where(eq(uretimEmriOperasyonlari.id, kqRef2.emir_operasyon_id))
-        .limit(1);
-      const isMontajOp = (op?.montaj ?? 0) === 1;
-
-      // Tek tarafli mi kontrol et
-      const [opCount] = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(uretimEmriOperasyonlari)
-        .where(eq(uretimEmriOperasyonlari.uretim_emri_id, kqRef2.uretim_emri_id));
-      const isSingleSided = Number(opCount?.count ?? 0) <= 1;
-
-      shouldCompleteKalem = isMontajOp || isSingleSided;
-    } else if (!shouldCompleteKalem) {
-      shouldCompleteKalem = true;
-    }
-
-    if (shouldCompleteKalem) {
-      const kalemIds = await getKalemIdsByUretimEmriId(kqRef2.uretim_emri_id);
-      await transitionMultipleKalemDurum(kalemIds, 'uretim_tamamlandi');
-    } else {
-      // Çift taraflı üretimde ara operasyon tamamlandı — kalem "uretiliyor" takılı kalmasın.
-      // Makine ataması bitti, bir sonraki operasyon için kuyruğa alınmayı bekliyor.
-      // VALID_TRANSITIONS bu yönü desteklemez, doğrudan güncelle.
-      const kalemIds = await getKalemIdsByUretimEmriId(kqRef2.uretim_emri_id);
-      if (kalemIds.length > 0) {
-        await db
-          .update(siparisKalemleri)
-          .set({ uretim_durumu: 'uretime_aktarildi' })
-          .where(
-            and(
-              inArray(siparisKalemleri.id, kalemIds),
-              inArray(siparisKalemleri.uretim_durumu, ['uretiliyor', 'duraklatildi']),
-            ),
-          );
-      }
-    }
-
-    const sids = await getSiparisIdsByUretimEmriId(kqRef2.uretim_emri_id);
-    for (const sid of sids) await refreshSiparisDurum(sid);
-
     // Yeni mimari: emir operasyonel YM/legacy yarı mamul için ve operasyon montaj=true ise montaj denemesi.
     if (kqRef2.emir_operasyon_id) {
       const [opRow] = await db
@@ -1792,6 +1745,13 @@ export async function repoUretimBitir(
         }
       }
     }
+
+    // The finished product movement can be created by the assembly attempt above.
+    // Re-evaluate every linked line only after it, using all related UE records.
+    const kalemIds = await getKalemIdsByUretimEmriId(kqRef2.uretim_emri_id);
+    for (const kalemId of kalemIds) await reconcileKalemUretimDurum(kalemId);
+    const sids = await getSiparisIdsByUretimEmriId(kqRef2.uretim_emri_id);
+    for (const sid of sids) await refreshSiparisDurum(sid);
   });
 
   await runNonBlockingStep('uretim_tamamlandi_bildirimi', async () => {

@@ -33,6 +33,7 @@ export interface UretimEmriOperasyonOzet {
   uretilenMiktar: number;
   durum: string;
   planlananBitis: string | null;
+  gercekBaslangic?: string | null;
   gercekBitis: string | null;
 }
 
@@ -247,6 +248,7 @@ export function normalizeUretimEmri(raw: unknown): UretimEmriDto {
             uretilenMiktar: toNum(op.uretilenMiktar),
             durum: toStr(op.durum, "bekliyor"),
             planlananBitis: op.planlananBitis != null ? toStr(op.planlananBitis) : null,
+            gercekBaslangic: op.gercekBaslangic != null ? toStr(op.gercekBaslangic) : null,
             gercekBitis: op.gercekBitis != null ? toStr(op.gercekBitis) : null,
           };
         })
