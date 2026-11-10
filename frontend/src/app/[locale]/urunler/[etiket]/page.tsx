@@ -62,30 +62,70 @@ export default async function ProductPage({
 
   const origin = getPublicSiteOrigin().replace(/\/+$/, '');
   const productUrl = `${origin}${localeHref(locale, `/urunler/${product.slug}`)}`;
-  const productJsonLd = {
+  const description = product.seo?.description || stripHtml(product.detailContent?.description || product.hero.description);
+  const images = [product.hero.image, product.sections.detailImage]
+    .filter(Boolean)
+    .map((image) => `${origin}${assetPath(image)}`);
+  const breadcrumbId = `${productUrl}#breadcrumb`;
+  const productSeriesJsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: product.name,
-    description: product.seo?.description || stripHtml(product.detailContent?.description || product.hero.description),
-    url: productUrl,
-    image: [product.hero.image, product.sections.detailImage].filter(Boolean).map((image) => `${origin}${assetPath(image)}`),
-    brand: { '@type': 'Brand', name: 'Promats' },
-    additionalProperty: [
-      ['Technical Specifications', product.detailContent?.technical],
-      ['Use Cases', product.detailContent?.usage],
-      ['Advantages', product.detailContent?.advantages],
-      ['Material and Durability', product.detailContent?.material],
-      ['Universal Design', product.detailContent?.universal],
-    ].filter((item) => item[1]).map(([name, value]) => ({
-      '@type': 'PropertyValue',
-      name,
-      value: stripHtml(value),
-    })),
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': `${productUrl}#webpage`,
+        url: productUrl,
+        name: product.name,
+        description,
+        inLanguage: locale === 'en' ? 'en' : 'tr',
+        ...(images.length > 0
+          ? {
+              image: images,
+              primaryImageOfPage: {
+                '@type': 'ImageObject',
+                url: images[0],
+              },
+            }
+          : {}),
+        breadcrumb: { '@id': breadcrumbId },
+        about: {
+          '@type': 'Thing',
+          '@id': `${productUrl}#series`,
+          name: product.name,
+          description,
+          url: productUrl,
+          ...(images.length > 0 ? { image: images } : {}),
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        '@id': breadcrumbId,
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: locale === 'en' ? 'Home' : 'Ana Sayfa',
+            item: `${origin}${localeHref(locale, '/')}`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: locale === 'en' ? 'Products' : 'Ürünler',
+            item: `${origin}${localeHref(locale, '/urunler')}`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: product.name,
+            item: productUrl,
+          },
+        ],
+      },
+    ],
   };
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSeriesJsonLd) }} />
       <PromatsProductDetail locale={locale} product={product} related={related} settings={settings} cards={cards} />
     </>
   );
