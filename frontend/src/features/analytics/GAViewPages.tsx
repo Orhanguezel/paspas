@@ -95,9 +95,12 @@ export default function GAViewPages() {
       }
     };
     
+    const onConsent = () => send(nextUrl);
+    window.addEventListener('promats:analytics-consent', onConsent);
     send(nextUrl);
 
     // No routeChangeComplete in App Router. The effect itself runs on change.
+    return () => window.removeEventListener('promats:analytics-consent', onConsent);
   }, [pathname, searchParams, hasAnyAnalytics, hasGtm, hasGa, hasFbPixel, locale]);
 
   return null;

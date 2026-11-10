@@ -128,6 +128,9 @@ export default function AnalyticsScripts() {
 
               // Notify GTM (or any listener)
               window.dataLayer.push({ event: '${getAnalyticsConsentEventName()}', analytics_storage: v });
+              window.dispatchEvent(new CustomEvent('promats:analytics-consent', {
+                detail: { granted: granted }
+              }));
             } catch (e) {}
           };
 
