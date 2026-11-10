@@ -48,6 +48,7 @@ export type AdminNavKey =
   | "test_center"
   | "admin_documentation"
   | "vardiya_analizi"
+  | "uretim_ozeti"
   | "web_sayfasi"
   | "yazilim_gorevleri"
   | "promats_mcp"
@@ -107,6 +108,7 @@ const NAV_ROLES: Record<AdminNavKey, PanelRole[]> = {
   test_center: ["admin"],
   admin_documentation: ["admin"],
   vardiya_analizi: ["admin"],
+  uretim_ozeti: ["admin"],
   web_sayfasi: ["admin"],
   yazilim_gorevleri: ["admin"],
   promats_mcp: ["admin"],
@@ -133,6 +135,8 @@ export function canAccessAdminPath(role: PanelRole | PanelRole[], pathname: stri
     { prefix: "/admin/satis-siparisleri", key: "satis_siparisleri" },
     { prefix: "/admin/hareketler", key: "hareketler" },
     { prefix: "/admin/gantt", key: "gantt" },
+    { prefix: "/admin/uretim-ozeti", key: "uretim_ozeti" },
+    { prefix: "/admin/vardiya-analizi", key: "uretim_ozeti" },
     { prefix: "/admin/gorevler", key: "gorevler" },
     { prefix: "/admin/giris-ayarlari", key: "giris_ayarlari" },
     { prefix: "/admin/users", key: "kullanicilar" },

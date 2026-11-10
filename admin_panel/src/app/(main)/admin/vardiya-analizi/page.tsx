@@ -1,5 +1,5 @@
-import VardiyaAnaliziClient from "./_components/vardiya-analizi-client";
+import { redirect } from 'next/navigation';
 
 export default function Page() {
-  return <VardiyaAnaliziClient />;
+  redirect('/admin/uretim-ozeti?tab=vardiya');
 }

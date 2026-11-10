@@ -149,7 +149,7 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
       { key: "is_yukler", url: "/admin/is-yukler", icon: Cpu, roles: ["admin"] },
       { key: "operator", url: "/admin/operator", icon: Play, roles: ["admin", "operator"] },
       { key: "gantt", url: "/admin/gantt", icon: Calendar, roles: ["admin", "operator"] },
-      { key: "vardiya_analizi", url: "/admin/vardiya-analizi", icon: Timer, roles: ["admin"] },
+      { key: "uretim_ozeti", url: "/admin/uretim-ozeti", icon: Timer, roles: ["admin"] },
     ],
   },
   // ─── Lojistik & Stok ───
@@ -248,6 +248,7 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   test_center: "Test Merkezi",
   admin_documentation: "Dokumantasyon",
   vardiya_analizi: "Vardiya Analizi",
+  uretim_ozeti: "Üretim Özeti",
   web_sayfasi: "Promats İçerik Yönetimi",
   yazilim_gorevleri: "Yazılım Görevleri",
   promats_mcp: "Promats Bağlantıları",

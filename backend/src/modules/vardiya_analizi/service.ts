@@ -120,6 +120,7 @@ export type UretimKaydiOzet = {
   baslangic: string;
   bitis: string | null;
   urunAd: string;
+  urunBirim: string;
   urunKod: string | null;
   operasyonAdi: string | null;
   montaj: boolean;
@@ -172,6 +173,7 @@ export type VardiyaAnalizResponse = {
   durusDetaylari: DurusDetayOzet[];
   durusOzeti: DurusNedeniOzet[];
   ozet: VardiyaAnalizOzet;
+  vardiyaTakvimi: Array<{ gun: string; vardiyaTipleri: string[] }>;
 };
 
 export type UretimKirilimAggregateRow = {
@@ -693,6 +695,27 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
   const now = new Date();
   const { baslangic, bitis, tarihLabel } = dateRange(query, now);
   const vardiyaTanimlariList = await listActiveVardiyaTanimlari();
+  const tarihceRows = await db.select({
+    ad: vardiyaTarihceleri.ad,
+    baslangicSaati: vardiyaTarihceleri.baslangic_saati,
+    bitisSaati: vardiyaTarihceleri.bitis_saati,
+    isActive: vardiyaTarihceleri.is_active,
+    baslangic: vardiyaTarihceleri.gecerli_baslangic,
+    bitis: vardiyaTarihceleri.gecerli_bitis,
+  }).from(vardiyaTarihceleri).where(and(
+    lte(vardiyaTarihceleri.gecerli_baslangic, bitis),
+    sql`(${vardiyaTarihceleri.gecerli_bitis} IS NULL OR ${vardiyaTarihceleri.gecerli_bitis} > ${baslangic})`,
+  ));
+  const vardiyaTakvimi: Array<{ gun: string; vardiyaTipleri: string[] }> = [];
+  for (let cursor = new Date(baslangic); cursor <= bitis; cursor = new Date(cursor.getTime() + 24 * 60 * 60_000)) {
+    const local = toLocal(cursor, VARDIYA_TZ_OFFSET_DK);
+    const gun = `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, '0')}-${String(local.getUTCDate()).padStart(2, '0')}`;
+    const noon = fromLocal(new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), 12)), VARDIYA_TZ_OFFSET_DK);
+    const vardiyaTipleri = tarihceRows
+      .filter((row) => row.isActive === 1 && new Date(row.baslangic) <= noon && (!row.bitis || new Date(row.bitis) > noon))
+      .map((row) => inferVardiyaTipi(row.ad, row.baslangicSaati, row.bitisSaati));
+    vardiyaTakvimi.push({ gun, vardiyaTipleri: [...new Set(vardiyaTipleri)] });
+  }
   let kayitlar = await applyHistoricalVardiyaOverrides(
     await fetchUretimKayitlari({ baslangic, bitis }, selectedMakineIds(query)),
   );
@@ -937,6 +960,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
         baslangic: kayit.kayitTarihi.toISOString(),
         bitis: null,
         urunAd: kayit.urunAd,
+        urunBirim: kayit.urunBirim ?? 'adet',
         urunKod: kayit.urunKod,
         operasyonAdi: kayit.operasyonAdi,
         montaj: kayit.montaj,
@@ -989,7 +1013,7 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
   }
   const durusOzeti = Array.from(durusOzetiMap.values()).sort((a, b) => b.toplamDk - a.toplamDk);
 
-  return { tarih: tarihLabel, vardiyalar, makineler, kaliplar: kalipListesi, uretimKayitlari, durusDetaylari, durusOzeti, ozet };
+  return { tarih: tarihLabel, vardiyalar, makineler, kaliplar: kalipListesi, uretimKayitlari, durusDetaylari, durusOzeti, ozet, vardiyaTakvimi };
 }
 
 export type TrendGun = {
