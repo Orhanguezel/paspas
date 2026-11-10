@@ -95,6 +95,10 @@ log 'frontend root-domain artifact'
 )
 copy_standalone "$SRC/frontend" "$STAGE/frontend-root"
 
+# Depodaki plan, rapor ve ofis dosyalari Git'te tutulabilir; production
+# artifact'ina ise yalniz calisan uygulamalar girer.
+[[ ! -e "$STAGE/docs" ]] || die 'docs release artifactina dahil edilmemeli'
+
 cat >"$STAGE/RELEASE" <<EOF
 release_id=$RELEASE_ID
 commit=$COMMIT

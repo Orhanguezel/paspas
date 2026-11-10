@@ -1,0 +1,102 @@
+PROMATS İHRACAT MASASI — GELİŞTİRİCİYE DEVİR ÖZETİ
+
+Amaç
+
+Bu uygulamayı, ihracat müşteri araştırmasını ve satış takibini tek yerde yönetmek için ChatGPT ile birlikte geliştirdik.
+
+Başlangıç ihtiyacı; fuar kartvizitleri, Excel listeleri, e-posta, WhatsApp ve LinkedIn görüşmelerinde dağınık duran bilgileri birleştirmekti. Hedefimiz, her firma için şu sorulara hızlı cevap verebilmek:
+
+• Firma ne yapıyor, ne alıyor ve bize neden uygun?
+• Hangi ürünümüzle ilgilenebilir?
+• Doğru muhatap kim?
+• En son ne yaptık, ne sonuç aldık?
+• Bir sonraki adım ne ve ne zaman yapılacak?
+
+Genel bir kurumsal CRM yerine, günlük ihracat çalışmasına göre şekillenmiş, çalışan bir uygulama oluşturduk.
+
+İşleyiş ve veri modeli
+
+Ana kayıt firma kartıdır. Firma altında birden fazla yetkili, ürün fırsatı, gerçekleşmiş temas ve gelecek takip planı tutulur.
+
+Üç ana ürün grubumuz var:
+• PROMATS: oto paspas
+• MEFATECH: kar zinciri ve SMARTPALET
+• WOGEN: motosiklet topcase
+
+Bir firmanın paspasa uygun olması, zincire veya topcase’e de ilgili olduğu anlamına gelmez. Bu nedenle ürün bazında ilgi, fırsat durumu, mevcut tedarikçi, engel ve alım zamanlaması ayrı değerlendirilir.
+
+Firmaları yalnızca ülke ve büyüklüğe göre değil, satın alma biçimine göre de sınıflandırıyoruz: sahibi karar veren ithalatçı, satın alma ekibi bulunan distribütör, marka lisans sahibi, dijital platform, araç distribütörü gibi.
+
+Arayüz mantığı
+
+Firma listesi ve firma detay ekranları yanında günlük çalışma için “Görev & Takip” ekranı kullanılıyor.
+
+Bu ekranın temel ayrımı:
+• Sol taraf: Gerçekleşen temaslar ve sonuçlar.
+• Sağ taraf: Planlanan sonraki işler.
+
+Kiminle, hangi kanaldan, ne zaman ve ne amaçla görüşüldüğü görülebiliyor. “Sonuç işle” ve “Sonuç alınamadı” gibi işlemlerle takip döngüsü sürdürülüyor.
+
+Araştırma bilgileri firma kartına bağlanıyor. Aynı bilgiyi farklı ekranlara tekrar tekrar yazdırmak ve gereksiz menüler oluşturmak istemiyoruz.
+
+ChatGPT bağlantısı
+
+Uygulama yalnızca elle kullanılan bir ekran değil. ChatGPT, uygulamanın sunduğu MCP araçları üzerinden firma arayabiliyor, kartları okuyabiliyor, kayıt oluşturabiliyor ve güncelleyebiliyor.
+
+Örnek çalışma:
+1. Kullanıcı bir firmanın araştırılmasını istiyor.
+2. Önce mevcut kayıt kontrol ediliyor.
+3. Araştırma ve önceki temas bilgileri birlikte değerlendiriliyor.
+4. Değişiklikler için önizleme hazırlanıyor.
+5. Kullanıcının talimatıyla kalıcı kayda uygulanıyor.
+
+Dolayısıyla sohbetten ve arayüzden yapılan işlemlerin aynı veriye dayanması önemli.
+
+Teknik yapı
+
+İncelenen mevcut kaynak kopyasında React, TypeScript, Next.js/Vinext, Tailwind ve Cloudflare tabanlı çalışma yapısı bulunuyor. SQLite uyumlu veri erişiminde Drizzle kullanılıyor.
+
+Mevcut veritabanı şemasında:
+• crm_state: kullanıcıya ait CRM durumunu JSON gövdesi ve revision numarasıyla tutuyor.
+• crm_audit: işlem geçmişini tutuyor.
+• crm_proposals: hazırlanmış güncelleme önerilerini ve durumlarını tutuyor.
+
+Bu yapı, her iş nesnesinin ayrı ilişkisel tabloda tutulduğu klasik CRM şemasından farklı. İleride veri modeli değiştirilecekse mevcut kayıtlar, sabit firma referansları, kişi kimlikleri ve işlem geçmişi korunmalı.
+
+Revision kontrolüyle eski veriye dayanarak yeni değişikliklerin üzerine yazılması önleniyor. Güncelleme önizlemesi, uygulama ve geri alma mekanizmaları mevcut. Bunların korunmasını istiyoruz.
+
+Özellikle korumak istediğimiz kurallar
+
+• Araştırma bulgusu ile müşterinin doğrudan söylediği bilgi ayrılmalı.
+• Kaynak, tarih ve doğrulama durumu tutulmalı.
+• Ürün satıyor olmak, bizim ürünümüzü almak istediği şeklinde kaydedilmemeli.
+• Hazırlanmış mesaj, gönderilmiş temas olarak işaretlenmemeli.
+• Gönderilmiş mesaj, yanıt veya sipariş anlamına gelmemeli.
+• Gerçekleşen iş ile planlanan iş ayrılmalı.
+• Yeni araştırma eski görüşmeleri silmemeli.
+• Yetkililer ayrı kişi kayıtları olmalı; yalnızca serbest not içine gömülmemeli.
+• Takip sıklığı firmanın cevabına ve kullanıcının tercihine göre değişebilmeli.
+
+Şu anda özellikle yapmadıklarımız
+
+Otomatik toplu e-posta veya LinkedIn mesajı gönderen bir sistem kurmadık. Mesaj taslakları hazırlanıyor; gönderimi çoğunlukla kullanıcı yapıyor ve gerçekleştiğini bildiriyor.
+
+Uygulamanın bütün interneti kendiliğinden taradığı, LinkedIn davet kabullerini otomatik izlediği veya tüm posta kutusunu senkronize ettiği varsayılmamalı.
+
+E-posta entegrasyonu üzerinde çalışıldı ancak taslak hazırlama, doğru gönderen hesabını kullanma ve uygulama içinden gönderim akışı tamamlanmış kabul edilmemeli.
+
+Muhasebe, stok, üretim planlama ve teklif/proforma modülünü bu CRM’nin tamamlanmış özellikleri olarak değerlendirmiyoruz. Bunlar ayrı ihtiyaçlar ve entegrasyon başlıkları.
+
+Geliştirmeden beklentimiz
+
+Öncelikle mevcut iş akışını ve veri yapısını anlayıp çalışan sistemi koruyarak ilerlemek istiyoruz.
+
+Öncelikler:
+• Verinin güvenilir biçimde saklanması ve yedeklenmesi.
+• Yetki ve erişim yönetimi.
+• Kolay veri dışa aktarma ve taşıma.
+• E-posta taslak/gönderim akışının tamamlanması.
+• Planlanan tarihte, önceki görüşmeye uygun takip taslağının hazırlanması.
+• Sohbet bağlantısı ile arayüzün tutarlı çalışması.
+
+Amacımız ekran ve özellik sayısını artırmak değil; araştırmadan doğru muhataba, oradan somut sonraki adıma geçişi kolaylaştırmak.

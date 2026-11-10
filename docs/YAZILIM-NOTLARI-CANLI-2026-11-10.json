@@ -1,0 +1,258 @@
+{
+  "source": "https://panel.avrasyaotomotiv.net/admin/yazilim-gorevleri",
+  "database": "promats_erp",
+  "fetched_at_server": "2026-11-10T16:44:05+00:00",
+  "scope": "status NOT IN (resolved, closed)",
+  "counts": {
+    "total": 6,
+    "by_status": {
+      "in_review": 1,
+      "open": 5
+    },
+    "comments": 16
+  },
+  "threads": [
+    {
+      "id": "c8442d1a-77db-48bf-a207-0141c3a42872",
+      "status": "in_review",
+      "subject": "Sipariş satırları üretim devam ederken tamamlandı ve gerçek bitiş gösteriyor",
+      "priority": "high",
+      "page_path": "/admin/satis-siparisleri",
+      "created_at": "2026-11-05T14:06:11",
+      "page_title": null,
+      "source_app": "paspas",
+      "updated_at": "2026-11-05T17:54:13",
+      "created_by_name": "Hidayet Taşdöven",
+      "last_comment_at": "2026-11-05T17:54:13",
+      "comments": [
+        {
+          "id": "8b1acefd-bc8e-4dd6-9ccf-e377eaa232a2",
+          "body": "İlgili önceki görev: a9ba6680-c560-4657-a039-554d88369105 — Üretim emri detayında tamamlananlar dahil sağ-sol parçaların birlikte gösterilmesi.\\n\\nSorun: Kullanıcının gönderdiği ekranlarda AVR_STS202600093 ve AVR_STS202600094 (GÜLERYÜZ OTO) sipariş satırları satış siparişleri/Sipariş İşlemleri ekranında “Tamamlandı” ve “Gerçek bitiş” gösterirken makine iş yüklerinde ilgili üretimler çalışıyor veya sırada bekliyor.\\n\\nDoğrulanan kayıtlar:\\n- UE-2026-0192: 1118 104-L, 500 adet sol, durum uretimde; operasyon calisiyor; uretilenMiktar 0, gercekBitis null.\\n- UE-2026-0194: 1118 101-L, 600 adet sol, durum planlandi; operasyon bekliyor; uretilenMiktar 0, gercekBitis null.\\n- UE-2026-0196: 1118 101-L, 900 adet sol, durum planlandi; operasyon bekliyor; uretilenMiktar 0, gercekBitis null.\\n- AVR_STS202600093 genel durum ve uretimDurumu “uretimde”; iki sipariş satırında ise uretimDurumu “uretim_tamamlandi”, uretilenMiktar 0. Sipariş toplam 1100 takım; aktarilanMiktar 1100 ve kalanMiktar 0. Üretim planlanan toplamı 2200, üretim tamamlanan toplamı 450; bu parça toplamları doğrudan bitmiş takım sayısı olarak yorumlanmamalı.\\n- Ekranda ...093 satırlarında 05.11.2026 12:18, ...094 satırında 05.11.2026 12:17 “Gerçek bitiş” yazıyor.\\n\\nİstenen çalışma:\\n1. Önce bu iki siparişte hangi işlem/kayıt/hesaplamanın tamamlandı durumunu ve gerçek bitişi oluşturduğunu tespit edin. Tek sağ/sol parçanın bitmesinin bütüne yansıtılması veya üretime aktarılacak kalanın sıfır olmasının üretim tamamlanmasıyla karıştırılması olasılıkları araştırılsın; bunlar henüz doğrulanmış neden değildir.\\n2. Sipariş satırının tamamlanma kuralı gerekli tüm parça/operasyonların siparişi karşılayacak miktarda tamamlanmasına dayanmalı. Sağ-sol parça miktarları ürünün takım/birim ve reçete ilişkisine göre değerlendirilmelidir; parça toplamını doğrudan mamul takım miktarına eşitlemeyin. Kısmi üretim doğru miktar/durumla gösterilmeli. Üretime aktarımın bitmesi, üretimin bitmesi değildir.\\n3. Gerekli üretimler devam ederken “Tamamlandı” ve “Gerçek bitiş” gösterilmemeli. Gerçek bitiş gerekli üretimlerin fiili tamamlanmasına dayanmalı; tek parçanın bitişi veya planlanan tarih tüm mamulün gerçek bitişi sayılmamalı.\\n4. Genel sipariş durumu, sipariş satırları ve makine iş yüklerinin aynı üretim kayıtlarından tutarlı sonuç üretmesini sağlayın.\\n5. Önce örnek iki siparişte doğrulayın; ardından aynı hatadan etkilenen diğer kayıtları tarayın. Hatalı türetilmiş durum/bitiş bilgilerini gerçek kaynaklardan yeniden hesaplayın. Düzeltme için stokları, gerçek üretim miktarlarını veya üretim hareketlerini değiştirmeyin; tutarsız kaynak veri bulunursa ayrıca raporlayın.\\n\\nKabul kriterleri:\\n- Bir eş parça tamamlanmış, diğeri bekliyor/üretiliyorken sipariş satırı tamamlanmış görünmez.\\n- Tüm gerekli parçalar yeterli miktarda tamamlanınca satır tamamlanır ve doğru gerçek bitiş gösterilir.\\n- Sadece üretime aktarılmış ama üretilmemiş satır tamamlanmış sayılmaz.\\n- Kısmi üretim ve sağ-sol miktarları doğru birimlerle değerlendirilir.\\n- İki örnek sipariş ve etkilenen kayıtların düzeltmesinden sonra satış siparişleri ile iş yükleri ekranları tutarlıdır.",
+          "thread_id": "c8442d1a-77db-48bf-a207-0141c3a42872",
+          "created_at": "2026-11-05T14:06:11",
+          "attachments": [],
+          "message_type": "report",
+          "created_by_name": "Hidayet Taşdöven"
+        },
+        {
+          "id": "b471136e-0973-4eb3-92cb-9f2b7111dc94",
+          "body": "Aktif360 çözüm/inceleme: Kök neden, operatörün tek bir sağ üretim emri bittiğinde bağlı sipariş satırını doğrudan uretim_tamamlandi durumuna geçirmesiydi. bfc8585 sürümü satırı tüm bağlı aktif üretim emirleri, sağ/sol parça miktarları ve asıl mamul giriş hareketiyle yeniden hesaplıyor; gerçek bitişi yalnız yeterli mamul üretimi tamamlanınca gösteriyor. Canlı 093/094 siparişlerindeki üç hatalı satır kaynak üretim/stok miktarlarına dokunmadan yeniden hesaplandı: üçü de uretiliyor, siparişlerin genel durumu uretimde. Canlı Sipariş İşlemleri ekranında 500/600/900 takım satırları artık Tamamlandı veya Gerçek bitiş göstermiyor, üretilen mamul 0 takım ve planlanan bitiş ayrı. Kapatma düğmeleri devre dışı. Üretim emri detayında ilgili sağ/sol parça durumları birlikte görünüyor.\\nGeçmiş taramada aynı tamamlandı etiketiyle hedefin altında mamul giriş hareketi bulunan 17 eski satır daha saptandı. Bazıları kapanmış/sevk edilmiş siparişlerle ilişkili olabileceği için gerçek üretim/stok hareketlerini varsayımla değiştirmedim ve eski satırların durumunu topluca çevirmedim. Bu kayıtların kaynak/mahsup ilişkisi ayrıca doğrulanmalı; görev bu nedenle İncelemede kalıyor.",
+          "thread_id": "c8442d1a-77db-48bf-a207-0141c3a42872",
+          "created_at": "2026-11-05T17:38:17",
+          "attachments": [],
+          "message_type": "solution",
+          "created_by_name": "Aktif360"
+        },
+        {
+          "id": "308edceb-5814-414e-9e1a-1cf68433880e",
+          "body": "Aktif360 yeniden test (05.11.2026): Canlı veritabanında aktif 9 sipariş satırı tarandı; 093/094 örneklerinin 500, 600 ve 900 takımlık üç satırı hâlâ uretim_durumu=uretiliyor, mamul girişi 0, her satırda iki üretim emri ve bir bitmemiş eş parça var. Tamamlandı etiketi/gerçek bitiş bu aktif satırlara dönmemiş. Kayıtlı tamamlandı durumundaki 55 satırın 38’inde mamul girişi hedefe yeterli ve bağlı emirler bitmiş. Kalan 17 satırın (15 kapalı, 2 tamamlandı sipariş) mamul girişi hedefin altında; ör. SS-2026-0021 985/1000 girişe karşı 1000 sevk, SS-2026-0037 yeni 1100/3120 girişe karşı 3120 sevk. Bu geçmiş kaynak/mahsup tutarsızlıkları çözülmeden kabul ölçütündeki etkilenen tüm kayıtlar düzeltilmiş sayılamaz. Üretim, sevkiyat ve stok hareketleri değiştirilmedi; görev İncelemede tutuluyor. Yerel ilgili testler: backend 10 geçti/3 veritabanı entegrasyonu atlandı; panel 5 geçti.",
+          "thread_id": "c8442d1a-77db-48bf-a207-0141c3a42872",
+          "created_at": "2026-11-05T17:54:13",
+          "attachments": [],
+          "message_type": "comment",
+          "created_by_name": "Aktif360"
+        }
+      ]
+    },
+    {
+      "id": "ba460be8-a41a-4215-9066-6e6ab055ac44",
+      "status": "open",
+      "subject": "Mobil satın alma ekranı",
+      "priority": "normal",
+      "page_path": "/admin/satin-alma",
+      "created_at": "2026-11-04T13:34:28",
+      "page_title": "Promats Üretim ERP",
+      "source_app": "paspas",
+      "updated_at": "2026-11-10T15:12:05",
+      "created_by_name": "Hidayet Taşdöven",
+      "last_comment_at": "2026-11-10T15:12:05",
+      "comments": [
+        {
+          "id": "a8e68eaf-1753-4819-b872-5792bb6825d8",
+          "body": "Satın alma (daha doğrusu mal kabul) ekranının mobil versiyonuna ihtiyacımız var. Sevkiyat ve operatör ekranlarında mobil ekran gayet güzel. Benzer bir ekrana depoya mal kabulü yapacak kullanıcı için de ihtiyacımız var. Burada kullanıcı satın alma siparişi açık görünün malzemeler listesini görsün. Bu listede ürün, tedarikçi, sipariş miktarı, vb. bilgiler gözüksün. Hangi malzemeden kaç adet geldiğini girip okeyleyebilsin. Arada tekrar admin onayına gerek yok. Kabul emri oluştur, onayla, daha sonra kullanıcı mal kabul yapabilsin gibi bir ara katmana (onay sürecine) gerek yok. Kabul edilen ürünler stoklara girer, açık siparişten düşer.",
+          "thread_id": "ba460be8-a41a-4215-9066-6e6ab055ac44",
+          "created_at": "2026-11-04T13:34:28",
+          "attachments": [],
+          "message_type": "report",
+          "created_by_name": "Hidayet Taşdöven"
+        },
+        {
+          "id": "08047a20-9dfd-4bb5-88b6-2ad5d1646055",
+          "body": "04.11.2026 canlı kabul: 390 px mobil Mal Kabul ekranında açık sipariş kalemi ürün, tedarikçi, sipariş/kabul/kalan miktarlarıyla gösterildi. Geçici siparişten 3 kg ve ardından 2 kg doğrudan kabul edildi; stok 96→99→101, sipariş kısmen teslim→tamamlandı. Kalanı aşan 3 kg denemesi 409 ile reddedildi, stok değişmedi. Ara admin onayı gerekmedi. Geçici sipariş, stok hareketleri ve ürün silindi.",
+          "thread_id": "ba460be8-a41a-4215-9066-6e6ab055ac44",
+          "created_at": "2026-11-04T21:09:03",
+          "attachments": [],
+          "message_type": "solution",
+          "created_by_name": "Aktif360"
+        },
+        {
+          "id": "85abd025-0651-48d5-8ced-5f7d68b2fbb8",
+          "body": "05.11.2026 - Kullanıcıyla kesinleştirilen mobil tasarım ve geliştirme talebi:\\nMevcut görev kapatılmış olsa da operatör ve mal kabul yetkisi aynı anda olan kullanıcının gerçek mobil kullanımında satın alma tarafında yazılar/alanlar küçük, sol menü çalışma alanını kaplıyor. Mobil akış aşağıdaki şekilde düzenlenmeli.\\n\\n1. Giriş ve alan değiştirme: Her iki yetkiye sahip kullanıcı girişte büyük “Operatör” ve “Mal Kabul” butonlarından birini seçebilsin. Yalnız yetkili alanlar gösterilsin. Her iki alanda “Alan değiştir” ile çıkış yapmadan geçiş yapılabilsin. Operatör ekranının mevcut içeriği, tasarımı ve işleyişi aynen korunsun; yalnız geçiş erişimi eklensin.\\n\\n2. Mal Kabul listesi: Mobilde tam genişlikte çalışma alanı; sürekli açık sol menü ve yatay kaydırma olmasın. Küçük tablo yerine büyük puntolu, rahat dokunulabilir sipariş satırı kartları kullanılsın. Kartta malzeme adı, kodu, tedarikçi, sipariş numarası ve birimiyle kalan teslimat miktarı gösterilsin. Fiyat, tutar, KDV ve ödeme bilgileri gösterilmesin. Aynı malzemenin farklı sipariş satırları ayrı kartlarda bulunsun. Malzeme veya tedarikçi araması olsun. Sadece teslimatı açık/kalanı pozitif satırlar listelensin.\\n\\n3. Miktar girişi: Kart seçilince küçük modal yerine tam ekran teslim alma formu açılsın. Büyük malzeme adı, tedarikçi, sipariş numarası ve birimiyle kalan miktar gösterilsin. “Teslim alınan miktar” alanı başlangıçta boş olsun; dokunulduğunda sayısal klavye açılsın. Malzemenin birimine uygun ondalık giriş desteklensin. Altta büyük “Teslimatı Onayla” butonu bulunsun.\\n\\n4. Onay işlemi: Kullanıcının onayıyla ilgili malzeme stoklarına girilen miktar eklensin ve ilgili sipariş satırında teslim alınan miktar artsın, kalan miktar azalsın. İlk sipariş miktarı değiştirilmesin. Ek kabul emri/admin onayı katmanı eklenmesin. Örnek: Kalan 600 adet iken 200 adet kabul → stok +200, teslim alınan +200, kalan 400. Başarı mesajı “200 adet teslim alındı. Kalan: 400 adet.” şeklinde gösterilsin ve liste güncellensin. Kalan sıfırsa satır açık listeden kalksın.\\n\\n5. Veri güvenilirliği: Stok hareketi ile sipariş satırı güncellemesi tek işlem olarak birlikte tamamlanmalı. Çift dokunma, tekrar gönderim veya bağlantı sorunu aynı teslimatı iki kez oluşturmamalı. Boş/sıfır/negatif ve güncel kalanı aşan miktar reddedilmeli. Eşzamanlı kabullerde sunucuda güncel kalan doğrulanmalı. Kabul eden kullanıcı, tarih/saat ve ilgili sipariş satırı kaydedilmeli.\\n\\nKabul kriterleri: Operatör ekranı mevcut haliyle kullanılabilmeli; çift yetkili kullanıcı iki alan arasında kolayca geçebilmeli; telefonda yakınlaştırmadan okunabilmeli ve yatay kaydırma gerekmemeli; kısmi/tam teslimat stok ve sipariş kalanı üzerinde doğru sonuç vermeli; geçersiz veya mükerrer işlem stokları değiştirmemeli. Önceki çözüm testleri, çift yetkili kullanıcının mobil gezinme ve okunabilirlik ihtiyacını tek başına karşılamıyor.",
+          "thread_id": "ba460be8-a41a-4215-9066-6e6ab055ac44",
+          "created_at": "2026-11-05T12:49:06",
+          "attachments": [],
+          "message_type": "comment",
+          "created_by_name": "Hidayet Taşdöven"
+        },
+        {
+          "id": "60ac2920-d2fa-4f0b-98ca-0b280e658898",
+          "body": "05.11.2026: Yeni mobil talep uygulandı. Çift yetkili kullanıcı telefonda Operatör/Mal Kabul alanını seçiyor ve Alan değiştir ile geçiyor. Operatör ekranının işleyişi korundu. Mal Kabul, /admin/satin-alma ve /admin/mal-kabul mobil yollarında menüsüz büyük kartlar ve tam ekran miktar formu ile çalışıyor; fiyat/ödeme gösterilmiyor. Kabul tek veritabanı işleminde stok, hareket ve sipariş kalanını güncelliyor. Tekrarlı istek aynı kayıt anahtarını döndürüyor. Canlı 390 px test: 600 adetlik TEST siparişinde 200+300+100 kabul, stok 96→696, kalan 400→100→0; mükerrer işlem ek stok yazmadı, eşzamanlı fazla kabul 409, boş/sıfır/negatif/aşan/kesirli adet reddedildi. Test hesabı, ürün, sipariş ve hareketler silindi. Sürüm 562348b.",
+          "thread_id": "ba460be8-a41a-4215-9066-6e6ab055ac44",
+          "created_at": "2026-11-05T13:15:06",
+          "attachments": [],
+          "message_type": "solution",
+          "created_by_name": "Aktif360"
+        },
+        {
+          "id": "038e2b72-a638-43b7-b438-afcad918a271",
+          "body": "10.11.2026 — Fazla teslimat kuralı güncellemesi. Kartela, etiket ve diğer ambalajlarda fiilî teslimat sipariş miktarını aşabiliyor. Örnek: Carub Ultimate Star Kartela (2901 036), sipariş/kalan 3.000 adet, gelen 3.090 adet. Şu anda “Kalan miktardan fazla” uyarısından sonra kayıt gelen_miktar_kalan_miktari_asiyor hatasıyla engelleniyor. Hem Kabul Emri ekranında hem mobil Mal Kabul akışında bu kontrol engel yerine açık bir uyarı olsun: “Kalan 3.000 adet. 90 adet fazla teslimat kaydedilecek.” Kullanıcı fazla miktarı görüp onayladığında işlem tamamlanabilsin. Sunucu da onaylanan fazla kabulü desteklesin. Örnekte stok girişi ve kabul toplamı 3.090 adet, sipariş miktarı 3.000 adet, kalan 0, fazla kabul 90 adet olarak izlenmeli. Kayıt ve stok girişi birlikte tamamlanmalı ve tekrar gönderim çift stok girişi oluşturmamalı. Bu talep önceki mobil nottaki “kalanı aşan miktar reddedilmeli” kuralının yerini alır. Sıfır ve negatif miktar kontrolleri geçerlidir.",
+          "thread_id": "ba460be8-a41a-4215-9066-6e6ab055ac44",
+          "created_at": "2026-11-10T15:12:05",
+          "attachments": [],
+          "message_type": "comment",
+          "created_by_name": "Hidayet Taşdöven"
+        }
+      ]
+    },
+    {
+      "id": "933c13ca-fd2a-4039-851b-ab726ff67512",
+      "status": "open",
+      "subject": "Enjeksiyon 2 için çalışma takvimi ve bitiş hesabı testi",
+      "priority": "normal",
+      "page_path": "/admin/makineler",
+      "created_at": "2026-11-08T19:22:48",
+      "page_title": null,
+      "source_app": "paspas",
+      "updated_at": "2026-11-08T19:22:48",
+      "created_by_name": "Hidayet Taşdöven",
+      "last_comment_at": "2026-11-08T19:22:48",
+      "comments": [
+        {
+          "id": "60045546-c0d1-4c52-b758-572462be1391",
+          "body": "Enjeksiyon 2 (900 T ARKA) hafta içi 07:30–19:30 çalışıyor. Operatör işi 19:30’da duraklatıp sonraki çalışma günü 07:30’da yeniden başlatıyor. Makine ERP’de “24 Saat Çalışır” olarak tanımlı. Planlanan bitiş hesabı gece saatlerini kullanılabilir üretim süresi olarak sayıyor olabilir.\\n\\nÖnce test ortamında ve yalnız Enjeksiyon 2 için makineye özel bir kural deneyin. Kural açıkken kalan iş yalnız hafta içi 07:30–19:30 aralığına yerleştirilsin. İlk aşamayı planlanan başlangıç, bitiş ve bunlara bağlı iş kuyruğu tarihleriyle sınırlayın.\\n\\n1. Aynı tarih, iş kuyruğu ve üretim verileriyle Enjeksiyon 2’nin ve iki vardiyalı makinenin mevcut planlanan başlangıç ve bitişlerini kaydedin. Kuralı yalnız Enjeksiyon 2’de açıp aynı girdilerle yeniden hesaplayın.\\n2. Cuma 18:30’da üç saatlik iş kaldığında bir saat cumaya, iki saat sonraki çalışma günü pazartesiye yerleşmeli ve bitiş 09:30 olmalı. Sonraki işin başlangıcı bu bitişi esas almalı. Gantt ve Makine İş Yükleri aynı saatleri göstermeli.\\n3. UE-2026-0190 için ERP’de görülen 9 Kasım bitişi ile saha hesabındaki 26 Kasım tahmini arasındaki farkı inceleyin. Hesap başlangıcını, kalan miktarı, baskı–takım dönüşümünü ve kullanılan üretim hızını ayrı ayrı gösterin. Takvim ile miktar/hız etkisini ayırın.\\n4. İki vardiyalı makinenin planının aynı girdilerle aynı sonucu verdiğini doğrulayın. Operatörün başlatma, duraklatma ve yeniden başlatma adımlarını sınayın. Üretim miktarları, stok hareketleri ve geçmiş vardiya raporlarının önceki davranışla uyumunu kontrol edin.\\n\\nGeri dönüşü canlıya geçmeden sınayın. Kural Enjeksiyon 2’ye özel açılıp kapatılabilsin, başlangıçta kapalı gelsin. Önceki makine ayarını kaydedin. Kural kapatıldığında açık işleri o andaki güncel üretim miktarları üzerinden önceki kuralla yeniden hesaplayın. Aynı girdilerle ilk plan sonucuna dönüldüğünü ve arada girilen üretim ve stok kayıtlarının korunduğunu doğrulayın.\\n\\nTest sonuçlarını ve geri dönüş adımlarını paylaşın. Sonuçlar değerlendirildikten sonra ilk uygulama yalnız Enjeksiyon 2’de yapılabilir. İlgili vardiya görevi: 66e2de9f-cf56-4b0f-b8d8-a1b48ed70d2e.",
+          "thread_id": "933c13ca-fd2a-4039-851b-ab726ff67512",
+          "created_at": "2026-11-08T19:22:48",
+          "attachments": [],
+          "message_type": "report",
+          "created_by_name": "Hidayet Taşdöven"
+        }
+      ]
+    },
+    {
+      "id": "5fbc5e45-577f-47fe-bf67-2d9aa3ee9250",
+      "status": "open",
+      "subject": "Gantt Planının sadeleştirilmesi ve altta sabit detay alanı",
+      "priority": "normal",
+      "page_path": "/admin/gantt",
+      "created_at": "2026-11-06T12:02:19",
+      "page_title": null,
+      "source_app": "paspas",
+      "updated_at": "2026-11-06T12:02:19",
+      "created_by_name": "Hidayet Taşdöven",
+      "last_comment_at": "2026-11-06T12:02:19",
+      "comments": [
+        {
+          "id": "2cc1d06a-5399-42d5-8f11-3e4a04f623f8",
+          "body": "Kullanıcıyla mevcut günlük/3 günlük/haftalık Gantt ekranları değerlendirildi; renkler, taramalar, kesilen isimler ve zaman ölçeği anlaşılır bulunmadı. Hazırlanan sade etkileşimli demo kullanıcı tarafından beğenildi. Mevcut Gantt ekranı aşağıdaki tasarıma mümkün olduğunca sadık kalınarak düzenlensin. pagePath mevcut Gantt rotasıyla doğrulanmalı.\\n\\nYerleşim:\\n- Solda makine grupları, her makinenin altında her üretim işi için ayrı satır; sağda ortak zaman eksenine hizalı çubuklar.\\n- Sol satırda okunabilir ürün/parça adı, üretim emri numarası ve hedef miktar/birim yer alsın. Dar çubuk nedeniyle işin kimliği kaybolmasın.\\n- Üstte sade 1 gün / 3 gün / 1 hafta seçenekleri; varsayılan 3 gün. Seçilen tarih aralığı açıkça gösterilsin. Seçilen süre kullanılabilir çizelge genişliğine yayılsın; mevcut ekrandaki büyük boş sağ alan giderilsin.\\n- 1 günlük görünümde okunabilir saatler, 3 günlükte gün ve uygun saat/varsa vardiya sınırları, haftalıkta günler gösterilsin. İşlerin konumu/süresi gerçek zaman ölçeğiyle doğru hizalansın; okunabilirlik için çubuk süresi yanıltıcı büyütülmesin. Ekran dışına taşan işler devam işaretiyle belirtilebilir.\\n\\nDurumlar:\\n- Tamamlandı hafif yeşil, Çalışıyor mavi, Sırada açık gri; renk açıklaması sürekli görünür ve durum yazıyla da belirtilir.\\n- Şimdiki zamanı gösteren ince çizgi “Şimdi: tarih/saat” açıklamasıyla aynı eksene hizalı olsun.\\n- Çalışma dışı zaman gerekiyorsa hafif tarama ve açık anlamla gösterilsin; hazırlık/kalıp değişimi ayrı gerçek kayıt/plan unsuruyla belirtilsin. Anlamı belirsiz simge, koyu-açık dolgu veya tarama bırakılmasın.\\n- Geçen zaman, miktar ilerlemesi ve işin tamamlanması birbirine karıştırılmasın. Renk gerçek iş durumuna dayansın.\\n\\nSabit detay alanı — kullanıcı özellikle tooltip/hint/açılır mesaj kutusu istemiyor:\\n- Çizelgenin hemen altında, Üretim Özeti ekranındaki mantıkla geniş ve sade sabit bir detay alanı bulunsun.\\n- İş çubuğunun üzerine gelince veya klavyeyle odaklanınca detay burada gösterilsin. Tıklayınca seçim sabitlensin; fare uzaklaşınca bilgi kaybolmasın. Başka işe tıklamak seçimi değiştirsin; seçili işe tekrar tıklamak sabitlemeyi kaldırabilir. Sabit seçim varken sıradan hover seçimi değiştirmesin.\\n- Mobilde dokunarak seçim yapılsın. Seçili çubuk hafif, belirgin çerçeveyle vurgulansın.\\n- Detay: ürün/parça tam adı ve kodu, üretim emri numarası, makine, müşteri/varsa stok üretimi, güncel durum; hedef, üretilen ve kalan miktarlar kendi birimleriyle; planlanan başlangıç/bitiş ve gerçek başlangıç/bitiş açıkça ayrı gösterilsin.\\n- Sıradaki işte “Henüz başlamadı”; çalışan işte gerçek başlangıç, varsa tahmini bitiş ve “Gerçek bitiş henüz yok”; tamamlananda gerçek başlangıç ve bitiş gösterilsin. Eksik gerçek tarih planlanan tarihle doldurulmasın.\\n- Hazırlık veya çalışma dışı alan seçildiğinde aynı aşağıdaki alanda “Kalıp değişimi · 30 dakika” veya “Çalışma dışı · Gece vardiyası yok” gibi, yalnız ilgili gerçek takvim/veriye dayanan açıklama gösterilsin.\\n- Ürün görseli, verimlilik ve gereksiz göstergeler eklenmesin. Kullanıcı bir bakışta “Şimdi ne çalışıyor, sonra ne çalışacak, ne zaman bitecek?” sorularını yanıtlayabilsin.\\n\\nVeri ve kapsam:\\n- Demo iş adları/miktarları/saatleri yerleşim örneğidir; canlı gerçekler olarak kopyalanmasın.\\n- Bu talep arayüz düzenlemesidir; üretim, stok, kuyruk sırası veya plan kayıtları kendiliğinden değiştirilmesin. Planlama takvimiyle ilgili ayrı vardiya görevi 66e2de9f-cf56-4b0f-b8d8-a1b48ed70d2e ile tutarlı çalışılsın; makine takvimi gerçekte gece çalışıyorsa aksi varsayılmasın.\\n- Mevcut gerekli tarih gezinme/filtre işlevleri erişilebilir kalsın, sade görünümü kalabalıklaştırmadan düzenlensin.\\n- Üretim Özeti görevindeki (96ec2bb0-19b5-4bfb-b717-e43a7ca4fb01) görsel dil ve aşağıda detay yaklaşımıyla tutarlı olsun.\\n\\nKabul: 1 gün/3 gün/hafta ölçekleri doğru ve okunabilir; makine altındaki işler ayrı satırlarda tanınabilir; durum renkleri açıklamalı; fare, klavye ve dokunma ile alttaki detay güncellenir ve tıklamayla sabitlenir; tooltip/hint yok; planlanan/gerçek zaman ve miktarlar doğru ayrılır; mobilde kontrollü çizelge kaydırması ve okunabilir alt detay sağlanır.",
+          "thread_id": "5fbc5e45-577f-47fe-bf67-2d9aa3ee9250",
+          "created_at": "2026-11-06T12:02:19",
+          "attachments": [],
+          "message_type": "report",
+          "created_by_name": "Hidayet Taşdöven"
+        }
+      ]
+    },
+    {
+      "id": "96ec2bb0-19b5-4bfb-b717-e43a7ca4fb01",
+      "status": "open",
+      "subject": "Yeni Üretim Özeti ekranı ve Vardiya Analizinin ikinci sekmeye taşınması",
+      "priority": "normal",
+      "page_path": "/admin/dashboard",
+      "created_at": "2026-11-06T09:39:00",
+      "page_title": null,
+      "source_app": "paspas",
+      "updated_at": "2026-11-06T09:39:00",
+      "created_by_name": "Hidayet Taşdöven",
+      "last_comment_at": "2026-11-06T09:39:00",
+      "comments": [
+        {
+          "id": "0883d37f-f11b-4c49-8b47-38d020282fd1",
+          "body": "Amaç: Küçük işletmede yöneticinin son birkaç gün/bir haftadaki gerçekleşen üretimleri tek bakışta okuyabilmesi. Kullanıcıyla değerlendirilen görsel demo beğenildi; uygulama mümkün olduğunca bu yerleşime sadık kalmalı. Bu talep yeni Üretim Özeti ekranı ve menü düzenlemesidir. /admin/dashboard mevcut bağlamdır; yeni ekran için uygun ayrı rota tanımlanmalı.\\n\\n1. Menü ve sekmeler\\n- Ana menüde “Üretim Özeti” yer alsın.\\n- Bu ekranın ilk ve varsayılan sekmesi “Gerçekleşen Üretim”, ikinci sekmesi “Vardiya Analizi” olsun.\\n- Ana menüdeki ayrı “Vardiya Analizi” öğesi kaldırılsın; mevcut vardiya analizi işlevleri ikinci sekmeden erişilebilir olsun.\\n- Mevcut yetkiler korunmalı; sekme/menü taşıması yetkisiz erişim açmamalı. Eski vardiya analizi bağlantısı uygun ikinci sekmeye yönlendirilebilir.\\n- Bu talepte mevcut Dashboard üretim bileşenini ayrıca kaldırma veya değiştirme kararı yok.\\n\\n2. Onaylanan demo yerleşimi\\n- Üstte “Üretim Özeti” başlığı; altında sekmeler ve sade tarih seçimi: Son 3 gün / Son 7 gün / Tarih seç. Varsayılan Son 7 gün; kullanıcının son seçimi hatırlansın.\\n- Ana içerik: solda makineler, üstte tarihler ve her tarihin altında Gündüz / Gece sütunları olan matris.\\n- Makineler örneğin 900 T — ÖN, 900 T — ARKA, Ekstrüzyon — PVC.\\n- Tarih başlığı iki vardiya sütununu birleştirsin.\\n- Hücrede büyük okunabilir gerçekleşen toplam miktar, birim, ürün sayısı ve vardiya durumu bulunsun. Örnek: “520 adet / 2 ürün · Sürüyor”.\\n- Ana tabloyu ürün adları/duruş/verimlilik ayrıntılarıyla kalabalıklaştırmayın. Ürün görseli ve verimlilik bu aşamada hiç gösterilmesin.\\n- Makinenin verisi farklı birimler içeriyorsa körlemesine tek toplam yapılmasın; birimler ayrı gösterilsin. Parça adedi mamul takım sayısı gibi sunulmasın.\\n- Demo örnek miktar ve ürünleri yalnız yerleşim örneğidir; canlıda gerçek kayıtlardan beslenmeli.\\n\\n3. Hafif renkler ve durum anlamı\\n- Bitti: açık yeşil; Sürüyor: açık mavi; Başlamadı: açık gri.\\n- Vardiya yok: nötr/beyaz ve “— / Vardiya yok”.\\n- Rengin yanında mutlaka durum yazısı olsun.\\n- “Bitti”, vardiyanın sona erdiğini anlatır; ürünün/siparişin tamamlandığı anlamına gelmez.\\n- Süresi geçmiş ama kayıt olmayan vardiya “Kayıt girilmedi” şeklinde ayırt edilmeli. Gerçek sıfır üretim kaydı varsa 0 gösterilmeli; boşluk/sıfır/başlamadı/vardiya yok birbirine karışmamalı.\\n\\n4. Seçimler ve aşağıdaki ortak detay bölümü\\n- Bir makine-vardiya hücresi seçilirse yalnız o makinenin o vardiyadaki tüm üretimleri listelensin.\\n- Tarih başlığı (ör. 5 Kasım) seçilirse o iş gününün tüm makinelerdeki gündüz ve gece üretimleri listelensin.\\n- Tarihin altındaki Gündüz başlığı seçilirse o gün gündüz vardiyasının tüm makinelerdeki üretimleri listelensin; Gece için aynı kural geçerli.\\n- Seçilen başlık/hücre hafif ama belirgin çerçeve veya seçim vurgusuyla gösterilsin; klavye/dokunma ile kullanılabilsin.\\n- Alt bölüm başlığı seçime göre açık kapsam içersin: “5 Kasım 2026 · Tüm vardiyalar · Tüm makineler” veya “900 T — ÖN · 6 Kasım · Gündüz 07:30–19:30”.\\n- Birden fazla makine seçilmişse detaylar makine başlıkları altında gruplanmalı. Gün seçilmişse satırlarda Gündüz/Gece ayrımı açık olmalı.\\n- Her ürün/parça ayrı görselsiz satır/kart: tam adı, kodu, gerçekleşen miktar ve birim. Aynı makine-vardiyada aynı ürüne yapılan birden fazla üretim girişi toplanabilir; “Kayıtları gör” ile giriş saatleri ve miktarlar açılmalı. Kaynak kayıtlar korunmalı.\\n- Aynı vardiyada birden fazla ürün varsa hepsi bu bölümde listelensin.\\n- Duruş süresi/nedeni ilgili seviyede gösterilmeli. Sadece makine-vardiya düzeyinde kayıtlı duruş ürüne tahminen dağıtılmamalı; grup üstünde “Vardiya toplam duruşu: 1 saat — Makine arızası” gibi gösterilmeli. Ürüne bağlı gerçek duruş kaydı varsa ürün düzeyinde gösterilebilir.\\n- Veri olmayan seçimde sebebi açık boş durum gösterilmeli.\\n- Bu seçimler salt görüntüleme/filtreleme işlemleridir; üretim kayıtlarını değiştirmez.\\n\\n5. Tarih ve veri tutarlılığı\\n- “5 Kasım Gece”, 5 Kasım 19:30'da başlayan ve 6 Kasım 07:30'da biten vardiyayı ifade etsin. Gün seçimi bu iş gününe ait gündüz ve gece vardiyalarını kapsasın; gece yarısında iki güne bölünmesin.\\n- Saatler sabit kodlanmasın; ilgili tarih için geçerli vardiya tanımı kullanılsın. Saat dilimi Europe/Istanbul.\\n- İlgili görev: 66e2de9f-cf56-4b0f-b8d8-a1b48ed70d2e. Vardiya geçerlilik tarihleri/tarihçesi esas alınmalı; güncel vardiya ayarı geçmiş üretimi yeniden etiketlememeli. Geçiş öncesi gece vardiyası yoksa matriste “Vardiya yok” görünmeli.\\n- Matris, alt detay ve ikinci sekmedeki analiz aynı gerçek üretim/duruş ve tarihsel vardiya kayıtlarıyla tutarlı olmalı. Yeni ekran hatalı tarih/etiket mantığını kopyalamamalı.\\n\\nKabul: Ana menüden Üretim Özeti açılır; ilk sekmede okunabilir matris ve seçime bağlı detay bulunur; gün, vardiya ve tek hücre seçimleri doğru kapsamı getirir. Ürün görseli/verimlilik yoktur. İkinci sekmede mevcut Vardiya Analizi çalışır; ana menüde mükerrer Vardiya Analizi öğesi yoktur. Renkler hafif, miktarlar belirgin, durumlar açık; dar ekranda tablo kontrollü kaydırılır, detaylar okunabilir biçimde alt alta yerleşir.",
+          "thread_id": "96ec2bb0-19b5-4bfb-b717-e43a7ca4fb01",
+          "created_at": "2026-11-06T09:39:00",
+          "attachments": [],
+          "message_type": "report",
+          "created_by_name": "Hidayet Taşdöven"
+        }
+      ]
+    },
+    {
+      "id": "66e2de9f-cf56-4b0f-b8d8-a1b48ed70d2e",
+      "status": "open",
+      "subject": "Vardiya analizi ekranı",
+      "priority": "normal",
+      "page_path": "/admin/vardiya-analizi",
+      "created_at": "2026-10-29T08:38:33",
+      "page_title": "Promats Üretim ERP",
+      "source_app": "paspas",
+      "updated_at": "2026-11-06T08:47:14",
+      "created_by_name": "Hidayet Taşdöven",
+      "last_comment_at": "2026-11-06T08:47:14",
+      "comments": [
+        {
+          "id": "243d8169-7be2-4ceb-a4ee-1353053d861d",
+          "body": "Bu ekranda sadeleştirme yapalım ve ilk bakışta okunabilirliğini artıralım:\\n\\n1. Birinci dikdörtgen içindeki seçenekler (Vardiya Bazlı, Mkine Bazlı, Kalıp Bazlı, Trend) açılır kutu içinde gelsin. Vardiya bazlı default olarak gelsin.  \\n\\n2. İkinci dikdörtgen içindeki seçenekler de aynı şekilde açılır kutu içinde gelsin. \\n\\nYalnız burada seçeneklerde değişikliğe gidelim. Vardiya çifti seçeneği doğru veriler üretmiyor. Bu seçeneği tamamen kaldıralım. Gün yerine bugün seçeneği koyabiliriz. Dün ayrı bir seçenek olsun. 3 gün ekleyelim. \\nYeni seçenekler: Bugün, Dün, 3 gün, 7 gün, 30 gün\\n\\nDün default olarak gelsin.\\n\\n3. Üçüncü dikdörtgen içindeki seçenekler de (Ekstrüzyon Hattı 1, 900 T Arka ve 900 T Ön) aynı şekilde açılır kutu içinde gelsin.\\n\\n4. Net üretim ve Fire ayrı kutulardaydı bunları şekildeki gibi tek kutuda birleştirelim. Duruş sayısı ve duruş süresi de şekildeki gibi tek kutu da olsun. \\n\\n5. Makine satırının karşısındaki kutularda da benzer mantıkla azaltmaya gidelim. Verim Net ve Verim Vardiya ikisi farklı mı? Biri kaldırılabilir mi?\\n\\n6. Yukarıdaki maddede Makine için kullandığımız kutuları aynı sayıda ve aynı sırada Vardiyaların karşısında kullanalım. Örneğin bir bakışta makine üretim sayısı ve vardiya üretim sayısı görülebilsin. \\n\\n7. Ekran görüntüsünde çalışma süresi 12 saat olarak görünüyor. Bu bilgi nereden geliyor? Şu an sistemde sadece gündüz vardiyası aktif, buna bağlı olarak mı geliyor?",
+          "thread_id": "66e2de9f-cf56-4b0f-b8d8-a1b48ed70d2e",
+          "created_at": "2026-10-29T08:38:33",
+          "attachments": [
+            {
+              "url": "/uploads/admin/vardiya-analizi/Vardiya_Analizi.png",
+              "mime": "image/png",
+              "name": "Vardiya_Analizi.png",
+              "size": 92104,
+              "assetId": "b46fb81c-bf37-45d0-b420-5f31515facb5"
+            }
+          ],
+          "message_type": "report",
+          "created_by_name": "Hidayet Taşdöven"
+        },
+        {
+          "id": "1711b04d-6a89-44fd-937c-91428ad0ade2",
+          "body": "Canlı c2ad0e6 sürümünde Vardiya Analizi sadeleştirildi: görünüm ve tarih seçimleri açılır liste, varsayılan Dün; Vardiya Çifti kaldırıldı; makine seçimi açılır çoklu filtre oldu. Üstte net/fire ve duruş sayısı/süresi birleşti. Makine ile vardiya satırları aynı 5 metriği aynı sırayla gösteriyor; verimlilikte vardiya süresi esas alındı. Çalışma süresi hesabının kaynağı ekranda açıklandı. 27.10.2026 canlı vardiya kaydı 07.30-19.30 gündüz (720 dk); 12 saat buradan geliyor. Canlı /admin/vardiya-analizi tarayıcı kontrolünde varsayılan Dün, filtreler, metrikler ve 390 px mobil genişlik doğrulandı; konsol hatası yok.",
+          "thread_id": "66e2de9f-cf56-4b0f-b8d8-a1b48ed70d2e",
+          "created_at": "2026-10-29T18:24:31",
+          "attachments": [],
+          "message_type": "solution",
+          "created_by_name": "Orhan Güzel"
+        },
+        {
+          "id": "982aa633-a225-4f72-a05e-b7e2d7008d35",
+          "body": "Aktif vardiya ayarının sistemdeki gerçek etkilerini netleştirmek istiyoruz. Kullanıcının belirttiği mevcut düzen: yalnız gündüz 07:30–19:30 aktif, gece vardiyası yok. Önce güncel vardiya tanımlarını ve geçerlilik kapsamını doğrulayın. Önceki çözüm notunda 27.10.2026 kaydının 720 dakika olduğu ve analiz/verimlilikte vardiya süresinin esas alındığı belirtilmişti; bu bilgi güncel tüm modüllerin davranışını açıklamıyor.\\n\\nLütfen aşağıdaki her başlık için ayrı ayrı “aktif vardiya ayarını kullanıyor / kullanmıyor”, mevcut kural, veri kaynağı ve kısa doğrulama örneği paylaşın:\\n1. Operatör üretim girişi: Pasif gece vardiyası seçilebilir mi, bu vardiyaya yeni üretim kaydedilebilir mi? Giriş yapılan saat ile kaydın ait olduğu vardiya ayrı değerlendiriliyor mu? Örneğin 20:00'de gündüz vardiyasına geriye dönük kayıt yapılabilir mi; hangi yetki/tarih kısıtları var?\\n2. Makine kapasitesi: Kapasite aktif vardiya saatlerinden mi hesaplanıyor? Mola, çalışma günleri, hafta sonu ve makine bazında farklı takvimler nasıl ele alınıyor?\\n3. Makine iş yükü ve üretim planlaması: İşlerin başlangıç/bitiş hesabı aktif vardiya takvimine mi, kesintisiz 24 saat hesabına mı dayanıyor? 19:30'da yetişmeyen iş sonraki çalışma gününün 07:30'una taşınıyor mu?\\n4. Tahmini bitiş, sipariş termin riski ve sonraki işlerin kuyruğu: Vardiya değişiklikleri bunları yeniden hesaplatıyor mu; hangi durumda ve ne zaman?\\n5. Vardiya analizi/verimlilik: Payda ve çalışma süresi hangi vardiya kaydından geliyor? Pasif vardiya raporda nasıl gösteriliyor?\\n6. Geçmiş kayıtlar: Vardiyayı pasife almak veya saatlerini değiştirmek eski üretimlerin süre/verimlilik hesaplarını değiştiriyor mu? Tarihsel vardiya bilgisi korunuyor mu?\\n7. Vardiya bitişi üretim emrini/operasyonu otomatik durduruyor veya durumunu değiştiriyor mu; stok ve üretim miktarı üzerinde otomatik bir etkisi var mı?\\n\\nSomut inceleme örneği: Kullanıcının 05.11.2026 makine iş yükleri görüntüsünde UE-2026-0194 için 05/11 17:52–23:52, ardından UE-2026-0196 için 05/11 23:52–06/11 08:53 planı görünüyor. Yalnız 07:30–19:30 aktif olduğu belirtilirken gece saatlerine plan düşmesinin nedeni nedir? Takvim, saat dilimi, farklı makine vardiyası veya başka bir kural söz konusuysa açıklayın. Geceyi çalışma süresi saydığı henüz doğrulanmış değildir.\\n\\nAmaç mevcut davranışın belgelenmesi ve eksik bağlantıların belirlenmesidir. Bu soru kapsamında canlı vardiya ayarlarını, üretim/stok kayıtlarını veya planları değiştirmeyin. Test gerekiyorsa canlı veriyi etkilemeyen ortamda yapın. Yanıtı bu görevde, başlıklar bazında doğrulama sonucu ve gerekiyorsa ayrı geliştirme önerileriyle paylaşın.",
+          "thread_id": "66e2de9f-cf56-4b0f-b8d8-a1b48ed70d2e",
+          "created_at": "2026-11-05T14:42:38",
+          "attachments": [],
+          "message_type": "question",
+          "created_by_name": "Hidayet Taşdöven"
+        },
+        {
+          "id": "c1071731-5af2-43ff-9b28-23220b65fd50",
+          "body": "Aktif360 inceleme sonucu (05.11.2026, canlı veri ve kod):\\n1. Operatör girişi: Aktif vardiya tanımları otomatik vardiya açılışında ve sanal vardiya seçiminde kullanılıyor. Pasif tanım yeni sanal vardiya olarak seçilemiyor. Giriş zamanı ile bağlanan vardiya kaydı ayrıdır; mevcut gerçek vardiya ID'si API'ye verilirse geçmiş gündüz kaydına giriş bağlanabilir. Arayüzün seçenekleri aktif pencere ve önceki iki günle sınırlı; 20:00'de aynı gün bitmiş gündüz vardiyasını göstermesi garanti değil. İşlem admin.operator yetkisi gerektirir; sanal geçmiş vardiya en fazla 7 gün eski olabilir.\\n2. Makine kapasitesi: Aktif vardiya saatlerini kullanmıyor. makineler.calisir_24_saat=1 için 24 saat, diğerleri için 8 saat/gün; tatil ve makine bazlı hafta sonu planı uygulanıyor, duruş saati net kapasiteden düşülüyor. Vardiya molaları kapasite hesabına bağlanmamış.\\n3. İş yükü/plan: Aktif vardiya saatlerini kullanmıyor. Merkezi planlayıcı 24 saatlik makinelerde çalışma gününü 00:00-24:00, diğerlerinde 08:00-17:00 kabul ediyor; tatil/hafta sonu planını uyguluyor. 19:30'da bitmeyen iş 24 saatlik makinede devam eder, diğer makinede sonraki çalışma gününün 08:00'ine taşınır; 07:30'a değil.\\n4. Tahmini bitiş/termin/kuyruk: Planlanan başlangıç ve bitiş kuyruk değişikliği ile tatil/hafta sonu planı değişince yeniden hesaplanıyor. Vardiya tanımını açıp kapatma planlayıcıyı çağırmıyor; bu yüzden aktif vardiya değişimi tek başına termin riskini/kuyruğu güncellemez.\\n5. Analiz/verimlilik: Gerçek vardiya kaydı ile operatör üretim/duruş kayıtları kaynak. Payda rapor penceresine kırpılmış vardiya süresi; net çalışma süresinde duruşlar düşülüyor. Aktif vardiya tanımları kayıtların slot eşlemesinde de kullanılıyor. Pasif vardiya tanımı otomatik yeni slot üretmiyor; geçmiş gerçek kayıtların görünümü mevcut tanımla yeniden eşlenebildiğinden tarihsel rapor sabit değil.\\n6. Geçmiş: Üretim miktarı, stok hareketi ve gerçek vardiya kaydının başlangıç/bitişi tanım değişince otomatik yazılmıyor. Ancak analiz, gerçek vardiya başlangıcını mevcut aktif tanımlarla tekrar slota atadığı için geçmiş rapordaki gün/vardiya ve hesap paydası değişebilir. Tarihsel vardiya tanımı sürümlenmiyor.\\n7. Vardiya bitişi: Süresi dolan açık vardiya kaydı kapanıyor; üretim emri/operasyon otomatik durmuyor veya durum değiştirmiyor. Otomatik kapanış stok ve üretilen miktar yazmıyor. Operatörün ayrıca yaptığı vardiya sonu üretim girişi kendi miktarını kaydedebilir.\\nSomut canlı örnek: Şu anda gündüz 07:30-19:30 ve gece 19:30-07:30 tanımlarının ikisi de aktif; 24 saat tanımı pasif. UE-2026-0194 ile UE-2026-0196'nın atandığı 900 T (ÖN) makinesinde calisir_24_saat=1. Bu nedenle 05/11 akşamından 06/11 sabahına uzanan kuyruk 24 saat makine kuralından geliyor; vardiya tanımının geceyi planladığı anlamına gelmiyor. 27.10.2026 gerçek gündüz vardiya kaydı 07:30-19:30, 720 dk.\\nGeliştirme önerileri: Vardiya ve makine takvimlerini tek çalışma takviminde birleştirmek, vardiya değişince kuyruğu yeniden planlamak, geçmiş vardiya tanımını kayıt anında saklamak ve operatör ekranında aynı gün bitmiş vardiya seçimini açıkça göstermek. Bunlar ayrı geliştirme konuları. Bu incelemede canlı vardiya, üretim, stok veya plan değiştirilmedi.",
+          "thread_id": "66e2de9f-cf56-4b0f-b8d8-a1b48ed70d2e",
+          "created_at": "2026-11-05T17:38:17",
+          "attachments": [],
+          "message_type": "solution",
+          "created_by_name": "Aktif360"
+        },
+        {
+          "id": "e64fbd83-6093-4639-9f8a-68e6467a21bf",
+          "body": "06.11.2026 — Vardiya değişikliklerinin geçerlilik tarihi ve geçmiş kayıtların korunması için geliştirme talebi\\n\\nKullanıcının açıklaması: 05.11.2026 akşamüstüne kadar yalnız 07:30–19:30 gündüz vardiyası aktifti. 05.11.2026 akşamüstü sistem gündüz ve gece olmak üzere iki vardiyaya geçirildi. Buna rağmen 06.11.2026 Dashboard / Gerçekleşen Üretim / Hafta görünümünde 04.11.2026 tarihli “4 PARÇA OTO PASPAS - 00100358” için iki ayrı “Gece +700” satırı görünüyor. Geçiş öncesi gece vardiyası görünmesi araştırılmalı. Bu iki satırın mükerrer kayıt olduğu henüz doğrulanmamıştır.\\n\\nİstenen kural:\\n1. Vardiya düzeni değişiklikleri geçerlilik başlangıç tarihiyle, gerektiğinde saatiyle birlikte tarihçeli tutulmalı. Tek gündüz vardiyasından gündüz-gece düzenine geçişte geçiş tarihi esas alınmalı. Bu örnekte yeni düzen 05.11.2026 geçişinden itibaren uygulanmalı; kesin saat sistemin değişiklik kaydından doğrulanmalı, tahmin edilmemeli.\\n2. Üretim kaydı ve raporlamada kaydın ait olduğu üretim tarihi/saati için geçerli vardiya düzeni kullanılmalı. Bugünkü aktif vardiya tanımı geçmiş günlere geriye dönük uygulanmamalı.\\n3. Yeni tarihli vardiya açma/kapatma veya saat değişikliği eski üretim kayıtlarının tarihini, vardiya aidiyetini, miktarını ve tarihsel analiz sonuçlarını kendiliğinden değiştirmemeli. Geçmişteki vardiya düzeni ve kaydın ait olduğu vardiya korunmalı.\\n4. Üretimin gerçekleştiği tarih/saat ve ait olduğu vardiya, sisteme giriş zamanından ayrı ele alınmalı. Gündüz üretiminin akşam sonradan girilmesi onu gece üretimine dönüştürmemeli. Gece vardiyasının gün aşımı için tutarlı bir iş günü/tarih kuralı uygulanmalı.\\n5. Dashboard, vardiya analizi ve diğer ilgili raporlar aynı tarihsel vardiya bilgisini kullanmalı. Geriye dönük düzeltme gerekiyorsa açık ve izlenebilir ayrı düzeltme işlemi olmalı; yeni vardiya tanımıyla sessizce yeniden etiketleme yapılmamalı.\\n\\nİnceleme/düzeltme:\\n04.11 tarihli iki +700 kaydında üretim tarihi, kayıt zamanı, saklanan vardiya ilişkisi, değişiklik tarihçesi ve Dashboard etiketinin kaynağı karşılaştırılsın. Sorunun görüntüleme/sınıflandırma mı yoksa kayıt anındaki yanlış vardiya ataması mı olduğu belirlensin. Geçmiş kayıtlar kanıtlanan tarihsel düzene göre düzeltilecekse üretim miktarları ve stok hareketleri değiştirilmeden, izlenebilir biçimde yapılsın. Kanıt yetersizse kayıtlar tahminen yeniden sınıflandırılmasın; belirsizlik raporlansın.\\n\\nKabul kriterleri:\\n- 04.11.2026 tek gündüz düzeni olarak korunur; yeni gece vardiyası açılması bu güne gece üretimi eklemez veya geçmiş gündüz üretimini geceye çevirmez.\\n- 05.11.2026 geçişinden sonraki kayıtlar o anda geçerli düzene göre tutulur.\\n- İleride yapılacak vardiya değişiklikleri de yalnız kendi geçerlilik dönemini etkiler.\\n- Yeni vardiya açılıp kapatıldığında geçmiş dönem Dashboard ve vardiya analizi sonuçları değişmez; sonradan girilen kayıtlar ait oldukları üretim tarihi/vardiyasında görünür.",
+          "thread_id": "66e2de9f-cf56-4b0f-b8d8-a1b48ed70d2e",
+          "created_at": "2026-11-06T08:47:14",
+          "attachments": [],
+          "message_type": "comment",
+          "created_by_name": "Hidayet Taşdöven"
+        }
+      ]
+    }
+  ]
+}

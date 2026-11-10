@@ -5,11 +5,17 @@ umask 077
 app_root="${PASPAS_APP_ROOT:-/var/www/paspas}"
 backup_root="${PASPAS_BACKUP_ROOT:-/var/backups/paspas-automatic}"
 env_file="${PASPAS_ENV_FILE:-${app_root}/backend/.env}"
+retention_count="${PASPAS_BACKUP_RETENTION_COUNT:-3}"
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 work="${backup_root}/.partial-${stamp}"
 target="${backup_root}/daily/${stamp}"
 runtime="$(mktemp -d /run/paspas-backup.XXXXXX)"
 ok=0
+
+[[ "$retention_count" =~ ^[1-9][0-9]*$ ]] || {
+  echo "invalid_retention_count: $retention_count" >&2
+  exit 1
+}
 
 notify() {
   local message="$1" cfg="${runtime}/curl.conf"
@@ -64,7 +70,11 @@ printf '{"created_at":"%s","host":"%s","database":"%s","upload_bytes":%s}\n' \
 mv "$work" "$target"
 ln -sfn "$target" "$backup_root/latest"
 
-mapfile -t old < <(find "$backup_root/daily" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -r | tail -n +15)
+mapfile -t old < <(
+  find "$backup_root/daily" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' \
+    | sort -r \
+    | tail -n "+$((retention_count + 1))"
+)
 for name in "${old[@]}"; do rm -rf -- "$backup_root/daily/$name"; done
 
 if [[ -n "${PASPAS_REMOTE_RSYNC_TARGET:-}" ]]; then
