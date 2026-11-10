@@ -133,6 +133,10 @@ export default function CreateMalKabulSheet({ open, onClose }: Props) {
       toast.error('Ürün seçimi zorunludur');
       return;
     }
+    const fazlaMiktar = isSatinAlma && selectedKalem && ['kabul', 'kosullu'].includes(kaliteDurumu)
+      ? Math.max(0, miktar - selectedKalem.kalanMiktar)
+      : 0;
+    if (fazlaMiktar > 0 && !window.confirm(`Kalan ${selectedKalem?.kalanMiktar.toLocaleString('tr-TR')} ${selectedKalem?.birim ?? 'adet'}. ${fazlaMiktar.toLocaleString('tr-TR')} ${selectedKalem?.birim ?? 'adet'} fazla teslimat kaydedilecek. Onaylıyor musunuz?`)) return;
 
     try {
       await createMalKabul({
@@ -249,6 +253,7 @@ export default function CreateMalKabulSheet({ open, onClose }: Props) {
                     <span>Sipariş: <strong className="text-foreground">{selectedKalem.miktar}</strong></span>
                     <span>Kabul: <strong className="text-emerald-600">{selectedKalem.kabulMiktar.toFixed(2)}</strong></span>
                     <span>Kalan: <strong className="text-orange-600">{selectedKalem.kalanMiktar.toFixed(2)}</strong></span>
+                    {selectedKalem.fazlaKabulMiktar > 0 && <span>Fazla: <strong className="text-amber-700">{selectedKalem.fazlaKabulMiktar.toFixed(2)}</strong></span>}
                   </div>
                 </div>
               )}
@@ -300,8 +305,8 @@ export default function CreateMalKabulSheet({ open, onClose }: Props) {
                 value={gelenMiktar}
                 onChange={(e) => setGelenMiktar(e.target.value)}
               />
-              {isSatinAlma && selectedKalem && Number.parseFloat(gelenMiktar) > selectedKalem.kalanMiktar && (
-                <p className="text-xs text-orange-600">Kalan miktardan fazla</p>
+              {isSatinAlma && selectedKalem && ['kabul', 'kosullu'].includes(kaliteDurumu) && Number.parseFloat(gelenMiktar) > selectedKalem.kalanMiktar && (
+                <p role="alert" className="rounded-md border border-orange-300 bg-orange-50 p-2 text-xs font-medium text-orange-800">Kalan {selectedKalem.kalanMiktar.toLocaleString('tr-TR')} {selectedKalem.birim ?? 'adet'}. {(Number.parseFloat(gelenMiktar) - selectedKalem.kalanMiktar).toLocaleString('tr-TR')} {selectedKalem.birim ?? 'adet'} fazla teslimat kaydedilecek.</p>
               )}
             </div>
             <div className="space-y-1">

@@ -205,14 +205,10 @@ export async function repoCreate(body: CreateBody, operatorUserId: string | null
       if (['adet', 'takim', 'takım'].includes(String(line.birim ?? '').toLocaleLowerCase('tr-TR')) && !Number.isInteger(body.gelenMiktar)) {
         throw new Error('birim_icin_tam_sayi_gerekli');
       }
-      if (body.kaliteDurumu === 'kabul' || body.kaliteDurumu === 'kosullu') {
-        const [accepted] = await tx.select({ total: sql<string>`COALESCE(SUM(${malKabulKayitlari.gelen_miktar}), 0)` })
-          .from(malKabulKayitlari)
-          .where(and(eq(malKabulKayitlari.satin_alma_kalem_id, body.satinAlmaKalemId), inArray(malKabulKayitlari.kalite_durumu, ['kabul', 'kosullu'])));
-        if (Number(accepted?.total ?? 0) + body.gelenMiktar > Number(line.miktar) + 0.00001) {
-          throw new Error('gelen_miktar_kalan_miktari_asiyor');
-        }
-      }
+      // Fiili teslimat sipariş miktarını aşabilir (kartela/etiket gibi ambalajlar).
+      // Sipariş kilidi eşzamanlı kabulleri sıralar; kabul toplamı ve fazla miktar
+      // satın alma kaleminde türetilerek izlenir. Sıfır/negatif miktar validation'da
+      // reddedilmeye devam eder.
     }
     // 1. Insert mal kabul record
     await tx.insert(malKabulKayitlari).values({
