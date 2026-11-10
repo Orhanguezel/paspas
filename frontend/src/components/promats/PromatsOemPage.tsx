@@ -31,7 +31,7 @@ export type OemPageContent = {
   };
 };
 
-const CATALOGUE_HREF = '/userfiles/files/e-catalogue.pdf';
+const CATALOGUE_HREF = '/userfiles/files/promats-katalog-2026.pdf';
 const HERO_IMAGE = '/assets/images/uretim/tesis.jpg';
 
 /** Türkçe-duyarlı normalize: seri adını ürün adıyla eşleştirmek için. */

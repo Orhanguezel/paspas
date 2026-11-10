@@ -29,7 +29,7 @@ import { buildAdminSidebarItems } from '@/navigation/sidebar/sidebar-items';
 import type { NavGroup } from '@/navigation/sidebar/sidebar-items';
 
 import { useAdminSettings } from '../admin-settings-provider';
-import { NavMain } from './nav-main';
+import { PersonalMenuControls } from './personal-menu-controls';
 import { NavUser } from './nav-user';
 
 const VALID_ROLES = new Set<string>(['admin', 'operator', 'satin_almaci', 'nakliyeci']);
@@ -169,7 +169,9 @@ export function AppSidebar({
   const resolvedRole: PanelRole = VALID_ROLES.has(mappedRole)
     ? (mappedRole as PanelRole)
     : 'admin';
-  const groupsForMe: NavGroup[] = buildAdminSidebarItems(copy.nav, wrappedT, resolvedRole);
+  const effectiveRoles = statusData?.user?.roles?.map((role) => DB_TO_PANEL[role] ?? role)
+    .filter((role): role is PanelRole => VALID_ROLES.has(role)) ?? [resolvedRole];
+  const groupsForMe: NavGroup[] = buildAdminSidebarItems(copy.nav, wrappedT, effectiveRoles);
   const homeHref = ROLE_HOME[resolvedRole] ?? '/admin/dashboard';
   const panelLabel = baseName || 'ERP';
   const panelSub = companyInfo.sidebarSubtitle || 'Uretim Yonetim Sistemi';
@@ -196,7 +198,7 @@ export function AppSidebar({
 
       <SidebarContent>
         {/* ✅ NavMain NavGroup[] bekliyor */}
-        <NavMain items={groupsForMe} showQuickCreate={false} />
+        <PersonalMenuControls groups={groupsForMe} userId={currentUser.id} />
       </SidebarContent>
 
       <SidebarFooter>

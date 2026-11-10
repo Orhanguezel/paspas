@@ -550,6 +550,7 @@ const receteItemSchema = z.object({
 
 const saveReceteSchema = z.object({
   aciklama: z.string().trim().max(500).optional(),
+  hedefMiktar: z.coerce.number().positive().optional(),
   items: z.array(receteItemSchema).min(1),
 });
 
@@ -612,6 +613,7 @@ export const saveUrunRecete: RouteHandler = async (req, reply) => {
       // Update existing recete
       detail = await repoUpdateRecete(existing.recete.id, {
         aciklama: parsed.data.aciklama,
+        hedefMiktar: parsed.data.hedefMiktar,
         items: parsed.data.items,
       });
     } else {
@@ -621,7 +623,7 @@ export const saveUrunRecete: RouteHandler = async (req, reply) => {
         ad: `${urun.ad} Reçetesi`,
         urunId: id,
         aciklama: parsed.data.aciklama,
-        hedefMiktar: 1,
+        hedefMiktar: parsed.data.hedefMiktar ?? 1,
         items: parsed.data.items,
       });
     }

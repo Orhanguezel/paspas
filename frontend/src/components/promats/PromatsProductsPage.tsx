@@ -149,9 +149,9 @@ export function PromatsProductsPage({ locale, products, content: c }: { locale: 
         </div>
       </section>
 
-      {/* ORTAK ÖZELLİKLER */}
+      {/* ORTAK ÖZELLİKLER — anasayfa slider "Ürün Özellikleri" butonu buraya baglanir (#ozellikler) */}
       {featureCards.length ? (
-        <section className="pm-feature-cards position-relative">
+        <section className="pm-feature-cards position-relative" id="ozellikler">
           <DevNote section="urunler-ozellikler" title="Ürünler: Ortak Özellikler" />
           <div className="container">
             <PmSectionHeading line1={c.features.titleLine1} line2={c.features.titleLine2} intro={c.features.intro} />

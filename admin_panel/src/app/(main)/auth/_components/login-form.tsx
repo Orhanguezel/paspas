@@ -111,7 +111,9 @@ export function LoginForm({ mode = 'admin', fallbackNext }: LoginFormProps = {})
         satin_almaci: 'satin_almaci',
       };
       const panelRole = ROLE_MAP[role] ?? 'admin';
-      const defaultNext = fallbackNext ?? (mode === 'seller' ? '/seller' : ROLE_HOME[panelRole]);
+      const assignedRoles = res?.user?.roles ?? [role];
+      const dualMobile = mode === 'admin' && !assignedRoles.includes('admin') && assignedRoles.includes('operator') && assignedRoles.includes('satin_almaci') && window.innerWidth < 768;
+      const defaultNext = fallbackNext ?? (mode === 'seller' ? '/seller' : dualMobile ? '/admin/alan-sec' : ROLE_HOME[panelRole]);
       const next = safeNext(sp?.get('next'), defaultNext);
       router.replace(next);
       router.refresh();

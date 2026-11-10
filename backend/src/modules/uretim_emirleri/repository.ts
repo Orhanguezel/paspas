@@ -45,12 +45,14 @@ export type OperasyonOzetRow = {
   // Emir satirinin altinda acilan detay panelinde kullanilir (YN a2b9aa7a):
   // planlanan ve gerceklesen bitis ayri renkte gosterilir.
   planlananBitis: Date | string | null;
+  gercekBaslangic: Date | string | null;
   gercekBitis: Date | string | null;
 };
 
 type EnrichedUretimEmriRow = UretimEmriRow & {
   siparisKalemIds: string[];
   siparisNo: string | null;
+  siparisPlanlananMiktar: number | null;
   operasyonlar: OperasyonOzetRow[];
   siparisUrunKod: string | null;
   siparisUrunAd: string | null;
@@ -401,6 +403,7 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
         uretimEmriId: uretimEmriSiparisKalemleri.uretim_emri_id,
         siparisKalemIds: sql<string>`group_concat(distinct ${uretimEmriSiparisKalemleri.siparis_kalem_id})`,
         siparisNo: sql<string | null>`group_concat(distinct ${satisSiparisleri.siparis_no} order by ${satisSiparisleri.siparis_no} separator ', ')`,
+        siparisPlanlananMiktar: sql<string>`sum(${uretimEmriSiparisKalemleri.miktar})`,
         siparisUrunKod: sql<string | null>`group_concat(distinct ${urunler.kod} order by ${urunler.kod} separator ', ')`,
         siparisUrunAd: sql<string | null>`group_concat(distinct ${urunler.ad} order by ${urunler.ad} separator ', ')`,
         siparisUrunGorsel: sql<string | null>`max(${urunler.image_url})`,
@@ -460,6 +463,7 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
       {
         siparisKalemIds: row.siparisKalemIds ? String(row.siparisKalemIds).split(',') : [],
         siparisNo: row.siparisNo,
+        siparisPlanlananMiktar: Number(row.siparisPlanlananMiktar),
         siparisUrunKod: row.siparisUrunKod,
         siparisUrunAd: row.siparisUrunAd,
         siparisUrunGorsel: row.siparisUrunGorsel,
@@ -494,6 +498,7 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
       ...row,
       siparisKalemIds: j?.siparisKalemIds ?? [],
       siparisNo: j?.siparisNo ?? null,
+      siparisPlanlananMiktar: j?.siparisPlanlananMiktar ?? null,
       operasyonlar: [...operasyonlar]
         .sort((a, b) => a.sira - b.sira)
         .map((op) => ({
@@ -504,6 +509,7 @@ async function enrichRows(rows: UretimEmriRow[]): Promise<EnrichedUretimEmriRow[
           uretilenMiktar: op.uretilenMiktar,
           durum: op.durum,
           planlananBitis: op.planlananBitis ?? null,
+          gercekBaslangic: op.gercekBaslangic ?? null,
           gercekBitis: op.gercekBitis ?? null,
         })),
       siparisUrunKod: j?.siparisUrunKod ?? null,
@@ -578,6 +584,32 @@ export async function repoGetById(id: string): Promise<EnrichedUretimEmriRow | n
     .limit(1);
   const enriched = await enrichRows(rows as UretimEmriRow[]);
   return enriched[0] ?? null;
+}
+
+/** Detail data bypasses list paging and completed-order filtering. */
+export async function repoGetMamulGroup(id: string): Promise<EnrichedUretimEmriRow[]> {
+  const [target] = await db.select({ id: uretimEmirleri.id, partiNo: uretimEmirleri.parti_no, mamulUrunId: uretimEmirleri.mamul_urun_id })
+    .from(uretimEmirleri).where(eq(uretimEmirleri.id, id)).limit(1);
+  if (!target) return [];
+  const groupCondition = target.partiNo
+    ? and(eq(uretimEmirleri.parti_no, target.partiNo), eq(uretimEmirleri.mamul_urun_id, target.mamulUrunId))
+    : eq(uretimEmirleri.id, id);
+  const rows = await db.select({
+    ...getTableColumns(uretimEmirleri),
+    urunKod: urunler.kod,
+    urunAd: urunler.ad,
+    urunGorsel: urunler.image_url,
+    mamulKod: mamulUrunler.kod,
+    mamulAd: mamulUrunler.ad,
+    mamulGorsel: mamulUrunler.image_url,
+    receteAd: receteler.ad,
+  }).from(uretimEmirleri)
+    .leftJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+    .leftJoin(mamulUrunler, eq(uretimEmirleri.mamul_urun_id, mamulUrunler.id))
+    .leftJoin(receteler, eq(uretimEmirleri.recete_id, receteler.id))
+    .where(groupCondition)
+    .orderBy(asc(uretimEmirleri.emir_no));
+  return enrichRows(rows as UretimEmriRow[]);
 }
 
 export type CreateResult = {

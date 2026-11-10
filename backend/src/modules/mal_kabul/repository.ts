@@ -163,10 +163,53 @@ export async function repoGetById(id: string): Promise<MalKabulDto | null> {
 }
 
 export async function repoCreate(body: CreateBody, operatorUserId: string | null): Promise<MalKabulDto> {
-  const id = randomUUID();
+  const id = body.requestId ?? randomUUID();
   const now = new Date();
 
-  await db.transaction(async (tx) => {
+  async function replayResult(): Promise<MalKabulDto> {
+    const existing = await repoGetById(id);
+    if (!existing || existing.operatorUserId !== operatorUserId || existing.satinAlmaSiparisId !== (body.satinAlmaSiparisId ?? null)
+      || existing.satinAlmaKalemId !== (body.satinAlmaKalemId ?? null) || existing.urunId !== body.urunId
+      || existing.kaliteDurumu !== body.kaliteDurumu || Math.abs(existing.gelenMiktar - body.gelenMiktar) > 0.00001) {
+      throw new Error('mal_kabul_istek_anahtari_cakisti');
+    }
+    return existing;
+  }
+  if (body.requestId) {
+    const existing = await repoGetById(id);
+    if (existing) return replayResult();
+  }
+
+  try { await db.transaction(async (tx) => {
+    if (body.kaynakTipi === 'satin_alma' && body.satinAlmaSiparisId && body.satinAlmaKalemId) {
+      // Aynı siparişe eşzamanlı kabul girişlerini sıraya al.
+      await tx.execute(sql`SELECT id FROM satin_alma_siparisleri WHERE id = ${body.satinAlmaSiparisId} FOR UPDATE`);
+      const [line] = await tx.select({
+        urunId: satinAlmaKalemleri.urun_id,
+        miktar: satinAlmaKalemleri.miktar,
+        birim: urunler.birim,
+        tedarikciId: satinAlmaSiparisleri.tedarikci_id,
+        durum: satinAlmaSiparisleri.durum,
+        isActive: satinAlmaSiparisleri.is_active,
+      }).from(satinAlmaKalemleri)
+        .innerJoin(satinAlmaSiparisleri, eq(satinAlmaKalemleri.siparis_id, satinAlmaSiparisleri.id))
+        .innerJoin(urunler, eq(satinAlmaKalemleri.urun_id, urunler.id))
+        .where(and(eq(satinAlmaKalemleri.id, body.satinAlmaKalemId), eq(satinAlmaSiparisleri.id, body.satinAlmaSiparisId)))
+        .limit(1);
+      if (!line || line.urunId !== body.urunId || (body.tedarikciId && body.tedarikciId !== line.tedarikciId)) {
+        throw new Error('satin_alma_kalemi_uyusmuyor');
+      }
+      if (line.isActive !== 1 || !['onaylandi', 'siparis_verildi', 'kismen_teslim'].includes(line.durum)) {
+        throw new Error('satin_alma_siparisi_acik_degil');
+      }
+      if (['adet', 'takim', 'takım'].includes(String(line.birim ?? '').toLocaleLowerCase('tr-TR')) && !Number.isInteger(body.gelenMiktar)) {
+        throw new Error('birim_icin_tam_sayi_gerekli');
+      }
+      // Fiili teslimat sipariş miktarını aşabilir (kartela/etiket gibi ambalajlar).
+      // Sipariş kilidi eşzamanlı kabulleri sıralar; kabul toplamı ve fazla miktar
+      // satın alma kaleminde türetilerek izlenir. Sıfır/negatif miktar validation'da
+      // reddedilmeye devam eder.
+    }
     // 1. Insert mal kabul record
     await tx.insert(malKabulKayitlari).values({
       id,
@@ -186,7 +229,7 @@ export async function repoCreate(body: CreateBody, operatorUserId: string | null
 
     // 2. Reddedilen kalite stoğa eklenmez ve hareket de yazılmaz —
     // satın alma teslim toplamı da değişmediği için durum 'siparis_verildi' kalır.
-    if (body.kaliteDurumu !== 'red') {
+    if (body.kaliteDurumu === 'kabul' || body.kaliteDurumu === 'kosullu') {
       await tx
         .update(urunler)
         .set({ stok: sql`${urunler.stok} + ${body.gelenMiktar.toFixed(4)}` })
@@ -205,10 +248,15 @@ export async function repoCreate(body: CreateBody, operatorUserId: string | null
     }
 
     // 3. Auto-update satin alma siparis status — sadece kabul/kosullu kayıtları sayar.
-    if (body.kaynakTipi === 'satin_alma' && body.satinAlmaSiparisId && body.kaliteDurumu !== 'red') {
+    if (body.kaynakTipi === 'satin_alma' && body.satinAlmaSiparisId && ['kabul', 'kosullu'].includes(body.kaliteDurumu)) {
       await updateSatinAlmaDurum(tx, body.satinAlmaSiparisId);
     }
-  });
+  }); } catch (error) {
+    // Eşzamanlı tekrar, ilk isteğin siparişi tamamlamasından sonra açık durum
+    // kontrolüne takılabilir; kayıt varsa aynı anahtarı güvenle geri döndür.
+    if (body.requestId && await repoGetById(id)) return replayResult();
+    throw error;
+  }
 
   const result = await repoGetById(id);
   if (!result) throw new Error('insert_failed');
@@ -338,7 +386,7 @@ export async function repoDelete(id: string): Promise<boolean> {
 
   await db.transaction(async (tx) => {
     // Reverse stock if was accepted
-    if (existing[0].kalite_durumu !== 'red') {
+    if (existing[0].kalite_durumu === 'kabul' || existing[0].kalite_durumu === 'kosullu') {
       const miktar = Number(existing[0].gelen_miktar);
       await tx
         .update(urunler)

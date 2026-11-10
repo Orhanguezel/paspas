@@ -27,12 +27,13 @@ export const listQuerySchema = z.object({
 
 export const createSchema = z
   .object({
+    requestId: z.string().uuid().optional(),
     kaynakTipi: kaynakTipiEnum.default('satin_alma'),
     satinAlmaSiparisId: z.string().min(1).optional(),
     satinAlmaKalemId: z.string().min(1).optional(),
     urunId: z.string().min(1),
     tedarikciId: z.string().min(1).optional(),
-    gelenMiktar: z.coerce.number().min(0.0001),
+    gelenMiktar: z.coerce.number().min(0.0001).refine((value) => Math.abs(value * 10000 - Math.round(value * 10000)) < 0.000001, 'en_fazla_dort_ondalik'),
     partiNo: z.string().trim().max(64).optional(),
     notlar: z.string().trim().max(500).optional(),
     kaliteDurumu: kaliteDurumuEnum.default('bekliyor'),

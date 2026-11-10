@@ -6,6 +6,7 @@
 import {
   Activity,
   BarChart2,
+  Bot,
   BookOpenText,
   Building2,
   Calendar,
@@ -29,10 +30,11 @@ import {
   Package,
   PanelsTopLeft,
   Play,
-  Presentation,
   Ruler,
+  Radar,
   Settings,
   ShoppingCart,
+  Target,
   Timer,
   Truck,
   Users,
@@ -50,6 +52,7 @@ export interface NavSubItem {
 }
 
 export interface NavMainItem {
+  key: AdminNavItemKey;
   title: string;
   url: string;
   icon?: LucideIcon;
@@ -59,6 +62,7 @@ export interface NavMainItem {
 
 export interface NavGroup {
   id: number;
+  key: AdminNavGroupKey;
   label?: string;
   items: NavMainItem[];
 }
@@ -67,7 +71,7 @@ export type AdminSidebarRole = PanelRole;
 
 export type AdminNavItemKey = AdminNavKey;
 
-export type AdminNavGroupKey = "overview" | "production" | "logistics" | "teklif" | "website" | "system";
+export type AdminNavGroupKey = "overview" | "production" | "logistics" | "sales" | "teklif" | "website" | "system" | "other";
 
 export type AdminNavConfigItem = {
   key: AdminNavItemKey;
@@ -90,9 +94,6 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
     id: 1,
     key: "overview",
     items: [
-      { key: "yazilim_gorevleri", url: "/admin/yazilim-gorevleri", icon: ClipboardList, roles: ["admin"] },
-      { key: "iletisim_mesajlari", url: "/admin/contacts", icon: Inbox, roles: ["admin"] },
-
       // V2: görevler (tasks/notifications) buraya eklenecek
       // { key: 'gorevler', url: '/admin/gorevler', icon: ClipboardList, roles: ['admin', 'operator', 'satin_almaci'] },
       {
@@ -148,7 +149,7 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
       { key: "is_yukler", url: "/admin/is-yukler", icon: Cpu, roles: ["admin"] },
       { key: "operator", url: "/admin/operator", icon: Play, roles: ["admin", "operator"] },
       { key: "gantt", url: "/admin/gantt", icon: Calendar, roles: ["admin", "operator"] },
-      { key: "vardiya_analizi", url: "/admin/vardiya-analizi", icon: Timer, roles: ["admin"] },
+      { key: "uretim_ozeti", url: "/admin/uretim-ozeti", icon: Timer, roles: ["admin"] },
     ],
   },
   // ─── Lojistik & Stok ───
@@ -163,28 +164,30 @@ export const adminNavConfig: AdminNavConfigGroup[] = [
       { key: "hareketler", url: "/admin/hareketler", icon: Activity, roles: ["admin", "satin_almaci"] },
     ],
   },
-  // ─── Teklif Modülü ───
+  // ─── Seyrek kullanılan modüller ───
   {
     id: 4,
-    key: "teklif",
+    key: "sales",
     items: [
-      { key: "teklif_talepleri", url: "/admin/teklif-talepleri", icon: Inbox, roles: ["admin", "nakliyeci"] },
+      { key: "firma_kurulumu", url: "/admin/firma-kurulumu", icon: Settings, roles: ["admin"] },
+      { key: "firma_bulma", url: "/admin/firma-bulma", icon: Radar, roles: ["admin", "nakliyeci"] },
+      { key: "crm", url: "/admin/crm", icon: Users, roles: ["admin"] },
+      { key: "firsat", url: "/admin/firsat", icon: Target, roles: ["admin", "nakliyeci"] },
       { key: "teklifler", url: "/admin/teklifler", icon: FileSignature, roles: ["admin", "nakliyeci"] },
     ],
   },
   {
     id: 5,
-    key: "website",
-    items: [{ key: "web_sayfasi", url: "/admin/web-sayfasi", icon: PanelsTopLeft, roles: ["admin"] }],
-  },
-  {
-    id: 6,
-    key: "system",
+    key: "other",
     items: [
+      { key: "yazilim_gorevleri", url: "/admin/yazilim-gorevleri", icon: ClipboardList, roles: ["admin"] },
+      { key: "iletisim_mesajlari", url: "/admin/contacts", icon: Inbox, roles: ["admin"] },
+      { key: "teklif_talepleri", url: "/admin/teklif-talepleri", icon: Inbox, roles: ["admin", "nakliyeci"] },
+      { key: "web_sayfasi", url: "/admin/web-sayfasi", icon: PanelsTopLeft, roles: ["admin"] },
       { key: "site_settings", url: "/admin/sistem", icon: Settings, roles: ["admin"] },
+      { key: "promats_mcp", url: "/admin/promats-mcp", icon: Bot, roles: ["admin"] },
       { key: "test_center", url: "/admin/test-merkezi", icon: FileSearch, roles: ["admin"] },
       { key: "admin_documentation", url: "/admin/dokumantasyon", icon: BookOpenText, roles: ["admin"] },
-      { key: "proje_teklifi", url: "/admin/proje-teklifi", icon: Presentation, roles: ["admin"] },
     ],
   },
 ];
@@ -198,6 +201,8 @@ const FALLBACK_GROUP_LABELS: Record<AdminNavGroupKey, string> = {
   overview: "Genel",
   production: "Üretim Süreçleri",
   logistics: "Lojistik & Stok",
+  sales: "Satış ve CRM",
+  other: "Diğer Modüller",
   teklif: "Teklif Modülü",
   website: "Web Sitesi",
   system: "Sistem Yönetimi",
@@ -243,18 +248,24 @@ const FALLBACK_TITLES: Record<AdminNavItemKey, string> = {
   test_center: "Test Merkezi",
   admin_documentation: "Dokumantasyon",
   vardiya_analizi: "Vardiya Analizi",
-  proje_teklifi: "Proje Teklifleri",
+  uretim_ozeti: "Üretim Özeti",
   web_sayfasi: "Promats İçerik Yönetimi",
   yazilim_gorevleri: "Yazılım Görevleri",
+  promats_mcp: "Promats Bağlantıları",
   teklif_talepleri: "Teklif Talepleri",
   teklifler: "Teklifler",
+  firma_kurulumu: "Firma Kurulumu",
+  crm: "CRM",
+  firma_bulma: "Firma Bulma",
+  firsat: "Fırsat ve Pipeline",
 };
 
 export function buildAdminSidebarItems(
   copy?: Partial<AdminNavCopy> | null,
   t?: TranslateFn,
-  role: AdminSidebarRole = "admin",
+  role: AdminSidebarRole | AdminSidebarRole[] = "admin",
 ): NavGroup[] {
+  const roles = Array.isArray(role) ? role : [role];
   const labels = copy?.labels ?? ({} as AdminNavCopy["labels"]);
   const items = copy?.items ?? ({} as AdminNavCopy["items"]);
 
@@ -271,8 +282,8 @@ export function buildAdminSidebarItems(
     return subItems
       .filter((sub) => {
         const allowed = sub.roles ?? getAdminNavRoles(sub.key);
-        if (!allowed?.length) return role === "admin";
-        return allowed.includes(role);
+        if (!allowed?.length) return roles.includes("admin");
+        return roles.some((current) => allowed.includes(current));
       })
       .map((sub) => ({
         title: getTitle(sub),
@@ -297,14 +308,16 @@ export function buildAdminSidebarItems(
 
       return {
         id: group.id,
+        key: group.key,
         label,
         items: group.items
           .filter((item) => {
             const allowed = item.roles ?? getAdminNavRoles(item.key);
-            if (!allowed?.length) return role === "admin";
-            return allowed.includes(role);
+            if (!allowed?.length) return roles.includes("admin");
+            return roles.some((current) => allowed.includes(current));
           })
           .map((item) => ({
+            key: item.key,
             title: getTitle(item),
             url: item.url,
             icon: item.icon,

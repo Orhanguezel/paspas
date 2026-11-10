@@ -82,10 +82,12 @@ export function deriveOperasyonTipiFromKaynakRefs(
 export function buildAsilUrunOperasyonlariFromKaynakOperasyonlar(
   kaynakOperasyonlar: UrunOperasyonRow[],
   makineMap: Map<string, UrunOperasyonMakineDto[]>,
+  kaynakUrunIds: string[] = [],
 ): OperasyonItem[] {
   return kaynakOperasyonlar.map((row, index) => ({
     operasyonAdi: row.operasyon_adi,
     sira: index + 1,
+    uretilenUrunId: kaynakUrunIds[index] ?? null,
     kalipId: row.kalip_id ?? undefined,
     hazirlikSuresiDk: row.hazirlik_suresi_dk,
     cevrimSuresiSn: Number(row.cevrim_suresi_sn),
@@ -443,7 +445,11 @@ async function deriveAsilUrunOperasyonlariFromRecete(
 
   return {
     operasyonTipi,
-    operasyonlar: buildAsilUrunOperasyonlariFromKaynakOperasyonlar(kaynakOperasyonlar, makineMap),
+    operasyonlar: buildAsilUrunOperasyonlariFromKaynakOperasyonlar(
+      kaynakOperasyonlar,
+      makineMap,
+      yariMamulRefs.map((item) => item.urunId),
+    ),
     yariMamulIds: yariMamulRefs.map((item) => item.urunId),
   };
 }

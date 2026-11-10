@@ -33,6 +33,7 @@ export interface UretimEmriOperasyonOzet {
   uretilenMiktar: number;
   durum: string;
   planlananBitis: string | null;
+  gercekBaslangic?: string | null;
   gercekBitis: string | null;
 }
 
@@ -74,6 +75,7 @@ export interface UretimEmriDto {
   operasyonlar: UretimEmriOperasyonOzet[];
   siparisKalemIds: string[];
   siparisNo: string | null;
+  siparisPlanlananMiktar: number | null;
   siparisUrunKod: string | null;
   siparisUrunAd: string | null;
   siparisUrunGorsel: string | null;
@@ -246,12 +248,14 @@ export function normalizeUretimEmri(raw: unknown): UretimEmriDto {
             uretilenMiktar: toNum(op.uretilenMiktar),
             durum: toStr(op.durum, "bekliyor"),
             planlananBitis: op.planlananBitis != null ? toStr(op.planlananBitis) : null,
+            gercekBaslangic: op.gercekBaslangic != null ? toStr(op.gercekBaslangic) : null,
             gercekBitis: op.gercekBitis != null ? toStr(op.gercekBitis) : null,
           };
         })
       : [],
     siparisKalemIds: toStrArray(r.siparisKalemIds),
     siparisNo: r.siparisNo != null ? toStr(r.siparisNo) : null,
+    siparisPlanlananMiktar: r.siparisPlanlananMiktar != null ? toNum(r.siparisPlanlananMiktar) : null,
     siparisUrunKod: r.siparisUrunKod != null ? toStr(r.siparisUrunKod) : null,
     siparisUrunAd: r.siparisUrunAd != null ? toStr(r.siparisUrunAd) : null,
     siparisUrunGorsel: r.siparisUrunGorsel != null ? toStr(r.siparisUrunGorsel) : null,

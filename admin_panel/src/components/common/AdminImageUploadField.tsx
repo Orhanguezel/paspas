@@ -5,7 +5,6 @@
 // FINAL — Admin Image Upload Field (App Router + shadcn)
 // - Bootstrap yok, inline style minimum (sadece zorunlu yerlerde)
 // - Multiple preview: one image per row
-// - Cover cannot be removed
 // - URL truncated + full on hover + copy
 // - previewAspect + previewObjectFit (single preview)
 // - SVG preview support (+ Cloudinary sanitize) + ICO destekli
@@ -498,13 +497,6 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
   const removeAt = (idx: number) => {
     if (!onChangeMultiple) return;
 
-    const url = gallery[idx];
-    const isCover = !!coverValue && norm(coverValue) === url;
-
-    if (isCover) {
-      toast.error('Kapak görseli silinemez. Önce başka bir kapak seç.');
-      return;
-    }
     onChangeMultiple(gallery.filter((_, i) => i !== idx));
   };
 
@@ -719,9 +711,9 @@ export const AdminImageUploadField: React.FC<AdminImageUploadFieldProps> = ({
                           type="button"
                           variant="outline"
                           size="sm"
-                          disabled={busy || !onChangeMultiple || isCover}
+                          disabled={busy || !onChangeMultiple}
                           onClick={() => removeAt(idx)}
-                          title={isCover ? 'Kapak silinemez' : 'Sil'}
+                          title="Sil"
                         >
                           <Trash2 className="mr-2 size-4" />
                           Sil

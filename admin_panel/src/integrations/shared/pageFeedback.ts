@@ -36,6 +36,9 @@ export type PageFeedbackThread = {
   createdAt: string;
   updatedAt: string;
   comments: PageFeedbackComment[];
+  nextAction?: { party: 'biz' | 'talep_sahibi' | 'baska' | 'kimse'; workPhase: 'ongoing' | 'approval' | null; expectedAction: string | null; changedAt: string } | null;
+  release?: { state: 'deployed' | 'not_deployed' | 'withdrawn'; evidence: string; changedAt: string } | null;
+  watcherCount?: number;
 };
 
 export type PageFeedbackListResponse = {
@@ -57,6 +60,7 @@ export type CreatePageFeedbackBody = {
 export type CreatePageFeedbackCommentBody = {
   body: string;
   messageType?: PageFeedbackMessageType;
+  authorName?: 'Aktif360';
   attachments?: PageFeedbackAttachment[];
 };
 

@@ -45,6 +45,7 @@ export interface MusteriListResponse {
 
 export interface MusteriCreatePayload {
   tur?: MusteriTur;
+  musteriDurumu?: MusteriDurumu;
   kod?: string;
   ad: string;
   ilgiliKisi?: string;

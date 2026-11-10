@@ -60,6 +60,7 @@ import {
 import { useCheckYeterlilikAdminQuery } from "@/integrations/endpoints/admin/erp/stoklar_admin.endpoints";
 import {
   useDeleteUretimEmriAdminMutation,
+  useGetUretimEmriMamulGroupAdminQuery,
   useListUretimEmirleriAdminQuery,
   useUpdateMamulUretimEmriAdminMutation,
 } from "@/integrations/endpoints/admin/erp/uretim_emirleri_admin.endpoints";
@@ -544,21 +545,24 @@ function UretimDetayPaneli({ emirler }: { emirler: UretimEmriDto[] }) {
 
   return (
     <div className="divide-y border-slate-200 border-t">
+      {emirler.length === 1 && (emirler[0].taraf === "sag" || emirler[0].taraf === "sol") && (
+        <div className="px-4 py-2 text-xs text-amber-700">Bu üretime bağlı eş parça kaydı bulunamadı.</div>
+      )}
       {satirlar.map(({ emir, op }, i) => {
         const durum = opDurumu(op);
-        const tamamlandi = op.durum === "tamamlandi";
-        // Tamamlandıysa gerçekleşen bitiş, değilse planlanan bitiş gösterilir.
-        const tarih = panelTarih(tamamlandi ? op.gercekBitis : op.planlananBitis, tamamlandi);
+        const gercekBaslangic = panelTarih(op.gercekBaslangic ?? null, true);
+        const gercekBitis = panelTarih(op.gercekBitis, true);
+        const planlananBitis = panelTarih(op.planlananBitis, false);
         const birim = op.montaj ? "Takım" : "Adet";
         return (
           <div
             key={`${emir.id}-${op.operasyonAdi}-${i}`}
-            className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm"
+            className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 py-3 text-sm"
           >
             {/* Ürün adı + Operasyonel YM adı (YM daha belirgin) */}
             <div className="min-w-56 flex-1">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-slate-900">{op.operasyonAdi}</span>
+                <span className="font-semibold text-slate-900">{emir.urunAd ?? op.operasyonAdi}</span>
                 {op.montaj && (
                   <Badge variant="outline" className="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-700">
                     <Wrench className="mr-1 size-2.5" />
@@ -567,7 +571,7 @@ function UretimDetayPaneli({ emirler }: { emirler: UretimEmriDto[] }) {
                 )}
               </div>
               <div className="text-[11px] text-muted-foreground">
-                {emir.emirNo}
+                {emir.urunKod ?? "—"} · {emir.emirNo} · {emir.taraf === "sag" ? "Sağ" : emir.taraf === "sol" ? "Sol" : "Parça"}
                 {emir.mamulAd ? ` · ${emir.mamulAd}` : ""}
               </div>
             </div>
@@ -575,14 +579,14 @@ function UretimDetayPaneli({ emirler }: { emirler: UretimEmriDto[] }) {
             {/* Makine */}
             <div className="flex min-w-32 items-center gap-1 text-slate-700 text-xs">
               <Factory className="size-3 shrink-0 text-slate-400" />
-              <span className="truncate">{op.makineAd ?? "Atanmamış"}</span>
+              <span className="truncate">{op.makineAd ?? "Atama bekliyor"}</span>
             </div>
 
             {/* Üretim durumu */}
             <span className={`rounded px-2 py-0.5 font-medium text-[11px] ${durum.sinif}`}>{durum.metin}</span>
 
             {/* Üretilen miktar — plan aşımı kırpılmaz (S4) */}
-            <div className="min-w-24 text-right tabular-nums">
+            <div className="min-w-32 text-center tabular-nums">
               {op.uretilenMiktar > 0 ? (
                 <span className="font-semibold text-slate-900">
                   {op.uretilenMiktar.toLocaleString("tr-TR")}{" "}
@@ -592,32 +596,32 @@ function UretimDetayPaneli({ emirler }: { emirler: UretimEmriDto[] }) {
                 <span className="text-muted-foreground text-xs">—</span>
               )}
               {op.planlananMiktar > 0 && (
-                <div className="text-[10px] text-muted-foreground">
-                  hedef {op.planlananMiktar.toLocaleString("tr-TR")}
+                <div className="text-xs font-medium text-muted-foreground">
+                  hedef {op.planlananMiktar.toLocaleString("tr-TR")} {birim} · kalan {Math.max(0, op.planlananMiktar - op.uretilenMiktar).toLocaleString("tr-TR")} {birim}
                 </div>
               )}
             </div>
 
             {/* Bitiş tarihi — planlanan ve gerçekleşen farklı renkte */}
             <div className="min-w-28 text-right">
-              {tarih ? (
-                <>
-                  <div className={`font-medium text-xs ${tamamlandi ? "text-emerald-700" : "text-slate-600"}`}>
-                    {tarih.tarih}
-                  </div>
-                  <div className={`text-[10px] ${tamamlandi ? "text-emerald-600" : "text-muted-foreground"}`}>
-                    {tarih.saat}
-                  </div>
-                </>
-              ) : (
-                <span className="text-muted-foreground text-xs">—</span>
-              )}
+              {gercekBaslangic && <div className="text-xs text-slate-600">Başlangıç: {gercekBaslangic.tarih} {gercekBaslangic.saat}</div>}
+              {gercekBitis
+                ? <div className="text-xs font-medium text-emerald-700">Gerçek bitiş: {gercekBitis.tarih} {gercekBitis.saat}</div>
+                : <div className="text-xs text-muted-foreground">Gerçek bitiş kaydı yok</div>}
+              {planlananBitis && <div className="text-[10px] text-muted-foreground">Planlanan: {planlananBitis.tarih} {planlananBitis.saat}</div>}
             </div>
           </div>
         );
       })}
     </div>
   );
+}
+
+function MamulDetay({ emirId }: { emirId: string }) {
+  const { data, isLoading, isError } = useGetUretimEmriMamulGroupAdminQuery(emirId);
+  if (isLoading) return <div className="px-4 py-3 text-xs text-muted-foreground">Parça kayıtları yükleniyor…</div>;
+  if (isError) return <div className="px-4 py-3 text-xs text-destructive">Parça kayıtları yüklenemedi.</div>;
+  return <UretimDetayPaneli emirler={data ?? []} />;
 }
 
 // ── Liste Hata Sınırı ────────────────────────────────────────
@@ -883,16 +887,19 @@ export default function UretimEmirleriClient() {
     const ciftTarafli = emirler.length > 1;
     // Çift taraflı: her iki tarafın planlananı eşittir → mamul adedi = max(tek taraf).
     const planlananMiktar = grupPlanlanan(emirler);
+    const siparisPlanlananMiktar = Math.max(0, ...emirler.map((emir) => emir.siparisPlanlananMiktar ?? 0));
     // Taraflar arasında planlanan farklıysa satırda işaretlenir (throw edilmez).
     const asimetrik = grupAsimetrik(emirler);
-    // Sağ/Sol taraflı bir emir tek başına geldiyse eşi başka sayfada demektir
-    // (gruplama sayfa içi yapılır — S3 kısa vade işareti).
-    const esiEksik = emirler.length === 1 && (emirler[0].taraf === "sag" || emirler[0].taraf === "sol") && Boolean(emirler[0].partiNo);
     // Takım adedi: montaj operasyonundan okunur (toplama/min DEĞİL) — bkz. grupUretilen.
     const uretilen = grupUretilen(emirler);
     const uretilenMiktar = uretilen.miktar ?? 0;
     const uretilenVar = uretilen.miktar !== null;
-    const yuzde = planlananMiktar > 0 ? Math.min(100, Math.round((uretilenMiktar / planlananMiktar) * 100)) : 0;
+    // Montaj üretimi takım cinsinden gelir; aynı birimdeki sipariş hedefiyle karşılaştır.
+    // Operasyonun parça hedefiyle bölmek yüzdeyi yarıya düşürür (UE-2026-0190).
+    const ilerlemeHedefi = uretilen.birim === "Takım" && siparisPlanlananMiktar > 0
+      ? siparisPlanlananMiktar
+      : planlananMiktar;
+    const yuzde = ilerlemeHedefi > 0 ? Math.min(100, Math.round((uretilenMiktar / ilerlemeHedefi) * 100)) : 0;
     const makineAdlari = Array.from(new Set(emirler.map((e) => e.makineAdlari).filter((x): x is string => Boolean(x))));
     const tumAtanmamis = emirler.every((e) => e.makineAtamaSayisi === 0);
     const silinebilir = emirler.every((e) => e.silinebilir);
@@ -916,8 +923,9 @@ export default function UretimEmirleriClient() {
       ciftTarafli,
       emirIds: emirler.map((e) => e.id),
       planlananMiktar,
+      siparisPlanlananMiktar,
+      ilerlemeHedefi,
       asimetrik,
-      esiEksik,
       uretilenMiktar,
       uretilenBirim: uretilen.birim,
       uretilenVar,
@@ -1145,7 +1153,7 @@ export default function UretimEmirleriClient() {
                 {/* table-fixed: Urun sutunu artan tum genisligi yutup diger
                     sutunlari sikistirmasin; genislikler oransal dagilir
                     (YN 70fe2d32). */}
-                <Table className="table-fixed">
+                <Table className={`table-fixed ${isPlanlaTab ? "min-w-[1200px]" : "min-w-[980px]"}`}>
                   <TableHeader className="bg-muted/30">
                     <TableRow>
                       <TableHead className="w-[3%]" />
@@ -1196,9 +1204,6 @@ export default function UretimEmirleriClient() {
                           {/* Emir No + Durum */}
                           <TableCell>
                             <div className="font-bold font-mono text-sm text-slate-900 leading-none">{e.emirNo}</div>
-                            {agg.esiEksik && (
-                              <div className="mt-0.5 text-[10px] text-amber-600">Eşi diğer sayfada</div>
-                            )}
                             <Badge
                               className="mt-1 px-2 py-0 text-[10px] font-semibold"
                               variant={agg.terminRiski ? "destructive" : EMIR_DURUM_BADGE[agg.durum]}
@@ -1251,8 +1256,9 @@ export default function UretimEmirleriClient() {
                           {/* Planlanan Miktar */}
                           <TableCell className="text-right">
                             <span className="font-bold text-sm text-slate-900">
-                              {agg.planlananMiktar.toLocaleString("tr-TR")}
+                              {agg.ilerlemeHedefi.toLocaleString("tr-TR")}
                             </span>
+                            <div className="text-xs font-medium text-muted-foreground">{agg.uretilenBirim}</div>
                             {agg.asimetrik && (
                               <div className="font-medium text-[10px] text-amber-600">Taraflar farklı planlı</div>
                             )}
@@ -1350,7 +1356,7 @@ export default function UretimEmirleriClient() {
                         {acikDetay.has(mamul.key) && (
                           <TableRow key={`${mamul.key}-detay`} className="hover:bg-transparent">
                             <TableCell colSpan={isPlanlaTab ? 11 : 9} className="bg-slate-50/70 p-0">
-                              <UretimDetayPaneli emirler={mamul.emirler} />
+                              <MamulDetay emirId={mamul.emirler[0].id} />
                             </TableCell>
                           </TableRow>
                         )}

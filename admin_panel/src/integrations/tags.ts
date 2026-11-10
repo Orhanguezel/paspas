@@ -252,11 +252,16 @@ export const tags = [
   'LoginSettings',
   'TestCenter',
   'PageFeedback',
-  'ProjeTeklifiNot',
   'Teklif',
   'Teklifler',
   'TeklifTalep',
   'TeklifTalepleri',
+  'Firsat',
+  'Firsatlar',
+  'FirsatAktiviteler',
+  'FirmaBulmaProfil',
+  'FirmaNumaraSerisi',
+  'FirmaBulmaAdaylar',
 ] as const;
 
 export type tag = typeof tags[number];

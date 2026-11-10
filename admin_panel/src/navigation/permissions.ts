@@ -9,6 +9,10 @@ export type AdminNavKey =
   | "dashboard"
   | "urunler"
   | "musteriler"
+  | "firma_bulma"
+  | "firma_kurulumu"
+  | "crm"
+  | "firsat"
   | "is_ortaklari"
   | "makineler"
   | "kaliplar"
@@ -44,9 +48,10 @@ export type AdminNavKey =
   | "test_center"
   | "admin_documentation"
   | "vardiya_analizi"
-  | "proje_teklifi"
+  | "uretim_ozeti"
   | "web_sayfasi"
   | "yazilim_gorevleri"
+  | "promats_mcp"
   | "teklif_talepleri"
   | "teklifler"
   | "iletisim_mesajlari";
@@ -64,6 +69,10 @@ const NAV_ROLES: Record<AdminNavKey, PanelRole[]> = {
   dashboard: ["admin"],
   urunler: ["admin", "operator", "satin_almaci"],
   musteriler: ["admin", "satin_almaci"],
+  firma_bulma: ["admin", "nakliyeci"],
+  firma_kurulumu: ["admin"],
+  crm: ["admin"],
+  firsat: ["admin", "nakliyeci"],
   is_ortaklari: ["admin", "satin_almaci"],
   makineler: ["admin", "operator"],
   kaliplar: ["admin", "operator"],
@@ -99,9 +108,10 @@ const NAV_ROLES: Record<AdminNavKey, PanelRole[]> = {
   test_center: ["admin"],
   admin_documentation: ["admin"],
   vardiya_analizi: ["admin"],
-  proje_teklifi: ["admin"],
+  uretim_ozeti: ["admin"],
   web_sayfasi: ["admin"],
   yazilim_gorevleri: ["admin"],
+  promats_mcp: ["admin"],
   teklif_talepleri: ["admin", "nakliyeci"],
   teklifler: ["admin", "nakliyeci"],
   iletisim_mesajlari: ["admin"],
@@ -112,8 +122,10 @@ export function getAdminNavRoles(key: AdminNavKey): PanelRole[] {
 }
 
 // Bir rolün belirli bir URL'e erişip erişemeyeceğini kontrol eder
-export function canAccessAdminPath(role: PanelRole, pathname: string): boolean {
-  if (role === "admin") return true;
+export function canAccessAdminPath(role: PanelRole | PanelRole[], pathname: string): boolean {
+  const roles = Array.isArray(role) ? role : [role];
+  if (roles.includes("admin")) return true;
+  if (pathname === '/admin/alan-sec') return roles.includes('operator') || roles.includes('satin_almaci');
 
   // Her modülün URL prefix'ini izinli rollerle eşleştir
   const PATH_ROLE_MAP: Array<{ prefix: string; key: AdminNavKey }> = [
@@ -123,10 +135,16 @@ export function canAccessAdminPath(role: PanelRole, pathname: string): boolean {
     { prefix: "/admin/satis-siparisleri", key: "satis_siparisleri" },
     { prefix: "/admin/hareketler", key: "hareketler" },
     { prefix: "/admin/gantt", key: "gantt" },
+    { prefix: "/admin/uretim-ozeti", key: "uretim_ozeti" },
+    { prefix: "/admin/vardiya-analizi", key: "uretim_ozeti" },
     { prefix: "/admin/gorevler", key: "gorevler" },
     { prefix: "/admin/giris-ayarlari", key: "giris_ayarlari" },
     { prefix: "/admin/users", key: "kullanicilar" },
     { prefix: "/admin/musteriler", key: "musteriler" },
+    { prefix: "/admin/firma-bulma", key: "firma_bulma" },
+    { prefix: "/admin/firma-kurulumu", key: "firma_kurulumu" },
+    { prefix: "/admin/crm", key: "crm" },
+    { prefix: "/admin/firsat", key: "firsat" },
     { prefix: "/admin/dashboard", key: "dashboard" },
     { prefix: "/admin/sevkiyat", key: "sevkiyat" },
     { prefix: "/admin/mal-kabul", key: "mal_kabul" },
@@ -139,9 +157,9 @@ export function canAccessAdminPath(role: PanelRole, pathname: string): boolean {
     { prefix: "/admin/receteler", key: "urunler" },
     { prefix: "/admin/test-merkezi", key: "test_center" },
     { prefix: "/admin/dokumantasyon", key: "admin_documentation" },
-    { prefix: "/admin/proje-teklifi", key: "proje_teklifi" },
     { prefix: "/admin/web-sayfasi", key: "web_sayfasi" },
     { prefix: "/admin/yazilim-gorevleri", key: "yazilim_gorevleri" },
+    { prefix: "/admin/promats-mcp", key: "promats_mcp" },
     { prefix: "/admin/teklif-talepleri", key: "teklif_talepleri" },
     { prefix: "/admin/teklifler", key: "teklifler" },
     { prefix: "/admin/contacts", key: "iletisim_mesajlari" },
@@ -154,7 +172,7 @@ export function canAccessAdminPath(role: PanelRole, pathname: string): boolean {
 
   for (const { prefix, key } of PATH_ROLE_MAP) {
     if (clean === prefix || clean.startsWith(`${prefix}/`)) {
-      return NAV_ROLES[key].includes(role);
+      return roles.some((current) => NAV_ROLES[key].includes(current));
     }
   }
 

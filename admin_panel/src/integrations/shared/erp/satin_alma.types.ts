@@ -18,6 +18,7 @@ export interface SatinAlmaKalemDto {
   sira: number;
   kabulMiktar: number;
   kalanMiktar: number;
+  fazlaKabulMiktar: number;
   stok: number;
   kritikStok: number;
 }
@@ -113,6 +114,7 @@ export function normalizeSatinAlmaKalem(raw: unknown): SatinAlmaKalemDto {
     sira:        toNum(r.sira),
     kabulMiktar,
     kalanMiktar: r.kalanMiktar != null ? toNum(r.kalanMiktar) : Math.max(0, miktar - kabulMiktar),
+    fazlaKabulMiktar: r.fazlaKabulMiktar != null ? toNum(r.fazlaKabulMiktar) : Math.max(0, kabulMiktar - miktar),
     stok: toNum(r.stok),
     kritikStok: toNum(r.kritikStok),
   };

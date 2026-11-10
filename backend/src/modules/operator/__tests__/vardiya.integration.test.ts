@@ -8,7 +8,7 @@ import { uretimEmirleri, uretimEmriOperasyonlari } from "@/modules/uretim_emirle
 import { urunler } from "@/modules/urunler/schema";
 
 import { operatorGunlukKayitlari, vardiyaKayitlari } from "../schema";
-import { repoGunlukUretimGir } from "../repository";
+import { repoGunlukUretimGir, repoUpdateGunlukUretimKaydi } from "../repository";
 
 const runIntegration = process.env.RUN_DB_INTEGRATION === "1";
 const describeIntegration = runIntegration ? describe : describe.skip;
@@ -102,6 +102,22 @@ describeIntegration("vardiya DB integration", () => {
   });
 
   afterAll(async () => {
+  });
+
+  it("admin tarih düzeltmesinde eski vardiya bağlantısını bırakır, miktarı korur", async () => {
+    const entry = await repoGunlukUretimGir({
+      makineId: ids.makine,
+      vardiyaKayitId: ids.vardiya,
+      uretilenMiktar: 3,
+      fireMiktar: 1,
+      birimTipi: "adet",
+    }, null);
+    const updated = await repoUpdateGunlukUretimKaydi(entry.id, {
+      kayitTarihi: "2026-05-01T09:00:00.000Z",
+    }, null);
+    expect(updated?.vardiyaKayitId).toBeNull();
+    expect(updated?.kayitTarihi).toBe("2026-05-01T09:00:00.000Z");
+    expect(updated?.netMiktar).toBe(2);
   });
 
   it("allows production quantity entry on a closed shift", async () => {

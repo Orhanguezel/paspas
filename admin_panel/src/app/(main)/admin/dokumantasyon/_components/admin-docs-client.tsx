@@ -41,10 +41,13 @@ function InlineText({ text }: { text: string }) {
     <>
       {parts.map((part) => {
         if (part.code) {
+          const value = part.value.slice(1, -1);
+          const code = <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.85em] text-foreground">{value}</code>;
+          if (value.startsWith("https://")) {
+            return <a key={part.key} href={value} target="_blank" rel="noopener noreferrer" className="break-all underline underline-offset-2">{code}</a>;
+          }
           return (
-            <code key={part.key} className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.85em] text-foreground">
-              {part.value.slice(1, -1)}
-            </code>
+            <code key={part.key} className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.85em] text-foreground">{value}</code>
           );
         }
 

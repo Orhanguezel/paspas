@@ -1,4 +1,5 @@
 import type { FastifyReply, RouteHandler } from 'fastify';
+import { hasAnyRole } from '@/common/middleware/roles';
 
 import {
   listMakineKuyruguQuerySchema,
@@ -218,6 +219,7 @@ export const updateGunlukUretimKaydi: RouteHandler = async (req, reply) => {
     const { id } = req.params as { id: string };
     const parsed = gunlukUretimPatchBodySchema.safeParse(req.body);
     if (!parsed.success) return sendError(reply, 400, 'gecersiz_istek_govdesi');
+    if (parsed.data.kayitTarihi && !hasAnyRole(req, ['admin'])) return sendError(reply, 403, 'forbidden');
     const result = await repoUpdateGunlukUretimKaydi(id, parsed.data, getOperatorUserId(req));
     if (!result) return sendError(reply, 404, 'gunluk_kayit_bulunamadi');
     return result;

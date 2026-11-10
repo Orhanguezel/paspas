@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { Factory, Lock, RefreshCcw, Search } from "lucide-react";
+import { Lock, RefreshCcw, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -18,7 +18,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,7 +27,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   useListSiparisIslemleriAdminQuery,
   useUpdateSatisSiparisiAdminMutation,
-  useUretimeAktarAdminMutation,
 } from "@/integrations/endpoints/admin/erp/satis_siparisleri_admin.endpoints";
 import type { KalemUretimDurumu, SiparisIslemSatiri } from "@/integrations/shared/erp/satis_siparisleri.types";
 import { KALEM_URETIM_DURUMU_LABELS } from "@/integrations/shared/erp/satis_siparisleri.types";
@@ -55,8 +53,6 @@ export default function SiparisIslemleriTab() {
   const [gorunum, setGorunum] = React.useState<Gorunum>("siparis");
   const [durumFiltre, setDurumFiltre] = React.useState<string>("all");
   const [gizleTamamlanan, setGizleTamamlanan] = React.useState(true);
-  const [seciliKalemler, setSeciliKalemler] = React.useState<Set<string>>(new Set());
-  const [aktarDialogAcik, setAktarDialogAcik] = React.useState(false);
 
   const {
     data: items = [],
@@ -74,7 +70,6 @@ export default function SiparisIslemleriTab() {
     { pollingInterval: 30_000, refetchOnMountOrArgChange: true, refetchOnFocus: true },
   );
 
-  const [uretimeAktar, { isLoading: aktarLoading }] = useUretimeAktarAdminMutation();
   const [updateSiparis, closeState] = useUpdateSatisSiparisiAdminMutation();
   const [closeTarget, setCloseTarget] = React.useState<SiparisIslemSatiri | null>(null);
 
@@ -90,65 +85,6 @@ export default function SiparisIslemleriTab() {
     } finally {
       setCloseTarget(null);
     }
-  }
-
-  // Sadece beklemede olanlar secilebilir
-  const secilebilirler = React.useMemo(() => items.filter((i) => i.uretimDurumu === "beklemede"), [items]);
-  const tumSecilebilirlerSecili =
-    secilebilirler.length > 0 && secilebilirler.every((item) => seciliKalemler.has(item.kalemId));
-
-  const tumunuSec = () => {
-    if (tumSecilebilirlerSecili) {
-      setSeciliKalemler((prev) => {
-        const next = new Set(prev);
-        for (const item of secilebilirler) next.delete(item.kalemId);
-        return next;
-      });
-    } else {
-      setSeciliKalemler(new Set(secilebilirler.map((i) => i.kalemId)));
-    }
-  };
-
-  const toggleKalem = (kalemId: string) => {
-    setSeciliKalemler((prev) => {
-      const next = new Set(prev);
-      if (next.has(kalemId)) next.delete(kalemId);
-      else next.add(kalemId);
-      return next;
-    });
-  };
-
-  // Secili kalemlerde ayni urun var mi? (birlestirme secenegi icin)
-  const seciliItems = React.useMemo(() => items.filter((i) => seciliKalemler.has(i.kalemId)), [items, seciliKalemler]);
-  const ayniUrunVarMi = React.useMemo(() => {
-    const urunIds = new Set(seciliItems.map((i) => i.urunId));
-    return seciliItems.length > 1 && urunIds.size < seciliItems.length;
-  }, [seciliItems]);
-
-  async function handleAktar(birlestir: boolean) {
-    try {
-      const result = await uretimeAktar({
-        kalemIds: Array.from(seciliKalemler),
-        birlestir,
-      }).unwrap();
-      if (result.atlananSayisi > 0) {
-        toast.warning(result.message);
-      } else {
-        toast.success(result.message);
-      }
-      setSeciliKalemler(new Set());
-      setAktarDialogAcik(false);
-    } catch (err: unknown) {
-      const detail = (err as { data?: { error?: { detail?: string } } })?.data?.error?.detail;
-      toast.error(detail ?? "Üretime aktarma sırasında hata oluştu.");
-    }
-  }
-
-  function openUretimeAktarForRows(rows: SiparisIslemSatiri[]) {
-    const kalemIds = rows.filter((item) => item.uretimDurumu === "beklemede").map((item) => item.kalemId);
-    if (kalemIds.length === 0) return;
-    setSeciliKalemler(new Set(kalemIds));
-    setAktarDialogAcik(true);
   }
 
   // Gruplama — tamamlanan üretimde gerçek, diğerlerinde planlanan en geç bitiş kullanılır.
@@ -199,49 +135,33 @@ export default function SiparisIslemleriTab() {
   }, [items, gorunum]);
 
   function renderTable(rows: SiparisIslemSatiri[]) {
-    const showSelection = gorunum !== "siparis";
-    const emptyColSpan = 6 + (gorunum !== "musteri" ? 1 : 0) + (gorunum !== "urun" ? 1 : 0) + (showSelection ? 1 : 0);
+    const emptyColSpan = 6 + (gorunum !== "musteri" ? 1 : 0) + (gorunum !== "urun" ? 1 : 0);
     return (
-      <Table>
+      <Table className="min-w-[1120px] table-fixed">
         <TableHeader>
           <TableRow>
-            {showSelection && (
-              <TableHead className="w-10">
-                <Checkbox checked={tumSecilebilirlerSecili} onCheckedChange={tumunuSec} />
-              </TableHead>
-            )}
-            <TableHead>Sipariş No</TableHead>
-            {gorunum !== "musteri" && <TableHead>Müşteri</TableHead>}
+            <TableHead className="w-32">Sipariş No</TableHead>
+            {gorunum !== "musteri" && <TableHead className="w-44">Müşteri</TableHead>}
             {gorunum !== "urun" && <TableHead>Ürün</TableHead>}
-            <TableHead className="text-right">Stok</TableHead>
-            <TableHead className="text-right">Miktar</TableHead>
-            <TableHead className="text-right">Üretilen</TableHead>
-            <TableHead className="text-right">Sevk Edilen</TableHead>
-            <TableHead>Bitiş Tarihi</TableHead>
+            <TableHead className="w-28 text-right">Stok</TableHead>
+            <TableHead className="w-24 text-right">Miktar</TableHead>
+            <TableHead className="w-32 text-right">Üretilen</TableHead>
+            <TableHead className="w-32 text-right">Sevk Edilen</TableHead>
+            <TableHead className="w-40">Bitiş Tarihi</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((item) => {
-            const secilebilir = item.uretimDurumu === "beklemede";
             const uretimDisplay = getUretimDisplay(item);
             const sevkDisplay = getSevkDisplay(item);
             const bitisDisplay = getBitisDisplay(item);
             return (
-              <TableRow key={item.kalemId} className={seciliKalemler.has(item.kalemId) ? "bg-primary/5" : ""}>
-                {showSelection && (
-                  <TableCell>
-                    <Checkbox
-                      checked={seciliKalemler.has(item.kalemId)}
-                      onCheckedChange={() => toggleKalem(item.kalemId)}
-                      disabled={!secilebilir}
-                    />
-                  </TableCell>
-                )}
+              <TableRow key={item.kalemId}>
                 <TableCell className="font-mono text-xs">{item.siparisNo}</TableCell>
                 {gorunum !== "musteri" && <TableCell>{item.musteriAd}</TableCell>}
                 {gorunum !== "urun" && (
-                  <TableCell>
-                    <div className="min-w-0">
+                  <TableCell className="whitespace-normal break-words">
+                    <div className="min-w-0 break-words">
                       <div>
                         <span className="mr-1 text-muted-foreground text-xs">{item.urunKod}</span>
                         {item.urunAd}
@@ -325,10 +245,7 @@ export default function SiparisIslemleriTab() {
 
             <Select
               value={gorunum}
-              onValueChange={(v) => {
-                setGorunum(v as Gorunum);
-                setSeciliKalemler(new Set());
-              }}
+              onValueChange={(v) => setGorunum(v as Gorunum)}
             >
               <SelectTrigger className="w-[160px]">
                 <SelectValue />
@@ -367,12 +284,6 @@ export default function SiparisIslemleriTab() {
               <RefreshCcw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
             </Button>
 
-            {seciliKalemler.size > 0 && (
-              <Button onClick={() => setAktarDialogAcik(true)} disabled={aktarLoading} className="gap-1.5">
-                <Factory className="h-4 w-4" />
-                Üretime Aktar ({seciliKalemler.size})
-              </Button>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -417,11 +328,6 @@ export default function SiparisIslemleriTab() {
                       </span>
                     </span>
                   )}
-                  {gorunum === "siparis" && group.items.some((item) => item.uretimDurumu === "beklemede") && (
-                    <Button size="sm" variant="outline" onClick={() => openUretimeAktarForRows(group.items)}>
-                      <Factory className="mr-1 size-4" /> Üretime Aktar
-                    </Button>
-                  )}
                   {gorunum === "siparis" && (
                     <Button
                       variant="ghost"
@@ -447,30 +353,6 @@ export default function SiparisIslemleriTab() {
       )}
 
       {!isLoading && <p className="text-right text-muted-foreground text-sm">Toplam {items.length} kalem</p>}
-
-      {/* Uretime Aktar Dialog */}
-      <AlertDialog open={aktarDialogAcik} onOpenChange={setAktarDialogAcik}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Üretime Aktar</AlertDialogTitle>
-            <AlertDialogDescription>
-              {seciliKalemler.size} sipariş kalemi için üretim emri oluşturulacak.
-              {ayniUrunVarMi && " Aynı ürüne ait kalemler tespit edildi."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>İptal</AlertDialogCancel>
-            {ayniUrunVarMi && (
-              <AlertDialogAction onClick={() => handleAktar(true)} disabled={aktarLoading}>
-                Birleştir
-              </AlertDialogAction>
-            )}
-            <AlertDialogAction onClick={() => handleAktar(false)} disabled={aktarLoading}>
-              {ayniUrunVarMi ? "Ayrı Ayrı" : "Üretime Aktar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Siparişi Kapat Dialog */}
       <AlertDialog open={!!closeTarget} onOpenChange={(v) => !v && setCloseTarget(null)}>

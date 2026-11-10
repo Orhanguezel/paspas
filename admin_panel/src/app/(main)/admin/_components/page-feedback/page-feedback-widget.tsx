@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 
-import { Bug, ImagePlus, MessageSquarePlus, Mic, Send, Square, X } from "lucide-react";
+import { ImagePlus, MessageSquarePlus, Mic, Send, Square, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,7 @@ import type {
 } from "@/integrations/shared";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { cn } from "@/lib/utils";
+import { MatiMotionMark } from "@/app/(main)/admin/(admin)/yazilim-gorevleri/_components/mati-motion-mark";
 
 const STATUS_LABELS: Record<string, string> = {
   open: "Acik",
@@ -389,10 +390,15 @@ export function PageFeedbackWidget() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button className="fixed right-5 bottom-5 z-40 gap-2 shadow-lg" size="sm">
-          <Bug className="size-4" />
-          Yazilimci Notu
-          {openCount ? <Badge variant="secondary">{openCount}</Badge> : null}
+        <Button
+          aria-label="Yazılımcı Notu"
+          title="Yazılımcı Notu"
+          className="fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+12px)] z-40 h-11 min-w-11 gap-1.5 rounded-full px-1.5 shadow-lg sm:right-5 sm:bottom-5 sm:h-10 sm:rounded-xl sm:px-2.5"
+          size="sm"
+        >
+          <MatiMotionMark compact />
+          <span className="hidden sm:inline">Yazılımcı Notu</span>
+          {openCount ? <Badge variant="secondary" className="absolute -top-2 -right-1 min-w-5 px-1 sm:static sm:min-w-0 sm:px-2">{openCount}</Badge> : null}
         </Button>
       </SheetTrigger>
       <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">

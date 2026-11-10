@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { ChevronRight, MailIcon, PlusCircleIcon } from 'lucide-react';
+import { ChevronDown, ChevronRight, MailIcon, PlusCircleIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -16,7 +17,6 @@ import {
 import {
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -30,6 +30,8 @@ import { useAdminT } from '@/app/(main)/admin/_components/common/useAdminT';
 
 interface NavMainProps {
   readonly items: readonly NavGroup[];
+  readonly favorites?: readonly string[];
+  readonly onToggleFavorite?: (key: string) => void;
   /** Quick create button; set false to hide */
   showQuickCreate?: boolean;
 }
@@ -175,10 +177,22 @@ const NavItemCollapsed = ({
   );
 };
 
-export function NavMain({ items, showQuickCreate = false }: NavMainProps) {
+export function NavMain({ items, favorites = [], onToggleFavorite, showQuickCreate = false }: NavMainProps) {
   const path = usePathname();
   const { state, isMobile } = useSidebar();
   const t = useAdminT();
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setOpenGroups((before) => {
+      const next = { ...before };
+      for (const group of items) {
+        if (next[group.key] === undefined) next[group.key] = group.key !== 'other';
+        if (group.items.some((item) => item.url.split('?')[0] === path || item.subItems?.some((sub) => sub.url.split('?')[0] === path))) next[group.key] = true;
+      }
+      return next;
+    });
+  }, [items, path]);
 
   const isItemActive = (url: string, subItems?: NavMainItem['subItems']) => {
     if (subItems?.length) {
@@ -220,9 +234,17 @@ export function NavMain({ items, showQuickCreate = false }: NavMainProps) {
       )}
 
       {items.map((group) => (
-        <SidebarGroup key={group.id}>
-          {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
+        <Collapsible key={group.id} open={state === 'collapsed' && !isMobile ? true : (openGroups[group.key] ?? group.key !== 'other')}
+          onOpenChange={(open) => setOpenGroups((before) => ({ ...before, [group.key]: open }))}>
+        <SidebarGroup>
+          {group.label && <CollapsibleTrigger asChild>
+            <button type="button" className="flex w-full items-center justify-between rounded-md border-l-[3px] border-primary/70 bg-sidebar-accent/60 px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-sidebar-foreground hover:bg-sidebar-accent group-data-[collapsible=icon]:hidden"
+              aria-label={`${group.label} bölümünü aç veya kapat`}>
+              <span>{group.label}</span><ChevronDown className="size-4 transition-transform [[data-state=closed]>&]:-rotate-90" />
+            </button>
+          </CollapsibleTrigger>}
 
+          <CollapsibleContent forceMount={state === 'collapsed' && !isMobile ? true : undefined}>
           <SidebarGroupContent className="flex flex-col gap-1">
             <SidebarMenu>
               {group.items.map((item) => {
@@ -265,7 +287,9 @@ export function NavMain({ items, showQuickCreate = false }: NavMainProps) {
               })}
             </SidebarMenu>
           </SidebarGroupContent>
+          </CollapsibleContent>
         </SidebarGroup>
+        </Collapsible>
       ))}
     </>
   );

@@ -23,6 +23,7 @@ export type UretimKaydi = {
   urunId: string;
   urunKod: string | null;
   urunAd: string;
+  urunBirim?: string;
   operasyonId: string | null;
   operasyonAdi: string;
   operasyonTipi: string | null;

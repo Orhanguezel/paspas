@@ -17,6 +17,8 @@ export type PmStat = { value: string; label: string };
 
 export type PmContactLabels = {
   title: string;
+  /** Baslik altinda gosterilen opsiyonel tanitim paragrafi. */
+  text?: string;
   name: string;
   email: string;
   phone: string;
@@ -189,6 +191,7 @@ export function PmContactBlock({
       <div className="container">
         <div className="pm-contact__card" data-aos="fade-up">
           <h2 className="pm-contact__title">{labels.title}</h2>
+          {labels.text ? <p className="pm-contact__text">{labels.text}</p> : null}
           <PromatsContactForm formClassName="pm-contact__form" labels={labels} />
         </div>
       </div>

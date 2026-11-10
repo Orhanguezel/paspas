@@ -54,6 +54,88 @@ function parseTransportIcons(value: string | null): TransportIcons | null {
   }
 }
 
+// --- Musteri revizesi 2026-08 (H3-H6): akordiyon bolumleri DB icerigine dokunmadan
+// render sirasinda yeniden bicimlendirilir. Icerik <h3> alt basliklarina bolunur;
+// "5 Parca Tam Set" ve SSS ayri akordiyon olur, "Hakkinda Bilgi Alin" blogu dusurulur
+// (alttaki ilgi CTA'siyla mukerrerdi). TR 20/20, EN yeni katalog 12 urunde ayni kalip;
+// kalip bulunamayan iceriklerde hicbir sey degismez (fail-soft).
+
+type AccordionSection = {
+  title: string;
+  html: string;
+  /** Statik basliklar static_texts uzerinden cevrilir; icerikten gelenler zaten yerel dilde. */
+  translateTitle: boolean;
+};
+
+type H3Part = { title: string; html: string };
+
+/** HTML'i <h3> alt basliklarina gore [giris, bolumler] olarak ayirir. */
+function splitByH3(html: string): { lead: string; parts: H3Part[] } {
+  const parts: H3Part[] = [];
+  let lead = '';
+  for (const piece of html.split(/(?=<h3[^>]*>)/i)) {
+    const heading = piece.match(/^<h3[^>]*>([\s\S]*?)<\/h3>/i);
+    if (!heading) {
+      lead += piece;
+      continue;
+    }
+    parts.push({
+      title: heading[1]!.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(),
+      html: piece.slice(heading[0].length),
+    });
+  }
+  return { lead, parts };
+}
+
+function joinH3Parts(lead: string, parts: H3Part[]): string {
+  return lead + parts.map((part) => `<h3>${part.title}</h3>${part.html}`).join('');
+}
+
+const FAQ_TITLE_RE = /sık sorulan|frequently asked/i;
+const INFO_TITLE_RE = /hakkında bilgi|get information|learn more about/i;
+
+/** Soru paragraflarini bold yapar (EN icerik zaten <strong> ile geliyor; cifte sarmaz). */
+function boldQuestions(html: string): string {
+  return html.replace(/<p>(?!\s*<strong)([^<]*\?)\s*<\/p>/gi, '<p><strong>$1</strong></p>');
+}
+
+/** Urun detay akordiyonlarini musteri revizesindeki yapiya gore kurar. */
+function buildDetailSections(detail: NonNullable<Product['detailContent']> | undefined): AccordionSection[] {
+  const sections: AccordionSection[] = [];
+  const push = (title: string, html: string | null | undefined, translateTitle: boolean) => {
+    const decoded = decodeHtml(html ?? '');
+    if (decoded.trim()) sections.push({ title, html: decoded, translateTitle });
+  };
+
+  push('Ürün Açıklaması', detail?.description, true);
+
+  // H3 — teknik icindeki "<h3>5 Parca Tam Set</h3>..." kuyrugu ayri akordiyon olur.
+  const tech = splitByH3(decodeHtml(detail?.technical ?? ''));
+  push('Teknik Özellikler', tech.lead, true);
+  for (const part of tech.parts) push(part.title, part.html, false);
+
+  // H4 — "Kullanim Alanlari" basligi yerine icerigin ilk <h3> basligi (Temizlik ve Bakim).
+  const usage = splitByH3(decodeHtml(detail?.usage ?? ''));
+  if (!usage.lead.trim() && usage.parts.length === 1) {
+    push(usage.parts[0]!.title, usage.parts[0]!.html, false);
+  } else {
+    push('Kullanım Alanları', joinH3Parts(usage.lead, usage.parts), true);
+  }
+
+  // H5/H6 — SSS avantajlardan ayrilir ve en sona gider; "Hakkinda Bilgi Alin" dusurulur.
+  const adv = splitByH3(decodeHtml(detail?.advantages ?? ''));
+  const faq = adv.parts.find((part) => FAQ_TITLE_RE.test(part.title)) ?? null;
+  const kept = adv.parts.filter((part) => part !== faq && !INFO_TITLE_RE.test(part.title));
+  push('Avantajları', joinH3Parts(adv.lead, kept), true);
+
+  push('Malzeme ve Dayanıklılık', detail?.material, true);
+  push('Universal Tasarım', detail?.universal, true);
+
+  if (faq) push(faq.title, boldQuestions(faq.html), false);
+
+  return sections;
+}
+
 export default function PromatsProductDetail({ locale, product, related, settings, cards }: Props) {
   const s = product.sections;
   const colors = (product.features ?? []).filter((item) => item.type === 1 && item.image);
@@ -90,14 +172,7 @@ export default function PromatsProductDetail({ locale, product, related, setting
   const exportTitle = settingValue(settings, '35’TEN FAZLA ÜLKEYE İHRACAT!');
   const exportDescription = settingValue(settings, 'Hava, Tren, Karayolu ya da su yolu üzerinden güvenli alışveriş.');
   const hasSpecs = Boolean(dimensionRows.length || dims[3] || dims[4] || exportTitle || exportDescription || transportRows.length);
-  const detailSections = [
-    ['Ürün Açıklaması', product.detailContent?.description],
-    ['Teknik Özellikler', product.detailContent?.technical],
-    ['Kullanım Alanları', product.detailContent?.usage],
-    ['Avantajları', product.detailContent?.advantages],
-    ['Malzeme ve Dayanıklılık', product.detailContent?.material],
-    ['Universal Tasarım', product.detailContent?.universal],
-  ].filter((item): item is [string, string] => Boolean(item[1]?.trim()));
+  const detailSections = buildDetailSections(product.detailContent);
 
   return (
     <>
@@ -295,10 +370,10 @@ export default function PromatsProductDetail({ locale, product, related, setting
           <DevNote section="product-content" title="Ürün SEO / GEO İçerikleri" />
           <div className="container">
             <div className="promats-product-accordions">
-              {detailSections.map(([label, content], index) => (
-                <details key={label} open={index === 0}>
-                  <summary>{t(settings, label)}</summary>
-                  <div className="promats-product-accordion-body" dangerouslySetInnerHTML={{ __html: decodeHtml(content) }} />
+              {detailSections.map((section, index) => (
+                <details key={section.title} open={index === 0}>
+                  <summary>{section.translateTitle ? t(settings, section.title) : section.title}</summary>
+                  <div className="promats-product-accordion-body" dangerouslySetInnerHTML={{ __html: section.html }} />
                 </details>
               ))}
             </div>

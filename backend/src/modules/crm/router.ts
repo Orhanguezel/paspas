@@ -10,8 +10,10 @@ import { dashboard } from './controller';
 import { reports } from './controller';
 import { savedViewCreate, savedViewDelete, savedViews, savedViewUpdate } from './controller';
 import { requireOwnActivity, requireOwnDeal, requireOwnLead, requireOwnTimeline, requireScopedReference } from './scope';
+import { registerCompanyDesk } from './company-desk.routes';
 
 export async function registerCrm(app: FastifyInstance) {
+  await registerCompanyDesk(app);
   const read = makeAdminPermissionGuard('admin.crm_firsatlar');
   const activity = makeAdminPermissionGuard('admin.crm_aktiviteler');
   const pipeline=makeAdminPermissionGuard('admin.crm_pipeline'),dashboardGuard=makeAdminPermissionGuard('admin.crm_dashboard'),reportsGuard=makeAdminPermissionGuard('admin.crm_raporlar'),automationGuard=makeAdminPermissionGuard('admin.crm_otomasyon'),leadGuard=makeAdminPermissionGuard('admin.crm_talepler');

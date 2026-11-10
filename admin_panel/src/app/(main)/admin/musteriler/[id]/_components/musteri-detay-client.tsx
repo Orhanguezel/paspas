@@ -15,12 +15,14 @@ import { useListSatisSiparisleriAdminQuery } from '@/integrations/endpoints/admi
 import { useListTekliflerAdminQuery, useListTeklifTalepleriAdminQuery } from '@/integrations/endpoints/admin/erp/teklifler_admin.endpoints';
 import { SIPARIS_DURUM_LABELS, SIPARIS_DURUM_COLORS } from '@/integrations/shared/erp/satis_siparisleri.types';
 import { TALEP_DURUM_BADGE, TALEP_DURUM_LABELS, TEKLIF_DURUM_BADGE, TEKLIF_DURUM_LABELS } from '@/integrations/shared/erp/teklifler.types';
+import CompanyDesk from '../../../crm/company-desk';
 
 interface Props {
   id: string;
+  embedded?: boolean;
 }
 
-export default function MusteriDetayClient({ id }: Props) {
+export default function MusteriDetayClient({ id, embedded = false }: Props) {
   const { t } = useLocaleContext();
   const { data: musteri, isLoading, refetch } = useGetMusteriAdminQuery(id);
   const { data: siparisler } = useListSatisSiparisleriAdminQuery({ musteriId: id });
@@ -51,17 +53,17 @@ export default function MusteriDetayClient({ id }: Props) {
   const items = siparisler?.items ?? [];
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild>
+          {!embedded && <Button variant="ghost" size="icon" asChild>
             <Link href="/admin/musteriler">
               <ArrowLeft className="size-4" />
             </Link>
-          </Button>
+          </Button>}
           <div>
             <h1 className="text-lg font-semibold">{musteri.ad}</h1>
-            <p className="text-sm text-muted-foreground">{musteri.kod}</p>
+            <p className="text-sm text-muted-foreground">Firma ID: {musteri.kod}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -78,7 +80,7 @@ export default function MusteriDetayClient({ id }: Props) {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid min-w-0 gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">{t('admin.erp.musteriler.summary.contact')}</CardTitle>
@@ -151,8 +153,8 @@ export default function MusteriDetayClient({ id }: Props) {
             </div>
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">{t('admin.erp.musteriler.columns.durum')}</span>
-              <Badge variant={musteri.isActive ? 'default' : 'secondary'}>
-                {musteri.isActive ? t('admin.erp.common.active') : t('admin.erp.common.inactive')}
+              <Badge variant={musteri.musteriDurumu === 'aday' ? 'outline' : musteri.isActive ? 'default' : 'secondary'}>
+                {musteri.musteriDurumu === 'aday' ? 'Aday' : musteri.musteriDurumu === 'pasif' ? 'Pasif müşteri' : 'Müşteri'}
               </Badge>
             </div>
             <div className="flex justify-between gap-3">
@@ -163,12 +165,15 @@ export default function MusteriDetayClient({ id }: Props) {
         </Card>
       </div>
 
-      <Tabs defaultValue="teklifler" className="space-y-4">
-        <TabsList>
+      <Tabs defaultValue={embedded ? 'ihracat' : 'teklifler'} className="min-w-0 space-y-4">
+        <TabsList className="flex h-auto max-w-full flex-wrap justify-start gap-1">
+          <TabsTrigger value="ihracat">İhracat Masası</TabsTrigger>
           <TabsTrigger value="teklifler">Teklifler ({teklifler?.total ?? 0})</TabsTrigger>
           <TabsTrigger value="talepler">Talepler ({talepler?.total ?? 0})</TabsTrigger>
           <TabsTrigger value="siparisler">Siparişler ({items.length})</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="ihracat"><CompanyDesk id={id} /></TabsContent>
 
         <TabsContent value="teklifler">
           <Card>

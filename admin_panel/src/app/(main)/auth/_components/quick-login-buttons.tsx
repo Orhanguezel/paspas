@@ -70,14 +70,16 @@ export function QuickLoginButtons() {
   const handleQuickLogin = async (account: (typeof DEMO_ACCOUNTS)[number]) => {
     setBusy(account.key);
     try {
-      await login({
+      const response = await login({
         grant_type: 'password',
         email: account.email,
         password: PASSWORD,
       }).unwrap();
 
       toast.success(t('admin.auth.login.loginSuccess'));
-      router.replace(ROLE_HOME[account.panelRole]);
+      const roles = response.user?.roles ?? [response.user?.role];
+      const dualMobile = !roles.includes('admin') && roles.includes('operator') && roles.includes('satin_almaci') && window.innerWidth < 768;
+      router.replace(dualMobile ? '/admin/alan-sec' : ROLE_HOME[account.panelRole]);
       router.refresh();
     } catch {
       toast.error(t('admin.auth.login.loginFailed'));

@@ -119,6 +119,7 @@ export type UretimKaydiOzet = {
   baslangic: string;
   bitis: string | null;
   urunAd: string;
+  urunBirim: string;
   urunKod: string | null;
   operasyonAdi: string | null;
   montaj: boolean;
@@ -171,6 +172,7 @@ export type VardiyaAnalizResponse = {
   durusDetaylari: DurusDetayOzet[];
   durusOzeti: DurusNedeniOzet[];
   ozet: VardiyaAnalizOzet;
+  vardiyaTakvimi: Array<{ gun: string; vardiyaTipleri: string[] }>;
 };
 
 export type DurusDetay = {
@@ -224,6 +226,7 @@ export type VardiyaDetayResponse = {
 };
 
 export type GunlukUretimKaydiPatchPayload = {
+  kayitTarihi?: string;
   ekUretimMiktari?: number;
   fireMiktari?: number;
   netMiktar?: number;

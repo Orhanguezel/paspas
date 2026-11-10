@@ -16,13 +16,16 @@ const BASE = '/admin/musteriler';
 
 export const musterilerAdminApi = baseApi.injectEndpoints({
   endpoints: (b) => ({
-    listMusterilerAdmin: b.query<MusteriListResponse, { search?: string; tur?: string } | void>({
+    listMusterilerAdmin: b.query<MusteriListResponse, { search?: string; tur?: string; musteriDurumu?: string; gorunum?: 'musteriler' | 'adaylar' | 'arastirmalar'; limit?: number } | void>({
       query: (params) => ({
         url: BASE,
         params: params
           ? {
               ...(params.search ? { q: params.search } : {}),
               ...(params.tur ? { tur: params.tur } : {}),
+              ...(params.musteriDurumu ? { musteriDurumu: params.musteriDurumu } : {}),
+              ...(params.gorunum ? { gorunum: params.gorunum } : {}),
+              ...(params.limit ? { limit: params.limit } : {}),
             }
           : undefined,
       }),

@@ -19,8 +19,6 @@ type TxOrDb = MySql2Database<any> | Parameters<Parameters<typeof db.transaction>
 /** Varsayilan calisma saatleri (calisir_24_saat = 0 icin) */
 const DEFAULT_WORK_START_HOUR = 8;
 const DEFAULT_WORK_END_HOUR = 17;
-const DEFAULT_DAILY_WORK_MINUTES = (DEFAULT_WORK_END_HOUR - DEFAULT_WORK_START_HOUR) * 60; // 540 dk
-
 /** Sonsuz donguyu engellemek icin maksimum gun atlama */
 const MAX_SKIP_DAYS = 90;
 
@@ -31,8 +29,22 @@ export type MakineWorkConfig = {
   calisir24Saat: boolean;
   workStartHour: number;
   workEndHour: number;
+  workStartMinute?: number;
+  workEndMinute?: number;
   dailyWorkMinutes: number;
 };
+
+function startMinute(config: MakineWorkConfig): number {
+  return config.workStartMinute ?? config.workStartHour * 60;
+}
+
+function endMinute(config: MakineWorkConfig): number {
+  return config.workEndMinute ?? config.workEndHour * 60;
+}
+
+function atMinute(date: Date, minute: number): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), Math.floor(minute / 60), minute % 60, 0, 0);
+}
 
 export type HolidaySet = Set<string>; // 'YYYY-MM-DD' formatinda
 
@@ -159,22 +171,22 @@ export function skipToNextWorkingDay(
     if (isWorkingDay(current, makineId, holidays, weekendPlans)) {
       // Calisma saati kontrolu (24 saat makineler icin gerek yok)
       if (!config.calisir24Saat) {
-        const hour = current.getHours();
-        if (hour >= config.workEndHour) {
+        const minute = current.getHours() * 60 + current.getMinutes();
+        if (minute >= endMinute(config)) {
           // Is gunu bitmis, ertesi gune gec
-          current = new Date(current.getFullYear(), current.getMonth(), current.getDate() + 1, config.workStartHour, 0, 0);
+          current = atMinute(new Date(current.getFullYear(), current.getMonth(), current.getDate() + 1), startMinute(config));
           continue;
         }
-        if (hour < config.workStartHour) {
+        if (minute < startMinute(config)) {
           // Is gunu henuz baslamadi
-          current = new Date(current.getFullYear(), current.getMonth(), current.getDate(), config.workStartHour, 0, 0);
+          current = atMinute(current, startMinute(config));
         }
       }
       return current;
     }
 
     // Sonraki gune gec (is basi saatinde)
-    current = new Date(current.getFullYear(), current.getMonth(), current.getDate() + 1, config.workStartHour, 0, 0);
+    current = atMinute(new Date(current.getFullYear(), current.getMonth(), current.getDate() + 1), startMinute(config));
   }
 
   return current;
@@ -203,10 +215,10 @@ export function splitIntoWorkingSegments(
       const dayEnd = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1, 0, 0, 0, 0);
       const workStart = config.calisir24Saat
         ? dayStart
-        : new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), config.workStartHour, 0, 0, 0);
+        : atMinute(cursor, startMinute(config));
       const workEnd = config.calisir24Saat
         ? dayEnd
-        : new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), config.workEndHour, 0, 0, 0);
+        : atMinute(cursor, endMinute(config));
 
       const segmentStart = new Date(Math.max(workStart.getTime(), baslangic.getTime()));
       const segmentEnd = new Date(Math.min(workEnd.getTime(), bitis.getTime()));
@@ -271,12 +283,12 @@ export function addWorkingMinutes(
     cursor = skipToNextWorkingDay(cursor, config.makineId, config, holidays, weekendPlans);
 
     // Gunde kalan calisma dakikasi
-    const endOfWorkDay = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), config.workEndHour, 0, 0);
+    const endOfWorkDay = atMinute(cursor, endMinute(config));
     const remainingInDay = Math.max(0, Math.floor((endOfWorkDay.getTime() - cursor.getTime()) / 60_000));
 
     if (remainingInDay <= 0) {
       // Is gunu bitmis, ertesi gune gec
-      cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1, config.workStartHour, 0, 0);
+      cursor = atMinute(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1), startMinute(config));
       continue;
     }
 
@@ -288,7 +300,7 @@ export function addWorkingMinutes(
     }
 
     // Ertesi is gunu basina gec
-    cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1, config.workStartHour, 0, 0);
+    cursor = atMinute(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1), startMinute(config));
   }
 
   return cursor;
@@ -342,17 +354,30 @@ export async function recalcMakineKuyrukTarihleri(makineId: string, conn: TxOrDb
   const [makine] = await conn
     .select({
       calisir24Saat: makineler.calisir_24_saat,
+      ozelTakvimAktif: makineler.ozel_takvim_aktif,
+      ozelTakvimBaslangic: makineler.ozel_takvim_baslangic,
+      ozelTakvimBitis: makineler.ozel_takvim_bitis,
     })
     .from(makineler)
     .where(eq(makineler.id, makineId))
     .limit(1);
 
+  const parseClock = (value: string | null | undefined, fallback: number) => {
+    if (!value) return fallback;
+    const [hour, minute] = value.split(':').map(Number);
+    return Number.isFinite(hour) && Number.isFinite(minute) ? hour * 60 + minute : fallback;
+  };
+  const specialCalendar = makine?.ozelTakvimAktif === 1;
+  const workStartMinute = specialCalendar ? parseClock(makine.ozelTakvimBaslangic, 7 * 60 + 30) : DEFAULT_WORK_START_HOUR * 60;
+  const workEndMinute = specialCalendar ? parseClock(makine.ozelTakvimBitis, 19 * 60 + 30) : DEFAULT_WORK_END_HOUR * 60;
   const config: MakineWorkConfig = {
     makineId,
-    calisir24Saat: makine?.calisir24Saat === 1,
+    calisir24Saat: !specialCalendar && makine?.calisir24Saat === 1,
     workStartHour: DEFAULT_WORK_START_HOUR,
     workEndHour: DEFAULT_WORK_END_HOUR,
-    dailyWorkMinutes: DEFAULT_DAILY_WORK_MINUTES,
+    workStartMinute,
+    workEndMinute,
+    dailyWorkMinutes: workEndMinute - workStartMinute,
   };
 
   // 2. Kuyruktaki aktif isleri al

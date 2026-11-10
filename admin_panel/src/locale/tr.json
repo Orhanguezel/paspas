@@ -29,6 +29,7 @@
         "makineler": "Makineler",
         "is_yukler": "Makine İş Yükleri",
         "gantt": "Gantt Planı",
+        "uretim_ozeti": "Üretim Özeti",
         "stoklar": "Malzeme Stokları",
         "satin_alma": "Satın Alma",
         "hareketler": "Hareketler",
@@ -44,9 +45,9 @@
         "hafta_sonu_planlari": "Hafta Sonu Planları",
         "sevkiyat": "Sevkiyat",
         "mal_kabul": "Mal Kabul",
-        "proje_teklifi": "Proje Teklifleri",
         "web_sayfasi": "Promats İçerik Yönetimi",
         "yazilim_gorevleri": "Yazılım Görevleri",
+        "promats_mcp": "Promats Bağlantıları",
         "iletisim_mesajlari": "İletişim Mesajları"
       }
     },

@@ -12,6 +12,9 @@ export interface MakineDto {
   tonaj: number | null;
   saatlikKapasite: number | null;
   calisir24Saat: boolean;
+  ozelTakvimAktif: boolean;
+  ozelTakvimBaslangic: string | null;
+  ozelTakvimBitis: string | null;
   operatorDeGoster: boolean;
   isYuklerindeGoster: boolean;
   kalipIds: string[];
@@ -33,6 +36,9 @@ export interface MakineCreatePayload {
   tonaj?: number;
   saatlikKapasite?: number;
   calisir24Saat?: boolean;
+  ozelTakvimAktif?: boolean;
+  ozelTakvimBaslangic?: string;
+  ozelTakvimBitis?: string;
   operatorDeGoster?: boolean;
   isYuklerindeGoster?: boolean;
   durum?: MakineDurum;
@@ -74,6 +80,9 @@ export function normalizeMakine(raw: unknown): MakineDto {
     tonaj:           r.tonaj != null ? toNum(r.tonaj) : null,
     saatlikKapasite: r.saatlikKapasite != null ? toNum(r.saatlikKapasite) : null,
     calisir24Saat:   toBool(r.calisir24Saat, false),
+    ozelTakvimAktif: toBool(r.ozelTakvimAktif, false),
+    ozelTakvimBaslangic: r.ozelTakvimBaslangic != null ? toStr(r.ozelTakvimBaslangic) : null,
+    ozelTakvimBitis: r.ozelTakvimBitis != null ? toStr(r.ozelTakvimBitis) : null,
     operatorDeGoster: toBool(r.operatorDeGoster),
     isYuklerindeGoster: toBool(r.isYuklerindeGoster),
     kalipIds:        Array.isArray(r.kalipIds) ? r.kalipIds.map((item) => toStr(item)).filter(Boolean) : [],

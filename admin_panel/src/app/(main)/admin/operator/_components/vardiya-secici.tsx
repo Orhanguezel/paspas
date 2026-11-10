@@ -27,15 +27,14 @@ function formatDate(value: string): string {
   return date.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-export function VardiyaSecici({ value, onChange, options, acikVardiyaId, disabled = false }: Props) {
+export function VardiyaSecici({ value, onChange, options, disabled = false }: Props) {
   const { t } = useLocaleContext();
 
   useEffect(() => {
     if (value || options.length === 0) return;
-    const active = options.find((option) => option.id === acikVardiyaId)
-      ?? options.find((option) => option.bitis === null);
+    const active = options[0];
     if (active) onChange({ vardiyaId: active.id });
-  }, [acikVardiyaId, onChange, options, value]);
+  }, [onChange, options, value]);
 
   return (
     <div className="w-full space-y-2 rounded-xl border bg-muted/20 p-3">

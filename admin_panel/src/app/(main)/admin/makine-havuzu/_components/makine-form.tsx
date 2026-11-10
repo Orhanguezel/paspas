@@ -41,6 +41,9 @@ const schema = z.object({
   tonaj:           z.coerce.number().positive().optional().or(z.literal('')),
   saatlikKapasite: z.coerce.number().positive().optional().or(z.literal('')),
   calisir24Saat:   z.boolean().default(false),
+  ozelTakvimAktif: z.boolean().default(false),
+  ozelTakvimBaslangic: z.string().regex(/^\d{2}:\d{2}$/).default('07:30'),
+  ozelTakvimBitis: z.string().regex(/^\d{2}:\d{2}$/).default('19:30'),
   operatorDeGoster: z.boolean().default(true),
   isYuklerindeGoster: z.boolean().default(true),
   kalipIds:        z.array(z.string()).default([]),
@@ -315,7 +318,7 @@ export default function MakineForm({ open, onClose, makine }: Props) {
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { durum: 'aktif', calisir24Saat: false, operatorDeGoster: true, isYuklerindeGoster: true, kalipIds: [] },
+    defaultValues: { durum: 'aktif', calisir24Saat: false, ozelTakvimAktif: false, ozelTakvimBaslangic: '07:30', ozelTakvimBitis: '19:30', operatorDeGoster: true, isYuklerindeGoster: true, kalipIds: [] },
   });
 
   useEffect(() => {
@@ -328,13 +331,16 @@ export default function MakineForm({ open, onClose, makine }: Props) {
           tonaj:           makine.tonaj ?? '',
           saatlikKapasite: makine.saatlikKapasite ?? '',
           calisir24Saat:   makine.calisir24Saat,
+          ozelTakvimAktif: makine.ozelTakvimAktif,
+          ozelTakvimBaslangic: makine.ozelTakvimBaslangic ?? '07:30',
+          ozelTakvimBitis: makine.ozelTakvimBitis ?? '19:30',
           operatorDeGoster: makine.operatorDeGoster,
           isYuklerindeGoster: makine.isYuklerindeGoster,
           kalipIds:        makine.kalipIds,
           durum:           makine.durum,
         });
       } else {
-        reset({ durum: 'aktif', calisir24Saat: false, operatorDeGoster: true, isYuklerindeGoster: true, kalipIds: [] });
+        reset({ durum: 'aktif', calisir24Saat: false, ozelTakvimAktif: false, ozelTakvimBaslangic: '07:30', ozelTakvimBitis: '19:30', operatorDeGoster: true, isYuklerindeGoster: true, kalipIds: [] });
       }
     }
   }, [open, makine, reset]);
@@ -361,6 +367,7 @@ export default function MakineForm({ open, onClose, makine }: Props) {
 
   const durumVal = watch('durum');
   const calisir24Saat = watch('calisir24Saat');
+  const ozelTakvimAktif = watch('ozelTakvimAktif');
   const operatorDeGoster = watch('operatorDeGoster');
   const isYuklerindeGoster = watch('isYuklerindeGoster');
   const kalipIds = watch('kalipIds');
@@ -437,6 +444,22 @@ export default function MakineForm({ open, onClose, makine }: Props) {
                     <p className="text-xs text-muted-foreground">{t('admin.erp.makineHavuzu.form.calisir24SaatHelp')}</p>
                   </div>
                   <Switch checked={calisir24Saat} onCheckedChange={(v) => setValue('calisir24Saat', v, { shouldDirty: true })} />
+                </div>
+
+                <div className="space-y-3 rounded-md border px-3 py-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Makineye özel çalışma takvimi</p>
+                      <p className="text-xs text-muted-foreground">Açıldığında 24 saat ayarı yerine yalnız hafta içi bu saatler planlanır. Varsayılan kapalıdır.</p>
+                    </div>
+                    <Switch checked={ozelTakvimAktif} onCheckedChange={(v) => setValue('ozelTakvimAktif', v, { shouldDirty: true })} />
+                  </div>
+                  {ozelTakvimAktif && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1"><Label>Başlangıç</Label><Input type="time" {...register('ozelTakvimBaslangic')} /></div>
+                      <div className="space-y-1"><Label>Bitiş</Label><Input type="time" {...register('ozelTakvimBitis')} /></div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">

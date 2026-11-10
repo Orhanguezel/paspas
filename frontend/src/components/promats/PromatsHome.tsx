@@ -18,6 +18,11 @@ type Props = {
   exportSection: SpecialPage | null;
 };
 
+// "ÜRÜNLER" basliginin altindaki giris metni — static_texts anahtari (TR metin = anahtar;
+// EN karsiligi ayni anahtarla language_id=2 satirindan gelir). Satir yoksa TR metin gosterilir.
+const URUNLER_INTRO_KEY =
+  'Promats, farklı kullanım ihtiyaçlarına uygun PVC oto paspas serileri geliştirmektedir. Her seri; tasarım, yüzey yapısı ve kullanım özellikleri açısından farklı beklentilere hitap edecek şekilde tasarlanmıştır.';
+
 
 function featureIcons(product: Product): NonNullable<Product['features']> {
   return (product.features ?? []).filter((item) => item.type === 2 && item.image);
@@ -68,6 +73,7 @@ export default function PromatsHome({
               <div className="col-md-6 col-lg-6 mb-5" data-aos="fade-up" data-aos-delay="200">
                 <div className="text-left h-100">
                   <h1 className="product_showcase_header d-none d-lg-block">{t(settings, 'ÜRÜNLER')}</h1>
+                  <p className="product_showcase_intro d-none d-lg-block">{t(settings, URUNLER_INTRO_KEY)}</p>
                   <fieldset className="col-md-12 col-lg-8 text-center product_showcase_prop mt-1 mt-lg-5 pb-3">
                     <legend>{showcase.hero.title1}<span>{showcase.hero.title2}</span></legend>
                     {t(settings, 'Özel kalıplanmış pvc desenler ile aracınızın içinde görsel olarak öne çıkar.')}

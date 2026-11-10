@@ -11,11 +11,6 @@ const asRole = (v: unknown): UserRoleName | null => {
 const toBool = (v: unknown): boolean => (typeof v === 'boolean' ? v : Number(v ?? 0) === 1);
 
 const coerceRoles = (raw: AdminUserRaw): UserRoleName[] => {
-  if ((raw as any).role != null) {
-    const r = asRole((raw as any).role);
-    return r ? [r] : [];
-  }
-
   const src = (raw as any).roles;
 
   if (Array.isArray(src)) return src.map(asRole).filter(Boolean) as UserRoleName[];
@@ -32,7 +27,8 @@ const coerceRoles = (raw: AdminUserRaw): UserRoleName[] => {
     }
   }
 
-  return [];
+  const primary = asRole((raw as any).role);
+  return primary ? [primary] : [];
 };
 
 const pickLastSignIn = (u: AdminUserRaw): string | null => {

@@ -237,8 +237,9 @@ export default function SatinAlmaDetayClient({ id }: Props) {
                       <TableCell className="text-right tabular-nums">{k.miktar}</TableCell>
                       <TableCell className="text-right tabular-nums">
                         {k.kabulMiktar > 0 ? (
-                          <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                            {k.kabulMiktar.toFixed(4).replace(/\.?0+$/, '')}
+                          <span className="inline-flex flex-col items-end text-emerald-600 dark:text-emerald-400 font-medium">
+                            <span>{k.kabulMiktar.toFixed(4).replace(/\.?0+$/, '')}</span>
+                            {k.fazlaKabulMiktar > 0 && <span className="text-xs text-amber-700 dark:text-amber-400">Fazla: {k.fazlaKabulMiktar.toFixed(4).replace(/\.?0+$/, '')}</span>}
                           </span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
@@ -373,6 +374,8 @@ function TeslimAlSheet({
       toast.error('Geçerli bir miktar giriniz');
       return;
     }
+    const fazlaMiktar = ['kabul', 'kosullu'].includes(kaliteDurumu) ? Math.max(0, miktar - kalem.kalanMiktar) : 0;
+    if (fazlaMiktar > 0 && !window.confirm(`Kalan ${kalem.kalanMiktar.toLocaleString('tr-TR')} ${kalem.birim ?? 'adet'}. ${fazlaMiktar.toLocaleString('tr-TR')} ${kalem.birim ?? 'adet'} fazla teslimat kaydedilecek. Onaylıyor musunuz?`)) return;
 
     try {
       await createMalKabul({
@@ -412,6 +415,7 @@ function TeslimAlSheet({
               <span>Sipariş: <strong className="text-foreground">{kalem.miktar}</strong></span>
               <span>Kabul: <strong className="text-emerald-600">{kalem.kabulMiktar.toFixed(2)}</strong></span>
               <span>Kalan: <strong className="text-orange-600">{kalem.kalanMiktar.toFixed(2)}</strong></span>
+              {kalem.fazlaKabulMiktar > 0 && <span>Fazla: <strong className="text-amber-700">{kalem.fazlaKabulMiktar.toFixed(2)}</strong></span>}
             </div>
           </div>
 
@@ -425,8 +429,8 @@ function TeslimAlSheet({
                 value={gelenMiktar}
                 onChange={(e) => setGelenMiktar(e.target.value)}
               />
-              {Number.parseFloat(gelenMiktar) > kalem.kalanMiktar && (
-                <p className="text-xs text-orange-600">Kalan miktardan fazla</p>
+              {['kabul', 'kosullu'].includes(kaliteDurumu) && Number.parseFloat(gelenMiktar) > kalem.kalanMiktar && (
+                <p role="alert" className="rounded-md border border-orange-300 bg-orange-50 p-2 text-xs font-medium text-orange-800">Kalan {kalem.kalanMiktar.toLocaleString('tr-TR')} {kalem.birim ?? 'adet'}. {(Number.parseFloat(gelenMiktar) - kalem.kalanMiktar).toLocaleString('tr-TR')} {kalem.birim ?? 'adet'} fazla teslimat kaydedilecek.</p>
               )}
             </div>
             <div className="space-y-1">

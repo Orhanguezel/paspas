@@ -2,7 +2,6 @@ import { Fragment } from 'react';
 
 import { DevNote } from '@/components/devnote';
 import hakkimizdaContent from '@/config/pages/hakkimizda-page.json';
-import { localeHref as href } from '@/lib/promats/links';
 
 import PromatsImage from './PromatsImage';
 import { PmHero, PmSectionHeading } from './PromatsModernShell';
@@ -10,18 +9,17 @@ import { PmHero, PmSectionHeading } from './PromatsModernShell';
 type Cap = { no: string; icon: string; title: string; body: string };
 type Step = { no: string; title: string; body: string };
 type Value = { mark: string; title: string; body: string };
-type Cert = { code: string; title: string; body: string };
 type Milestone = { year: string; body: string };
 type Link = { label: string; href: string };
 
-type HakkimizdaContent = {
+export type HakkimizdaContent = {
   meta: { title: string; description: string };
   hero: { eyebrow: string; headline: string[]; text: string; cta: string };
   kimlik: { eyebrow: string; heading: string; paragraphs: string[]; image: string; imageAlt: string };
   yetkinlik: { eyebrowLine: string; headingLine: string; items: Cap[] };
   surec: { eyebrowLine: string; headingLine: string; intro: string; steps: Step[] };
   degerler: { eyebrowLine: string; headingLine: string; items: Value[] };
-  sertifikalar: { eyebrowLine: string; headingLine: string; intro: string; items: Cert[] };
+  sertifikalar: { eyebrowLine: string; headingLine: string; intro: string; badge: { image: string; alt: string } };
   yolculuk: { eyebrowLine: string; headingLine: string; items: Milestone[] };
   cta: { eyebrow: string; heading: string; text: string; links: Link[] };
 };
@@ -36,8 +34,13 @@ const CAP_ICON: Record<string, string> = {
   quality: '/assets/images/hakkimizda/icons/kalite-anlayisi.svg',
 };
 
-export function PromatsHakkimizdaPage({ locale }: { locale: string }) {
-  const c = (hakkimizdaContent as Record<string, HakkimizdaContent>)[locale === 'en' ? 'en' : 'tr']!;
+/** Repo içindeki varsayılan içerik — CMS'te kayıt yoksa yedek olarak kullanılır. */
+export function hakkimizdaFallback(locale: string): HakkimizdaContent {
+  return (hakkimizdaContent as Record<string, HakkimizdaContent>)[locale === 'en' ? 'en' : 'tr']!;
+}
+
+export function PromatsHakkimizdaPage({ locale, content }: { locale: string; content?: HakkimizdaContent | null }) {
+  const c = content ?? hakkimizdaFallback(locale);
 
   return (
     <div className="promats-modern-page promats-hakkimizda-page">
@@ -142,24 +145,16 @@ export function PromatsHakkimizdaPage({ locale }: { locale: string }) {
         </div>
       </section>
 
-      {/* SERTİFİKALARIMIZ — 6 belge */}
+      {/* KALİTE YÖNETİM SİSTEMİ — tek ISO 9001:2015 bloğu (müşteri revizesi 2026-08) */}
       <section className="pm-section pm-section--panel position-relative">
-        <DevNote section="hakkimizda-sertifikalar" title="Sertifikalarımız" />
+        <DevNote section="hakkimizda-sertifikalar" title="Kalite Yönetim Sistemi" />
         <div className="container">
           <div className="pm-section__head">
             <PmSectionHeading line1={c.sertifikalar.eyebrowLine} line2={c.sertifikalar.headingLine} intro={c.sertifikalar.intro} />
           </div>
-          <ul className="pm-cards pm-cards--3 pm-certs">
-            {c.sertifikalar.items.map((cert, index) => (
-              <li className="pm-card pm-cert" key={cert.code} data-aos="fade-up" data-aos-delay={(index % 3) * 60}>
-                <span className="pm-cert__badge">{cert.code}</span>
-                <div className="pm-cert__text">
-                  <h3 className="pm-card__title">{cert.title}</h3>
-                  <p className="pm-card__body">{cert.body}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="pm-iso" data-aos="fade-up">
+            <PromatsImage src={c.sertifikalar.badge.image} alt={c.sertifikalar.badge.alt} width={220} height={220} assetBase="/assets" sizes="220px" />
+          </div>
         </div>
       </section>
 
@@ -182,22 +177,9 @@ export function PromatsHakkimizdaPage({ locale }: { locale: string }) {
         </div>
       </section>
 
-      {/* KAPANIŞ CTA — koyu bant + sayfa linkleri */}
-      <section className="pm-darkband pm-darkband--cta position-relative">
-        <DevNote section="hakkimizda-cta" title="Kurumsal CTA" />
-        <div className="container">
-          <div className="pm-darkband__center" data-aos="fade-up">
-            <span className="pm-darkband__eyebrow">{c.cta.eyebrow}</span>
-            <h2 className="pm-darkband__heading">{c.cta.heading}</h2>
-            <p className="pm-darkband__text">{c.cta.text}</p>
-            <div className="pm-cta-row">
-              {c.cta.links.map((link) => (
-                <a key={link.href} href={href(locale, link.href)} className="pm-btn pm-btn--ghost">{link.label}</a>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Kapanis CTA bandi kaldirildi (musteri notu 2026-08-28): footer menusunu
+          tekrarlayan koyu bant "ikinci footer" gibi algilaniyordu; sayfa dogrudan
+          site geneli tek footer'a (PromatsFooter, layout) baglanir. */}
     </div>
   );
 }

@@ -519,6 +519,44 @@ export async function getSiparisIdsByUretimEmriId(uretimEmriId: string): Promise
   return [...new Set(rows.map((r) => r.siparisId))];
 }
 
+/** Keep the order line tied to finished goods and every linked part, not to a single UE finish. */
+export async function reconcileKalemUretimDurum(kalemId: string): Promise<string | null> {
+  const [kalem] = await db.select({ urunId: siparisKalemleri.urun_id, miktar: siparisKalemleri.miktar })
+    .from(siparisKalemleri).where(eq(siparisKalemleri.id, kalemId)).limit(1);
+  if (!kalem) return null;
+  const linked = await db.select({
+    id: uretimEmirleri.id,
+    durum: uretimEmirleri.durum,
+    taraf: uretimEmirleri.taraf,
+    uretilenMiktar: uretimEmirleri.uretilen_miktar,
+  }).from(uretimEmriSiparisKalemleri)
+    .innerJoin(uretimEmirleri, eq(uretimEmriSiparisKalemleri.uretim_emri_id, uretimEmirleri.id))
+    .where(and(eq(uretimEmriSiparisKalemleri.siparis_kalem_id, kalemId), sql`${uretimEmirleri.durum} <> 'iptal'`));
+  const emirIds = [...new Set(linked.map((row) => row.id))];
+  if (!emirIds.length) {
+    await db.update(siparisKalemleri).set({ uretim_durumu: 'beklemede' }).where(eq(siparisKalemleri.id, kalemId));
+    return 'beklemede';
+  }
+  const [movement] = await db.select({ miktar: sql<string>`COALESCE(SUM(${hareketler.miktar}), 0)` })
+    .from(hareketler)
+    .where(and(inArray(hareketler.referans_id, emirIds), eq(hareketler.urun_id, kalem.urunId), eq(hareketler.hareket_tipi, 'giris'), sql`${hareketler.referans_tipi} IN ('uretim', 'montaj')`));
+  const target = Number(kalem.miktar);
+  const sides = new Map<string, number>();
+  for (const row of linked) {
+    if (row.taraf === 'sag' || row.taraf === 'sol') sides.set(row.taraf, (sides.get(row.taraf) ?? 0) + Number(row.uretilenMiktar));
+  }
+  const partsEnough = sides.size === 0 || (sides.has('sag') && sides.has('sol') &&
+    (sides.get('sag') ?? 0) >= target && (sides.get('sol') ?? 0) >= target);
+  const complete = linked.every((row) => row.durum === 'tamamlandi') &&
+    partsEnough && Number(movement?.miktar ?? 0) >= target;
+  const next = complete ? 'uretim_tamamlandi'
+    : linked.some((row) => row.durum === 'uretimde' || Number(row.uretilenMiktar) > 0) ? 'uretiliyor'
+    : linked.some((row) => row.durum === 'planlandi' || row.durum === 'montaj_bekliyor') ? 'makineye_atandi'
+    : 'uretime_aktarildi';
+  await db.update(siparisKalemleri).set({ uretim_durumu: next }).where(eq(siparisKalemleri.id, kalemId));
+  return next;
+}
+
 // Returns distinct sipariş kalem IDs linked to a given üretim emri via junction table
 export async function getKalemIdsByUretimEmriId(uretimEmriId: string): Promise<string[]> {
   const rows = await db
@@ -714,7 +752,7 @@ export async function repoListIslemler(q: IslemlerQuery): Promise<{ items: Sipar
       planlananBitis: r.planlananBitis
         ? String(r.planlananBitis).replace(' ', 'T') + 'Z'
         : null,
-      gercekBitis: r.gercekBitis
+      gercekBitis: r.uretimDurumu === 'uretim_tamamlandi' && uretilenMiktar >= miktar && r.gercekBitis
         ? String(r.gercekBitis).replace(' ', 'T') + 'Z'
         : null,
       terminTarihi: r.terminTarihi ? String(r.terminTarihi).slice(0, 10) : null,

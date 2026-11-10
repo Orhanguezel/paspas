@@ -22,6 +22,7 @@ import { useLocaleContext } from '@/i18n/LocaleProvider';
 
 import { useListMusterilerAdminQuery } from '@/integrations/endpoints/admin/erp/musteriler_admin.endpoints';
 import { useCreateTeklifAdminMutation } from '@/integrations/endpoints/admin/erp/teklifler_admin.endpoints';
+import { useListSiteSettingsAdminQuery } from '@/integrations/hooks';
 
 const PARA_BIRIMLERI = ['TRY', 'USD', 'EUR'] as const;
 
@@ -35,6 +36,9 @@ export default function TeklifCreateDialog({ open, onClose }: Props) {
   const router = useRouter();
 
   const { data: musterilerData } = useListMusterilerAdminQuery({ tur: 'musteri' });
+  const { data: setupSettings } = useListSiteSettingsAdminQuery({ keys: ['promats_setup_quote', 'promats_setup_currency'] });
+  const quoteRules = setupSettings?.find((item) => item.key === 'promats_setup_quote')?.value as Record<string, string> | undefined;
+  const currencyRules = setupSettings?.find((item) => item.key === 'promats_setup_currency')?.value as Record<string, string> | undefined;
   const musteriler = musterilerData?.items ?? [];
 
   const [mode, setMode] = useState<'mevcut' | 'aday'>('mevcut');
@@ -55,12 +59,13 @@ export default function TeklifCreateDialog({ open, onClose }: Props) {
       setMode('mevcut');
       setMusteriId('');
       setAdayAd(''); setAdayTelefon(''); setAdayEmail(''); setAdayAdres('');
-      setParaBirimi('TRY');
+      setParaBirimi(PARA_BIRIMLERI.find((item) => item === currencyRules?.default_currency) ?? 'TRY');
       setKdvOrani('20');
       setKdvDahil(true);
-      setGecerlilikTarihi('');
+      const days = Number(quoteRules?.validity_days);
+      setGecerlilikTarihi(Number.isInteger(days) && days > 0 && days <= 365 ? new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10) : '');
     }
-  }, [open]);
+  }, [open, quoteRules?.validity_days, currencyRules?.default_currency]);
 
   async function handleSubmit() {
     if (mode === 'mevcut' && !musteriId) {

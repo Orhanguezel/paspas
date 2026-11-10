@@ -10,7 +10,7 @@ import { urunler } from '@/modules/urunler/schema';
 import { hareketler } from '@/modules/hareketler/schema';
 import { musteriler } from '@/modules/musteriler/schema';
 import { satisSiparisleri, siparisKalemleri } from '@/modules/satis_siparisleri/schema';
-import { refreshSiparisDurum, getSiparisIdsByUretimEmriId, getKalemIdsByUretimEmriId } from '@/modules/satis_siparisleri/repository';
+import { refreshSiparisDurum, getSiparisIdsByUretimEmriId, getKalemIdsByUretimEmriId, reconcileKalemUretimDurum } from '@/modules/satis_siparisleri/repository';
 import { transitionMultipleKalemDurum } from '@/modules/satis_siparisleri/kalem-durum.service';
 import { receteler, receteKalemleri } from '@/modules/receteler/schema';
 import { tryMontajForUretimEmri, tryPendingMontajlarAfterStokArtis } from '@/modules/uretim_emirleri/service';
@@ -477,11 +477,15 @@ function buildVirtualShiftId(pencere: VardiyaPenceresi): string {
   return `${VIRTUAL_SHIFT_PREFIX}${pencere.vardiyaTipi}:${pencere.baslangic.getTime()}`;
 }
 
-function parseVirtualShiftId(id: string | null | undefined): { vardiyaTipi: VardiyaTipi } | null {
+function parseVirtualShiftId(id: string | null | undefined): { vardiyaTipi: VardiyaTipi; baslangic: Date } | null {
   if (!id || !id.startsWith(VIRTUAL_SHIFT_PREFIX)) return null;
-  const vardiyaTipi = id.slice(VIRTUAL_SHIFT_PREFIX.length).split(':')[0];
+  const parts = id.slice(VIRTUAL_SHIFT_PREFIX.length).split(':');
+  if (parts.length !== 2 || !/^\d{13}$/.test(parts[1] ?? '')) return null;
+  const vardiyaTipi = parts[0];
   if (vardiyaTipi !== 'gunduz' && vardiyaTipi !== 'gece') return null;
-  return { vardiyaTipi };
+  const baslangic = new Date(Number(parts[1]));
+  if (Number.isNaN(baslangic.getTime())) return null;
+  return { vardiyaTipi, baslangic };
 }
 
 /**
@@ -498,6 +502,38 @@ async function materializeVirtualShift(
 ): Promise<string | null> {
   const virtual = parseVirtualShiftId(vardiyaKayitId);
   if (!virtual) return vardiyaKayitId ?? null;
+  const tanimlar = await listActiveVardiyaTanimlari();
+  const tanim = tanimlar.find((item) => item.vardiyaTipi === virtual.vardiyaTipi);
+  if (!tanim) throw new Error('vardiya_tanimi_bulunamadi');
+  const pencere = buildShiftWindowFromStart(virtual.baslangic, tanim);
+  if (pencere.baslangic.getTime() !== virtual.baslangic.getTime()
+    || virtual.baslangic.getTime() > now.getTime()
+    || now.getTime() - virtual.baslangic.getTime() > 7 * 24 * 60 * 60 * 1000) {
+    throw new Error('vardiya_tarihi_gecersiz');
+  }
+
+  const [existing] = await tx.select({ id: vardiyaKayitlari.id })
+    .from(vardiyaKayitlari)
+    .where(and(
+      eq(vardiyaKayitlari.makine_id, makineId),
+      eq(vardiyaKayitlari.vardiya_tipi, virtual.vardiyaTipi),
+      eq(vardiyaKayitlari.baslangic, virtual.baslangic),
+    ))
+    .limit(1);
+  if (existing) return existing.id;
+
+  if (pencere.bitis <= now) {
+    const id = randomUUID();
+    await tx.insert(vardiyaKayitlari).values({
+      id,
+      makine_id: makineId,
+      operator_user_id: operatorUserId,
+      vardiya_tipi: virtual.vardiyaTipi,
+      baslangic: pencere.baslangic,
+      bitis: pencere.bitis,
+    });
+    return id;
+  }
   const shift = await ensureAutomaticShiftForMachine(tx, {
     makineId,
     operatorUserId,
@@ -741,7 +777,9 @@ export type MakineKuyruguDetayDto = {
   urunAd: string;
   asilUrunKod: string | null;
   asilUrunAd: string | null;
+  asilUrunId: string | null;
   planlananMiktar: number;
+  planlananTakimMiktar: number | null;
   uretilenMiktar: number;
   fireMiktar: number;
   montaj: boolean;
@@ -825,11 +863,11 @@ async function applyGunlukUretimStockDelta(
 
     const [emirRow] = await tx
       .select({
-        urunId: uretimEmirleri.urun_id,
+        urunId: sql<string>`COALESCE(${uretimEmirleri.stok_hedef_urun_id}, ${uretimEmirleri.urun_id})`,
         stokTakipAktif: urunler.stok_takip_aktif,
       })
       .from(uretimEmirleri)
-      .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+      .innerJoin(urunler, sql`${urunler.id} = COALESCE(${uretimEmirleri.stok_hedef_urun_id}, ${uretimEmirleri.urun_id})`)
       .where(eq(uretimEmirleri.id, kayit.uretimEmriId))
       .limit(1);
     if (!emirRow) return;
@@ -868,11 +906,11 @@ async function applyUretimStockDelta(
 
   const [emirRow] = await tx
     .select({
-      urun_id: uretimEmirleri.urun_id,
+      urun_id: sql<string>`COALESCE(${uretimEmirleri.stok_hedef_urun_id}, ${uretimEmirleri.urun_id})`,
       stokTakipAktif: urunler.stok_takip_aktif,
     })
     .from(uretimEmirleri)
-    .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+    .innerJoin(urunler, sql`${urunler.id} = COALESCE(${uretimEmirleri.stok_hedef_urun_id}, ${uretimEmirleri.urun_id})`)
     .where(eq(uretimEmirleri.id, uretimEmriId))
     .limit(1);
 
@@ -1039,6 +1077,27 @@ export async function repoListMakineKuyrugu(
         m_ad: makineler.ad,
         ue_emir_no: uretimEmirleri.emir_no,
         ue_urun_id: uretimEmirleri.urun_id,
+        asil_urun_id: sql<string | null>`case when ${urunler.kategori} in ('operasyonel_ym','yarimamul') then coalesce(
+          (select sk3.urun_id
+           from uretim_emri_siparis_kalemleri uesk
+           inner join siparis_kalemleri sk3 on sk3.id = uesk.siparis_kalem_id
+           where uesk.uretim_emri_id = ${uretimEmirleri.id}
+           limit 1),
+          ${uretimEmirleri.stok_hedef_urun_id},
+          (select r2.urun_id
+           from recete_kalemleri rk
+           inner join receteler r2 on r2.id = rk.recete_id and r2.is_active = 1
+           inner join urunler u2 on u2.id = r2.urun_id and u2.kategori = 'urun'
+           where rk.urun_id = ${uretimEmirleri.urun_id}
+           limit 1)
+        ) else null end`,
+        planlanan_takim_miktar: sql<string | null>`case when ${uretimEmirleri.stok_hedef_urun_id} is not null then (
+          select sum(uesk.miktar)
+          from uretim_emri_siparis_kalemleri uesk
+          inner join siparis_kalemleri sk on sk.id = uesk.siparis_kalem_id
+          where uesk.uretim_emri_id = ${uretimEmirleri.id}
+            and sk.urun_id = ${uretimEmirleri.stok_hedef_urun_id}
+        ) else null end`,
         u_kod: urunler.kod,
         u_ad: urunler.ad,
         // Asıl ürün türetme: aynı YM birden çok mamul reçetesinde geçebildiği için
@@ -1049,8 +1108,9 @@ export async function repoListMakineKuyrugu(
            from uretim_emri_siparis_kalemleri uesk
            inner join siparis_kalemleri sk3 on sk3.id = uesk.siparis_kalem_id
            inner join urunler u3 on u3.id = sk3.urun_id
-           where uesk.uretim_emri_id = ${uretimEmirleri.id}
+          where uesk.uretim_emri_id = ${uretimEmirleri.id}
            limit 1),
+          (select u4.kod from urunler u4 where u4.id = ${uretimEmirleri.stok_hedef_urun_id} limit 1),
           (select u2.kod
            from recete_kalemleri rk
            inner join receteler r2 on r2.id = rk.recete_id and r2.is_active = 1
@@ -1065,6 +1125,7 @@ export async function repoListMakineKuyrugu(
            inner join urunler u3 on u3.id = sk3.urun_id
            where uesk.uretim_emri_id = ${uretimEmirleri.id}
            limit 1),
+          (select u4.ad from urunler u4 where u4.id = ${uretimEmirleri.stok_hedef_urun_id} limit 1),
           (select u2.ad
            from recete_kalemleri rk
            inner join receteler r2 on r2.id = rk.recete_id and r2.is_active = 1
@@ -1241,7 +1302,9 @@ export async function repoListMakineKuyrugu(
       urunAd: r.u_ad ?? '',
       asilUrunKod: r.asil_urun_kod ?? null,
       asilUrunAd: r.asil_urun_ad ?? null,
+      asilUrunId: r.asil_urun_id ?? null,
       planlananMiktar: Number(r.op_planlanan_miktar ?? 0),
+      planlananTakimMiktar: r.planlanan_takim_miktar == null ? null : Number(r.planlanan_takim_miktar),
       uretilenMiktar: Number(r.op_uretilen_miktar ?? 0),
       fireMiktar: Number(r.op_fire_miktar ?? 0),
       montaj: (r.op_montaj ?? 0) === 1,
@@ -1461,6 +1524,10 @@ export async function repoUretimBitir(
       kayitTarihi: now,
       vardiyaKayitId: submittedVardiyaKayitId,
     });
+    const selectedShift = vardiyaKayitId
+      ? await findShiftByIdForMachine(tx, vardiyaKayitId, kqRow.makine_id)
+      : null;
+    const productionDate = selectedShift?.bitis ? new Date(selectedShift.bitis) : now;
 
     await tx.insert(operatorGunlukKayitlari).values({
       id: randomUUID(),
@@ -1475,7 +1542,7 @@ export async function repoUretimBitir(
       net_miktar: sonEkNet.toFixed(4),
       birim_tipi: body.birimTipi,
       notlar: body.notlar ?? null,
-      kayit_tarihi: now,
+      kayit_tarihi: productionDate,
     });
 
     // Single-op and montaj operations affect stock immediately.
@@ -1657,53 +1724,6 @@ export async function repoUretimBitir(
       await iptalRezervasyon(kqRef2.uretim_emri_id);
     }
 
-    // Cift tarafli uretim kontrolu:
-    // montaj operasyonu VEYA tek taraflı VEYA tüm operasyonlar bitti (UE tamamlandi) ise kalem tamamlandi
-    let shouldCompleteKalem = isEmirTamamlandi;
-    if (!shouldCompleteKalem && kqRef2.emir_operasyon_id) {
-      const [op] = await db
-        .select({ montaj: uretimEmriOperasyonlari.montaj })
-        .from(uretimEmriOperasyonlari)
-        .where(eq(uretimEmriOperasyonlari.id, kqRef2.emir_operasyon_id))
-        .limit(1);
-      const isMontajOp = (op?.montaj ?? 0) === 1;
-
-      // Tek tarafli mi kontrol et
-      const [opCount] = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(uretimEmriOperasyonlari)
-        .where(eq(uretimEmriOperasyonlari.uretim_emri_id, kqRef2.uretim_emri_id));
-      const isSingleSided = Number(opCount?.count ?? 0) <= 1;
-
-      shouldCompleteKalem = isMontajOp || isSingleSided;
-    } else if (!shouldCompleteKalem) {
-      shouldCompleteKalem = true;
-    }
-
-    if (shouldCompleteKalem) {
-      const kalemIds = await getKalemIdsByUretimEmriId(kqRef2.uretim_emri_id);
-      await transitionMultipleKalemDurum(kalemIds, 'uretim_tamamlandi');
-    } else {
-      // Çift taraflı üretimde ara operasyon tamamlandı — kalem "uretiliyor" takılı kalmasın.
-      // Makine ataması bitti, bir sonraki operasyon için kuyruğa alınmayı bekliyor.
-      // VALID_TRANSITIONS bu yönü desteklemez, doğrudan güncelle.
-      const kalemIds = await getKalemIdsByUretimEmriId(kqRef2.uretim_emri_id);
-      if (kalemIds.length > 0) {
-        await db
-          .update(siparisKalemleri)
-          .set({ uretim_durumu: 'uretime_aktarildi' })
-          .where(
-            and(
-              inArray(siparisKalemleri.id, kalemIds),
-              inArray(siparisKalemleri.uretim_durumu, ['uretiliyor', 'duraklatildi']),
-            ),
-          );
-      }
-    }
-
-    const sids = await getSiparisIdsByUretimEmriId(kqRef2.uretim_emri_id);
-    for (const sid of sids) await refreshSiparisDurum(sid);
-
     // Yeni mimari: emir operasyonel YM/legacy yarı mamul için ve operasyon montaj=true ise montaj denemesi.
     if (kqRef2.emir_operasyon_id) {
       const [opRow] = await db
@@ -1725,6 +1745,13 @@ export async function repoUretimBitir(
         }
       }
     }
+
+    // The finished product movement can be created by the assembly attempt above.
+    // Re-evaluate every linked line only after it, using all related UE records.
+    const kalemIds = await getKalemIdsByUretimEmriId(kqRef2.uretim_emri_id);
+    for (const kalemId of kalemIds) await reconcileKalemUretimDurum(kalemId);
+    const sids = await getSiparisIdsByUretimEmriId(kqRef2.uretim_emri_id);
+    for (const sid of sids) await refreshSiparisDurum(sid);
   });
 
   await runNonBlockingStep('uretim_tamamlandi_bildirimi', async () => {
@@ -2035,11 +2062,11 @@ async function recordIncrementalProductionEntry(
   if (netMiktar > 0 && hasStockImpact) {
     const [emirRow] = await tx
       .select({
-        urun_id: uretimEmirleri.urun_id,
+        urun_id: sql<string>`COALESCE(${uretimEmirleri.stok_hedef_urun_id}, ${uretimEmirleri.urun_id})`,
         stokTakipAktif: urunler.stok_takip_aktif,
       })
       .from(uretimEmirleri)
-      .innerJoin(urunler, eq(uretimEmirleri.urun_id, urunler.id))
+      .innerJoin(urunler, sql`${urunler.id} = COALESCE(${uretimEmirleri.stok_hedef_urun_id}, ${uretimEmirleri.urun_id})`)
       .where(eq(uretimEmirleri.id, kqRow.uretim_emri_id))
       .limit(1);
 
@@ -2486,6 +2513,21 @@ export async function repoUpdateGunlukUretimKaydi(
     const nextEk = body.ekUretimMiktari ?? prevEk;
     const nextFire = body.fireMiktari ?? prevFire;
     const nextNet = body.netMiktar ?? Math.max(0, nextEk - nextFire);
+    const nextKayitTarihi = body.kayitTarihi ? new Date(body.kayitTarihi) : existing.kayit_tarihi;
+    let nextVardiyaKayitId = existing.vardiya_kayit_id;
+    if (body.kayitTarihi && existing.makine_id) {
+      // Tarih başka vardiyaya taşındığında eski vardiya bağlantısını bırakma.
+      const [matchingShift] = await tx.select({ id: vardiyaKayitlari.id })
+        .from(vardiyaKayitlari)
+        .where(and(
+          eq(vardiyaKayitlari.makine_id, existing.makine_id),
+          lte(vardiyaKayitlari.baslangic, nextKayitTarihi),
+          sql`COALESCE(${vardiyaKayitlari.bitis}, DATE_ADD(${vardiyaKayitlari.baslangic}, INTERVAL 12 HOUR)) > ${nextKayitTarihi}`,
+        ))
+        .orderBy(desc(vardiyaKayitlari.baslangic))
+        .limit(1);
+      nextVardiyaKayitId = matchingShift?.id ?? null;
+    }
 
     netDelta = nextNet - prevNet;
     fireDelta = nextFire - prevFire;
@@ -2496,6 +2538,8 @@ export async function repoUpdateGunlukUretimKaydi(
         ek_uretim_miktari: nextEk.toFixed(4),
         fire_miktari: nextFire.toFixed(4),
         net_miktar: nextNet.toFixed(4),
+        kayit_tarihi: nextKayitTarihi,
+        vardiya_kayit_id: nextVardiyaKayitId,
         notlar: body.notlar === undefined ? existing.notlar : (body.notlar?.trim() || null),
       })
       .where(eq(operatorGunlukKayitlari.id, kayitId));
@@ -2598,22 +2642,21 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
     )
     .orderBy(asc(makineler.kod));
 
-  const machineIds = rows.map((row) => row.makineId);
-  const recentRows = machineIds.length > 0
-    ? await db
-      .select({
-        id: vardiyaKayitlari.id,
-        makineId: vardiyaKayitlari.makine_id,
-        vardiyaTipi: vardiyaKayitlari.vardiya_tipi,
-        baslangic: vardiyaKayitlari.baslangic,
-        bitis: vardiyaKayitlari.bitis,
-      })
-      .from(vardiyaKayitlari)
-      .where(inArray(vardiyaKayitlari.makine_id, machineIds))
-      .orderBy(desc(vardiyaKayitlari.baslangic))
-      .limit(machineIds.length * 4)
-    : [];
-  // V22/R1 — 3 secenek: icinde bulunulan (acik) vardiya + gecmis 2. Cap 3.
+  // A global LIMIT can fill entirely with one busy machine's shifts, leaving
+  // another machine without its last two worked shifts.
+  const recentPerMachine = await Promise.all(rows.map((machine) => db
+    .select({
+      id: vardiyaKayitlari.id,
+      makineId: vardiyaKayitlari.makine_id,
+      vardiyaTipi: vardiyaKayitlari.vardiya_tipi,
+      baslangic: vardiyaKayitlari.baslangic,
+      bitis: vardiyaKayitlari.bitis,
+    })
+    .from(vardiyaKayitlari)
+    .where(eq(vardiyaKayitlari.makine_id, machine.makineId))
+    .orderBy(desc(vardiyaKayitlari.baslangic))
+    .limit(3)));
+  const recentRows = recentPerMachine.flat();
   const recentByMachine = new Map<string, Array<{ id: string; vardiyaTipi: string; baslangic: Date; bitis: Date | null }>>();
   for (const row of recentRows) {
     const list = recentByMachine.get(row.makineId) ?? [];
@@ -2629,10 +2672,14 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
 
   // İçinde bulunulan vardiya penceresi (tüm makineler için ortak — tanımlar global).
   const currentWindow = await getCurrentShiftWindow(now);
+  const optionWindow = currentWindow ?? (await listActiveVardiyaTanimlari())
+    .map((tanim) => buildShiftWindow(now, tanim))
+    .filter((window) => window.baslangic <= now)
+    .sort((a, b) => b.baslangic.getTime() - a.baslangic.getTime())[0] ?? null;
 
   return rows.map((r) => {
     const recent = [...(recentByMachine.get(r.makineId) ?? [])];
-    // Acik vardiya listede yoksa 3. secenek olarak basa ekle (default o secilir).
+    // Acik vardiya listede yoksa ekle.
     if (r.acikVardiyaId && r.vardiyaTipi && r.baslangic && !recent.some((v) => v.id === r.acikVardiyaId)) {
       recent.unshift({
         id: r.acikVardiyaId,
@@ -2642,24 +2689,35 @@ export async function repoGetAcikVardiyalar(): Promise<AcikVardiyaDto[]> {
       });
     }
 
-    // İçinde bulunulan vardiyanın henüz gerçek kaydı yoksa (ör. bugün hiç üretim
-    // başlamamışken) sanal seçenek olarak başa ekle — default bu seçilir.
-    // Kullanıcı bu seçenekle veri girdiğinde kayıt submit anında oluşturulur.
-    if (currentWindow) {
-      const currentRepresented = recent.some(
+    // An operator may need to enter production for a worked day before a shift
+    // record exists. Offer the previous two calendar days as virtual shifts.
+    if (optionWindow) {
+      const currentEntry = recent.find(
         (v) =>
-          v.bitis === null &&
-          v.vardiyaTipi === currentWindow.vardiyaTipi &&
-          new Date(v.baslangic).getTime() === currentWindow.baslangic.getTime(),
+          v.vardiyaTipi === optionWindow.vardiyaTipi &&
+          new Date(v.baslangic).getTime() === optionWindow.baslangic.getTime(),
       );
-      if (!currentRepresented) {
-        recent.unshift({
-          id: buildVirtualShiftId(currentWindow),
-          vardiyaTipi: currentWindow.vardiyaTipi,
-          baslangic: currentWindow.baslangic,
+      const active = currentEntry ?? {
+          id: buildVirtualShiftId(optionWindow),
+          vardiyaTipi: optionWindow.vardiyaTipi,
+          baslangic: optionWindow.baslangic,
+          bitis: null,
+      };
+      const options = [active];
+      const tanim = optionWindow;
+      for (let daysAgo = 1; daysAgo <= 2; daysAgo += 1) {
+        const date = new Date(tanim.baslangic);
+        date.setDate(date.getDate() - daysAgo);
+        const recorded = recent.find((v) => v.vardiyaTipi === tanim.vardiyaTipi
+          && new Date(v.baslangic).getTime() === date.getTime());
+        options.push(recorded ?? {
+          id: buildVirtualShiftId({ ...tanim, baslangic: date }),
+          vardiyaTipi: tanim.vardiyaTipi,
+          baslangic: date,
           bitis: null,
         });
       }
+      recent.splice(0, recent.length, ...options);
     }
     return {
       makineId: r.makineId,

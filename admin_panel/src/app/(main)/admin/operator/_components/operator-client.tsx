@@ -77,6 +77,12 @@ function formatQuantity(value: number): string {
   return value.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
 }
 
+function progressTarget(job: MakineKuyruguDetayDto): number {
+  return job.montaj && job.planlananTakimMiktar != null
+    ? job.planlananTakimMiktar
+    : job.planlananMiktar;
+}
+
 function PreviousTotalsCard({ job, hint }: { job: MakineKuyruguDetayDto; hint?: string }) {
   return (
     <div className="rounded-xl border bg-slate-50 p-4 text-sm">
@@ -175,7 +181,7 @@ function MakineKuyruguTab() {
   const [dailyFireMiktar, setDailyFireMiktar] = useState("0");
   const [dailyNotlar, setDailyNotlar] = useState("");
   const [dailyVardiya, setDailyVardiya] = useState<{ vardiyaId: string } | null>(null);
-  const [receteDetayEmirId, setReceteDetayEmirId] = useState<string | null>(null);
+  const [receteDetayTarget, setReceteDetayTarget] = useState<{ emirId: string; urunId: string | null; urunAd: string; urunKod: string } | null>(null);
 
   const [resuming, setResuming] = useState<MakineKuyruguDetayDto | null>(null);
   const [resumeNotlar, setResumeNotlar] = useState("");
@@ -296,8 +302,9 @@ function MakineKuyruguTab() {
   }
 
   function openFinish(item: MakineKuyruguDetayDto) {
-    // Default to planned quantity as the actual total (operator adjusts if needed)
-    setUretilenMiktar(String(item.planlananMiktar));
+    // Takım olarak izlenen emirde bu alan son ek üretimdir; planı otomatik
+    // doldurmak önceki günlük kayıtların üzerine yanlışlıkla ekler.
+    setUretilenMiktar(item.planlananTakimMiktar == null ? String(item.planlananMiktar) : "");
     setFireMiktar("0");
     setNotlar("");
     setFinishVardiya(null);
@@ -306,6 +313,10 @@ function MakineKuyruguTab() {
 
   async function confirmFinish() {
     if (!finishing) return;
+    if (finishing.planlananTakimMiktar != null && !uretilenMiktar.trim()) {
+      toast.error("Bu vardiyada ek üretilen takım sayısını girin.");
+      return;
+    }
     const u = parseFloat(uretilenMiktar || "0");
     const f = parseFloat(fireMiktar || "0");
     if (Number.isNaN(u) || u < 0) {
@@ -465,11 +476,12 @@ function MakineKuyruguTab() {
                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-6">
                             <div className="bg-slate-100/50 p-4 rounded-2xl">
                               <span className="text-xs font-bold text-slate-500 uppercase">Planlanan</span>
-                              <div className="text-2xl font-black text-slate-800 tabular-nums sm:text-3xl">{activeJob.planlananMiktar}</div>
+                              <div className="text-2xl font-black text-slate-800 tabular-nums sm:text-3xl">{formatQuantity(progressTarget(activeJob))}{activeJob.montaj && activeJob.planlananTakimMiktar != null ? " takım" : ""}</div>
+                              {activeJob.montaj && activeJob.planlananTakimMiktar != null && <div className="mt-1 text-xs text-slate-500">Operasyon planı: {formatQuantity(activeJob.planlananMiktar)}</div>}
                             </div>
                             <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
                               <span className="text-xs font-bold text-primary uppercase">Üretilen</span>
-                              <div className="text-2xl font-black text-primary tabular-nums sm:text-3xl">{activeJob.uretilenMiktar}</div>
+                              <div className="text-2xl font-black text-primary tabular-nums sm:text-3xl">{activeJob.uretilenMiktar}{activeJob.montaj ? " takım" : ""}</div>
                             </div>
                              <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100">
                               <span className="text-xs font-bold text-rose-500 uppercase">Fire</span>
@@ -481,9 +493,9 @@ function MakineKuyruguTab() {
                           <div className="space-y-2 pt-2">
                             <div className="flex justify-between items-end">
                               <span className="text-sm font-bold text-slate-600">TAMAMLANMA</span>
-                              <span className="text-2xl font-black text-primary">{pct(activeJob.planlananMiktar, activeJob.uretilenMiktar)}%</span>
+                              <span className="text-2xl font-black text-primary">{pct(progressTarget(activeJob), activeJob.uretilenMiktar)}%</span>
                             </div>
-                            <Progress value={pct(activeJob.planlananMiktar, activeJob.uretilenMiktar)} className="h-4 bg-slate-200" />
+                            <Progress value={pct(progressTarget(activeJob), activeJob.uretilenMiktar)} className="h-4 bg-slate-200" />
                           </div>
                         </div>
 
@@ -492,7 +504,7 @@ function MakineKuyruguTab() {
                           <Button
                             variant="outline"
                             className="h-14 text-base font-bold rounded-2xl border-2"
-                            onClick={() => setReceteDetayEmirId(activeJob.uretimEmriId)}
+                            onClick={() => setReceteDetayTarget({ emirId: activeJob.uretimEmriId, urunId: activeJob.asilUrunId, urunAd: getJobTitle(activeJob), urunKod: activeJob.asilUrunKod ?? activeJob.urunKod })}
                           >
                             Reçete Detayı
                           </Button>
@@ -654,7 +666,7 @@ function MakineKuyruguTab() {
                                 <Button
                                   variant="outline"
                                   className="mt-2 h-9 w-full rounded-xl font-semibold"
-                                  onClick={() => setReceteDetayEmirId(job.uretimEmriId)}
+                                  onClick={() => setReceteDetayTarget({ emirId: job.uretimEmriId, urunId: job.asilUrunId, urunAd: getJobTitle(job), urunKod: job.asilUrunKod ?? job.urunKod })}
                                 >
                                   Reçete Detayı
                                 </Button>
@@ -682,7 +694,9 @@ function MakineKuyruguTab() {
             <p className="text-sm text-muted-foreground">
               <strong className="font-mono">{finishing?.emirNo}</strong> — {finishing ? getJobTitle(finishing) : ""}
             </p>
-            {finishing && <PreviousTotalsCard job={finishing} hint={t("admin.erp.operator.finishTotalHint")} />}
+            {finishing && <PreviousTotalsCard job={finishing} hint={finishing.planlananTakimMiktar != null
+              ? "Bu vardiyada ek üretilen takım sayısını girin; önceki kayıtlar yukarıda gösterilir."
+              : t("admin.erp.operator.finishTotalHint")} />}
             <VardiyaSecici
               value={finishVardiya}
               onChange={setFinishVardiya}
@@ -873,7 +887,7 @@ function MakineKuyruguTab() {
         </SheetContent>
       </Sheet>
 
-      <ReceteDetayModal emirId={receteDetayEmirId} onOpenChange={(open) => !open && setReceteDetayEmirId(null)} />
+      <ReceteDetayModal emirId={receteDetayTarget?.emirId ?? null} urunId={receteDetayTarget?.urunId ?? null} urunAd={receteDetayTarget?.urunAd} urunKod={receteDetayTarget?.urunKod} onOpenChange={(open) => !open && setReceteDetayTarget(null)} />
     </>
   );
 }

@@ -335,7 +335,12 @@ export async function buildMetadataFromSeo(
   const metadata: Metadata = {
     metadataBase: new URL(baseUrl),
 
-    title: { default: titleDefault, template: titleTemplate },
+    // Sayfa basligi marka adini zaten iceriyorsa kok sablon ("%s | Promats") ikinci kez
+    // eklemesin (musteri revizesi 2026-08 H1: sekme "Promats Oto Paspaslari" olmali,
+    // "Promats Oto Paspaslari | Promats" degil).
+    title: titleDefault.toLowerCase().includes(siteName.trim().toLowerCase())
+      ? { absolute: titleDefault, template: titleTemplate }
+      : { default: titleDefault, template: titleTemplate },
     ...(description ? { description } : {}),
 
     alternates: {

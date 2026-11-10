@@ -34,6 +34,7 @@ export const malKabulAdminApi = baseApi.injectEndpoints({
       providesTags: (_r, _e, id) => [{ type: 'MalKabul' as const, id }],
     }),
     createMalKabulAdmin: b.mutation<MalKabulDto, {
+      requestId?: string;
       kaynakTipi?: string;
       satinAlmaSiparisId?: string;
       satinAlmaKalemId?: string;

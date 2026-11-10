@@ -39,9 +39,8 @@ export default function PromatsHeader({ locale, products, settings, siteConfig, 
   const darkHeader = Boolean(title) || !isHome;
   const searchIcon = settings.header_icon_search;
   const menuIcon = settings.header_icon_menu;
-  const catalogPdfUrl = locale === 'tr'
-    ? '/userfiles/files/e-katalog-tr.pdf'
-    : (siteConfig.ekatalogUrl || '/userfiles/files/e-catalogue.pdf');
+  // Tek katalog (2026-08-29): TR ve EN ayni iki dilli PDF'i kullanir.
+  const catalogPdfUrl = siteConfig.ekatalogUrl || '/userfiles/files/promats-katalog-2026.pdf';
   const hasMoreProducts = products.length > MOBILE_PRODUCT_PREVIEW_COUNT;
   const visibleProducts = allProductsVisible ? products : products.slice(0, MOBILE_PRODUCT_PREVIEW_COUNT);
 

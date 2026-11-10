@@ -51,6 +51,9 @@ export const createMalKabul: RouteHandler = async (req, reply) => {
   } catch (error) {
     req.log.error({ error }, 'mal_kabul_create_failed');
     const msg = error instanceof Error ? error.message : 'sunucu_hatasi';
+    if (['satin_alma_kalemi_uyusmuyor', 'satin_alma_siparisi_acik_degil', 'mal_kabul_istek_anahtari_cakisti', 'birim_icin_tam_sayi_gerekli'].includes(msg)) {
+      return sendError(reply, 409, msg);
+    }
     return sendError(reply, 500, msg);
   }
 };

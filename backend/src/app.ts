@@ -59,9 +59,14 @@ import { registerSevkiyat } from '@/modules/sevkiyat/router';
 import { registerMalKabul } from '@/modules/mal_kabul/router';
 import { registerVardiyaAnalizi } from '@/modules/vardiya_analizi/router';
 import { registerPageFeedbackAdmin } from '@/modules/page_feedback/router';
-import { registerProjeTeklifiNotlariAdmin } from '@/modules/projeTeklifiNotlari/router';
+import { registerMenuPreferencesAdmin } from '@/modules/menu_preferences/router';
+import { registerPromatsMcpAdmin } from '@/modules/promats_mcp/admin.routes';
+import { registerPromatsMcp } from '@/modules/promats_mcp/mcp';
+import { registerPromatsOAuthMetadata, registerPromatsOAuthPublic } from '@/modules/promats_mcp/oauth';
 import { registerWebPromatsAdmin, registerWebPromatsPublic } from '@/modules/web_promats/router';
 import { registerCrm } from '@/modules/crm/router';
+import { registerFirmaBulma } from '@/modules/firma-bulma/routes';
+import { registerFirmaKurulumu } from '@/modules/firma-kurulumu/routes';
 import { registerContactMessagesAdmin, registerContactMessagesPublic } from '@/modules/contact_messages/router';
 
 // Storage config (site_settings + env)
@@ -206,6 +211,13 @@ export async function createApp() {
     limits: { fileSize: 20 * 1024 * 1024 },
   });
 
+  app.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string' }, (_req, body, done) => {
+    try { done(null, Object.fromEntries(new URLSearchParams(body as string))); }
+    catch { done(null, {}); }
+  });
+
+  await registerPromatsOAuthMetadata(app);
+
   app.get('/health', async () => ({ ok: true }));
   app.get('/api/health', async () => ({ ok: true }));
 
@@ -245,9 +257,12 @@ export async function createApp() {
     await api.register(registerMalKabul,        { prefix: '/admin' });
     await api.register(registerVardiyaAnalizi,  { prefix: '/admin' });
     await api.register(registerPageFeedbackAdmin, { prefix: '/admin' });
-    await api.register(registerProjeTeklifiNotlariAdmin, { prefix: '/admin' });
+    await api.register(registerMenuPreferencesAdmin, { prefix: '/admin' });
+    await api.register(registerPromatsMcpAdmin, { prefix: '/admin' });
     await api.register(registerWebPromatsAdmin, { prefix: '/admin' });
     await api.register(registerCrm, { prefix: '/admin' });
+    await api.register(registerFirmaBulma, { prefix: '/admin' });
+    await api.register(registerFirmaKurulumu, { prefix: '/admin' });
     await api.register(registerContactMessagesAdmin, { prefix: '/admin' });
 
     // --- Public modüller → /api/... ---
@@ -263,6 +278,8 @@ export async function createApp() {
     await registerWebPromatsPublic(api);
     await registerTeklifPublic(api);
     await registerContactMessagesPublic(api);
+    await registerPromatsMcp(api);
+    await registerPromatsOAuthPublic(api);
 
   }, { prefix: '/api' });
 

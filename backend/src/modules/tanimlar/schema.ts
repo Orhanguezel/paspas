@@ -20,8 +20,23 @@ export const vardiyalar = mysqlTable('vardiyalar', {
   bitis_saati: varchar('bitis_saati', { length: 5 }).notNull(),
   is_active: tinyint('is_active', { unsigned: true }).notNull().default(1),
   aciklama: varchar('aciklama', { length: 500 }),
+  gecerlilik_baslangici: datetime('gecerlilik_baslangici').notNull().default(sql`CURRENT_TIMESTAMP`),
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updated_at: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
+});
+
+/** Immutable snapshots used when classifying historical production records. */
+export const vardiyaTarihceleri = mysqlTable('vardiya_tarihceleri', {
+  id: char('id', { length: 36 }).primaryKey().notNull(),
+  vardiya_id: char('vardiya_id', { length: 36 }).notNull(),
+  ad: varchar('ad', { length: 100 }).notNull(),
+  baslangic_saati: varchar('baslangic_saati', { length: 5 }).notNull(),
+  bitis_saati: varchar('bitis_saati', { length: 5 }).notNull(),
+  is_active: tinyint('is_active', { unsigned: true }).notNull(),
+  aciklama: varchar('aciklama', { length: 500 }),
+  gecerli_baslangic: datetime('gecerli_baslangic').notNull(),
+  gecerli_bitis: datetime('gecerli_bitis'),
+  created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const durusNedenleri = mysqlTable('durus_nedenleri', {
@@ -107,6 +122,7 @@ export function kalipUyumluMakineRowToDto(row: KalipUyumluMakineRow) {
 }
 
 export type VardiyaRow = typeof vardiyalar.$inferSelect;
+export type VardiyaTarihceRow = typeof vardiyaTarihceleri.$inferSelect;
 export type DurusNedeniRow = typeof durusNedenleri.$inferSelect;
 
 export const DURUS_KATEGORILER = ['makine', 'malzeme', 'personel', 'planlama', 'diger'] as const;
@@ -120,6 +136,7 @@ export function vardiyaRowToDto(row: VardiyaRow) {
     bitisSaati: row.bitis_saati,
     isActive: row.is_active === 1,
     aciklama: row.aciklama ?? null,
+    gecerlilikBaslangici: row.gecerlilik_baslangici,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

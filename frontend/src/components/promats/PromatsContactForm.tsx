@@ -161,7 +161,9 @@ export default function PromatsContactForm({ labels, formClassName, products = [
       </div>
       {subjectOptions.length ? (
         <div className="form-group">
-          <label htmlFor="promats-contact-subject">{labels.subject}</label>
+          {/* Musteri revizesi 2026-08 (H11): gorunur label + ayni metinli placeholder cift
+              gorunuyordu ve satir yuksekliklerini bozuyordu; diger alanlar gibi sr-only. */}
+          <label className="sr-only" htmlFor="promats-contact-subject">{labels.subject}</label>
           <select id="promats-contact-subject" className="form-control" name="subject" required defaultValue={defaultSubject ?? ''}>
             <option value="" disabled>{labels.subject}</option>
             {subjectOptions.map((option) => <option key={option} value={option}>{option}</option>)}
@@ -171,7 +173,7 @@ export default function PromatsContactForm({ labels, formClassName, products = [
       ) : null}
       {products.length ? (
         <div className="form-group">
-          <label htmlFor="promats-products-toggle">{labels.products}</label>
+          <label className="sr-only" htmlFor="promats-products-toggle">{labels.products}</label>
           <div className="promats-multiselect" ref={productsRef}>
             <button
               type="button"

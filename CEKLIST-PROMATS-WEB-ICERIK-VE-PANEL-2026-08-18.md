@@ -62,6 +62,67 @@ Excel iki sayfadan oluşuyor: **Ürün İçerik Master** (91 satır, 40'ı yeni 
 
 - [ ] Excel'de **"FOKNSİYONEL TASARIM"** iki satırda birden yanlış yazılmış → doğrusu **"FONKSİYONEL TASARIM"**. Siteye işlerken düzeltilecek; kaynak dosyada da düzeltilmesi önerilir.
 
+### ✅ UYGULANDI — 2026-08-28 (commit `1f654cb`)
+
+**Kullanıcı kararları (2026-08-27):** ihracat ülke sayısı **her yerde 35+**; **tüm içerikler TR+EN**.
+
+| İş | Nereye gitti |
+|---|---|
+| Slider 2-4 başlık/metin/buton (R3-R5) | `web_promats_special_pages` 21/23/25 (TR), 22/24/26 (EN) + slider artık **slayta özel metin** gösteriyor (önceden ilk banner'ın metni tüm slaytlarda sabitti) |
+| Ürünler başlığı altı giriş metni (R7) | `web_promats_static_texts` 2001 (TR) / 2002 (EN) + `PromatsHome` |
+| NEDEN PROMATS kontrast (R8) | CSS `.neden_promat p` kuralı + DB içeriği temiz `<span>` yapısına çevrildi (TR 4, EN 5), 25→35 |
+| Rozet barı (R10-R12) | NEDEN PROMATS detail içindeki `.neden_promat_iconbg` — 3 yeni SVG ikon (`/assets/images/icon/neden-*.svg`) |
+| Ürünler sayfası metinleri (R14-R19, R27-R29) | `site_settings` `page_content.products.locale.tr/en` |
+| Seri rozetleri (R21-R25) | `web_promats_products.s2_3_text` kısaltıldı; CSS: rozet sola üstte, görsele taşmaz, 2. satıra kırılır, görsel alanı büyütüldü |
+| Üretim sayfası (R39-R85) | `site_settings` `page_content.production.locale.tr/en` + galeri başlık/açıklama alanları (`galleryHeading`, `gallery[].title/text`) |
+| Hakkımızda (R87-R91) | `frontend/src/config/pages/hakkimizda-page.json` — hero/kimlik zaten Excel metniyle uyumluydu; değerler gövdeleri güncellendi; SERTİFİKALARIMIZ → tek **ISO 9001:2015** bloğu + rozet SVG |
+
+**Kayıt:** DB script `scripts/web-icerik-guncelleme-20260827.py` (uygulandı), yedek `.yedek/web-icerik-oncesi-20260827.sql` (special_pages + static_texts + products + site_settings, 291K).
+
+**Verilen kararlar (aşağıdaki açık soruların çözümü):** 1→35+ her yerde; 2→R24 "FONKSİYONEL KENAR"; 3→hero'ya R16 2. paragraf, Serilerimiz'e R19; 4→butonlar `/urunler`, `/uretim`, `/urunler#ozellikler`; 5→"Universal / Fit" kutusu, 3D–5D kutusu kaldı; 6→CSS kuralı + içerik temizliği; 7→benzer rozet SVG çizildi; 8→EN aynı script'te güncellendi; 9→"araca özel" kalıntı taraması yapıldı (ürünler/üretim sayfa metinleri temizlendi; ürün detay `detail_*` metinleri ayrı iş); 10→yok sayıldı.
+
+### Açık sorular ve çelişkiler — 2026-08-27 incelemesi (karara bağlandı, yukarıya bakın)
+
+Excel'in 29 gömülü ekran görüntüsü tek tek incelendi, canlı site ile karşılaştırıldı.
+İçeriğin ~%90'ı nettir; aşağıdakiler işlemeden önce karara bağlanmalı (önerilen karar yanında):
+
+1. **25+ mi 35+ mı? (müşteriye sorulacak tek gerçek soru)** — Excel kendi içinde çelişiyor:
+   R12 "25+ Ülkeye İhracat", R41 üretim sayfası istatistiği **35+ → 25+ düşürülüyor**, R85 sevkiyat
+   "25'ten fazla ülke"; **ama R88 Kurumsal Kimliğimiz metni "35'ten fazla ülkeye ürün tedarik eden"**
+   diyor. Canlı sitede de şu an iki rakam bir arada. **Öneri:** her yerde **25+** (Excel'in genel yönü bu);
+   R88'deki 35 büyük olasılıkla eski metinden kalma. Olgusal, müşteriye dönük iddia → teyit alınmalı.
+2. **İki komşu kartta aynı rozet** — R23 ve R24'ün yenisi aynı: "FONKSİYONEL TASARIM" (typo düzeltilmiş
+   hâliyle). Ürünler sayfasında yan yana iki kart aynı etiketi taşıyacak. **Öneri:** R24 (kenar tasarımlı
+   model) → **"FONKSİYONEL KENAR"**; müşteri bilinçli aynı istiyorsa aynen bırakılır.
+3. **R16'da iki paragraf + R19 ile tekrar** — Ürünler sayfası girişi için R16'da iki ayrı paragraf verilmiş
+   (ikincisi Maximum/Professional/Icon serilerini sayıyor); R19'daki metin R16'nın ilk paragrafının küçük
+   varyasyonu. Aynen işlenirse aynı sayfada üç kez neredeyse aynı tanıtım paragrafı oluşur.
+   **Öneri:** hero'ya R16'nın 2. paragrafı (seri adları geçen), "SERİLERİMİZ" bölüm girişine R19; R16'nın
+   1. paragrafı atlanır.
+4. **Slider buton hedefleri Excel'de yok** — "Serileri İncele" → `/tr/urunler`, "Üretimimizi Keşfedin" →
+   `/tr/uretim`, "Ürün Özellikleri" → `/tr/urunler#ortak-ozellikler` varsayılacak. Ekran görüntülerinde
+   nokta sayısı 4 ile 5 arasında değişiyor — canlıda kaç slayt var işleme sırasında sayılacak; 5. slayt
+   varsa içeriği Excel'de tanımsız (Slider 1 değişmiyor).
+5. **"Universal Fit" istatistik kutusu** — R17 ile ürünler sayfası istatistik barındaki "35+ İHRACAT ÜLKESİ"
+   kutusu "Universal Fit" oluyor; bar sayı+etiket formatında (8+ · 3D–5D · 3 · 35+), "Universal Fit" sayı
+   değil → kutu tasarımı uyarlanacak. Ayrıca barda kalan "3D–5D HAVUZ KONSEPTİ" ile yeni rozetlerdeki
+   "4D KONSEPT" söylemi yan yana duracak — müşteri isterse o kutu da güncellenir (Excel'de talep yok).
+6. **R8 = "NEDEN PROMATS?" kontrast bozukluğu** — ekran görüntüsünden teşhis edildi: koyu zeminde koyu gri
+   paragraflar okunmuyor. İçerik değil **tasarım düzeltmesi** (metin rengi); kapsama dahil edilecek.
+   Görüntüdeki mevcut metin zaten yeni söylemle ("universal", "25'ten fazla") güncellenmiş durumda.
+7. **ISO 9001:2015 bloğu** — mevcut "SERTİFİKALARIMIZ" bölümü tek belge bloğuna dönüşüyor; Excel'de
+   "buna benzer bir ikon" diye örnek rozet görseli var. **Öneri:** benzer bir rozet SVG çizilir; müşterinin
+   gerçek sertifika görseli/logosu varsa o tercih edilir (sorulacak).
+8. **EN tarafı Excel'de yok** — site TR/EN; yalnız TR işlenirse EN'de eski "car-specific/araca özel" söylem
+   kalır ve yeni "universal" konumlandırmayla çelişir. **Öneri:** TR işlendikten sonra aynı script'te EN
+   çevirileri de güncellenir.
+9. **"Araca özel" söyleminin kapsam dışı kalıntıları** — Excel yalnız 3 sayfayı (anasayfa, ürünler, üretim)
+   kapsıyor; ürün detay sayfaları, SEO meta'ları ve footer'da "araca özel kalıp" iddiaları kalabilir.
+   İşleme sırasında DB genelinde taranıp liste çıkarılacak (silme kararı müşteriyle).
+10. **"Kullanım Notları" sayfası şablon kalıntısı** — "ürün sütunları" diye bahsettiği yapı bu dosyada yok
+    (4 sütun var, ürün başına sütun yok). Bu dosya için Ortak/Uyarlanabilir/Seriye Özel ayrımının pratik
+    karşılığı yok; yok sayılabilir.
+
 ### İşleme yöntemi
 
 - [ ] İçerikler **elle panelden değil**, tercihen bir seed/migration script'i ile işlensin (`backend/src/db/seed/sql/` veya tek seferlik `scripts/`), böylece TR/EN eşleşmesi izlenebilir olur.
@@ -224,6 +285,117 @@ Frontend (`PromatsImage` → `resolvePath` → `assetPath`) ve admin panel (`web
 | promats.com.tr · ürün sayfası · panel | — | 308 · 200 · 307 ✓ |
 
 > **Not:** TeklifRota kendi tarafında da dayanıklılık eklemişti (`ee2d678`). Artık iki taraf da doğru; onların telafi kodu zararsız (`/userfiles` gelince olduğu gibi geçiriyor).
+
+## G. Panel düzenleme ekranları teşhisi — 2026-08-28
+
+**Soru:** Müşteri panelden bu içerikleri neden düzeltemiyor?
+**Teknik arıza YOK:** admin uçlarının tamamı token'la 200 dönüyor (products/pages/page-content/articles/menu/texts/settings/theme/home-sections), 2 admin hesabı mevcut, PATCH yolu çalışıyor. Sorun yetki değil, **düzenleme modeli**:
+
+1. **Sayfa metinleri = çıplak JSON.** Ürünler/Üretim sayfa içerikleri ("Sayfa İçerikleri" sekmesi) tek parça ham JSON textarea'da düzenleniyor ([web-sayfasi-client.tsx:807](admin_panel/src/app/\(main\)/admin/\(admin\)/web-sayfasi/web-sayfasi-client.tsx#L807)). Anahtarlar İngilizce (`hero.headline`, `stats[].value`); tek tırnak hatasında "JSON biçimi geçersiz" → hiçbir şey kaydedilmiyor. Teknik olmayan kullanıcı için fiilen düzenlenemez.
+2. **Slider metinleri kırılgan HTML sözleşmesinin içinde.** Banner başlık/alt metin/buton, `detail` HTML'inde `<h1 class="hero-heading">` + `.sub-text` yapısında; frontend bunu REGEX ile ayrıştırıyor ([PromatsHeroContents.tsx:25](frontend/src/components/promats/PromatsHeroContents.tsx#L25)). Panelin görsel editörü `document.execCommand` tabanlı contentEditable — class'ları koruma garantisi yok; müşteri başlığı değiştirince `hero-heading` class'ı kaybolursa başlık sitede HİÇ görünmez. "Düzeltemiyor" şikayetinin ana sebebi bu.
+3. **Word yapıştırma sanitizasyonu yok.** NEDEN PROMATS kazası (R8) tam olarak böyle oldu: müşteri Word'den yapıştırdı, Mso çöpü + `<p>` yapısı geldi, koyu zeminde metin okunmaz oldu. Editörde paste temizliği yok.
+4. **Neden Promats rozet barı** aynı HTML blobun içinde (`neden_promat_iconbg`) — üç ikon+etiketi görsel editörde bozmadan değiştirmek pratikte imkânsız.
+5. **Hakkımızda sayfası panelden hiç düzenlenemez** — içerik repoda ([hakkimizda-page.json](frontend/src/config/pages/hakkimizda-page.json)); değişiklik deploy istiyor. "Ortak Özellikler" kartları da kodda gömülü (`SHARED_FEATURE_CARDS`).
+6. **Ürün özellikleri (297) + sayfa galerisi (8):** backend PATCH `features`/`gallery` children'ı destekliyor ([router.ts:672](backend/src/modules/web_promats/router.ts#L672)) ama panelde UI yok (E maddesi hâlâ açık — backend hazır, yalnız ekran eksik).
+
+### Önerilen çözüm sırası — ✅ TAMAMLANDI (2026-08-28, release `20260828T171112Z-1dca5de`)
+
+- [x] **G1:** Banner ve Neden Promats yapılandırılmış formları — `_components/web-detail-forms.tsx` +
+  `_lib/promats-detail-html.ts`. HTML şablondan üretilir; canlı HTML ile round-trip **byte-byte aynı**
+  (bun testi + panelden gerçek kaydetme sonrası DB karşılaştırmasıyla kanıtlandı). Entity-encoded eski
+  kayıtlar (`&lt;h1...`) da çözülüp ayrıştırılıyor.
+- [x] **G2:** Sayfa İçerikleri alan bazlı form — `_components/page-content-editor.tsx` +
+  `_lib/page-content-schemas.ts` (products / production / hakkimizda şemaları). Ham JSON "Gelişmiş"
+  bölümüne indi; şemasız sayfalar (oem, partner, resources…) JSON'da kalır.
+- [x] **G3:** RichContentEditor yapıştırma sanitizasyonu — izinli etiket beyaz listesi, Word/Mso
+  class+style temizliği, javascript: href/src engeli.
+- [x] **G4:** Hakkımızda içeriği `page_content.hakkimizda.locale.tr/en` anahtarına taşındı
+  (seed: `scripts/hakkimizda-page-content-seed-20260828.py`); frontend DB'den okur
+  (`getPageContentOptional`), repo JSON'u yedek. Panelde "Sayfa İçerikleri"nde düzenlenebilir.
+- [x] **G5:** Ürün formuna "Özellikler" sekmesi (297 kayıt — tip/metin/görsel/sıra + yükleme) ve
+  sayfa formuna "Galeri" sekmesi eklendi; backend `replaceProductFeatures`/`replacePageGallery`
+  zaten hazırdı. Bu, E maddesinin panel ayağını da kapatır.
+
+**Canlı doğrulama (2026-08-28):** panel girişiyle 4 ekran tarayıcıda test edildi (banner formu,
+Neden Promats formu, production içerik formu, ürün Özellikler sekmesi — hepsi canlı veriyle dolu);
+BANNER 2 panelden kaydedildi → DB'deki HTML öncekiyle birebir aynı, 297 özellik + 8 galeri kaydı
+yerinde, site metinleri sağlam. D maddesindeki "JSON'la çeviri akışı" ihtiyacı için ham JSON
+"Gelişmiş" bölümünde durmaya devam ediyor.
+
+## H. ✅ TAMAMLANDI — Müşteri revizesi 2. tur — "Promats web revize yeni.docx" (2026-08-28)
+
+Kaynak: [Promats web revize yeni.docx](Promats%20web%20revize%20yeni.docx) — 12 not, hepsi ekran
+görüntüsüne bağlı; tamamı eşlendi. **Tamamı aynı gün canlıya alındı** — release'ler
+`20260828T173753Z-30650ca` + `20260828T174552Z-9fea1fc`, commit'ler `30650ca` + `9fea1fc`.
+
+**Canlı doğrulama:** TR sekme "Promats Oto Paspasları" / EN "Promats Car Mats"; slider butonu
+"Ürünleri Keşfet → /tr/urunler" tıklanabilir; ürün detay akordiyon sırası [Açıklama, Teknik,
+5 Parça Tam Set, Temizlik ve Bakım, Avantajları, Malzeme, Universal, SSS] ve "Bilgi Alın" bloğu
+temiz; SSS soruları computed 700 bold (Bootstrap `bolder`ın 300 gövdede 400 vermesi ayrıca
+düzeltildi); anasayfa 3 kart aynı standartta; Ortak Özellikler ortalı; iletişim formu hizalı,
+adres kartı harita yüksekliğinde. Ekran görüntüleriyle belgelendi.
+
+> Not: H2/H10 içerik düzeltmeleri DB'de (yedek: `.yedek/web-special-pages-oncesi-20260828.sql`);
+> H1 başlıklar `seo_pages` + `page_content.home` anahtarlarında; gerisi kod/CSS.
+
+### H eki — ISO rozeti + footer tekliği (2026-08-28 akşam, commit `9d2d5c9`, release `20260828T180307Z`)
+
+- [x] **Gerçek ISO rozeti:** Müşterinin gönderdiği "CERTIFIED ISO 9001:2015" rozeti işlendi
+  (beyaz zemin şeffaflaştırıldı, 440px) → `/assets/images/hakkimizda/iso-9001-2015.png`;
+  çizim SVG silindi; DB `page_content.hakkimizda` (TR+EN) + repo fallback JSON yeni yola çevrildi.
+- [x] **"Farklı footer" şikayeti — teşhis:** Sitede zaten TEK footer var (`PromatsFooter`,
+  `[locale]/layout` üzerinden tüm sayfalara girer; 7 sayfada aynı `<footer>` DOM'u doğrulandı).
+  Algılanan "ikinci footer", Hakkımızda sonundaki koyu **"Promats'ı Daha Yakından Keşfedin"**
+  bandıydı: footer menüsünü tekrarlayan ÜRETİM/ÜRÜNLER/İLETİŞİM nav butonları. Bant kaldırıldı;
+  panel şemasından "Kapanış Bandı" grubu çıkarıldı. Canlı doğrulama: bant TR+EN'de yok,
+  `<footer>` sayısı 1, footer logo+menü+adres+sosyal eksiksiz, konsol hatasız.
+- [ ] Benzer koyu CTA bandı `become-a-partner` sayfasında da var (`PromatsEditorialPages.finalCta`)
+  — o nav taklidi değil, satış CTA'sı (İletişim + OEM butonları); bilinçli bırakıldı.
+  Müşteri isterse o da kaldırılır.
+
+### Site geneli
+
+- [x] **H1 — Favicon + sekme başlığı:** "P" harfi yerine Promats logosu; başlık
+  "Universal Paspaslar | Promats" → **"Promats Oto Paspasları"** (EN: "Promats Car Mats").
+  Varsayım: yalnız site geneli varsayılan başlık değişir, sayfa bazlı SEO başlıkları korunur.
+- [x] **H2 — Slider 1 "Ürünleri Keşfet" butonu:** tıklanmıyor ve tasarımı diğer slaytlardaki sarı
+  düğmeden farklı (sol çizgili düz yazı). Diğerleriyle aynı `btn btn-yellow` formatına getirilecek,
+  `/tr/urunler` (EN `/en/products`) linki verilecek — banner1 TR+EN `detail` güncellemesi
+  (artık G1 formu/şablonuyla güvenli).
+
+### Ürün detay sayfası (PromatsProductDetail)
+
+- [x] **H3 — "5 Parça Tam Set"** düz başlık duruyor; diğer bölümlerle aynı formata (akordiyon
+  başlığı) getirilecek.
+- [x] **H4 — "Kullanım Alanları" başlığı kalkacak;** bölüm başlığı içerikteki **"Temizlik ve Bakım"**
+  olacak (içerik `detail_usage`'ta; başlık render'da değiştirilir, DB'ye dokunulmaz).
+- [x] **H5 — SSS ayrıştırma:** "Sık Sorulan Sorular" şu an Avantajlar akordiyonunun İÇİNDE
+  (`detail_advantages` HTML'inde h2). Ayrı başlık olacak, sayfanın en sonuna
+  ("Bu ürünle ilgileniyor musunuz"dan hemen önce) taşınacak, **sorular bold** olacak.
+  Önerilen yöntem: 20 üründe DB içeriğini elden geçirmek yerine render-time split —
+  advantages HTML'i "Sık Sorulan Sorular" h2'sinden ikiye bölünür, ikinci parça SSS bölümü
+  olarak sona konur; soru paragrafları (soru işaretiyle bitenler) bold'lanır. TR+EN aynı mantık
+  (EN başlık "Frequently Asked Questions").
+- [x] **H6 — "X Serisi Hakkında Bilgi Alın" bloğu kaldırılacak** — alttaki ilgi CTA'sıyla mükerrer.
+
+### Üretim + Ürünler sayfaları (PmSectionHeading intro genişliği)
+
+- [x] **H7 — "ÜRETİM TESİSİMİZ" intro metni** dar sütunda; yanlara genişletilecek.
+- [x] **H8 — "ÜRÜN SERİLERİMİZ" intro** aynı oranda genişletilecek (aynı bileşen).
+- [x] **H9 — "ORTAK ÖZELLİKLER" başlığı ortalanacak** (şu an sola hizalı) + intro aynı şekilde
+  genişletilecek.
+- [x] **H10 — Ortak özellikler 1. kart görseli** ("1. Sınıf Kalite PVC") diğerleriyle aynı standartta
+  değil (çerçevesiz/oran farklı); karta diğerleriyle aynı çerçeve/oran verilecek.
+
+### İletişim
+
+- [x] **H11 — İletişim formu düzeni:** "Konu Başlığı" ve "İlgilenilen Ürün Grubu" select'lerinde
+  label/placeholder çakışması ve hiza bozukluğu (müşteri kırmızıyla işaretledi). Alan dizilimi ve
+  select görünümü düzenlenecek.
+- [x] **H12 — İletişim alt bloğu:** adres kartı + harita + "Yol Tarifi Al" hizaları gözden geçirilecek.
+
+> Uygulama sırası önerisi: H2 (çalışmayan buton — işlevsel hata) → H3-H6 (ürün detay) →
+> H7-H10 (CSS) → H1 → H11-H12. Sonrasında canlı görsel doğrulama TR+EN.
 
 ## Önerilen Sıra
 

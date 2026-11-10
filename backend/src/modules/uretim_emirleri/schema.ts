@@ -23,6 +23,7 @@ export const uretimEmirleri = mysqlTable('uretim_emirleri', {
   siparis_kalem_id: char('siparis_kalem_id', { length: 36 }),
   urun_id: char('urun_id', { length: 36 }).notNull(),
   mamul_urun_id: char('mamul_urun_id', { length: 36 }).notNull(),
+  stok_hedef_urun_id: char('stok_hedef_urun_id', { length: 36 }),
   taraf: varchar('taraf', { length: 8 }).$type<Taraf>(),
   recete_id: char('recete_id', { length: 36 }),
   musteri_ozet: varchar('musteri_ozet', { length: 255 }),
@@ -49,6 +50,7 @@ export type UretimEmriOperasyonOzetDto = {
   durum: string;
   /** Emir satiri altindaki detay panelinde planlanan/gerceklesen bitis ayri renkte gosterilir. */
   planlananBitis: string | null;
+  gercekBaslangic: string | null;
   gercekBitis: string | null;
 };
 
@@ -59,6 +61,7 @@ export type UretimEmriDto = {
   operasyonlar: UretimEmriOperasyonOzetDto[];
   siparisKalemIds: string[];
   siparisNo: string | null;
+  siparisPlanlananMiktar: number | null;
   siparisUrunKod: string | null;
   siparisUrunAd: string | null;
   siparisUrunGorsel: string | null;
@@ -94,8 +97,9 @@ export type UretimEmriDto = {
 };
 
 /** Repository ham satiri: tarihler Date olabilir, rowToDto ISO string'e cevirir. */
-type OperasyonOzetGirdi = Omit<UretimEmriOperasyonOzetDto, 'planlananBitis' | 'gercekBitis'> & {
+type OperasyonOzetGirdi = Omit<UretimEmriOperasyonOzetDto, 'planlananBitis' | 'gercekBaslangic' | 'gercekBitis'> & {
   planlananBitis?: Date | string | null;
+  gercekBaslangic?: Date | string | null;
   gercekBitis?: Date | string | null;
 };
 
@@ -103,6 +107,7 @@ type UretimEmriDtoRow = UretimEmriRow & {
   siparisKalemIds?: string[];
   operasyonlar?: OperasyonOzetGirdi[];
   siparisNo?: string | null;
+  siparisPlanlananMiktar?: number | null;
   siparisUrunKod?: string | null;
   siparisUrunAd?: string | null;
   siparisUrunGorsel?: string | null;
@@ -136,10 +141,12 @@ export function rowToDto(row: UretimEmriDtoRow): UretimEmriDto {
     operasyonlar: (row.operasyonlar ?? []).map((operasyon) => ({
       ...operasyon,
       planlananBitis: toDateTimeString(operasyon.planlananBitis),
+      gercekBaslangic: toDateTimeString(operasyon.gercekBaslangic),
       gercekBitis: toDateTimeString(operasyon.gercekBitis),
     })),
     siparisKalemIds: kalemIds,
     siparisNo: row.siparisNo ?? null,
+    siparisPlanlananMiktar: row.siparisPlanlananMiktar ?? null,
     siparisUrunKod: row.siparisUrunKod ?? null,
     siparisUrunAd: row.siparisUrunAd ?? null,
     siparisUrunGorsel: row.siparisUrunGorsel ?? null,

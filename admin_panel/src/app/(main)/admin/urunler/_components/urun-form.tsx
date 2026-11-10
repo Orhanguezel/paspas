@@ -72,6 +72,8 @@ const operasyonSchema = z.object({
   hazirlikSuresiDk: z.coerce.number().int().min(0).default(60),
   cevrimSuresiSn: z.coerce.number().min(0).default(45),
   montaj: z.boolean().default(false),
+  isActive: z.boolean().optional(),
+  makineler: z.array(z.object({ makineId: z.string(), oncelikSira: z.number().int().min(1) })).optional(),
 });
 
 const birimDonusumSchema = z.object({
@@ -134,15 +136,25 @@ interface UrunFormProps {
   open: boolean;
   onClose: () => void;
   urun?: UrunDto | null;
+  copyMode?: boolean;
+}
+
+function nextCopyCode(code: string): string {
+  const match = /^(.*?)(\d+)$/.exec(code);
+  if (!match) return `${code}-1`;
+  const value = Number(match[2]);
+  if (!Number.isSafeInteger(value)) return `${code}-1`;
+  return `${match[1]}${String(value + 1).padStart(match[2].length, "0")}`;
 }
 
 const TEDARIK_OPTIONS: TedarikTipi[] = ["uretim", "satin_alma", "fason"];
 const OPERASYON_OPTIONS: OperasyonTipi[] = ["tek_tarafli", "cift_tarafli"];
 
 // ── Component ─────────────────────────────────────────────────
-export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
+export default function UrunForm({ open, onClose, urun, copyMode = false }: UrunFormProps) {
   const { t } = useLocaleContext();
-  const isEdit = !!urun;
+  const isEdit = !!urun && !copyMode;
+  const isPrefilled = !!urun;
   const [create, createState] = useCreateUrunAdminMutation();
   const [update, updateState] = useUpdateUrunAdminMutation();
   const [saveDraftMedya, saveDraftMedyaState] = useSaveUrunMedyaAdminMutation();
@@ -152,6 +164,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   const [activeTab, setActiveTab] = useState("bilgiler");
   const [draftReceteRows, setDraftReceteRows] = useState<ReceteRow[]>([]);
   const [draftReceteAciklama, setDraftReceteAciklama] = useState("");
+  const [draftReceteHedefMiktar, setDraftReceteHedefMiktar] = useState(1);
   const [draftMediaUrls, setDraftMediaUrls] = useState<string[]>([]);
   const [draftCoverUrl, setDraftCoverUrl] = useState("");
 
@@ -160,7 +173,10 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   const { data: birimlerData } = useListBirimlerAdminQuery();
   // V20/R1 — operasyonun "Üretilen yarımamul" seçenekleri: ürünün aktif reçetesindeki
   // operasyonel_ym kalemleri. Yalnız düzenleme modunda (ürünün id'si varsa) çekilir.
-  const { data: receteForOps } = useGetUrunReceteAdminQuery(urun?.id ?? "", { skip: !urun?.id });
+  const { currentData: receteForOps, isFetching: copyRecipeLoading, isError: copyRecipeError } = useGetUrunReceteAdminQuery(urun?.id ?? "", { skip: !urun?.id });
+  const { currentData: copyMedia, isFetching: copyMediaLoading, isError: copyMediaError } = useListUrunMedyaAdminQuery(urun?.id ?? "", { skip: !copyMode || !urun?.id });
+  const copyPrefilledId = useRef<string | null>(null);
+  const restoredAltGroupId = useRef<string | null>(null);
   const operasyonelYmSecenekleri = (receteForOps?.items ?? [])
     .filter((k) => k.malzemeKategori === "operasyonel_ym" && k.urunId)
     .map((k) => ({ id: k.urunId, ad: k.malzemeAd ?? k.malzemeKod ?? k.urunId }));
@@ -211,7 +227,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   // Auto-suggest next product code for new products
   const { data: nextCodeData, refetch: refetchNextCode } = useGetNextCodeAdminQuery(
     { kategori: watchKategori },
-    { skip: isEdit },
+    { skip: isPrefilled },
   );
   const watchTedarikTipi = form.watch("tedarikTipi");
   const watchOperasyonTipi = form.watch("operasyonTipi");
@@ -219,7 +235,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
   const watchAd = form.watch("ad");
   const watchRenk = form.watch("renk");
   const selectedCategory = categories.find((item) => item.kod === watchKategori);
-  const { data: subCategoryData, isFetching: subCategoriesFetching } = useListSubCategoriesAdminQuery(
+  const { currentData: subCategoryData, isFetching: subCategoriesFetching } = useListSubCategoriesAdminQuery(
     selectedCategory
       ? { category_id: selectedCategory.id, is_active: true, sort: "display_order", order: "asc", limit: 200 }
       : { is_active: true, sort: "display_order", order: "asc", limit: 200 },
@@ -257,7 +273,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
 
   // Auto-generate operation names for NEW products
   useEffect(() => {
-    if (isEdit) return;
+    if (isPrefilled) return;
     if (!showProductionFields) {
       replaceOps([]);
       return;
@@ -277,7 +293,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
       replaceOps([{ operasyonAdi: name, sira: 1, hazirlikSuresiDk: 60, cevrimSuresiSn: 45, montaj: false }]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- replaceOps identity changes every render, safe to omit
-  }, [watchOperasyonTipi, watchAd, watchRenk, showProductionFields, isEdit, operationTypeRequired]);
+  }, [watchOperasyonTipi, watchAd, watchRenk, showProductionFields, isPrefilled, operationTypeRequired]);
 
   // Handle operasyonTipi change for EXISTING products — event-driven, not effect-based
   const prevKategoriRef = useRef<string | null>(null);
@@ -314,7 +330,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
     const previousKategori = prevKategoriRef.current;
     prevKategoriRef.current = currentKategori;
 
-    if (!isEdit) {
+    if (!isPrefilled) {
       const nextTedarik = selectedCategory.varsayilan_tedarik_tipi as TedarikTipi;
       if (form.getValues("tedarikTipi") !== nextTedarik) {
         form.setValue("tedarikTipi", nextTedarik, { shouldDirty: true });
@@ -358,10 +374,10 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
     if (form.getValues("birim") !== nextBirim) {
       form.setValue("birim", nextBirim, { shouldDirty: true });
     }
-  }, [selectedCategory, isEdit, form, operationTypeRequired]);
+  }, [selectedCategory, isPrefilled, form, operationTypeRequired]);
 
   useEffect(() => {
-    if (subCategoriesFetching) return;
+    if (!open || subCategoriesFetching || !subCategoryData) return;
     const currentGroup = (form.getValues("urunGrubu") || "").trim();
     if (!currentGroup) return;
 
@@ -376,18 +392,18 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
       form.setValue("urunGrubu", "", { shouldDirty: true });
       form.setValue("altGrup", "", { shouldDirty: true });
     }
-  }, [categorySubGroups, form, subCategoriesFetching]);
+  }, [categorySubGroups, form, open, subCategoryData, subCategoriesFetching]);
 
   useEffect(() => {
-    if (subCategoriesFetching) return;
+    if (!open || subCategoriesFetching || !subCategoryData || !selectedGroup) return;
     const currentAltGroup = (form.getValues("altGrup") || "").trim();
     if (!currentAltGroup) return;
     const isValid = categoryAltGroups.some((item) => item.name === currentAltGroup);
     if (!isValid) form.setValue("altGrup", "", { shouldDirty: true });
-  }, [categoryAltGroups, form, subCategoriesFetching]);
+  }, [categoryAltGroups, form, open, selectedGroup, subCategoryData, subCategoriesFetching]);
 
   useEffect(() => {
-    if (!open || isEdit || categories.length === 0) return;
+    if (!open || isPrefilled || categories.length === 0) return;
     const currentKategori = form.getValues("kategori");
     if (categories.some((item) => item.kod === currentKategori)) return;
 
@@ -395,17 +411,17 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
     if (!nextKategori) return;
 
     form.setValue("kategori", nextKategori, { shouldDirty: false });
-  }, [categories, open, isEdit, form]);
+  }, [categories, open, isPrefilled, form]);
 
   // Auto-fill kod from next-code suggestion (only for new products, only if user hasn't typed)
   useEffect(() => {
-    if (isEdit || !nextCodeData?.kod) return;
+    if (isPrefilled || !nextCodeData?.kod) return;
     const currentKod = form.getValues("kod");
     // Only auto-fill if empty or matches a previous auto-suggestion pattern
     if (!currentKod || /^(URN|YM|HM)-\d{4}$/.test(currentKod)) {
       form.setValue("kod", nextCodeData.kod);
     }
-  }, [nextCodeData, isEdit, form]);
+  }, [nextCodeData, isPrefilled, form]);
 
   // Reset form when sheet opens or urun changes
   useEffect(() => {
@@ -413,8 +429,11 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
     prevKategoriRef.current = null;
     setActiveTab("bilgiler");
     setDraftReceteRows([]);
+    setDraftReceteHedefMiktar(1);
     setDraftMediaUrls([]);
     setDraftCoverUrl("");
+    copyPrefilledId.current = null;
+    restoredAltGroupId.current = null;
     if (urun) {
       // Reset ref so the edit effect doesn't trigger on form load
       form.reset({
@@ -422,12 +441,12 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
         tedarikTipi: urun.tedarikTipi ?? "uretim",
         urunGrubu: urun.urunGrubu ?? "",
         altGrup: urun.altGrup ?? "",
-        kod: urun.kod,
+        kod: copyMode ? nextCopyCode(urun.kod) : urun.kod,
         ad: urun.ad,
         aciklama: urun.aciklama ?? "",
         birim: urun.birim,
         renk: urun.renk ?? "",
-        stok: urun.stok ?? 0,
+        stok: copyMode ? 0 : (urun.stok ?? 0),
         kritikStok: urun.kritikStok ?? 0,
         stokTakipAktif: urun.stokTakipAktif ?? true,
         birimFiyat: urun.birimFiyat ?? undefined,
@@ -447,6 +466,8 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
             hazirlikSuresiDk: op.hazirlikSuresiDk,
             cevrimSuresiSn: op.cevrimSuresiSn,
             montaj: op.montaj,
+            isActive: op.isActive,
+            makineler: op.makineler.map((machine) => ({ makineId: machine.makineId, oncelikSira: machine.oncelikSira })),
           })) ?? [],
         birimDonusumleri:
           urun.birimDonusumleri?.map((d) => ({
@@ -475,9 +496,35 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
         birimDonusumleri: [],
       });
     }
-  }, [open, urun, categories, form.reset]);
+  }, [open, urun, categories, form.reset, copyMode]);
+
+  useEffect(() => {
+    if (!open || !urun || !subCategoryData || subCategoriesFetching || restoredAltGroupId.current === urun.id) return;
+    const sourceAltGroup = urun.altGrup?.trim();
+    if (sourceAltGroup && !categoryAltGroups.some((item) => item.name === sourceAltGroup)) return;
+    restoredAltGroupId.current = urun.id;
+    if (sourceAltGroup) form.setValue("altGrup", sourceAltGroup, { shouldDirty: false });
+  }, [open, urun, subCategoryData, subCategoriesFetching, categoryAltGroups, form]);
+
+  useEffect(() => {
+    if (!open || !copyMode || !urun || copyPrefilledId.current === urun.id || copyRecipeLoading || copyMediaLoading || receteForOps === undefined || copyMedia === undefined) return;
+    if (copyRecipeError || copyMediaError) return;
+    setDraftReceteAciklama(receteForOps?.aciklama ?? "");
+    setDraftReceteHedefMiktar(receteForOps?.hedefMiktar ?? 1);
+    setDraftReceteRows((receteForOps?.items ?? []).map((item) => ({
+      key: crypto.randomUUID(), urunId: item.urunId, miktar: item.miktar,
+      aciklama: item.aciklama ?? "", sira: item.sira, fireOrani: item.fireOrani,
+    })));
+    setDraftMediaUrls((copyMedia ?? []).map((item) => item.url));
+    setDraftCoverUrl((copyMedia ?? []).find((item) => item.isCover)?.url ?? copyMedia?.[0]?.url ?? "");
+    copyPrefilledId.current = urun.id;
+  }, [open, copyMode, urun, copyRecipeLoading, copyMediaLoading, copyRecipeError, copyMediaError, receteForOps, copyMedia]);
 
   async function onSubmit(values: FormValues) {
+    if (copyMode && (!urun || copyRecipeLoading || copyMediaLoading || copyRecipeError || copyMediaError || receteForOps === undefined || copyMedia === undefined || copyPrefilledId.current !== urun.id)) {
+      toast.error("Kopyalanacak ürünün reçete ve medya bilgileri yüklenemedi.");
+      return;
+    }
     const coverUrl = draftCoverUrl || draftMediaUrls[0];
     const shouldWarnMissingRecipe = recipeOwnerEnabled;
     const payload: UrunCreatePayload = {
@@ -485,7 +532,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
       aciklama: values.aciklama?.trim() || undefined,
       renk: values.renk?.trim() || undefined,
       imageUrl: !isEdit && coverUrl ? coverUrl : undefined,
-      imageAlt: !isEdit && coverUrl ? values.ad.trim() : undefined,
+      imageAlt: !isEdit && coverUrl ? (copyMode ? (urun?.imageAlt ?? undefined) : values.ad.trim()) : undefined,
       operasyonTipi: showOperasyonTipi ? values.operasyonTipi : null,
       operasyonlar: values.operasyonlar?.map((op) => ({
         ...op,
@@ -504,23 +551,28 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
         const validRows = draftValidRows.map(({ key: _key, aciklama, ...row }, idx) => ({
           ...row,
           aciklama: aciklama.trim() || undefined,
-          fireOrani: 0,
-          sira: draftValidRows.length - idx,
+          fireOrani: row.fireOrani ?? 0,
+          sira: copyMode ? idx + 1 : draftValidRows.length - idx,
         }));
         if (validRows.length > 0 || draftReceteAciklama.trim()) {
           await saveDraftRecete({
             urunId: created.id,
             aciklama: draftReceteAciklama.trim() || undefined,
+            hedefMiktar: draftReceteHedefMiktar,
             items: validRows,
           }).unwrap();
+        }
+        if (copyMode && payload.operasyonlar?.length) {
+          await update({ id: created.id, body: { operasyonTipi: urun?.operasyonTipi ?? null, operasyonlar: payload.operasyonlar } }).unwrap();
         }
         if (draftMediaUrls.length > 0) {
           await saveDraftMedya({
             urunId: created.id,
             items: draftMediaUrls.map((url, idx) => ({
-              tip: "image" as const,
+              tip: copyMedia?.find((item) => item.url === url)?.tip ?? "image",
               url,
-              baslik: values.ad.trim() || undefined,
+              storageAssetId: copyMedia?.find((item) => item.url === url)?.storageAssetId ?? undefined,
+              baslik: copyMode ? (copyMedia?.find((item) => item.url === url)?.baslik ?? undefined) : values.ad.trim(),
               sira: idx + 1,
               isCover: url === (coverUrl || draftMediaUrls[0]),
             })),
@@ -556,7 +608,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
         setDraftMediaUrls([]);
         setDraftCoverUrl("");
         // Refetch next code so the new product gets a fresh code suggestion
-        refetchNextCode();
+        if (!isPrefilled) refetchNextCode();
       }
       onClose();
     } catch (err: unknown) {
@@ -593,9 +645,9 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="flex w-full flex-col p-0 sm:max-w-2xl">
+      <SheetContent className="flex w-full flex-col p-0 sm:max-w-5xl">
         <SheetHeader className="border-b px-6 py-4">
-          <SheetTitle>{isEdit ? t("admin.erp.urunler.editItem") : t("admin.erp.urunler.newItem")}</SheetTitle>
+          <SheetTitle>{copyMode ? "Ürünü Kopyala" : isEdit ? t("admin.erp.urunler.editItem") : t("admin.erp.urunler.newItem")}</SheetTitle>
         </SheetHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
@@ -1078,6 +1130,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
                   <DraftReceteSection
                     birim={form.watch("birim")}
                     allowedCategoryCodes={receteKategoriKodlari}
+                    sourceItems={copyMode ? receteForOps?.items : undefined}
                     rows={draftReceteRows}
                     onRowsChange={setDraftReceteRows}
                     aciklama={draftReceteAciklama}
@@ -1107,7 +1160,7 @@ export default function UrunForm({ open, onClose, urun }: UrunFormProps) {
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
               {t("admin.common.cancel")}
             </Button>
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" disabled={busy || (copyMode && (!urun || copyRecipeLoading || copyMediaLoading || copyRecipeError || copyMediaError || receteForOps === undefined || copyMedia === undefined || copyPrefilledId.current !== urun.id))}>
               {busy ? t("admin.erp.common.saving") : t("admin.common.save")}
             </Button>
           </SheetFooter>
@@ -1278,6 +1331,7 @@ interface ReceteSectionProps {
 interface DraftReceteSectionProps {
   birim: string;
   allowedCategoryCodes: string[];
+  sourceItems?: ReceteKalemDto[];
   rows: ReceteRow[];
   onRowsChange: (rows: ReceteRow[]) => void;
   aciklama: string;
@@ -1290,6 +1344,7 @@ interface ReceteRow {
   miktar: number;
   aciklama: string;
   sira: number;
+  fireOrani?: number;
 }
 
 interface MalzemeOption {
@@ -1314,7 +1369,7 @@ function MalzemeCombobox({ malzemeOptions, value, onChange, placeholder, label }
   const selected = malzemeOptions.find((m) => m.id === value);
 
   return (
-    <div className="space-y-1 sm:col-span-3">
+    <div className="min-w-0 space-y-1">
       <Label className="text-xs">{label}</Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -1429,6 +1484,7 @@ function useReceteMalzemeOptions(
 function DraftReceteSection({
   birim,
   allowedCategoryCodes,
+  sourceItems,
   rows,
   onRowsChange,
   aciklama,
@@ -1436,7 +1492,7 @@ function DraftReceteSection({
 }: DraftReceteSectionProps) {
   const { t } = useLocaleContext();
   const tForm = (key: string) => t(`admin.erp.urunler.form.${key}`);
-  const malzemeOptions = useReceteMalzemeOptions(allowedCategoryCodes, undefined);
+  const malzemeOptions = useReceteMalzemeOptions(allowedCategoryCodes, sourceItems);
 
   useEffect(() => {
     const validIds = new Set(malzemeOptions.map((item) => item.id));
@@ -1497,8 +1553,8 @@ function DraftReceteSection({
         const rowCost = getRowCost(row);
 
         return (
-          <div key={row.key} className="space-y-2 rounded-lg border bg-muted/30 p-3">
-            <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-6">
+          <div key={row.key} className="border-b py-3 last:border-b-0">
+            <div className="grid grid-cols-1 items-end gap-2 md:grid-cols-[minmax(12rem,2fr)_7rem_minmax(9rem,1fr)_7rem_7rem_2.5rem]">
               <MalzemeCombobox
                 malzemeOptions={malzemeOptions}
                 value={row.urunId}
@@ -1507,7 +1563,7 @@ function DraftReceteSection({
                 label={tForm("receteMalzeme")}
               />
               <div className="space-y-1">
-                <Label className="text-xs">{tForm("receteMiktar")}</Label>
+                <Label className="text-xs">{tForm("receteMiktar")} ({birim || "—"})</Label>
                 <Input
                   type="number"
                   step="0.0001"
@@ -1517,6 +1573,26 @@ function DraftReceteSection({
                 />
               </div>
 
+              <div className="space-y-1">
+                <Label className="text-xs">Açıklama</Label>
+                <Input
+                  value={row.aciklama}
+                  onChange={(e) => updateRow(idx, "aciklama", e.target.value)}
+                  placeholder="Satır açıklaması"
+                />
+              </div>
+              <div className="space-y-1 text-xs">
+                <Label className="text-xs">{tForm("receteSonAlis")}</Label>
+                <div className="flex h-9 items-center tabular-nums text-muted-foreground">
+                  {malzeme?.birimFiyat?.toLocaleString("tr-TR", { style: "currency", currency: "TRY" }) ?? "—"}
+                </div>
+              </div>
+              <div className="space-y-1 text-xs">
+                <Label className="text-xs">{tForm("receteSatirMaliyet")}</Label>
+                <div className="flex h-9 items-center font-medium tabular-nums">
+                  {malzeme ? rowCost.toLocaleString("tr-TR", { style: "currency", currency: "TRY" }) : "—"}
+                </div>
+              </div>
               <div className="flex items-end">
                 <Button
                   type="button"
@@ -1529,30 +1605,6 @@ function DraftReceteSection({
                 </Button>
               </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Açıklama</Label>
-              <Input
-                value={row.aciklama}
-                onChange={(e) => updateRow(idx, "aciklama", e.target.value)}
-                placeholder="Reçete satırı açıklaması"
-              />
-            </div>
-
-            {malzeme && (
-              <div className="flex items-center gap-4 text-muted-foreground text-xs">
-                <span>
-                  {tForm("receteSonAlis")}:{" "}
-                  {malzeme.birimFiyat?.toLocaleString("tr-TR", { style: "currency", currency: "TRY" }) ?? "—"}
-                </span>
-                <span>
-                  {tForm("receteSatirMaliyet")}:{" "}
-                  {rowCost.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
-                </span>
-                <span>
-                  {tForm("birim")}: {birim || "—"}
-                </span>
-              </div>
-            )}
           </div>
         );
       })}
@@ -1726,8 +1778,8 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
         const malzeme = malzemeOptions.find((u) => u.id === row.urunId);
         const rowCost = getRowCost(row);
         return (
-          <div key={row.key} className="space-y-2 rounded-lg border bg-muted/30 p-3">
-            <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-6">
+          <div key={row.key} className="border-b py-3 last:border-b-0">
+            <div className="grid grid-cols-1 items-end gap-2 md:grid-cols-[minmax(12rem,2fr)_7rem_minmax(9rem,1fr)_7rem_7rem_2.5rem]">
               <MalzemeCombobox
                 malzemeOptions={malzemeOptions}
                 value={row.urunId}
@@ -1736,7 +1788,7 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
                 label={tForm("receteMalzeme")}
               />
               <div className="space-y-1">
-                <Label className="text-xs">{tForm("receteMiktar")}</Label>
+                <Label className="text-xs">{tForm("receteMiktar")} ({malzeme?.birim ?? "—"})</Label>
                 <Input
                   type="number"
                   step="0.0001"
@@ -1744,6 +1796,27 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
                   value={row.miktar}
                   onChange={(e) => updateRow(idx, "miktar", Number(e.target.value))}
                 />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Açıklama</Label>
+                <Input
+                  value={row.aciklama}
+                  onChange={(e) => updateRow(idx, "aciklama", e.target.value)}
+                  placeholder="Satır açıklaması"
+                  disabled={busy}
+                />
+              </div>
+              <div className="space-y-1 text-xs">
+                <Label className="text-xs">{tForm("receteSonAlis")}</Label>
+                <div className="flex h-9 items-center tabular-nums text-muted-foreground">
+                  {malzeme?.birimFiyat?.toLocaleString("tr-TR", { style: "currency", currency: "TRY" }) ?? "—"}
+                </div>
+              </div>
+              <div className="space-y-1 text-xs">
+                <Label className="text-xs">{tForm("receteSatirMaliyet")}</Label>
+                <div className="flex h-9 items-center font-medium tabular-nums">
+                  {malzeme ? rowCost.toLocaleString("tr-TR", { style: "currency", currency: "TRY" }) : "—"}
+                </div>
               </div>
               <div className="flex items-end">
                 <Button
@@ -1757,26 +1830,6 @@ function ReceteSection({ urunId, allowedCategoryCodes }: ReceteSectionProps) {
                 </Button>
               </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Açıklama</Label>
-              <Input
-                value={row.aciklama}
-                onChange={(e) => updateRow(idx, "aciklama", e.target.value)}
-                placeholder="Reçete satırı açıklaması"
-              />
-            </div>
-            {malzeme && (
-              <div className="flex items-center gap-4 text-muted-foreground text-xs">
-                <span>
-                  {tForm("receteSonAlis")}:{" "}
-                  {malzeme.birimFiyat?.toLocaleString("tr-TR", { style: "currency", currency: "TRY" }) ?? "—"}
-                </span>
-                <span>
-                  {tForm("receteSatirMaliyet")}:{" "}
-                  {rowCost.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
-                </span>
-              </div>
-            )}
           </div>
         );
       })}

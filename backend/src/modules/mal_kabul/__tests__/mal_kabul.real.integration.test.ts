@@ -236,4 +236,63 @@ describeIntegration("gerçek veri mal kabul", () => {
     const hareketRows = await getMovementRows([red.id]);
     expect(hareketRows).toHaveLength(0);
   });
+
+  it("aynı teslimat anahtarını eşzamanlı ve tekrarlı gönderince stoğu yalnız bir kez artırır", async () => {
+    const siparis = await createSiparis(10);
+    const request = {
+      requestId: '11111111-1111-4111-8111-111111111303',
+      kaynakTipi: 'satin_alma' as const,
+      satinAlmaSiparisId: siparis.siparis.id,
+      satinAlmaKalemId: siparis.items[0].id,
+      urunId: ids.urun,
+      tedarikciId: ids.tedarikci,
+      gelenMiktar: 4,
+      kaliteDurumu: 'kabul' as const,
+    };
+    const [first, repeated] = await Promise.all([repoCreate(request, null), repoCreate(request, null)]);
+    expect(first.id).toBe(request.requestId);
+    expect(repeated.id).toBe(first.id);
+    expect(await getStock()).toBe(4);
+    expect(getAcceptedAmount(await repoGetSatinAlma(siparis.siparis.id))).toBe(4);
+    expect(await getMovementRows([first.id])).toHaveLength(1);
+    expect((await repoCreate(request, null)).id).toBe(first.id);
+    expect(await getStock()).toBe(4);
+    await expect(repoCreate({ ...request, gelenMiktar: 5 }, null)).rejects.toThrow('mal_kabul_istek_anahtari_cakisti');
+    expect(await getStock()).toBe(4);
+  });
+
+  it("sipariş miktarını aşan teslimatı kaydeder, fazlayı izler ve tekrarda stoğu artırmaz", async () => {
+    const siparis = await createSiparis(10);
+    const request = {
+      requestId: '11111111-1111-4111-8111-111111111304',
+      kaynakTipi: 'satin_alma' as const,
+      satinAlmaSiparisId: siparis.siparis.id,
+      satinAlmaKalemId: siparis.items[0].id,
+      urunId: ids.urun,
+      tedarikciId: ids.tedarikci,
+      gelenMiktar: 12,
+      kaliteDurumu: 'kabul' as const,
+      notlar: 'IT fazla teslimat',
+    };
+
+    const accepted = await repoCreate(request, null);
+    expect(accepted.gelenMiktar).toBe(12);
+    expect(await getStock()).toBe(12);
+
+    const detail = await repoGetSatinAlma(siparis.siparis.id);
+    expect(detail?.siparis.durum).toBe('tamamlandi');
+    expect(getAcceptedAmount(detail)).toBe(12);
+    expect(getRemainingAmount(detail)).toBe(-2);
+
+    const [dtoLine] = detail?.items ?? [];
+    const siparisMiktar = Number(dtoLine?.miktar ?? 0);
+    const kabulMiktar = Number(dtoLine?.kabul_miktar ?? 0);
+    expect(Math.max(0, siparisMiktar - kabulMiktar)).toBe(0);
+    expect(Math.max(0, kabulMiktar - siparisMiktar)).toBe(2);
+    expect(await getMovementRows([accepted.id])).toHaveLength(1);
+
+    expect((await repoCreate(request, null)).id).toBe(accepted.id);
+    expect(await getStock()).toBe(12);
+    expect(await getMovementRows([accepted.id])).toHaveLength(1);
+  });
 });
