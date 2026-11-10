@@ -34,6 +34,18 @@ function config24h(makineId = MAKINE_ID): MakineWorkConfig {
   };
 }
 
+function configEnjeksiyon2(makineId = MAKINE_ID): MakineWorkConfig {
+  return {
+    makineId,
+    calisir24Saat: false,
+    workStartHour: 7,
+    workEndHour: 19,
+    workStartMinute: 7 * 60 + 30,
+    workEndMinute: 19 * 60 + 30,
+    dailyWorkMinutes: 12 * 60,
+  };
+}
+
 function noHolidays(): HolidaySet {
   return new Set();
 }
@@ -252,6 +264,28 @@ describe('addWorkingMinutes — 8h modu', () => {
     const result = addWorkingMinutes(fri(16), 120, cfg, holidays, noWeekendPlans());
     expect(toDateKey(result)).toBe('2026-03-24'); // Sali
     expect(result.getHours()).toBe(9);
+  });
+});
+
+describe('Enjeksiyon 2 ozel takvim — 07:30-19:30', () => {
+  it('Cuma 18:30daki 3 saatlik isi Pazartesi 09:30da bitirir', () => {
+    const result = addWorkingMinutes(fri(18, 30), 180, configEnjeksiyon2(), noHolidays(), noWeekendPlans());
+    expect(toDateKey(result)).toBe('2026-03-23');
+    expect(result.getHours()).toBe(9);
+    expect(result.getMinutes()).toBe(30);
+  });
+
+  it('sonraki isi onceki bitisten baslatir', () => {
+    const firstEnd = addWorkingMinutes(fri(18, 30), 180, configEnjeksiyon2(), noHolidays(), noWeekendPlans());
+    const nextStart = skipToNextWorkingDay(firstEnd, MAKINE_ID, configEnjeksiyon2(), noHolidays(), noWeekendPlans());
+    expect(nextStart.getTime()).toBe(firstEnd.getTime());
+  });
+
+  it('kural kapaliyken 24 saatlik mevcut sonucu korur', () => {
+    const result = addWorkingMinutes(fri(18, 30), 180, config24h(), noHolidays(), noWeekendPlans());
+    expect(toDateKey(result)).toBe('2026-03-20');
+    expect(result.getHours()).toBe(21);
+    expect(result.getMinutes()).toBe(30);
   });
 });
 

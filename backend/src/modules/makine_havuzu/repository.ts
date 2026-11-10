@@ -51,6 +51,9 @@ function mapCreateInput(data: CreateBody): typeof makineler.$inferInsert {
     tonaj: typeof data.tonaj === 'number' ? data.tonaj.toFixed(2) : undefined,
     saatlik_kapasite: typeof data.saatlikKapasite === 'number' ? data.saatlikKapasite.toFixed(2) : undefined,
     calisir_24_saat: typeof data.calisir24Saat === 'boolean' ? (data.calisir24Saat ? 1 : 0) : undefined,
+    ozel_takvim_aktif: typeof data.ozelTakvimAktif === 'boolean' ? (data.ozelTakvimAktif ? 1 : 0) : undefined,
+    ozel_takvim_baslangic: data.ozelTakvimBaslangic,
+    ozel_takvim_bitis: data.ozelTakvimBitis,
     operator_de_goster: typeof data.operatorDeGoster === 'boolean' ? (data.operatorDeGoster ? 1 : 0) : undefined,
     is_yuklerinde_goster: typeof data.isYuklerindeGoster === 'boolean' ? (data.isYuklerindeGoster ? 1 : 0) : undefined,
     durum: data.durum,
@@ -65,6 +68,9 @@ function mapPatchInput(data: PatchBody): Partial<typeof makineler.$inferInsert> 
   if (data.tonaj !== undefined) payload.tonaj = data.tonaj.toFixed(2);
   if (data.saatlikKapasite !== undefined) payload.saatlik_kapasite = data.saatlikKapasite.toFixed(2);
   if (data.calisir24Saat !== undefined) payload.calisir_24_saat = data.calisir24Saat ? 1 : 0;
+  if (data.ozelTakvimAktif !== undefined) payload.ozel_takvim_aktif = data.ozelTakvimAktif ? 1 : 0;
+  if (data.ozelTakvimBaslangic !== undefined) payload.ozel_takvim_baslangic = data.ozelTakvimBaslangic;
+  if (data.ozelTakvimBitis !== undefined) payload.ozel_takvim_bitis = data.ozelTakvimBitis;
   if (data.operatorDeGoster !== undefined) payload.operator_de_goster = data.operatorDeGoster ? 1 : 0;
   if (data.isYuklerindeGoster !== undefined) payload.is_yuklerinde_goster = data.isYuklerindeGoster ? 1 : 0;
   if (data.durum !== undefined) payload.durum = data.durum;
@@ -145,6 +151,10 @@ export async function repoUpdate(id: string, patch: PatchBody): Promise<MakineRo
       }
     }
   });
+  if (patch.calisir24Saat !== undefined || patch.ozelTakvimAktif !== undefined ||
+      patch.ozelTakvimBaslangic !== undefined || patch.ozelTakvimBitis !== undefined) {
+    await recalcMakineKuyrukTarihleri(id);
+  }
   return repoGetById(id);
 }
 
@@ -689,7 +699,14 @@ export async function repoCalculateCapacity(
   const makine = await repoGetById(makineId);
   if (!makine) return null;
 
-  const gunlukSaat = makine.calisir_24_saat === 1 ? 24 : 8;
+  const parseClock = (value: string | null, fallback: number) => {
+    if (!value) return fallback;
+    const [hour, minute] = value.split(':').map(Number);
+    return hour + minute / 60;
+  };
+  const gunlukSaat = makine.ozel_takvim_aktif === 1
+    ? Math.max(0, parseClock(makine.ozel_takvim_bitis, 19.5) - parseClock(makine.ozel_takvim_baslangic, 7.5))
+    : makine.calisir_24_saat === 1 ? 24 : 8;
   const gunler: KapasiteHesabiDto['gunler'] = [];
 
   // Duruş kayıtlarını tarih aralığı için toplu çek

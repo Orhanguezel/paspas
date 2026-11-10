@@ -8,6 +8,9 @@ export const makineler = mysqlTable('makineler', {
   tonaj: decimal('tonaj', { precision: 10, scale: 2 }),
   saatlik_kapasite: decimal('saatlik_kapasite', { precision: 10, scale: 2 }),
   calisir_24_saat: tinyint('calisir_24_saat', { unsigned: true }).notNull().default(0),
+  ozel_takvim_aktif: tinyint('ozel_takvim_aktif', { unsigned: true }).notNull().default(0),
+  ozel_takvim_baslangic: varchar('ozel_takvim_baslangic', { length: 5 }),
+  ozel_takvim_bitis: varchar('ozel_takvim_bitis', { length: 5 }),
   operator_de_goster: tinyint('operator_de_goster', { unsigned: true }).notNull().default(1),
   is_yuklerinde_goster: tinyint('is_yuklerinde_goster', { unsigned: true }).notNull().default(1),
   gosterim_sira: int('gosterim_sira', { unsigned: true }).notNull().default(999),
@@ -45,6 +48,9 @@ export type MakineDto = {
   tonaj: number | null;
   saatlikKapasite: number | null;
   calisir24Saat: boolean;
+  ozelTakvimAktif: boolean;
+  ozelTakvimBaslangic: string | null;
+  ozelTakvimBitis: string | null;
   operatorDeGoster: boolean;
   isYuklerindeGoster: boolean;
   kalipIds: string[];
@@ -66,6 +72,9 @@ export function rowToDto(
     tonaj: row.tonaj ? Number(row.tonaj) : null,
     saatlikKapasite: row.saatlik_kapasite ? Number(row.saatlik_kapasite) : null,
     calisir24Saat: row.calisir_24_saat === 1,
+    ozelTakvimAktif: row.ozel_takvim_aktif === 1,
+    ozelTakvimBaslangic: row.ozel_takvim_baslangic ?? null,
+    ozelTakvimBitis: row.ozel_takvim_bitis ?? null,
     operatorDeGoster: row.operator_de_goster === 1,
     isYuklerindeGoster: row.is_yuklerinde_goster === 1,
     kalipIds: kaliplar.map((kalip) => kalip.id),
