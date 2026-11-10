@@ -93,6 +93,7 @@ const vardiyaFieldsSchema = z.object({
   bitisSaati: saatSchemaFull,
   aciklama: z.string().trim().max(500).optional(),
   isActive: z.boolean().optional(),
+  gecerlilikBaslangici: z.coerce.date().optional(),
 });
 
 export const createVardiyaSchema = vardiyaFieldsSchema;

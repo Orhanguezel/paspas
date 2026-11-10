@@ -25,6 +25,7 @@ const schema = z.object({
   bitisSaati:     z.string().regex(/^\d{2}:\d{2}$/, 'HH:MM formatında giriniz'),
   aciklama:       z.string().optional(),
   isActive:       z.boolean().default(true),
+  gecerlilikBaslangici: z.string().min(1, 'Zorunlu'),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -45,6 +46,7 @@ export default function VardiyaForm({ open, onClose, vardiya }: Props) {
 
   useEffect(() => {
     if (open) {
+      const now = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
       reset(vardiya
         ? {
             ad:             vardiya.ad,
@@ -52,6 +54,7 @@ export default function VardiyaForm({ open, onClose, vardiya }: Props) {
             bitisSaati:     vardiya.bitisSaati,
             aciklama:       vardiya.aciklama ?? '',
             isActive:       vardiya.isActive,
+            gecerlilikBaslangici: now,
           }
         : {
             ad:             '',
@@ -59,6 +62,7 @@ export default function VardiyaForm({ open, onClose, vardiya }: Props) {
             bitisSaati:     '19:30',
             aciklama:       '',
             isActive:       true,
+            gecerlilikBaslangici: now,
           });
     }
   }, [open, vardiya, reset]);
@@ -103,6 +107,12 @@ export default function VardiyaForm({ open, onClose, vardiya }: Props) {
                 <Input type="time" {...register('bitisSaati')} />
                 {errors.bitisSaati && <p className="text-xs text-destructive">{errors.bitisSaati.message}</p>}
               </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Geçerlilik başlangıcı *</Label>
+              <Input type="datetime-local" {...register('gecerlilikBaslangici')} />
+              <p className="text-xs text-muted-foreground">Değişiklik yalnız bu tarih ve sonrasını etkiler; geçmiş raporlar korunur.</p>
+              {errors.gecerlilikBaslangici && <p className="text-xs text-destructive">{errors.gecerlilikBaslangici.message}</p>}
             </div>
             <div className="space-y-1">
               <Label>Açıklama</Label>

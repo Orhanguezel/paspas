@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { makineler } from '@/modules/makine_havuzu/schema';
@@ -8,7 +8,7 @@ import { urunOperasyonlari } from '@/modules/urunler/schema';
 import { uretimEmriOperasyonlari } from '@/modules/uretim_emirleri/schema';
 import { recalcAllActiveMachines } from '@/modules/_shared/planlama';
 
-import { birimler, kaliplar, kalipUyumluMakineler, tatilMakineler, tatiller, vardiyalar, durusNedenleri, haftaSonuPlanlari, type BirimRow, type KalipRow, type TatilRow, type VardiyaRow, type DurusNedeniRow, type HaftaSonuPlanDtoRow, type HaftaSonuPlanRow } from './schema';
+import { birimler, kaliplar, kalipUyumluMakineler, tatilMakineler, tatiller, vardiyalar, vardiyaTarihceleri, durusNedenleri, haftaSonuPlanlari, type BirimRow, type KalipRow, type TatilRow, type VardiyaRow, type DurusNedeniRow, type HaftaSonuPlanDtoRow, type HaftaSonuPlanRow } from './schema';
 import type { CreateBirimBody, CreateKalipBody, CreateTatilBody, PatchBirimBody, PatchKalipBody, PatchTatilBody, SetKalipUyumluMakinelerBody, CreateVardiyaBody, PatchVardiyaBody, CreateDurusNedeniBody, PatchDurusNedeniBody, CreateHaftaSonuPlanBody, PatchHaftaSonuPlanBody } from './validation';
 
 function toDateOnly(value: Date | string): string {
@@ -187,13 +187,24 @@ export async function repoGetVardiyaById(id: string): Promise<VardiyaRow | null>
 
 export async function repoCreateVardiya(body: CreateVardiyaBody): Promise<VardiyaRow> {
   const id = randomUUID();
-  await db.insert(vardiyalar).values({
-    id,
-    ad: body.ad,
-    baslangic_saati: body.baslangicSaati,
-    bitis_saati: body.bitisSaati,
-    aciklama: body.aciklama,
-    is_active: typeof body.isActive === 'boolean' ? (body.isActive ? 1 : 0) : undefined,
+  const effective = body.gecerlilikBaslangici ?? new Date();
+  const active = typeof body.isActive === 'boolean' ? (body.isActive ? 1 : 0) : 1;
+  await db.transaction(async (tx) => {
+    await tx.insert(vardiyalar).values({
+      id,
+      ad: body.ad,
+      baslangic_saati: body.baslangicSaati,
+      bitis_saati: body.bitisSaati,
+      aciklama: body.aciklama,
+      is_active: active,
+      gecerlilik_baslangici: effective,
+    });
+    await tx.insert(vardiyaTarihceleri).values({
+      id: randomUUID(), vardiya_id: id, ad: body.ad,
+      baslangic_saati: body.baslangicSaati, bitis_saati: body.bitisSaati,
+      aciklama: body.aciklama, is_active: active,
+      gecerli_baslangic: effective, gecerli_bitis: null,
+    });
   });
   const row = await repoGetVardiyaById(id);
   if (!row) throw new Error('insert_failed');
@@ -201,18 +212,46 @@ export async function repoCreateVardiya(body: CreateVardiyaBody): Promise<Vardiy
 }
 
 export async function repoUpdateVardiya(id: string, body: PatchVardiyaBody): Promise<VardiyaRow | null> {
+  const current = await repoGetVardiyaById(id);
+  if (!current) return null;
+  const effective = body.gecerlilikBaslangici ?? new Date();
+  if (effective.getTime() < new Date(current.gecerlilik_baslangici).getTime()) {
+    throw new Error('gecerlilik_baslangici_onceki_surumu_gecemez');
+  }
   const payload: Partial<typeof vardiyalar.$inferInsert> = {};
   if (body.ad !== undefined) payload.ad = body.ad;
   if (body.baslangicSaati !== undefined) payload.baslangic_saati = body.baslangicSaati;
   if (body.bitisSaati !== undefined) payload.bitis_saati = body.bitisSaati;
   if (body.aciklama !== undefined) payload.aciklama = body.aciklama;
   if (body.isActive !== undefined) payload.is_active = body.isActive ? 1 : 0;
-  await db.update(vardiyalar).set(payload).where(eq(vardiyalar.id, id));
+  payload.gecerlilik_baslangici = effective;
+  const next = {
+    ad: body.ad ?? current.ad,
+    baslangic_saati: body.baslangicSaati ?? current.baslangic_saati,
+    bitis_saati: body.bitisSaati ?? current.bitis_saati,
+    aciklama: body.aciklama ?? current.aciklama,
+    is_active: body.isActive === undefined ? current.is_active : (body.isActive ? 1 : 0),
+  };
+  await db.transaction(async (tx) => {
+    await tx.update(vardiyaTarihceleri)
+      .set({ gecerli_bitis: effective })
+      .where(and(eq(vardiyaTarihceleri.vardiya_id, id), isNull(vardiyaTarihceleri.gecerli_bitis)));
+    await tx.update(vardiyalar).set(payload).where(eq(vardiyalar.id, id));
+    await tx.insert(vardiyaTarihceleri).values({
+      id: randomUUID(), vardiya_id: id, ...next,
+      gecerli_baslangic: effective, gecerli_bitis: null,
+    });
+  });
   return repoGetVardiyaById(id);
 }
 
 export async function repoDeleteVardiya(id: string): Promise<void> {
-  await db.delete(vardiyalar).where(eq(vardiyalar.id, id));
+  const effective = new Date();
+  await db.transaction(async (tx) => {
+    await tx.update(vardiyaTarihceleri).set({ gecerli_bitis: effective })
+      .where(and(eq(vardiyaTarihceleri.vardiya_id, id), isNull(vardiyaTarihceleri.gecerli_bitis)));
+    await tx.delete(vardiyalar).where(eq(vardiyalar.id, id));
+  });
 }
 
 // ── Duruş Nedenleri ─────────────────────────────────────────

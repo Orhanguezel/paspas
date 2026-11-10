@@ -4,7 +4,7 @@ import { db } from '@/db/client';
 import { users } from '@/modules/auth/schema';
 import { makineler as makinelerTbl } from '@/modules/makine_havuzu/schema';
 import { durusKayitlari, vardiyaKayitlari } from '@/modules/operator/schema';
-import { durusNedenleri, kaliplar, vardiyalar as vardiyaTanimlari } from '@/modules/tanimlar/schema';
+import { durusNedenleri, kaliplar, vardiyalar as vardiyaTanimlari, vardiyaTarihceleri } from '@/modules/tanimlar/schema';
 
 import {
   assignVardiya,
@@ -337,6 +337,38 @@ async function listActiveVardiyaTanimlari(): Promise<VardiyaTanimi[]> {
   }));
 }
 
+async function applyHistoricalVardiyaOverrides(kayitlar: CoreUretimKaydi[]): Promise<CoreUretimKaydi[]> {
+  const unresolved = kayitlar.filter((kayit) => !kayit.vardiyaSlotOverride);
+  if (unresolved.length === 0) return kayitlar;
+  const min = new Date(Math.min(...unresolved.map((kayit) => kayit.kayitTarihi.getTime())));
+  const max = new Date(Math.max(...unresolved.map((kayit) => kayit.kayitTarihi.getTime())));
+  const versions = await db.select({
+    ad: vardiyaTarihceleri.ad,
+    baslangicSaati: vardiyaTarihceleri.baslangic_saati,
+    bitisSaati: vardiyaTarihceleri.bitis_saati,
+    gecerliBaslangic: vardiyaTarihceleri.gecerli_baslangic,
+    gecerliBitis: vardiyaTarihceleri.gecerli_bitis,
+  }).from(vardiyaTarihceleri).where(and(
+    eq(vardiyaTarihceleri.is_active, 1),
+    lte(vardiyaTarihceleri.gecerli_baslangic, max),
+    sql`(${vardiyaTarihceleri.gecerli_bitis} IS NULL OR ${vardiyaTarihceleri.gecerli_bitis} > ${min})`,
+  ));
+  if (!versions.length) return kayitlar;
+  return kayitlar.map((kayit) => {
+    if (kayit.vardiyaSlotOverride) return kayit;
+    const definitions = versions
+      .filter((version) => new Date(version.gecerliBaslangic) <= kayit.kayitTarihi &&
+        (!version.gecerliBitis || new Date(version.gecerliBitis) > kayit.kayitTarihi))
+      .map((version): VardiyaTanimi => ({
+        vardiyaTipi: inferVardiyaTipi(version.ad, version.baslangicSaati, version.bitisSaati),
+        ad: version.ad,
+        baslangicSaati: version.baslangicSaati,
+        bitisSaati: version.bitisSaati,
+      }));
+    return definitions.length ? { ...kayit, vardiyaSlotOverride: assignVardiya(kayit.kayitTarihi, definitions, VARDIYA_TZ_OFFSET_DK) } : kayit;
+  });
+}
+
 function makineBaslik(kod: string | null, ad: string): string {
   return kod ? `${kod} — ${ad}` : ad;
 }
@@ -424,8 +456,16 @@ async function fetchDurusRows(query: ListQuery, baslangic: Date, bitis: Date): P
     .orderBy(asc(durusKayitlari.baslangic));
 }
 
-function slotForRealVardiya(row: VardiyaRow, tanimlar: VardiyaTanimi[]): VardiyaSlot {
-  return assignVardiya(new Date(row.baslangic), tanimlar, VARDIYA_TZ_OFFSET_DK);
+function slotForRealVardiya(row: VardiyaRow, _tanimlar: VardiyaTanimi[]): VardiyaSlot {
+  const baslangic = new Date(row.baslangic);
+  const local = toLocal(baslangic, VARDIYA_TZ_OFFSET_DK);
+  const gun = `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, '0')}-${String(local.getUTCDate()).padStart(2, '0')}`;
+  return {
+    gun,
+    vardiyaTipi: row.vardiyaTipi as VardiyaTipi,
+    baslangic,
+    bitis: row.bitis ? new Date(row.bitis) : new Date(baslangic.getTime() + 12 * 60 * 60_000),
+  };
 }
 
 type SlotMeta = {
@@ -653,7 +693,9 @@ export async function getVardiyaAnalizi(query: ListQuery): Promise<VardiyaAnaliz
   const now = new Date();
   const { baslangic, bitis, tarihLabel } = dateRange(query, now);
   const vardiyaTanimlariList = await listActiveVardiyaTanimlari();
-  let kayitlar = await fetchUretimKayitlari({ baslangic, bitis }, selectedMakineIds(query));
+  let kayitlar = await applyHistoricalVardiyaOverrides(
+    await fetchUretimKayitlari({ baslangic, bitis }, selectedMakineIds(query)),
+  );
 
   const vardiyaConditions = [
     sql`${vardiyaKayitlari.baslangic} <= ${bitis}`,

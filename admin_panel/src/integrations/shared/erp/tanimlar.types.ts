@@ -118,6 +118,7 @@ export interface VardiyaDto {
   aciklama: string | null;
   createdAt: string;
   updatedAt: string;
+  gecerlilikBaslangici: string;
 }
 
 export interface VardiyaListResponse {
@@ -131,6 +132,7 @@ export interface VardiyaCreatePayload {
   bitisSaati: string;
   aciklama?: string;
   isActive?: boolean;
+  gecerlilikBaslangici?: string;
 }
 export type VardiyaPatchPayload = Partial<VardiyaCreatePayload>;
 
@@ -145,6 +147,7 @@ export function normalizeVardiya(raw: unknown): VardiyaDto {
     aciklama: r.aciklama != null ? toStr(r.aciklama) : null,
     createdAt: toStr(r.createdAt),
     updatedAt: toStr(r.updatedAt),
+    gecerlilikBaslangici: toStr(r.gecerlilikBaslangici),
   };
 }
 

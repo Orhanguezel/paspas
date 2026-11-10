@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { useGetVardiyaAnaliziAdminQuery } from '@/integrations/endpoints/admin/erp/vardiya_analizi_admin.endpoints';
 import { useListHareketlerAdminQuery } from '@/integrations/endpoints/admin/erp/hareketler_admin.endpoints';
 import VardiyaOzetWidget from './vardiya-ozet-widget';
 import { useListMalKabulAdminQuery } from '@/integrations/endpoints/admin/erp/mal_kabul_admin.endpoints';
@@ -165,20 +166,18 @@ function UretimWidget() {
   const [period, setPeriod] = useState<DashboardPeriod>('today');
   const [shift, setShift] = useState<ShiftFilter>('all');
 
-  // Sadece üretimi yapılan ürüne (+) stok yansıyan giriş hareketleri.
-  // hareketTipi='giris' + kategori='urun': tüketilen koli/etiket/yarımamul
-  // (cikis, operasyonel_ym/yarimamul) bu kutuda görünmez.
-  const { data, isLoading } = useListHareketlerAdminQuery({
-    kaynakTipi: 'uretim',
-    hareketTipi: 'giris',
-    kategori: 'urun',
-    period: period || undefined,
-    limit: 10,
+  const range = getPeriodRange(period);
+  const { data, isLoading } = useGetVardiyaAnaliziAdminQuery({
+    baslangicTarih: range.dateFrom,
+    bitisTarih: range.dateTo,
   });
 
   const items = useMemo(
-    () => (data?.items ?? []).filter((item) => shift === 'all' || getShift(item.createdAt) === shift),
-    [data?.items, shift],
+    () => [...(data?.uretimKayitlari ?? [])]
+      .filter((item) => shift === 'all' || item.vardiyaTipi === shift)
+      .sort((a, b) => new Date(b.baslangic).getTime() - new Date(a.baslangic).getTime())
+      .slice(0, 10),
+    [data?.uretimKayitlari, shift],
   );
 
   return (
@@ -232,13 +231,13 @@ function UretimWidget() {
             <TableBody>
               {items.map((h) => (
                 <TableRow key={h.id} className="text-xs">
-                  <TableCell className="text-muted-foreground">{fmtDate(h.createdAt)}</TableCell>
+                  <TableCell className="text-muted-foreground">{fmtDate(h.baslangic)}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="text-[10px]">{shiftLabel(getShift(h.createdAt))}</Badge>
+                    <Badge variant="outline" className="text-[10px]">{shiftLabel(h.vardiyaTipi as ShiftFilter)}</Badge>
                   </TableCell>
-                  <TableCell className="font-medium">{h.urunAd ?? h.urunKod ?? h.urunId}</TableCell>
+                  <TableCell className="font-medium">{h.urunAd ?? h.urunKod ?? '—'}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium text-emerald-700">
-                    +{h.miktar.toLocaleString('tr-TR')}
+                    +{h.netMiktar.toLocaleString('tr-TR')}
                   </TableCell>
                 </TableRow>
               ))}
