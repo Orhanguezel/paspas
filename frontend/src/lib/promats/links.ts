@@ -9,6 +9,7 @@ const EN_SEGMENTS: Record<string, string> = {
   iletisim: 'contact',
   kaynaklar: 'resources',
   uretim: 'production',
+  hakkimizda: 'about-us',
   arama: 'search',
 };
 

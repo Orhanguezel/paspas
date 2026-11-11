@@ -182,6 +182,7 @@ export function PromatsArticlesPage({ locale, articles, content: c }: { locale: 
 }
 
 export function PromatsArticleDetailPage({ locale, article, backLabel }: { locale: string; article: ArticleListItem & { content: string | null }; backLabel: string }) {
+  const publishedLabel = formatDate(article.publishedAt, locale);
   return (
     <div className="promats-modern-page promats-resource-detail-page">
       <PmHero
@@ -197,6 +198,14 @@ export function PromatsArticleDetailPage({ locale, article, backLabel }: { local
       <section className="pm-section position-relative">
         <DevNote section="kaynak-detay-icerik" title="Kaynak Detay İçerik" />
         <div className="container">
+          <p className="pm-article-byline">
+            <span>{locale === 'en' ? 'Author and publisher: Promats' : 'Yazar ve yayınlayan: Promats'}</span>
+            {publishedLabel && article.publishedAt ? (
+              <time dateTime={article.publishedAt}>
+                {locale === 'en' ? 'Published' : 'Yayın tarihi'}: {publishedLabel}
+              </time>
+            ) : null}
+          </p>
           <article
             className="pm-prose"
             data-aos="fade-up"

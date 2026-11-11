@@ -27,7 +27,7 @@ export async function generateMetadata({
   const content = await getPageContent<{ meta: { title: string; description: string } }>(locale, 'home');
   return buildPageMetadata({
     locale, pageKey: 'home', pathname: '/',
-    fallback: content.meta,
+    fallback: { ...content.meta, ogImage: '/userfiles/images/banner/sldier1icon-kopya.jpg' },
   });
 }
 

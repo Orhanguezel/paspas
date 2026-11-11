@@ -7,6 +7,7 @@ import { assetPath, getPageContentOptional, getSpecialPage, getSpecialPages, str
 
 const PROMATS_LOCALES = ['tr', 'en'] as const;
 const DEFAULT_SHARE_IMAGE = '/userfiles/images/banner/sldier1icon-kopya.jpg';
+const ABOUT_SHARE_IMAGE = '/assets/images/hakkimizda/kurumsal-fabrika.jpg';
 
 // Kurumsal (Hakkımızda) sayfası artık modern pm-* tasarımıyla render edilir; DB özel sayfası
 // yerine PromatsHakkimizdaPage. Slug locale'e göre: TR=hakkimizda, EN=about-us.
@@ -51,9 +52,9 @@ export async function generateMetadata({
         description,
         type: 'website',
         url: `/${locale}/${etiket}`,
-        images: [DEFAULT_SHARE_IMAGE],
+        images: [{ url: ABOUT_SHARE_IMAGE, alt: c.meta.title }],
       },
-      twitter: { card: 'summary_large_image', images: [DEFAULT_SHARE_IMAGE] },
+      twitter: { card: 'summary_large_image', images: [ABOUT_SHARE_IMAGE] },
     };
   }
   const page = await getSpecialPage(locale, etiket);

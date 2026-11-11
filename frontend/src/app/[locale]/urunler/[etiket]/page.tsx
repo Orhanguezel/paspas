@@ -8,6 +8,15 @@ import { localeHref } from '@/lib/promats/links';
 
 const PROMATS_LOCALES = ['tr', 'en'] as const;
 
+function productPageTitle(rawTitle: string, productName: string, locale: string): string {
+  const title = (/promats/i.test(rawTitle) ? rawTitle : `${rawTitle} | Promats`).replace(/\s+/g, ' ').trim();
+  const length = Array.from(title).length;
+  if (length >= 30 && length <= 60) return title;
+  const name = length > 60 ? productName : rawTitle.replace(/\s*\|\s*Promats\s*$/i, '').trim() || productName;
+  const descriptor = locale === 'en' ? 'PVC Car Mat' : 'PVC Oto Paspas';
+  return `${name} ${descriptor} | Promats`;
+}
+
 export const revalidate = 60;
 
 export async function generateStaticParams() {
@@ -35,7 +44,7 @@ export async function generateMetadata({
   const rawDescription = product.seo?.description || stripHtml(product.hero.description || product.sections.conceptDescription);
   const description = `${product.name} — ${rawDescription}`.replace(/\s+/g, ' ').trim().slice(0, 155);
   const rawTitle = product.seo?.title || product.name;
-  const title = /promats/i.test(rawTitle) ? rawTitle : `${rawTitle} | Promats`;
+  const title = productPageTitle(rawTitle, product.name, locale);
   // TR ve EN urun kayitlari ayri satirlarda tutuldugu icin ID'leri farklidir.
   // Katalogdaki ortak sira numarasi iki dilde ayni seriyi temsil eder.
   const alternateProduct = alternateProducts.find(
@@ -59,7 +68,10 @@ export async function generateMetadata({
       title,
       description,
       type: 'website',
-      images: [assetPath(product.hero.image || product.sections.detailImage)],
+      images: [{
+        url: assetPath(product.hero.image || product.sections.detailImage),
+        alt: product.name,
+      }],
     },
     twitter: {
       card: 'summary_large_image',

@@ -29,7 +29,7 @@ export async function generateMetadata({
     locale,
     pageKey: 'contact',
     pathname: '/iletisim',
-    fallback: content.meta,
+    fallback: { ...content.meta, ogImage: '/assets/images/uretim/sunum.jpg' },
   });
   if (query.product || query.requestType) {
     metadata.robots = { index: false, follow: true };

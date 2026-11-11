@@ -15,7 +15,12 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const content = await getPageContent<ResourcesPageContent>(locale, 'resources');
-  return buildPageMetadata({ locale, pageKey: 'resources', pathname: '/kaynaklar', fallback: content.meta });
+  return buildPageMetadata({
+    locale,
+    pageKey: 'resources',
+    pathname: '/kaynaklar',
+    fallback: { ...content.meta, ogImage: '/assets/images/background/section5.jpg' },
+  });
 }
 
 export default async function Page({ params }: { params: Promise<{ locale: string }> }) {

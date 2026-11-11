@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import AOSInit from '@/components/common/AOSInit';
 import PromatsFooter from './PromatsFooter';
 import PromatsHeader from './PromatsHeader';
+import PromatsDiscoveryLinks from './PromatsDiscoveryLinks';
 
 import { getMenu, getProducts, getSettings } from '@/lib/promats/api';
 import { getSiteConfig } from '@/lib/promats/site-config.server';
@@ -53,7 +54,10 @@ export default async function PromatsPublicLayout({ children, locale, title }: P
         menu={headerMenu}
         title={title}
       />
-      <main id="main-content">{children}</main>
+      <main id="main-content">
+        {children}
+        <PromatsDiscoveryLinks locale={locale} />
+      </main>
       <PromatsFooter locale={locale} settings={settings} siteConfig={siteConfig} menu={footerMenu} />
     </div>
   );
