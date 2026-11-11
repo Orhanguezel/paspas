@@ -12,6 +12,9 @@
 }
 
 body:has(.promats-public) {
+  --font-display: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --font-serif: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
   font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
   color: var(--pm-text-body, #707070);
   line-height: 1.7;
