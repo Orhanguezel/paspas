@@ -37,6 +37,9 @@ const nextConfig = {
   trailingSlash: false,
   compress: true,
   poweredByHeader: false,
+  // Keep SEO metadata in <head> for search engines, AI crawlers and social
+  // preview clients that do not execute Next.js' streamed metadata payload.
+  htmlLimitedBots: /.*/,
 
   // ✅ Performance optimizations
   compiler: {

@@ -119,6 +119,9 @@ export type ResourcesPageContent = {
 };
 
 export function PromatsArticlesPage({ locale, articles, content: c }: { locale: string; articles: ArticleListItem[]; content: ResourcesPageContent }) {
+  const sourceNote = locale === 'en'
+    ? 'Use these resources as an introduction to product families and manufacturing topics. For a project-specific decision, confirm current specifications, availability, intended application and commercial conditions directly with the Promats team.'
+    : 'Bu kaynakları ürün aileleri ve üretim konularına giriş amacıyla kullanın. Projenize özel bir karar vermeden önce güncel teknik özellikleri, bulunabilirliği, kullanım amacını ve ticari koşulları Promats ekibiyle doğrudan teyit edin.';
 
   return (
     <div className="promats-modern-page promats-resources-page">
@@ -170,6 +173,7 @@ export function PromatsArticlesPage({ locale, articles, content: c }: { locale: 
           <div className="container pm-prose">
             <h2>{c.guide.heading}</h2>
             {c.guide.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+            <p>{sourceNote}</p>
           </div>
         </section>
       ) : null}
