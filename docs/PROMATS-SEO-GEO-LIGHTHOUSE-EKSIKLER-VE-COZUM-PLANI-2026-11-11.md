@@ -8,7 +8,52 @@
 
 ## Uygulama sonucu ve canlı kabul — 11 Kasım 2026
 
-Bu rapordaki uygulanabilir kod, veri ve altyapı maddeleri tamamlanıp canlıya alındı. Son uygulama release'i `5d23591`; sunucuda derleme yapılmadan yerel artifact ile atomik olarak etkinleştirildi. Aşağıdaki ilk “Yönetici özeti” bölümü artık başlangıç fotoğrafıdır.
+Bu rapordaki uygulanabilir kod, veri ve altyapı maddeleri tamamlanıp canlıya alındı. Son uygulama release'i `a7ad718`; sunucuda derleme yapılmadan yerel artifact ile atomik olarak etkinleştirildi. Aşağıdaki ilk “Yönetici özeti” bölümü artık başlangıç fotoğrafıdır.
+
+### SEO v3 takip denetimi ve Lighthouse kabulü — release `a7ad718`
+
+11 Kasım'da kullanıcının ilettiği SEO v3 raporuna karşı canlı site yeniden işlendi. Tanitio'nun aynı v3 hesaplama motoru 10 canonical sayfada yerelden çalıştırıldı; API erişimi salt okunur olduğu için bu sonuç panel veritabanına yeni denetim satırı olarak yazılmadı. Canlı çıktının yerel kanıtı `/tmp/promats-full-audit-a7ad718.json` dosyasındadır.
+
+| Ölçüm | Bildirilen başlangıç | Son canlı ölçüm | Sonuç |
+|---|---:|---:|---|
+| SEO v3 | 63,0 | **64,5** | +1,5 puan |
+| SEO kapsamı / güveni | %94 / %70,2 | **%94 / %70,2** | Aynı kapsam |
+| GEO | önceki canlı takipte 45,1 | **46,4** | İyileşti |
+| Bulgu sayısı | 6 | **3** | 3 bulgu kapandı |
+| İç link puanı | 88,9 | **100** | Tamamlandı |
+| Bağlantı almayan taranmış sayfa | 2 | **0** | Tamamlandı |
+| E-E-A-T | 50,8 | **53,4** | İyileşti |
+| Başlık terimi tutarlılığı | 72,4 | **77,1** | Bulgu eşiğinin üstüne çıktı |
+
+Kapatılan rapor maddeleri:
+
+- `/tr/hakkimizda` ve `/tr/uretim` dahil beş ana bölüme, sayfa gövdesinde görünen ve TR/EN eşleşen bir keşif/iç link alanı eklendi. Örneklemde bağlantısız taranmış sayfa kalmadı; beş ana bölümün her biri 9 örneklem iç bağlantısı aldı.
+- Kapitone ürün başlığı 30–60 karakter aralığına getirildi; canlı başlık `KAPİTONE SERİSİ PVC Oto Paspas | Promats` oldu.
+- Ana sayfa, kurumsal, üretim, ürün listesi, iletişim ve kaynak sayfaları için ayrı paylaşım görselleri kullanıldı; “6 sayfada aynı og:image” bulgusu kapandı.
+- Makale şablonuna görünür kurumsal yazar/yayıncı ve tarih eklendi. Organization/WebSite şeması korunarak E-E-A-T 50,8'den 53,4'e çıktı.
+- 20 aktif seri, 2017 kuruluş yılı, 3 standart renk seçeneği ve 35'ten fazla ihracat ülkesi gibi mevcut ve doğrulanmış şirket/katalog verileri; içerik üretim yöntemi ve teyit sınırıyla birlikte görünür yayın notuna dönüştürüldü. Yeni ölçümde içerik kalitesi skoru değişmedi; motor sayfa-özel birimli ölçüm, vaka veya özgün araştırma arıyor. Böyle bir veri mevcut kaynaklarda bulunmadığı için rakam/vaka uydurulmadı.
+
+Kalan üç bulgu hata değil, doğrulanmış yeni kanıt gerektiren içerik fırsatıdır:
+
+1. **İçerik kalitesi 21,8:** 10 sayfanın çoğunda Promats'a ait birimli test/ölçüm veya vaka kaydı yok. Gerçek test sonuçları olmadan bu skor güvenli biçimde yükseltilemez.
+2. **E-E-A-T 53,4:** Motor özellikle kişi uzmanlığı, doğrulanmış yorum/güvence ve sayfa-özel deneyim kanıtı arıyor. Doğrulanmamış uzman, müşteri yorumu, garanti veya sertifika üretilmedi.
+3. **Konusal otorite 69,6:** Ölçüm URL'nin ilk yol bölümünde en az 3 sayfayı “derin küme” sayıyor. Ürünler, products, kaynaklar ve resources kümeleri zaten derin; iletişim/üretim/hakkımızda gibi tek amaçlı sayfaları puan uğruna sahte alt sayfalara bölmek doğru değil.
+
+Canlı HTTP yönlendirme bildirimi yanlış pozitif/stale çıktı: `http://promats.com.tr`, `http://www.promats.com.tr` ve path/query içeren örnekler yolu ve sorguyu koruyan tek **301** ile `https://promats.com.tr` non-www karşılığına gidiyor.
+
+E-posta güvenliği canlı DNS kontrolünde ayrıştırıldı: SPF mevcut ve `v=spf1 include:_spf.trwww.com -all`; DMARC kaydı yok, denenen yaygın DKIM seçicileri yanıt vermiyor ve `mail.promats.com.tr` TLS sertifikası bu hostla eşleşmiyor. Turhost/cPanel DNS ve posta yönetim oturumu bu çalışma ortamında bulunmadığı için sağlayıcı tarafındaki bu üç değişiklik uygulanamadı; DKIM anahtarı veya DMARC rapor adresi uydurulmadı.
+
+Son Lighthouse masaüstü kabulü beş canlı rotada tek koşu olarak alındı:
+
+| Rota | Performans | Erişilebilirlik | En iyi uygulamalar | SEO | LCP | CLS |
+|---|---:|---:|---:|---:|---:|---:|
+| `/tr` | 99 | 100 | 100 | 100 | 776 ms | 0 |
+| `/tr/urunler/maximum-serisi` | 98 | 100 | 100 | 100 | 936 ms | 0,006 |
+| `/tr/hakkimizda` | 99 | 100 | 100 | 100 | 659 ms | 0 |
+| `/tr/iletisim` | 73 | 100 | 100 | 100 | 2.676 ms | 0 |
+| `/tr/arama` | 97 | 100 | 100 | 69 | 875 ms | 0 |
+
+Arama sayfasının SEO puanı bilinçli `noindex, follow` nedeniyle 69'dur; site içi arama sonuçlarının indekslenmemesi doğru davranıştır. Eksik meta açıklaması eklendi. Önceki Lighthouse turunda görülen çerez bandı, ana sayfa filigranı ve sosyal etiket kontrastları giderildi; son turda beş rotanın erişilebilirlik puanı 100'dür.
 
 ### Sonuç özeti
 
