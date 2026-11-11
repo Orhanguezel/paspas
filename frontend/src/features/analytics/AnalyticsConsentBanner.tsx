@@ -51,7 +51,7 @@ export default function AnalyticsConsentBanner() {
   return (
     <aside
       aria-label={english ? 'Cookie preferences' : 'Çerez tercihleri'}
-      className="fixed inset-x-4 bottom-4 z-[10000] mx-auto max-w-3xl rounded-2xl border border-white/15 bg-[#111827] p-5 text-white shadow-2xl sm:flex sm:items-center sm:gap-5"
+      className="promats-consent-banner fixed inset-x-4 bottom-4 z-[10000] mx-auto max-w-3xl rounded-2xl border border-white/15 bg-[#111827] p-5 text-white shadow-2xl sm:flex sm:items-center sm:gap-5"
     >
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold leading-6">

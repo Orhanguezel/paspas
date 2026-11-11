@@ -1445,7 +1445,7 @@ body.promats-offcanvas::before {
 }
 .promats-public .promats-why-watermark {
   pointer-events: none;
-  color: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.42) !important;
   font-size: clamp(68px, 9vw, 132px);
   line-height: 0.9;
   width: auto;
@@ -1595,7 +1595,13 @@ body.promats-offcanvas::before {
   display: block;
   margin-bottom: 10px;
   font-size: 12px;
-  color: #999;
+  color: #595959;
+}
+
+/* Legacy paragraf rengi, koyu onay bandındaki Tailwind text-white değerini
+   eziyordu. Açık metni yüksek özgüllükle koru. */
+.promats-public .promats-consent-banner p {
+  color: #fff !important;
 }
 .promats-public .social-media .icons-top {
   justify-content: center;

@@ -13,6 +13,9 @@ export async function generateMetadata({
   const { locale } = await params;
   return {
     title: locale === 'en' ? 'Search' : 'Arama',
+    description: locale === 'en'
+      ? 'Search Promats PVC car mat series and product information.'
+      : 'Promats PVC oto paspas serileri ve ürün bilgileri içinde arama yapın.',
     robots: { index: false, follow: true },
     alternates: {
       canonical: localeHref(locale, '/arama'),
