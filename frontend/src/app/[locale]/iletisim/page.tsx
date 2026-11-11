@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 
 import { DevNote } from '@/components/devnote';
 import PromatsContactForm from '@/components/promats/PromatsContactForm';
+import PromatsFaqSection from '@/components/promats/PromatsFaqSection';
 import PromatsSocialLinks from '@/components/promats/PromatsSocialLinks';
+import { contactFaq } from '@/components/promats/promatsFaqContent';
 import { getPageContent, getProducts, getSettings, t } from '@/lib/promats/api';
 import { getSiteConfig } from '@/lib/promats/site-config.server';
 import { buildPageMetadata } from '@/seo/serverMetadata';
@@ -55,6 +57,7 @@ export default async function ContactPage({
   const contactMapEmbedUrl = settings.contact_map_embed_url;
   const selectedProduct = products.find((product) => product.slug === query.product);
   const quoteSubject = t(settings, 'Teklif Talebi');
+  const faq = contactFaq(locale);
 
   // İletişim hero metni (docx R3 d25090ff). Sayfa açılınca ortada harita yerine
   // en başta iletişim kutusu gelsin. Editoryal pazarlama kopyası; locale bazlı.
@@ -147,6 +150,9 @@ export default async function ContactPage({
           {contactGuide.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
         </div>
       </section>
+      <div className="promats-modern-page">
+        <PromatsFaqSection {...faq} sectionKey="iletisim-sss" />
+      </div>
       {contactMapEmbedUrl ? (
         <section className="contact_us promats-contact-location position-relative">
           <DevNote section="contact-map" title="İletişim Harita" />

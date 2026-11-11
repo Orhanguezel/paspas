@@ -1532,6 +1532,15 @@
   color: var(--pm-text-body, #707070);
 }
 
+.promats-public .promats-modern-page .pm-page-faq__owner {
+  max-width: 860px;
+  margin: 18px auto 0;
+  color: var(--pm-text-muted, #666);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: right;
+}
+
 /* ===== OEM İLETİŞİM — iki sütunlu kart ===== */
 
 .promats-public .promats-modern-page .pm-contact__card--split {

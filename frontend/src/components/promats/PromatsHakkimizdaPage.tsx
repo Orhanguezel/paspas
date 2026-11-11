@@ -4,7 +4,9 @@ import { DevNote } from '@/components/devnote';
 import hakkimizdaContent from '@/config/pages/hakkimizda-page.json';
 
 import PromatsImage from './PromatsImage';
+import PromatsFaqSection from './PromatsFaqSection';
 import { PmHero, PmSectionHeading } from './PromatsModernShell';
+import { aboutFaq } from './promatsFaqContent';
 
 type Cap = { no: string; icon: string; title: string; body: string };
 type Step = { no: string; title: string; body: string };
@@ -41,6 +43,7 @@ export function hakkimizdaFallback(locale: string): HakkimizdaContent {
 
 export function PromatsHakkimizdaPage({ locale, content }: { locale: string; content?: HakkimizdaContent | null }) {
   const c = content ?? hakkimizdaFallback(locale);
+  const faq = aboutFaq(locale);
 
   return (
     <div className="promats-modern-page promats-hakkimizda-page">
@@ -176,6 +179,8 @@ export function PromatsHakkimizdaPage({ locale, content }: { locale: string; con
           </ol>
         </div>
       </section>
+
+      <PromatsFaqSection {...faq} sectionKey="hakkimizda-sss" />
 
       {/* Kapanis CTA bandi kaldirildi (musteri notu 2026-08-28): footer menusunu
           tekrarlayan koyu bant "ikinci footer" gibi algilaniyordu; sayfa dogrudan

@@ -5,7 +5,9 @@ import { localeHref as href } from '@/lib/promats/links';
 
 import PromatsHeroBg from './PromatsHeroBg';
 import PromatsImage from './PromatsImage';
+import PromatsFaqSection from './PromatsFaqSection';
 import PromatsProductCarousel from './PromatsProductCarousel';
+import { productFaq } from './promatsFaqContent';
 
 type Props = {
   locale: string;
@@ -152,6 +154,7 @@ export default function PromatsProductDetail({ locale, product, related, setting
   const setTitle = settingValue(settings, '5 PARÇA TAM SET');
   const setSubtitle = settingValue(settings, 'Şaft Tüneli Dahil');
   const relatedTitle = settingValue(settings, 'DİĞER ÜRÜNLER');
+  const faq = productFaq(locale, product);
   const hasDerinHavuzlu = Boolean(
     derinHavuzluIcon
     && bottomArrowIcon
@@ -394,6 +397,8 @@ export default function PromatsProductDetail({ locale, product, related, setting
           </div>
         </section>
       ) : null}
+
+      <PromatsFaqSection {...faq} sectionKey="urun-detay-sss" />
 
       {/* 6 — Diğer Ürünler */}
       {hasRelated ? (

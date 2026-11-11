@@ -3,6 +3,8 @@ import type { Product, ProductFeature } from '@/lib/promats/api';
 import { localeHref as href } from '@/lib/promats/links';
 
 import PromatsImage from './PromatsImage';
+import PromatsFaqSection from './PromatsFaqSection';
+import { productsFaq } from './promatsFaqContent';
 import {
   PmContactBlock,
   PmHero,
@@ -91,6 +93,7 @@ export function PromatsProductsPage({ locale, products, content: c }: { locale: 
     content: locale === 'en' ? card.en : card.tr,
   }));
   const heroImage = products[0]?.hero.image ?? null;
+  const faq = productsFaq(locale, products.length);
 
   return (
     <div className="promats-modern-page promats-products-page">
@@ -170,6 +173,8 @@ export function PromatsProductsPage({ locale, products, content: c }: { locale: 
           </div>
         </section>
       ) : null}
+
+      <PromatsFaqSection {...faq} sectionKey="urunler-sss" />
 
       <PmContactBlock labels={c.contact} devNoteSection="urunler-iletisim" devNoteTitle="Ürünler: Bize Ulaşın" />
     </div>

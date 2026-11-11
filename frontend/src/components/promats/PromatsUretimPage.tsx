@@ -2,7 +2,9 @@ import { DevNote } from '@/components/devnote';
 import { localeHref as href } from '@/lib/promats/links';
 
 import PromatsImage from './PromatsImage';
+import PromatsFaqSection from './PromatsFaqSection';
 import { PromatsCheckCircle, PromatsUretimIcon } from './PromatsUretimIcons';
+import { productionFaq } from './promatsFaqContent';
 import {
   PmContactBlock,
   PmHero,
@@ -52,6 +54,7 @@ function GalleryCaption({ title, text }: { title?: string; text?: string }): Rea
 }
 
 export function PromatsUretimPage({ locale, content: c }: { locale: string; content: UretimPageContent }) {
+  const faq = productionFaq(locale);
 
   return (
     <div className="promats-modern-page">
@@ -194,6 +197,8 @@ export function PromatsUretimPage({ locale, content: c }: { locale: string; cont
           </div>
         </div>
       </section>
+
+      <PromatsFaqSection {...faq} sectionKey="uretim-sss" />
 
       <PmContactBlock labels={c.contact} devNoteSection="uretim-iletisim" devNoteTitle="Üretim: Bize Ulaşın" />
     </div>

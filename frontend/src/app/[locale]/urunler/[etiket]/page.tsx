@@ -5,6 +5,7 @@ import PromatsProductDetail from '@/components/promats/PromatsProductDetail';
 import { assetPath, getProduct, getProducts, getSettings, getSpecialPage, stripHtml } from '@/lib/promats/api';
 import { getPublicSiteOrigin } from '@/lib/site-config';
 import { localeHref } from '@/lib/promats/links';
+import { PROMATS_ORGANIZATION_ID } from '@/seo/promatsStructuredData';
 
 const PROMATS_LOCALES = ['tr', 'en'] as const;
 
@@ -103,6 +104,13 @@ export default async function ProductPage({
     .filter(Boolean)
     .map((image) => `${origin}${assetPath(image)}`);
   const breadcrumbId = `${productUrl}#breadcrumb`;
+  const propertyNames = locale === 'en'
+    ? ['Front mat', 'Rear mat', 'Centre/rear mat', 'Set weight', 'Pack weight']
+    : ['Ön paspas', 'Arka paspas', 'Orta/arka paspas', 'Takım ağırlığı', 'Koli ağırlığı'];
+  const additionalProperty = product.sections.dimensions.flatMap((value, index) => {
+    const normalized = value?.trim();
+    return normalized ? [{ '@type': 'PropertyValue', name: propertyNames[index], value: normalized }] : [];
+  });
   const productSeriesJsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -123,6 +131,8 @@ export default async function ProductPage({
             }
           : {}),
         breadcrumb: { '@id': breadcrumbId },
+        author: { '@id': PROMATS_ORGANIZATION_ID },
+        publisher: { '@id': PROMATS_ORGANIZATION_ID },
         about: {
           '@type': 'Thing',
           '@id': `${productUrl}#series`,
@@ -130,6 +140,7 @@ export default async function ProductPage({
           description,
           url: productUrl,
           ...(images.length > 0 ? { image: images } : {}),
+          ...(additionalProperty.length > 0 ? { additionalProperty } : {}),
         },
       },
       {

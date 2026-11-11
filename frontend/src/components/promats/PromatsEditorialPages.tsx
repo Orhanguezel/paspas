@@ -3,7 +3,9 @@ import { DevNote } from '@/components/devnote';
 import { sanitizeHtml } from '@/lib/promats/api';
 
 import PromatsImage from './PromatsImage';
+import PromatsFaqSection from './PromatsFaqSection';
 import { PmHero, PmSectionHeading } from './PromatsModernShell';
+import { resourcesFaq } from './promatsFaqContent';
 import { localeHref as href } from '@/lib/promats/links';
 
 type PartnerCard = { title: string; body: string };
@@ -122,6 +124,7 @@ export function PromatsArticlesPage({ locale, articles, content: c }: { locale: 
   const sourceNote = locale === 'en'
     ? 'Use these resources as an introduction to product families and manufacturing topics. For a project-specific decision, confirm current specifications, availability, intended application and commercial conditions directly with the Promats team.'
     : 'Bu kaynakları ürün aileleri ve üretim konularına giriş amacıyla kullanın. Projenize özel bir karar vermeden önce güncel teknik özellikleri, bulunabilirliği, kullanım amacını ve ticari koşulları Promats ekibiyle doğrudan teyit edin.';
+  const faq = resourcesFaq(locale, articles.length);
 
   return (
     <div className="promats-modern-page promats-resources-page">
@@ -177,6 +180,7 @@ export function PromatsArticlesPage({ locale, articles, content: c }: { locale: 
           </div>
         </section>
       ) : null}
+      <PromatsFaqSection {...faq} sectionKey="kaynaklar-sss" />
     </div>
   );
 }

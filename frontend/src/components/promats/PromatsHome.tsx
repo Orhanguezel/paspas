@@ -3,8 +3,10 @@ import { DevNote } from '@/components/devnote';
 import { decodeHtml, t } from '@/lib/promats/api';
 
 import PromatsHeroSlider from './PromatsHeroSlider';
+import PromatsFaqSection from './PromatsFaqSection';
 import PromatsImage from './PromatsImage';
 import PromatsProductCarousel from './PromatsProductCarousel';
+import { homeFaq } from './promatsFaqContent';
 import { localeHref as href } from '@/lib/promats/links';
 
 type Props = {
@@ -46,6 +48,7 @@ export default function PromatsHome({
 }: Props) {
   const showcase = products[0] ?? null;
   const showcaseIcons = showcase ? featureIcons(showcase) : [];
+  const faq = homeFaq(locale, products.length);
 
   return (
     <>
@@ -139,6 +142,8 @@ export default function PromatsHome({
           </div>
         </div>
       </section>
+
+      <PromatsFaqSection {...faq} sectionKey="anasayfa-sss" />
 
       <section className="untree_co--site-section section5_bg promats-newsletter position-relative" id="iletisimform">
         <DevNote section="home-ebulten" title="E-bülten" />
