@@ -68,6 +68,7 @@ export default function PromatsImage({
         src={path}
         alt={alt}
         fill
+        decoding={priority ? 'sync' : 'async'}
         sizes={sizes}
         className={className}
         style={style}
@@ -83,6 +84,7 @@ export default function PromatsImage({
     <Image
       src={path}
       alt={alt}
+      decoding={priority ? 'sync' : 'async'}
       width={width ?? FLUID_WIDTH}
       height={height ?? FLUID_HEIGHT}
       sizes={sizes}
