@@ -6,6 +6,54 @@
 
 **Amaç:** Hataları önem sırasına koymak, yanlış pozitifleri ayırmak ve her madde için doğrulanabilir çözüm/kabul ölçütü tanımlamak.
 
+## Uygulama sonucu ve canlı kabul — 11 Kasım 2026
+
+Bu rapordaki uygulanabilir kod, veri ve altyapı maddeleri tamamlanıp canlıya alındı. Son uygulama release'i `5d23591`; sunucuda derleme yapılmadan yerel artifact ile atomik olarak etkinleştirildi. Aşağıdaki ilk “Yönetici özeti” bölümü artık başlangıç fotoğrafıdır.
+
+### Sonuç özeti
+
+| Alan | Başlangıç | Son canlı sonuç | Durum |
+|---|---:|---:|---|
+| Tanitio site sağlığı | 74–75 | **100/100**, crawl `#305`, 100/100 sayfa | Tamamlandı |
+| Crawl error / warning grubu | 0 error, 262 warning | **0 error, 0 warning** | Tamamlandı |
+| Product zorunlu şema alanı | 40 sayfa | **0 sayfa** | Tamamlandı |
+| Ana sayfa mobil performans | 52 | **95 medyan** | Hedef geçti |
+| Ana sayfa mobil LCP | 17,0 sn | **2,62 sn medyan** | Büyük ölçüde düzeldi; 2,5 sn laboratuvar hedefinin 0,12 sn üstünde |
+| Ürün mobil performans | 52 | **93 medyan** | Hedef geçti |
+| Ürün mobil LCP | 8,6 sn | **2,94 sn medyan** | Büyük ölçüde düzeldi; 2,5 sn laboratuvar hedefinin 0,44 sn üstünde |
+| Ana sayfa aktarımı | 4,93 MiB | **0,78 MiB medyan** | Tamamlandı |
+| Ürün aktarımı | 3,42 MiB | **0,68 MiB medyan** | Tamamlandı |
+| CLS | ölçülmedi | ana sayfa **0**, ürün **0,021** | Hedef geçti |
+
+Son Lighthouse kabul serisi üçer bağımsız mobil koşudur. Ana sayfa skorları `95 / 96 / 78`, ürün skorları `96 / 77 / 93`; tek iyi koşu seçilmemiş, medyan raporlanmıştır. LCP iki sayfada da başlangıca göre dramatik biçimde düştü, ancak katı `≤2,5 sn` laboratuvar kapısı medyanda henüz tam geçmedi. CrUX alan verisi bulunmadığı için bu durum gerçek kullanıcı Core Web Vitals sonucu olarak yorumlanmamalıdır.
+
+### Maddelerin kapanış durumu
+
+1. **Robots ve render kaynakları:** `/_next/` engeli kaldırıldı. Yeni taramalarda `robots_blocked_resources` ve `robots_blocked_images` yok.
+2. **GEO/llms.txt:** Yalnız `promats.com.tr` public canonical URL'leri yayımlanıyor; `/promats` ve eski panel alan adı temizlendi. AI/GEO tarama skoru 100.
+3. **GA4/GTM:** Property `563587381`, measurement ID `G-RF7H08PL6W` ve container `GTM-K6XBW5WK` standardize edildi. Analitik kod rıza verilmeden yüklenmiyor. Gerçek mobil tarayıcıda rıza sonrası `page_view` isteği `region1.google-analytics.com/g/collect` üzerinden **HTTP 204** aldı. GA4 Realtime/Data API henüz satır döndürmüyor; bu yeni mülkün Google tarafındaki işleme/zaman kapısıdır ve kodla zorlanamaz. Gerçek form/lead yalnız test için gönderilmedi.
+4. **Lighthouse:** 219 raster varlık WebP'e çevrildi; görünür sayfalar optimize varyantları kullanıyor. Kaynak toplamı yaklaşık 41 MB'tan 5,5 MB'a indi. Icomoon 120 KB'tan 2,3 KB'a subset edildi; AOS ve Swiper etkileşime ertelendi; analitik rıza kapısına alındı; gereksiz dört webfont isteği ve görsel hydration sınırı kaldırıldı.
+5. **Host tekilleştirme:** `www` tüm path/query değerlerini koruyan tek 301 ile non-www HTTPS'e gidiyor; kopya HTML sunulmuyor.
+6. **Meta açıklamalar:** Benzersizleştirildi; crawl `#303` ile `duplicate_meta_description`, crawl `#304` ile `meta_description_too_long` kapandı.
+7. **H1 yapısı:** Canonical sayfalarda tek H1 sağlandı; `h1_multiple` ve `duplicate_h1` kapandı.
+8. **Hreflang:** TR/EN ürünleri veri sırasına göre doğru çiftlendi; self, reciprocal ve `x-default` tamamlandı. İlgili dört hreflang hata grubu kapandı.
+9. **Şema ve sosyal paylaşım:** Organization/WebSite/Article graph'ları canonical kimlik, URL ve logo ile tamamlandı. `structured_data_missing_recommended` ve kullanıcının bildirdiği Product zorunlu alan grubu kapandı. Doğrulanmamış sosyal profil veya puan/yorum verisi uydurulmadı.
+10. **Kısa başlık/ince içerik:** Temiz sayfa başlıkları ve açıklayıcı içerikler geliştirildi. Teklif query URL'leri ayrı içerik gibi şişirilmedi; `noindex,follow` + ana iletişim canonical'ı korundu. Crawl `#304` ile `title_too_short`, `#305` ile `low_word_count` kapandı.
+11. **GEO/E-E-A-T:** Üretim, ürün, OEM, kaynak ve iletişim sayfalarına kaynak gösterilebilir açıklayıcı bloklar; makalelere kurumsal yayıncı/yazar bağlantıları eklendi. Kanıtsız sertifika, garanti veya kapasite iddiası eklenmedi.
+12. **GSC:** Sitemap Google tarafından üç temsilî URL'de görüldü. 11 Kasım tarihli URL Inspection: `/tr` **Submitted and indexed**, robots **ALLOWED**, fetch **SUCCESSFUL**, Google/user canonical eşleşiyor. TR Badem ve EN Almond ürün URL'leri **Discovered - currently not indexed**; sitemap ve iç bağlantı keşfi mevcut. Google'ın daha sonra tarama/indeksleme kararı harici bir bekleme kapısıdır.
+
+### Yeni tarama `#305`
+
+- 100/100 sayfa, sağlık **100**, error **0**, warning **0**.
+- Crawl `#304` sonrasında oluşan `metadata_in_body` bildirimi Next.js `htmlLimitedBots` politikasıyla kapatıldı. Canlı bot HTML'inde title, description ve canonical yalnız `<head>` içinde birer kez; `<body>` içinde sıfır.
+- Kalan kayıtların tamamı notice: Next.js/RSC kaynaklı düşük text/HTML oranı; açıkça PDF olan katalog bağlantısı; 40 teklif query URL'sinin beklenen `noindex` + iletişim canonical/hreflang davranışı; bir `h1_equals_title`; HTML olmayan katalog PDF için crawler `page_fetch_failed`. PDF ayrıca HTTP 200, doğru MIME ve byte-range desteğiyle doğrulandı.
+
+### Kalan dış kapılar
+
+- GA4 Realtime ve ertesi-gün Data API satırının Google tarafında oluşması.
+- GSC'de keşfedilmiş iki örnek ürün URL'sinin Google tarafından taranıp indekslenmesi.
+- Katı Lighthouse LCP medyanının 2,5 sn altına indirilmesi; performans skoru, CLS ve aktarım hedefleri geçmiştir. Kalan gecikme ağırlıklı olarak legacy global CSS/render yolundadır ve sonraki adım tema CSS'ini rota bazında bölmektir.
+
 ## Yönetici özeti
 
 Promats'ın 10 Kasım'daki son 100 sayfalık taramasında **kritik hata sayısı 40'tan 0'a**, sağlık puanı **62'den 74'e** çıktı. Kullanıcının ilettiği 40 ürün sayfasındaki `Product` şeması zorunlu alan hatası son taramada artık görünmüyor. Ancak site henüz temiz değil: **262 uyarı ve 430 bilgilendirme** kaydı var.
