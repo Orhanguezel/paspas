@@ -80,6 +80,7 @@ export default async function ContactPage({
         paragraphs: [
           'Choose the relevant product series and explain the intended market, quantity range or private-label requirement. This gives the Promats team the context needed to route a product, quotation or OEM request correctly.',
           'For technical questions, include the product name and the feature you want to compare. For distribution or OEM discussions, describe the target market and requested support without sending confidential production data through the public form.',
+          'A clear request helps the team distinguish a general product enquiry from a quotation or manufacturing discussion. Promats reviews the submitted contact details and message together; final dimensions, commercial terms and application claims are confirmed separately through the appropriate business process.',
         ],
       }
     : {
@@ -87,6 +88,7 @@ export default async function ContactPage({
         paragraphs: [
           'İlgilendiğiniz ürün serisini seçip hedef pazar, yaklaşık miktar veya private label ihtiyacınızı açıklayın. Bu bilgi; ürün, teklif ya da OEM talebinizin doğru ekibe yönlendirilmesini sağlar.',
           'Teknik sorularda ürün adını ve karşılaştırmak istediğiniz özelliği belirtin. Distribütörlük veya OEM görüşmelerinde hedef pazarı ve beklediğiniz desteği yazın; gizli üretim verilerini herkese açık form üzerinden göndermeyin.',
+          'Açık bir talep, genel ürün sorusu ile teklif veya üretim görüşmesinin ayrılmasını kolaylaştırır. Promats ekibi iletişim bilgileriyle mesajı birlikte değerlendirir; kesin ölçü, ticari koşul ve kullanım beyanları ilgili iş sürecinde ayrıca teyit edilir.',
         ],
       };
 

@@ -34,6 +34,8 @@ export async function generateMetadata({
   if (!product) return {};
   const rawDescription = product.seo?.description || stripHtml(product.hero.description || product.sections.conceptDescription);
   const description = `${product.name} — ${rawDescription}`.replace(/\s+/g, ' ').trim().slice(0, 155);
+  const rawTitle = product.seo?.title || product.name;
+  const title = /promats/i.test(rawTitle) ? rawTitle : `${rawTitle} | Promats`;
   // TR ve EN urun kayitlari ayri satirlarda tutuldugu icin ID'leri farklidir.
   // Katalogdaki ortak sira numarasi iki dilde ayni seriyi temsil eder.
   const alternateProduct = alternateProducts.find(
@@ -47,14 +49,14 @@ export async function generateMetadata({
   if (alternatePath) languages[alternateLocale] = alternatePath;
   languages['x-default'] = locale === 'tr' ? selfPath : alternatePath || selfPath;
   return {
-    title: { absolute: product.seo?.title || product.name },
+    title: { absolute: title },
     description,
     alternates: {
       canonical: selfPath,
       languages,
     },
     openGraph: {
-      title: product.seo?.title || product.name,
+      title,
       description,
       type: 'website',
       images: [assetPath(product.hero.image || product.sections.detailImage)],

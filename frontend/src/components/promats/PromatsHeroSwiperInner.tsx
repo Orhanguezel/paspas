@@ -1,6 +1,6 @@
 'use client';
 
-import { Autoplay, EffectFade, Navigation, Pagination } from 'swiper';
+import { EffectFade, Navigation, Pagination } from 'swiper';
 import { Swiper, SwiperSlide } from 'swiper/react';
 
 import type { SpecialPage } from '@/lib/promats/api';
@@ -30,7 +30,7 @@ export default function PromatsHeroSwiperInner({ banners, onSlideChange }: Props
 
   return (
     <Swiper
-      modules={[Autoplay, EffectFade, Navigation, Pagination]}
+      modules={[EffectFade, Navigation, Pagination]}
       {...options}
       effect="fade"
       fadeEffect={{ crossFade: true }}

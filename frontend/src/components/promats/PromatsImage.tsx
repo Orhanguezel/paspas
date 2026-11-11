@@ -26,9 +26,19 @@ const FLUID_HEIGHT = 720;
 
 function resolvePath(src: string | null | undefined, assetBase?: '/assets' | '/userfiles'): string {
   if (!src) return '';
-  if (src.startsWith('/assets')) return assetPath(src, '/assets');
-  if (src.startsWith('/userfiles')) return src;
-  return assetPath(src, assetBase ?? '/userfiles');
+  const path = src.startsWith('/assets')
+    ? assetPath(src, '/assets')
+    : src.startsWith('/userfiles')
+      ? src
+      : assetPath(src, assetBase ?? '/userfiles');
+
+  // Public urun/banner arsivindeki raster dosyalarin build sirasinda uretilen
+  // WebP karsiligini kullan. DB'deki kaynak yol degismez; OG ve indirilebilir
+  // orijinaller korunurken gorunen sayfa 219 optimize edilmis varligi sunar.
+  if (path.startsWith('/userfiles/images/')) {
+    return path.replace(/\.(?:jpe?g|png)(?=\?|$)/i, '.webp');
+  }
+  return path;
 }
 
 export default function PromatsImage({

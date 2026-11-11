@@ -36,16 +36,19 @@ export async function generateMetadata({
   const { locale, etiket } = await params;
   if (isKurumsal(locale, etiket)) {
     const c = (await getPageContentOptional<HakkimizdaContent>(locale, 'hakkimizda')) ?? hakkimizdaFallback(locale);
+    const description = locale === 'en'
+      ? 'Learn about Promats, its PVC universal car mat manufacturing approach, corporate profile, capabilities and quality processes.'
+      : 'Promats PVC universal oto paspas üretim yaklaşımı, kurumsal kimliği, temel yetkinlikleri ve kalite süreçleri hakkında bilgi edinin.';
     return {
       title: c.meta.title,
-      description: c.meta.description,
+      description,
       alternates: {
         canonical: `/${locale}/${etiket}`,
         languages: { tr: '/tr/hakkimizda', en: '/en/about-us', 'x-default': '/tr/hakkimizda' },
       },
       openGraph: {
         title: c.meta.title,
-        description: c.meta.description,
+        description,
         type: 'website',
         url: `/${locale}/${etiket}`,
         images: [DEFAULT_SHARE_IMAGE],

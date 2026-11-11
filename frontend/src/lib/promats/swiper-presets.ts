@@ -21,9 +21,9 @@ type SwiperPreset = {
 export function getHeroSwiperOptions(): SwiperPreset {
   return {
     loop: PROMATS_HERO_CAROUSEL.loop,
-    autoplay: PROMATS_HERO_CAROUSEL.autoplay
-      ? { delay: 5000, disableOnInteraction: false, pauseOnMouseEnter: false }
-      : false,
+    // Otomatik gecis yeni tam-ekran resmi gec bir LCP adayi yapiyordu. Kullanici
+    // pagination/navigation ile slayt degistirebilir; ilk boyama sabit kalir.
+    autoplay: false,
     speed: 800,
     pagination: { clickable: PROMATS_HERO_CAROUSEL.dots },
     navigation: PROMATS_HERO_CAROUSEL.nav,

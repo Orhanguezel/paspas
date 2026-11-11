@@ -20,11 +20,12 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   if (locale !== 'en') return {};
   const c = await getPageContent<OemPageContent>(locale, 'oem');
+  const description = 'Explore Promats OEM and private-label PVC car mat manufacturing for importers, distributors and automotive brands.';
   return buildPageMetadata({
     locale, pageKey: 'oem', pathname: '/oem-manufacturing',
     activeLocales: ['en'],
     xDefaultLocale: 'en',
-    fallback: { title: c.meta.title, description: c.meta.description },
+    fallback: { title: c.meta.title, description },
   });
 }
 
