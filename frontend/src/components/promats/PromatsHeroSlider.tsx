@@ -22,14 +22,27 @@ export default function PromatsHeroSlider({ banners, locale }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
-    // Hero above-the-fold + slider'in garanti calismasi icin Swiper'i mount'ta hemen yukle
-    // (eski idle/scroll gecikmesi fallback tek slide gosterip slider'i geciktiriyordu).
     let cancelled = false;
-    void import('./PromatsHeroSwiperInner').then((mod) => {
-      if (!cancelled) setSwiperInner(() => mod.default);
-    });
+    let requested = false;
+    const loadSwiper = () => {
+      if (cancelled || requested) return;
+      requested = true;
+      void import('./PromatsHeroSwiperInner').then((mod) => {
+        if (!cancelled) setSwiperInner(() => mod.default);
+      });
+    };
+
+    // The first hero remains fully rendered without Swiper. Load carousel code
+    // at the visitor's first interaction, with a late fallback for an idle tab.
+    const timer = globalThis.setTimeout(loadSwiper, 15_000);
+    globalThis.addEventListener('pointerdown', loadSwiper, { once: true, passive: true });
+    globalThis.addEventListener('keydown', loadSwiper, { once: true });
+
     return () => {
       cancelled = true;
+      globalThis.clearTimeout(timer);
+      globalThis.removeEventListener('pointerdown', loadSwiper);
+      globalThis.removeEventListener('keydown', loadSwiper);
     };
   }, []);
 

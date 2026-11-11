@@ -9,7 +9,7 @@
 'use client';
 
 import Script from 'next/script';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAnalyticsSettings } from './useAnalyticsSettings';
 import { getAnalyticsConsentEventName } from '@/lib/site-config';
 
@@ -52,10 +52,22 @@ export default function AnalyticsScripts() {
   const hasGtm = useMemo(() => isValidGtmId(gtmId), [gtmId]);
   const hasGa = useMemo(() => isValidGa4Id(ga4Id), [ga4Id]);
   const hasFbPixel = useMemo(() => isValidFbPixelId(facebookPixelId), [facebookPixelId]);
+  const [analyticsGranted, setAnalyticsGranted] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setAnalyticsGranted(window.localStorage.getItem('promats.analytics-consent.v1') === 'granted');
+    const onConsent = (event: Event) => {
+      const granted = Boolean((event as CustomEvent<{ granted?: boolean }>).detail?.granted);
+      setAnalyticsGranted(granted);
+    };
+    window.addEventListener('promats:analytics-consent', onConsent);
+    return () => window.removeEventListener('promats:analytics-consent', onConsent);
+  }, []);
 
   // GTM noscript (Document kullanılmıyorsa pratik)
   useEffect(() => {
-    if (!isProd || !hasGtm || typeof document === 'undefined') return;
+    if (!isProd || !hasGtm || !analyticsGranted || typeof document === 'undefined') return;
 
     const existing = document.getElementById('gtm-noscript');
     if (existing) return;
@@ -72,7 +84,7 @@ export default function AnalyticsScripts() {
 
     ns.appendChild(iframe);
     document.body.insertBefore(ns, document.body.firstChild);
-  }, [isProd, hasGtm, gtmId]);
+  }, [isProd, hasGtm, gtmId, analyticsGranted]);
 
   if (!isProd) return null;
 
@@ -146,7 +158,7 @@ export default function AnalyticsScripts() {
       </Script>
 
       {/* 2) GTM (preferred) */}
-      {hasGtm ? (
+      {hasGtm && analyticsGranted ? (
         <Script id="gtm-src" strategy="lazyOnload">
           {`
             (function(w,d,s,l,i){
@@ -164,7 +176,7 @@ export default function AnalyticsScripts() {
       ) : (
         // 3) GA4 fallback (GTM yoksa)
         <>
-          {hasGa ? (
+          {hasGa && analyticsGranted ? (
             <>
               <Script
                 id="ga-src"
@@ -194,7 +206,7 @@ export default function AnalyticsScripts() {
       )}
 
       {/* 4) Facebook Pixel */}
-      {hasFbPixel ? (
+      {hasFbPixel && analyticsGranted ? (
         <Script id="fb-pixel" strategy="lazyOnload">
           {`
             !function(f,b,e,v,n,t,s)
