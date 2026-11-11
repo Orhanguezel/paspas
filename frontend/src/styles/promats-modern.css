@@ -265,7 +265,7 @@
   text-align: center;
 }
 
-.promats-public .promats-modern-page .pm-caps__title {
+.promats-public :is(.promats-modern-page, .pm-page-faq) .pm-caps__title {
   font-family: var(--font-display);
   color: var(--pm-x-brand);
   font-size: clamp(1.75rem, 3vw, 2.875rem); /* 28->46px, editoryal h2 ile ayni */
@@ -274,13 +274,13 @@
   margin: 0 0 14px;
 }
 
-.promats-public .promats-modern-page .pm-caps__title span {
+.promats-public :is(.promats-modern-page, .pm-page-faq) .pm-caps__title span {
   display: block;
 }
 /* Başlık hiyerarşisi (müşteri notu 8c18cc51): 1. satır küçük font + farklı (koyu)
    renkte eyebrow; 2. satır büyük marka rengi ana başlık. Önceden iki satır da
    aynı büyüklük/renkti. Tüm modern sayfa başlıklarına uygulanır. */
-.promats-public .promats-modern-page .pm-caps__title span:first-child {
+.promats-public :is(.promats-modern-page, .pm-page-faq) .pm-caps__title span:first-child {
   font-family: var(--font-sans);
   font-size: 0.4em;
   font-weight: 700;
@@ -289,7 +289,7 @@
   margin-bottom: 8px;
 }
 
-.promats-public .promats-modern-page .pm-caps__intro {
+.promats-public :is(.promats-modern-page, .pm-page-faq) .pm-caps__intro {
   /* Musteri revizesi 2026-08 (H7/H8): 540px sutun dar bulundu, yanlara genisletildi. */
   max-width: 720px;
   margin: 0 auto;
@@ -1028,6 +1028,11 @@
   background: var(--pm-x-panel);
 }
 
+.promats-public .pm-page-faq {
+  background: var(--pm-x-panel);
+  padding: 84px 0;
+}
+
 /* OEM revizyonu: tek satırlı bilgi şeridi, birleşik OEM/Private Label kartı ve
    Promats'ın koyu ürün dili. */
 .promats-public .promats-oem-page {
@@ -1079,7 +1084,7 @@
   .promats-public .promats-oem-page .pm-oem-combined { grid-template-columns: 1fr; }
 }
 
-.promats-public .promats-modern-page .pm-section__head {
+.promats-public :is(.promats-modern-page, .pm-page-faq) .pm-section__head {
   text-align: center;
   margin-bottom: 46px;
 }
@@ -1487,19 +1492,19 @@
 
 /* ===== SSS (details/summary akordeon) ===== */
 
-.promats-public .promats-modern-page .pm-faq {
+.promats-public :is(.promats-modern-page, .pm-page-faq) .pm-faq {
   max-width: 860px;
   margin: 0 auto;
 }
 
-.promats-public .promats-modern-page .pm-faq__item {
+.promats-public :is(.promats-modern-page, .pm-page-faq) .pm-faq__item {
   background: var(--pm-x-panel);
   border-radius: 14px;
   padding: 0 26px;
   margin-bottom: 14px;
 }
 
-.promats-public .promats-modern-page .pm-faq__q {
+.promats-public :is(.promats-modern-page, .pm-page-faq) .pm-faq__q {
   font-family: var(--font-display);
   color: var(--pm-x-ink);
   font-size: 15.5px;
@@ -1508,9 +1513,9 @@
   list-style: none;
   position: relative;
 }
-.promats-public .promats-modern-page .pm-faq__q::-webkit-details-marker { display: none; }
+.promats-public :is(.promats-modern-page, .pm-page-faq) .pm-faq__q::-webkit-details-marker { display: none; }
 
-.promats-public .promats-modern-page .pm-faq__q::after {
+.promats-public :is(.promats-modern-page, .pm-page-faq) .pm-faq__q::after {
   content: '+';
   position: absolute;
   right: 0;
@@ -1520,11 +1525,11 @@
   color: var(--pm-x-brand);
   line-height: 1;
 }
-.promats-public .promats-modern-page .pm-faq__item[open] .pm-faq__q::after {
+.promats-public :is(.promats-modern-page, .pm-page-faq) .pm-faq__item[open] .pm-faq__q::after {
   content: '–';
 }
 
-.promats-public .promats-modern-page .pm-faq__a {
+.promats-public :is(.promats-modern-page, .pm-page-faq) .pm-faq__a {
   margin: 0;
   padding: 0 0 22px;
   font-size: 14px;
@@ -1532,10 +1537,10 @@
   color: var(--pm-text-body, #707070);
 }
 
-.promats-public .promats-modern-page .pm-page-faq__owner {
+.promats-public :is(.promats-modern-page, .pm-page-faq) .pm-page-faq__owner {
   max-width: 860px;
   margin: 18px auto 0;
-  color: var(--pm-text-muted, #666);
+  color: #5f6368;
   font-size: 13px;
   line-height: 1.5;
   text-align: right;
