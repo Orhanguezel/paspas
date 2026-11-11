@@ -56,7 +56,7 @@ export default async function PromatsPublicLayout({ children, locale, title }: P
       />
       <main id="main-content">
         {children}
-        <PromatsDiscoveryLinks locale={locale} />
+        <PromatsDiscoveryLinks locale={locale} productCount={products.length} />
       </main>
       <PromatsFooter locale={locale} settings={settings} siteConfig={siteConfig} menu={footerMenu} />
     </div>
