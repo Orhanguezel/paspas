@@ -1600,7 +1600,7 @@ body.promats-offcanvas::before {
 
 /* Legacy paragraf rengi, koyu onay bandındaki Tailwind text-white değerini
    eziyordu. Açık metni yüksek özgüllükle koru. */
-.promats-public .promats-consent-banner p {
+.promats-consent-banner p {
   color: #fff !important;
 }
 .promats-public .social-media .icons-top {
