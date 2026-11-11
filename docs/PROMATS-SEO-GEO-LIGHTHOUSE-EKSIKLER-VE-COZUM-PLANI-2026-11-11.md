@@ -6,6 +6,38 @@
 
 **Amaç:** Hataları önem sırasına koymak, yanlış pozitifleri ayırmak ve her madde için doğrulanabilir çözüm/kabul ölçütü tanımlamak.
 
+## İki dilli E-E-A-T ve SSS güncellemesi — release `8bd40d0`
+
+11 Kasım'da ana sayfa, kurumsal, üretim, ürün listesi, 40 TR/EN ürün detayı, kaynak listesi ve iletişim sayfalarına sayfa amacına özel Türkçe/İngilizce SSS alanları eklendi. Görünür soru ve yanıtlarla aynı içeriği taşıyan `FAQPage` JSON-LD kullanıldı. Kurumsal içerik sahipliği “Yazar ve yayıncı: Promats” / “Author and publisher: Promats” olarak görünür ve şemada canonical Organization kimliğine bağlıdır. Ürün detaylarındaki mevcut ölçü ve ağırlıklar `Thing.additionalProperty` altında `PropertyValue` olarak yayımlandı; fiyat/teklif/yorum kanıtı olmayan seri sayfaları yeniden `Product` olarak işaretlenmedi.
+
+Canlı sitemap'teki 40 ürün detayının tamamı düşük eşzamanlılıkla yeniden tarandı: **40/40 HTTP 200**, **40/40 üç görünür ve şemalı SSS**, **0 Product zorunlu alan riski**. Doğrulanmamış kişi uzmanı, müşteri yorumu, garanti, sertifika, ölçü veya tarih üretilmedi.
+
+Tanitio v3 motorunun aynı 10 canonical sayfalık takip ölçümü:
+
+| Ölçüm | Önceki canlı ölçüm | Release `8bd40d0` | Değişim |
+|---|---:|---:|---:|
+| SEO v3 | 64,5 | **69,4** | +4,9 |
+| GEO | 46,4 | **50,6** | +4,2 |
+| E-E-A-T | 53,4 | **65,4** | +12,0 |
+| İçerik kalitesi | 21,8 | **29,8** | +8,0 |
+| Başlık terimi tutarlılığı | 77,1 | **81,2** | +4,1 |
+| İç linkler | 100 | **100** | Korundu |
+
+E-E-A-T sinyal sonucu: görünür yazar/kurumsal yayıncı **10/10**, SSS **8/10**, Organization şeması **10/10**. İki kaynak makalesi kendi makale içeriğine özel yeni soru kanıtı olmadığı için genel SSS ile şişirilmedi. Kalan puan açıklığı gerçek müşteri yorumu/sosyal kanıt, doğrulanabilir güvence, sayfa-özel birimli ölçüm ve bağımsız otorite kaynağı gerektirir.
+
+Yayın sonrası tek koşuluk Lighthouse regresyon kontrolü:
+
+| Rota | Performans | Erişilebilirlik | En iyi uygulamalar | SEO |
+|---|---:|---:|---:|---:|
+| `/tr` | 99 | 98 | 100 | 100 |
+| `/tr/urunler/maximum-serisi` | 99 | 100 | 100 | 100 |
+| `/tr/hakkimizda` | 99 | 96 | 100 | 100 |
+| `/tr/iletisim` | 97 | 97 | 100 | 100 |
+| `/tr/arama` | 99 | 100 | 100 | 69 |
+| `/en/products/orbital-series-4521350` | 100 | 100 | 100 | 100 |
+
+`/tr/arama` skoru, doğru biçimde korunan `noindex` arama sonucu politikası nedeniyle 69'dur. Bu tablo performans medyanı değil, yayın sonrası tek koşuluk regresyon kontrolüdür. TR ve EN ürün SSS alanları ayrıca 1440 px masaüstü ve 390 px mobil gerçek tarayıcıda kontrol edildi; görünür taşma veya konsol hatası oluşmadı.
+
 ## Uygulama sonucu ve canlı kabul — 11 Kasım 2026
 
 Bu rapordaki uygulanabilir kod, veri ve altyapı maddeleri tamamlanıp canlıya alındı. Son uygulama release'i `a7ad718`; sunucuda derleme yapılmadan yerel artifact ile atomik olarak etkinleştirildi. Aşağıdaki ilk “Yönetici özeti” bölümü artık başlangıç fotoğrafıdır.
