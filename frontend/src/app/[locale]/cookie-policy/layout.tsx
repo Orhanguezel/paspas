@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import type React from 'react';
 
-import { normPath } from '@/integrations/shared';
-import { buildMetadataFromSeo, fetchSeoObject, fetchUiSectionObject, readUiText } from '@/seo/server';
+import { buildPageMetadata } from '@/seo/serverMetadata';
 
 export async function generateMetadata({
   params,
@@ -11,33 +10,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
 
-  const [seo, ui] = await Promise.all([
-    fetchSeoObject(locale),
-    fetchUiSectionObject('ui_cookie_policy', locale),
-  ]);
-
-  const base = await buildMetadataFromSeo(seo, { locale, pathname: normPath('/cookie-policy') });
-
-  const pageTitle =
-    readUiText(ui, 'ui_cookie_policy_meta_title') ||
-    readUiText(ui, 'ui_cookie_policy_page_title', 'Cookie Policy');
-  const pageDescription =
-    readUiText(ui, 'ui_cookie_policy_meta_description') ||
-    readUiText(ui, 'ui_cookie_policy_page_description', '');
-
-  return {
-    ...base,
-    title: pageTitle,
-    ...(pageDescription ? { description: pageDescription } : {}),
-    openGraph: {
-      ...(base.openGraph || {}),
-      title: pageTitle,
-      ...(pageDescription ? { description: pageDescription } : {}),
-    },
-  };
+  return buildPageMetadata({ locale, pageKey: 'cookie_policy', pathname: '/cookie-policy', fallback: {
+    title: 'Promats Cookie Policy',
+    description: 'Learn which cookies the Promats website uses, why they are used and how you can manage your cookie preferences.',
+  } });
 }
 
 export default function CookiePolicyLayout({ children }: { children: React.ReactNode }) {
   return children;
 }
-

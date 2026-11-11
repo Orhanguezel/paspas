@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import type React from 'react';
 
-import { normPath } from '@/integrations/shared';
-import { buildMetadataFromSeo, fetchSeoObject, fetchUiSectionObject, readUiText } from '@/seo/server';
+import { buildPageMetadata } from '@/seo/serverMetadata';
 
 export async function generateMetadata({
   params,
@@ -11,33 +10,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
 
-  const [seo, ui] = await Promise.all([
-    fetchSeoObject(locale),
-    fetchUiSectionObject('ui_privacy_notice', locale),
-  ]);
-
-  const base = await buildMetadataFromSeo(seo, { locale, pathname: normPath('/privacy-notice') });
-
-  const pageTitle =
-    readUiText(ui, 'ui_privacy_notice_meta_title') ||
-    readUiText(ui, 'ui_privacy_notice_page_title', 'Privacy Notice');
-  const pageDescription =
-    readUiText(ui, 'ui_privacy_notice_meta_description') ||
-    readUiText(ui, 'ui_privacy_notice_page_description', '');
-
-  return {
-    ...base,
-    title: pageTitle,
-    ...(pageDescription ? { description: pageDescription } : {}),
-    openGraph: {
-      ...(base.openGraph || {}),
-      title: pageTitle,
-      ...(pageDescription ? { description: pageDescription } : {}),
-    },
-  };
+  return buildPageMetadata({ locale, pageKey: 'privacy_notice', pathname: '/privacy-notice', fallback: {
+    title: 'Promats Personal Data Privacy Notice',
+    description: 'Review the Promats notice describing personal-data processing purposes, legal grounds, retention and data-subject rights.',
+  } });
 }
 
 export default function PrivacyNoticeLayout({ children }: { children: React.ReactNode }) {
   return children;
 }
-

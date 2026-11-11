@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import type React from 'react';
 
-import { normPath } from '@/integrations/shared';
-import { buildMetadataFromSeo, fetchSeoObject, fetchUiSectionObject, readUiText } from '@/seo/server';
+import { buildPageMetadata } from '@/seo/serverMetadata';
 
 export async function generateMetadata({
   params,
@@ -11,31 +10,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
 
-  const [seo, ui] = await Promise.all([
-    fetchSeoObject(locale),
-    fetchUiSectionObject('ui_kvkk', locale),
-  ]);
-
-  const base = await buildMetadataFromSeo(seo, { locale, pathname: normPath('/kvkk') });
-
-  const pageTitle =
-    readUiText(ui, 'ui_kvkk_meta_title') || readUiText(ui, 'ui_kvkk_page_title', 'Privacy Notice');
-  const pageDescription =
-    readUiText(ui, 'ui_kvkk_meta_description') || readUiText(ui, 'ui_kvkk_page_description', '');
-
-  return {
-    ...base,
-    title: pageTitle,
-    ...(pageDescription ? { description: pageDescription } : {}),
-    openGraph: {
-      ...(base.openGraph || {}),
-      title: pageTitle,
-      ...(pageDescription ? { description: pageDescription } : {}),
-    },
-  };
+  return buildPageMetadata({ locale, pageKey: 'privacy_notice', pathname: '/kvkk', fallback: {
+    title: 'Promats KVKK Aydınlatma Metni',
+    description: 'Promats kişisel veri işleme amaçları, hukuki sebepler, saklama süreçleri ve ilgili kişi hakları hakkında KVKK metnini inceleyin.',
+  } });
 }
 
 export default function KvkkLayout({ children }: { children: React.ReactNode }) {
   return children;
 }
-

@@ -1,21 +1,22 @@
 import type { Metadata } from 'next';
 import type React from 'react';
 
-import { normPath } from '@/integrations/shared';
-import { buildMetadataFromSeo, fetchSeoObject, fetchSeoPageObject, mergeSeoPageIntoSeo } from '@/seo/server';
+import { buildPageMetadata } from '@/seo/serverMetadata';
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
-
-  let seo = await fetchSeoObject(locale);
-  const pageSeo = await fetchSeoPageObject(locale, 'faqs');
-  seo = mergeSeoPageIntoSeo(seo, pageSeo);
-
-  return buildMetadataFromSeo(seo, { locale, pathname: normPath('/faqs') });
+  const isEnglish = locale === 'en';
+  return buildPageMetadata({
+    locale,
+    pageKey: 'faqs',
+    pathname: '/faqs',
+    fallback: {
+      title: isEnglish ? 'Promats Frequently Asked Questions' : 'Promats Sık Sorulan Sorular',
+      description: isEnglish
+        ? 'Find answers about Promats PVC automotive mat products, manufacturing, wholesale supply and contact requests.'
+        : 'Promats PVC oto paspas ürünleri, üretim, toptan tedarik ve iletişim talepleri hakkındaki yanıtları inceleyin.',
+    },
+  });
 }
 
 export default function FaqsLayout({ children }: { children: React.ReactNode }) {

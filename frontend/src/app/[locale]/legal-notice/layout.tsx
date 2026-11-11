@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import type React from 'react';
 
-import { normPath } from '@/integrations/shared';
-import { buildMetadataFromSeo, fetchSeoObject, fetchUiSectionObject, readUiText } from '@/seo/server';
+import { buildPageMetadata } from '@/seo/serverMetadata';
 
 export async function generateMetadata({
   params,
@@ -11,33 +10,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
 
-  const [seo, ui] = await Promise.all([
-    fetchSeoObject(locale),
-    fetchUiSectionObject('ui_legal_notice', locale),
-  ]);
-
-  const base = await buildMetadataFromSeo(seo, { locale, pathname: normPath('/legal-notice') });
-
-  const pageTitle =
-    readUiText(ui, 'ui_legal_notice_meta_title') ||
-    readUiText(ui, 'ui_legal_notice_page_title', 'Legal Notice');
-  const pageDescription =
-    readUiText(ui, 'ui_legal_notice_meta_description') ||
-    readUiText(ui, 'ui_legal_notice_page_description', '');
-
-  return {
-    ...base,
-    title: pageTitle,
-    ...(pageDescription ? { description: pageDescription } : {}),
-    openGraph: {
-      ...(base.openGraph || {}),
-      title: pageTitle,
-      ...(pageDescription ? { description: pageDescription } : {}),
-    },
-  };
+  return buildPageMetadata({ locale, pageKey: 'legal_notice', pathname: '/legal-notice', fallback: {
+    title: 'Promats Legal Notice and Company Information',
+    description: 'Review the Promats website operator information, legal notices, intellectual-property terms and contact details.',
+  } });
 }
 
 export default function LegalNoticeLayout({ children }: { children: React.ReactNode }) {
   return children;
 }
-

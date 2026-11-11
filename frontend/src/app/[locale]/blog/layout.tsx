@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import type React from 'react';
 
-import { normPath } from '@/integrations/shared';
-import { buildMetadataFromSeo, fetchSeoObject, fetchSeoPageObject, mergeSeoPageIntoSeo } from '@/seo/server';
+import { buildPageMetadata } from '@/seo/serverMetadata';
 
 export async function generateMetadata({
   params,
@@ -11,11 +10,18 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
 
-  let seo = await fetchSeoObject(locale);
-  const pageSeo = await fetchSeoPageObject(locale, 'blog');
-  seo = mergeSeoPageIntoSeo(seo, pageSeo);
-
-  return buildMetadataFromSeo(seo, { locale, pathname: normPath('/blog') });
+  const isEnglish = locale === 'en';
+  return buildPageMetadata({
+    locale,
+    pageKey: 'blog',
+    pathname: '/blog',
+    fallback: {
+      title: isEnglish ? 'Promats Automotive Mat Articles' : 'Promats Oto Paspas Yazıları',
+      description: isEnglish
+        ? 'Read Promats articles on PVC automotive mats, manufacturing, mould accuracy, product care and sourcing.'
+        : 'PVC oto paspas, üretim, kalıp hassasiyeti, ürün bakımı ve tedarik hakkında Promats yazılarını okuyun.',
+    },
+  });
 }
 
 export default function BlogLayout({ children }: { children: React.ReactNode }) {

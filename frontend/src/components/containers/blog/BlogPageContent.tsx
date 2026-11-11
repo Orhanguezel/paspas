@@ -82,7 +82,7 @@ const BlogPageContent: React.FC = () => {
                   : `${app} journal`,
             )}
           </p>
-          <h1 className="font-serif text-[clamp(2rem,5vw,3.5rem)] leading-[1.1] text-[var(--gm-text)] max-w-3xl mx-auto mb-5">
+          <h2 className="font-serif text-[clamp(2rem,5vw,3.5rem)] leading-[1.1] text-[var(--gm-text)] max-w-3xl mx-auto mb-5">
             {t(
               'ui_blog_hero_title',
               locale === 'tr'
@@ -91,7 +91,7 @@ const BlogPageContent: React.FC = () => {
                   ? 'Artikel zu Vorlage, Inhalt und Produkt'
                   : 'Articles on templates, content, and product',
             )}
-          </h1>
+          </h2>
           <p className="text-base md:text-lg text-[var(--gm-text-dim)] max-w-2xl mx-auto leading-relaxed font-serif italic">
             {t(
               'ui_blog_hero_lead',
