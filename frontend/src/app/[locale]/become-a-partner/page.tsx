@@ -17,6 +17,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const content = await getPageContent<PartnerPageContent>(locale, 'partner');
   return buildPageMetadata({
     locale, pageKey: 'partner', pathname: '/become-a-partner',
+    activeLocales: ['en'],
+    xDefaultLocale: 'en',
     fallback: {
       title: content.meta?.title ?? '',
       description: content.meta?.description ?? '',

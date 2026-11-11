@@ -80,7 +80,8 @@ function toOgLocale(l: string): string {
   const lang = (langRaw || FALLBACK_LOCALE).toLowerCase().slice(0, 2);
   const region = (regionRaw || '').toUpperCase();
 
-  return `${lang}_${region || lang.toUpperCase()}`;
+  const defaultRegion: Record<string, string> = { tr: 'TR', en: 'US', de: 'DE' };
+  return `${lang}_${region || defaultRegion[lang] || lang.toUpperCase()}`;
 }
 
 /** Path normalizasyonu: başında / olsun; kök dışı ise sonda / olmasın */
@@ -238,6 +239,7 @@ export async function buildPageMetadata(args: {
   pageKey: string;
   pathname?: string;
   activeLocales?: string[];
+  xDefaultLocale?: string;
   fallback?: { title?: string; description?: string; ogImage?: string };
 }): Promise<Metadata> {
   const [seo, pageSeoRaw] = await Promise.all([
@@ -257,6 +259,7 @@ export async function buildPageMetadata(args: {
     locale: args.locale,
     pathname: args.pathname,
     activeLocales: args.activeLocales,
+    xDefaultLocale: args.xDefaultLocale,
   });
 }
 
@@ -266,6 +269,7 @@ type BuildMetadataArgs = {
   locale: string;
   pathname?: string; // locale-prefixsiz path: "/" veya "/blog"
   activeLocales?: string[];
+  xDefaultLocale?: string;
 };
 
 export async function buildMetadataFromSeo(
@@ -299,7 +303,10 @@ export async function buildMetadataFromSeo(
   // ✅ SINGLE SOURCE: og.images[]
   // Legacy support: og.image varsa images[0] gibi davran
   const legacyOne = asStr(og?.image);
-  const ogImages = uniq([...(legacyOne ? [legacyOne] : []), ...asStrArr(og?.images)])
+  const configuredOgImages = uniq([...(legacyOne ? [legacyOne] : []), ...asStrArr(og?.images)]);
+  const ogImages = (configuredOgImages.length
+    ? configuredOgImages
+    : ['/userfiles/images/banner/sldier1icon-kopya.jpg'])
     .map((u) => absUrlJoin(baseUrl, u))
     .filter(Boolean);
 
@@ -325,7 +332,11 @@ export async function buildMetadataFromSeo(
   for (const l of active) {
     languages[l] = absUrlJoin(baseUrl, localizedPath(l, localizedPromatsPath(l, pathname), defaultLocale));
   }
-  languages['x-default'] = absUrlJoin(baseUrl, localizedPath(defaultLocale, pathname, defaultLocale));
+  const xDefaultLocale = normLocaleShort(args.xDefaultLocale || defaultLocale, defaultLocale);
+  languages['x-default'] = absUrlJoin(
+    baseUrl,
+    localizedPath(xDefaultLocale, localizedPromatsPath(xDefaultLocale, pathname), defaultLocale),
+  );
 
   const ogLocale = toOgLocale(locale);
   const ogAltLocales = active

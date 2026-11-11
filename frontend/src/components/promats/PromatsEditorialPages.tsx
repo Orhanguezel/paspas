@@ -115,6 +115,7 @@ export type ResourcesPageContent = {
   read: string;
   empty: string;
   backLabel: string;
+  guide?: { heading: string; paragraphs: string[] };
 };
 
 export function PromatsArticlesPage({ locale, articles, content: c }: { locale: string; articles: ArticleListItem[]; content: ResourcesPageContent }) {
@@ -164,6 +165,14 @@ export function PromatsArticlesPage({ locale, articles, content: c }: { locale: 
           )}
         </div>
       </section>
+      {c.guide?.paragraphs?.length ? (
+        <section className="pm-section position-relative">
+          <div className="container pm-prose">
+            <h2>{c.guide.heading}</h2>
+            {c.guide.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

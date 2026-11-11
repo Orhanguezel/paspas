@@ -1,4 +1,5 @@
 import { fetchSetting } from '@/i18n/server';
+import { getPublicSiteOrigin } from '@/lib/site-config';
 export const dynamic = 'force-dynamic';
 
 function record(value: unknown): Record<string, unknown> {
@@ -11,7 +12,7 @@ function lines(value: unknown): string[] {
   return String(value ?? '').split('\n').map((line) => line.trim()).filter(Boolean);
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   const [trRow, enRow] = await Promise.all([
     fetchSetting('geo_seo', 'tr', { revalidate: 300 }),
     fetchSetting('geo_seo', 'en', { revalidate: 300 }),
@@ -23,11 +24,16 @@ export async function GET(request: Request) {
     return new Response('Not Found', { status: 404 });
   }
 
-  const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim();
-  const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim() || 'https';
-  const origin = forwardedHost
-    ? `${forwardedProto}://${forwardedHost}/promats`
-    : new URL(request.url).origin;
+  // Public origin tek kaynaktan gelir. Reverse proxy host'una koşulsuz /promats
+  // eklemek kök alan adında sahte URL'ler üretiyordu.
+  const origin = getPublicSiteOrigin().replace(/\/+$/, '');
+  const keyPages = [
+    `- Products: ${origin}/en/products`,
+    `- Manufacturing: ${origin}/en/production`,
+    `- OEM manufacturing: ${origin}/en/oem-manufacturing`,
+    `- Resources: ${origin}/en/resources`,
+    `- Contact: ${origin}/en/contact`,
+  ];
   const output = [
     `# ${String(config.entity_name || 'Promats')}`,
     '',
@@ -51,9 +57,11 @@ export async function GET(request: Request) {
     ...lines(config.verified_facts).map((item) => `- ${item}`),
     '',
     '## Approved Sources',
-    ...lines(config.approved_sources).map((item) => `- ${item}`),
+    `- ${origin}/tr`,
+    `- ${origin}/en`,
     '',
-    String(config.llms_sections || ''),
+    '## Key Pages',
+    ...keyPages,
   ].join('\n');
 
   return new Response(output, {

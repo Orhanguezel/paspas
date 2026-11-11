@@ -10,7 +10,10 @@ import { fetchSetting } from '@/i18n/server';
 
 const BASE_URL = getPublicSiteOrigin();
 
-const COMMON_DISALLOW = ['/api/', '/admin/', '/_next/', '/me/'];
+// Arama motorlarının sayfayı doğru işleyebilmesi için Next.js CSS/JS/image
+// varlıkları taranabilir kalmalıdır. /_next/ engeli rendered HTML'nin 99 sayfada
+// eksik değerlendirilmesine yol açıyordu.
+const COMMON_DISALLOW = ['/api/', '/admin/', '/me/'];
 
 /** AI crawler bot listesi — explicit allow ile site içeriğine erişim onaylanır. */
 const AI_BOTS = [

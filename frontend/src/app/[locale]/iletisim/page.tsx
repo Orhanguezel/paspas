@@ -17,17 +17,24 @@ export function generateStaticParams() {
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ product?: string; requestType?: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const query = await searchParams;
   const content = await getPageContent<{ meta: { title: string; description: string } }>(locale, 'contact');
-  return buildPageMetadata({
+  const metadata = await buildPageMetadata({
     locale,
     pageKey: 'contact',
     pathname: '/iletisim',
     fallback: content.meta,
   });
+  if (query.product || query.requestType) {
+    metadata.robots = { index: false, follow: true };
+  }
+  return metadata;
 }
 
 export default async function ContactPage({
@@ -66,6 +73,21 @@ export default async function ContactPage({
         description:
           'İster ürünlerimiz hakkında bilgi almak, ister fiyat teklifi talep etmek ya da markanıza özel üretim seçeneklerini değerlendirmek isteyin; ekibimiz size yardımcı olmaktan memnuniyet duyacaktır.',
         bullets: ['Hızlı geri dönüş', 'Ürün ve fiyat desteği', 'Markanıza özel üretim'],
+      };
+  const contactGuide = isEn
+    ? {
+        title: 'How Promats handles your request',
+        paragraphs: [
+          'Choose the relevant product series and explain the intended market, quantity range or private-label requirement. This gives the Promats team the context needed to route a product, quotation or OEM request correctly.',
+          'For technical questions, include the product name and the feature you want to compare. For distribution or OEM discussions, describe the target market and requested support without sending confidential production data through the public form.',
+        ],
+      }
+    : {
+        title: 'Talebiniz Promats ekibine nasıl iletilir?',
+        paragraphs: [
+          'İlgilendiğiniz ürün serisini seçip hedef pazar, yaklaşık miktar veya private label ihtiyacınızı açıklayın. Bu bilgi; ürün, teklif ya da OEM talebinizin doğru ekibe yönlendirilmesini sağlar.',
+          'Teknik sorularda ürün adını ve karşılaştırmak istediğiniz özelliği belirtin. Distribütörlük veya OEM görüşmelerinde hedef pazarı ve beklediğiniz desteği yazın; gizli üretim verilerini herkese açık form üzerinden göndermeyin.',
+        ],
       };
 
   return (
@@ -113,6 +135,12 @@ export default async function ContactPage({
               />
             </div>
           </div>
+        </div>
+      </section>
+      <section className="pm-section promats-contact-guide position-relative">
+        <div className="container pm-prose">
+          <h2>{contactGuide.title}</h2>
+          {contactGuide.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
         </div>
       </section>
       {contactMapEmbedUrl ? (

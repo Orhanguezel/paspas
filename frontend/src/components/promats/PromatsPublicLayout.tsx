@@ -6,6 +6,7 @@ import PromatsHeader from './PromatsHeader';
 
 import { getMenu, getProducts, getSettings } from '@/lib/promats/api';
 import { getSiteConfig } from '@/lib/promats/site-config.server';
+import { organizationReference, websiteReference } from '@/seo/promatsStructuredData';
 
 type Props = {
   children: ReactNode;
@@ -32,9 +33,17 @@ export default async function PromatsPublicLayout({ children, locale, title }: P
 
   const headerMenu = byPosition(MENU_POSITION.header);
   const footerMenu = byPosition(MENU_POSITION.footer);
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [organizationReference(siteConfig), websiteReference()],
+  };
 
   return (
     <div className="promats-public promats-legacy-active">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <AOSInit />
       <PromatsHeader
         locale={locale}

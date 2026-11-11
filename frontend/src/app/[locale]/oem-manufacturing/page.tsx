@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import { PromatsOemPage, type OemPageContent } from '@/components/promats/PromatsOemPage';
 import { getPageContent, getProducts } from '@/lib/promats/api';
 import { buildPageMetadata } from '@/seo/serverMetadata';
+import { getSiteConfig } from '@/lib/promats/site-config.server';
+import { organizationLogoUrl, PROMATS_ORGANIZATION_ID } from '@/seo/promatsStructuredData';
 
 // OEM sayfası yalnızca İngilizce yayında (B2B ihracat hedef kitlesi). TR yolu 404 döner.
 const PROMATS_LOCALES = ['en'] as const;
@@ -20,12 +22,14 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const c = await getPageContent<OemPageContent>(locale, 'oem');
   return buildPageMetadata({
     locale, pageKey: 'oem', pathname: '/oem-manufacturing',
+    activeLocales: ['en'],
+    xDefaultLocale: 'en',
     fallback: { title: c.meta.title, description: c.meta.description },
   });
 }
 
 // AI platformlari (ChatGPT/Perplexity/Gemini) ve zengin sonuclar icin FAQ + Organization JSON-LD.
-function buildJsonLd(c: OemPageContent) {
+function buildJsonLd(c: OemPageContent, logo: string) {
   const faq = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -38,9 +42,11 @@ function buildJsonLd(c: OemPageContent) {
   const org = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
+    '@id': PROMATS_ORGANIZATION_ID,
     name: 'Promats',
     description: c.meta.description,
     url: 'https://promats.com.tr/en/oem-manufacturing',
+    ...(logo ? { logo: { '@type': 'ImageObject', url: logo } } : {}),
     email: 'export@promats.com.tr',
     foundingDate: '2017',
     address: {
@@ -65,11 +71,12 @@ export default async function Page({ params }: { params: Promise<{ locale: strin
   const { locale } = await params;
   if (locale !== 'en') notFound();
 
-  const [products, content] = await Promise.all([
+  const [products, content, siteConfig] = await Promise.all([
     getProducts(locale),
     getPageContent<OemPageContent>(locale, 'oem'),
+    getSiteConfig(locale),
   ]);
-  const jsonLd = buildJsonLd(content);
+  const jsonLd = buildJsonLd(content, organizationLogoUrl(siteConfig));
 
   return (
     <>

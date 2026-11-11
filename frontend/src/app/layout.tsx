@@ -2,6 +2,7 @@
 import './globals.css';
 import React from 'react';
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 import { brandFontVariableClassName } from '@/lib/fonts/brand-fonts';
 import { fetchSetting } from '@/i18n/server';
 import { fetchDesignTokens, fetchPromatsThemeTokens } from '@/lib/tokens/fetchTokens.server';
@@ -9,7 +10,6 @@ import { detectThemeMode } from '@/lib/tokens/detectThemeMode';
 import { tokensToCSS } from '@/lib/tokens/tokensToCSS';
 import {
   getDefaultTokenBranding,
-  getHtmlMetaDescriptionForLocale,
   getPublicSiteOrigin,
   getRootLayoutTitleDefault,
   getRootLayoutTitleTemplate,
@@ -90,9 +90,11 @@ function promatsTokensToCSS(tokens: Awaited<ReturnType<typeof fetchPromatsThemeT
 }
 
 /** Extract locale from the request URL pathname (e.g. /en/about → "en") */
-function resolveHtmlLang(): string {
+async function resolveHtmlLang(): Promise<string> {
   const fallback = process.env.NEXT_PUBLIC_DEFAULT_LOCALE || 'tr';
-  return SUPPORTED_LOCALES.includes(fallback) ? fallback : 'tr';
+  const requestHeaders = await headers();
+  const requested = requestHeaders.get('x-promats-locale')?.toLowerCase() || fallback;
+  return SUPPORTED_LOCALES.includes(requested) ? requested : 'tr';
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -148,8 +150,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const lang = resolveHtmlLang();
-  const htmlDescription = getHtmlMetaDescriptionForLocale(lang);
+  const lang = await resolveHtmlLang();
   // Tema mode'u design_tokens içindeki bg_base luminance'ından hesapla (preset'ten gelir).
   // Kullanıcı manuel toggle yaparsa client-side override eder (localStorage).
   const [tokens, promatsThemeTokens] = await Promise.all([
@@ -170,7 +171,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <style id="design-tokens" dangerouslySetInnerHTML={{ __html: tokenCss }} />
         {promatsTokenCss ? <style id="promats-theme-tokens" dangerouslySetInnerHTML={{ __html: promatsTokenCss }} /> : null}
-        <meta name="description" content={htmlDescription} />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />

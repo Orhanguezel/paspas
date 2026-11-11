@@ -6,6 +6,7 @@ import PromatsStaticPage from '@/components/promats/PromatsStaticPage';
 import { assetPath, getPageContentOptional, getSpecialPage, getSpecialPages, stripHtml } from '@/lib/promats/api';
 
 const PROMATS_LOCALES = ['tr', 'en'] as const;
+const DEFAULT_SHARE_IMAGE = '/userfiles/images/banner/sldier1icon-kopya.jpg';
 
 // Kurumsal (Hakkımızda) sayfası artık modern pm-* tasarımıyla render edilir; DB özel sayfası
 // yerine PromatsHakkimizdaPage. Slug locale'e göre: TR=hakkimizda, EN=about-us.
@@ -38,15 +39,25 @@ export async function generateMetadata({
     return {
       title: c.meta.title,
       description: c.meta.description,
-      alternates: { canonical: `/${locale}/${etiket}`, languages: { tr: '/tr/hakkimizda', en: '/en/about-us' } },
-      openGraph: { title: c.meta.title, description: c.meta.description, type: 'website', url: `/${locale}/${etiket}` },
+      alternates: {
+        canonical: `/${locale}/${etiket}`,
+        languages: { tr: '/tr/hakkimizda', en: '/en/about-us', 'x-default': '/tr/hakkimizda' },
+      },
+      openGraph: {
+        title: c.meta.title,
+        description: c.meta.description,
+        type: 'website',
+        url: `/${locale}/${etiket}`,
+        images: [DEFAULT_SHARE_IMAGE],
+      },
+      twitter: { card: 'summary_large_image', images: [DEFAULT_SHARE_IMAGE] },
     };
   }
   const page = await getSpecialPage(locale, etiket);
   if (!page) return {};
   const title = page.title || 'Promats';
   const description = stripHtml(page.detail).slice(0, 155);
-  const images = page.image ? [assetPath(page.image)] : undefined;
+  const images = [page.image ? assetPath(page.image) : DEFAULT_SHARE_IMAGE];
   return {
     title,
     description,
@@ -57,8 +68,9 @@ export async function generateMetadata({
       title,
       description,
       type: 'article',
-      ...(images ? { images } : {}),
+      images,
     },
+    twitter: { card: 'summary_large_image', images },
   };
 }
 

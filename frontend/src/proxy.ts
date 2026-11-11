@@ -23,6 +23,13 @@ const NON_LOCALE_PREFIXES = ['admin', 'api', 'uploads', 'public', 'static', 'ima
 // Static file extensions — middleware'i atla
 const STATIC_EXT_RE = /\.(?:ico|png|jpg|jpeg|gif|svg|webp|woff2?|ttf|otf|eot|css|js|map|txt|xml|json|webmanifest)$/i;
 
+function requestHeaders(req: NextRequest, locale?: string) {
+  const headers = new Headers(req.headers);
+  if (locale) headers.set('x-promats-locale', locale);
+  headers.set('x-promats-pathname', req.nextUrl.pathname);
+  return headers;
+}
+
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const basePath = (process.env.NEXT_PUBLIC_BASE_PATH || '').replace(/\/$/, '');
@@ -63,15 +70,15 @@ export function proxy(req: NextRequest) {
       segments[1] = EN_EXTERNAL_TO_INTERNAL[second];
       target.pathname = `/${segments.join('/')}`;
       if (target.hostname === 'localhost' || target.hostname === '127.0.0.1') target.protocol = 'http:';
-      const requestHeaders = new Headers(req.headers);
-      requestHeaders.set('x-promats-internal-route', '1');
-      return NextResponse.rewrite(target, { request: { headers: requestHeaders } });
+      const headers = requestHeaders(req, 'en');
+      headers.set('x-promats-internal-route', '1');
+      return NextResponse.rewrite(target, { request: { headers } });
     }
   }
 
   // Locale prefix var ve destekli — olduğu gibi geç
   if (firstSeg && (SUPPORTED_LOCALES as readonly string[]).includes(firstSeg)) {
-    return NextResponse.next();
+    return NextResponse.next({ request: { headers: requestHeaders(req, firstSeg) } });
   }
 
   // Koku canonical locale URL'sine yonlendir. Absolute internal rewrite,
@@ -95,7 +102,7 @@ export function proxy(req: NextRequest) {
     url.protocol = 'http:';
   }
   url.pathname = `/${DEFAULT_LOCALE}${pathname === '/' ? '' : pathname}`;
-  return NextResponse.rewrite(url);
+  return NextResponse.rewrite(url, { request: { headers: requestHeaders(req, DEFAULT_LOCALE) } });
 }
 
 export const config = {

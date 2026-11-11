@@ -5,6 +5,8 @@ import { PromatsArticleDetailPage, type ResourcesPageContent } from '@/component
 import { assetPath, getArticle, getArticles, getPageContent, stripHtml } from '@/lib/promats/api';
 import { getPublicSiteOrigin } from '@/lib/site-config';
 import { localeHref } from '@/lib/promats/links';
+import { getSiteConfig } from '@/lib/promats/site-config.server';
+import { organizationLogoUrl, PROMATS_ORGANIZATION_ID } from '@/seo/promatsStructuredData';
 
 const PROMATS_LOCALES = ['tr', 'en'] as const;
 
@@ -40,20 +42,29 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 export default async function Page({ params }: { params: Promise<{ locale: string; slug: string }> }) {
   const { locale, slug } = await params;
-  const [article, resources] = await Promise.all([
+  const [article, resources, siteConfig] = await Promise.all([
     getArticle(locale, slug),
     getPageContent<ResourcesPageContent>(locale, 'resources'),
+    getSiteConfig(locale),
   ]);
   if (!article) notFound();
   const origin = getPublicSiteOrigin();
+  const organizationLogo = organizationLogoUrl(siteConfig);
+  const organization = {
+    '@type': 'Organization',
+    '@id': PROMATS_ORGANIZATION_ID,
+    name: 'Promats',
+    url: origin,
+    ...(organizationLogo ? { logo: { '@type': 'ImageObject', url: organizationLogo } } : {}),
+  };
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: article.title,
     image: article.image ? [`${origin}${assetPath(article.image)}`] : undefined,
     datePublished: article.publishedAt,
-    author: { '@type': 'Organization', name: 'Promats' },
-    publisher: { '@type': 'Organization', name: 'Promats' },
+    author: organization,
+    publisher: { '@id': PROMATS_ORGANIZATION_ID },
     mainEntityOfPage: `${origin}${localeHref(locale, `/kaynaklar/${article.slug}`)}`,
   };
 

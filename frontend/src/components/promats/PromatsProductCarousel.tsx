@@ -22,45 +22,36 @@ type Props = {
 };
 
 
-function StaticProductRow({ locale, items }: { locale: string; items: Product[] }) {
-  return (
-    <div className="row small_product">
-      {items.slice(0, 5).map((product) => (
-        <div className="col-12 col-sm-4 col-lg text-center product_showcase_small" key={product.id}>
-          <a href={href(locale, `/urunler/${product.slug}`)}>
-            <PromatsImage
-              src={product.sections.detailImage}
-              alt=""
-              className="img-fluid"
-              sizes="(max-width: 599px) 100vw, (max-width: 999px) 33vw, 20vw"
-              loading="lazy"
-            />
-            <span>{product.name}</span>
-          </a>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default function PromatsProductCarousel({ locale, products, excludeId, settings }: Props) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const swiperRef = useRef<SwiperType | null>(null);
-  const [swiperReady, setSwiperReady] = useState(false);
+  const [isNearViewport, setIsNearViewport] = useState(false);
   const items = products.filter((p) => p.id !== excludeId);
   const arrowLeft = settings.product_carousel_arrow_left;
   const arrowRight = settings.product_carousel_arrow_right;
 
   useEffect(() => {
-    const timer = globalThis.setTimeout(() => setSwiperReady(true), 0);
-    return () => globalThis.clearTimeout(timer);
+    const node = containerRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setIsNearViewport(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px 0px' },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
   }, []);
 
   if (!items.length || !arrowLeft || !arrowRight) return null;
 
-  if (!swiperReady) {
+  if (!isNearViewport) {
     return (
-      <div className="row" data-aos="fade-up" data-aos-delay="100">
-        <StaticProductRow locale={locale} items={items} />
+      <div ref={containerRef} className="row promats-product-carousel-placeholder" aria-hidden="true">
+        <div style={{ minHeight: 220 }} />
       </div>
     );
   }
@@ -68,7 +59,7 @@ export default function PromatsProductCarousel({ locale, products, excludeId, se
   const options = getProductSwiperOptions();
 
   return (
-    <div className="row" data-aos="fade-up" data-aos-delay="100">
+    <div ref={containerRef} className="row" data-aos="fade-up" data-aos-delay="100">
       <button
         type="button"
         className="small-left border-0 bg-transparent p-0"

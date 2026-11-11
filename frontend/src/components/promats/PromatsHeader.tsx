@@ -197,7 +197,11 @@ export default function PromatsHeader({ locale, products, settings, siteConfig, 
       <nav className={`untree_co--site-nav js-sticky-nav ${darkHeader ? 'black-header' : ''}`}>
         <div className="container d-flex align-items-center">
           <div className="logo-wrap">
-            <a href={localeHref(locale, '/')} className="untree_co--site-logo">
+            <a
+              href={localeHref(locale, '/')}
+              className="untree_co--site-logo"
+              aria-label={locale === 'en' ? 'Promats home page' : 'Promats ana sayfa'}
+            >
               {siteConfig.logo ? (
                 <PromatsImage src={siteConfig.logo} alt="Promats" width={204} height={65} priority assetBase="/assets" />
               ) : null}

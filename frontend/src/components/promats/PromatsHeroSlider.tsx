@@ -51,12 +51,14 @@ export default function PromatsHeroSlider({ banners, locale }: Props) {
 
   return (
     <section className="owl-carousel owl-hero promats-hero--fixed">
+      {/* İlk LCP görseli Swiper yüklenince DOM'dan kaldırılmaz. Böylece client
+          hydration/dinamik import ana görseli yeniden adaylaştırıp boyamayı geciktirmez. */}
+      <PromatsHeroBg src={first.image} priority className="untree_co--site-hero overlay promats-hero-static" />
       {SwiperInner ? (
-        <SwiperInner banners={banners} onSlideChange={handleSlideChange} />
-      ) : (
-        // Swiper yuklenene kadar ilk gorsel (metin overlay'de, burada degil)
-        <PromatsHeroBg src={first.image} priority />
-      )}
+        <div className="promats-hero-swiper-layer">
+          <SwiperInner banners={banners} onSlideChange={handleSlideChange} />
+        </div>
+      ) : null}
 
       {parsed ? (
         <div className={`promats-hero-overlay promats-hero-overlay--${locale}`}>

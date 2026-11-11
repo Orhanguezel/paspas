@@ -192,10 +192,10 @@ export default function PromatsProductDetail({ locale, product, related, setting
                     className="float-right number1"
                   />
                 ) : null}
-                <h2>
+                <h1>
                   {product.hero.title1}
                   <span>{product.hero.title2}</span>
-                </h2>
+                </h1>
                 <span dangerouslySetInnerHTML={{ __html: decodeHtml(product.hero.description) }} />
                 {colors.length ? (
                   <>
@@ -400,7 +400,7 @@ export default function PromatsProductDetail({ locale, product, related, setting
         <section className="untree_co--site-section promats-product-related position-relative">
         <DevNote section="product-related" title="Diğer Ürünler" />
         <div className="container">
-          <h1 className="other-header text-center">{relatedTitle}</h1>
+          <h2 className="other-header text-center">{relatedTitle}</h2>
           <PromatsProductCarousel locale={locale} products={related} excludeId={product.id} settings={settings} />
         </div>
       </section>

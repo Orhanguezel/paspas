@@ -72,7 +72,7 @@ export default function PromatsHome({
 
               <div className="col-md-6 col-lg-6 mb-5" data-aos="fade-up" data-aos-delay="200">
                 <div className="text-left h-100">
-                  <h1 className="product_showcase_header d-none d-lg-block">{t(settings, 'ÜRÜNLER')}</h1>
+                  <h2 className="product_showcase_header d-none d-lg-block">{t(settings, 'ÜRÜNLER')}</h2>
                   <p className="product_showcase_intro d-none d-lg-block">{t(settings, URUNLER_INTRO_KEY)}</p>
                   <fieldset className="col-md-12 col-lg-8 text-center product_showcase_prop mt-1 mt-lg-5 pb-3">
                     <legend>{showcase.hero.title1}<span>{showcase.hero.title2}</span></legend>
@@ -103,7 +103,7 @@ export default function PromatsHome({
       {whyPromats ? (
         <section className="black_bg black_showreel promats-why-section position-relative">
           <DevNote section="home-neden-promats" title="Neden Promats" />
-          <h1 className="d-none d-lg-block promats-why-watermark">{whyPromats.title}</h1>
+          <h2 className="d-none d-lg-block promats-why-watermark">{whyPromats.title}</h2>
           <div className="container">
             <div className="row no-gutters align-items-center">
               <div className="col-12 col-lg-6 promats-why-copy" data-aos="fade-up" data-aos-delay="200" dangerouslySetInnerHTML={{ __html: localizedWhyPromatsDetail(locale, whyPromats.detail) }} />
@@ -122,7 +122,7 @@ export default function PromatsHome({
             <div className="col-12">
               {features ? (
                 <>
-                  <h1 className="text-center promats-section-title">{features.title}</h1>
+                  <h2 className="text-center promats-section-title">{features.title}</h2>
                   <div className="row derin-havuzlu no-gutters" data-aos="fade-up" data-aos-delay="200">
                     <div className="col-12 col-lg-7 left-column d-flex align-items-center justify-content-center order-2 order-lg-1">
                       <div className="row mt-4" dangerouslySetInnerHTML={{ __html: decodeHtml(features.detail) }} />

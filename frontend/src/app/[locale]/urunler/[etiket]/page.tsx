@@ -26,19 +26,37 @@ export async function generateMetadata({
   params: Promise<{ locale: string; etiket: string }>;
 }): Promise<Metadata> {
   const { locale, etiket } = await params;
-  const product = await getProduct(locale, etiket);
+  const alternateLocale = locale === 'en' ? 'tr' : 'en';
+  const [product, alternateProducts] = await Promise.all([
+    getProduct(locale, etiket),
+    getProducts(alternateLocale),
+  ]);
   if (!product) return {};
-  const description = product.seo?.description || stripHtml(product.hero.description || product.sections.conceptDescription).slice(0, 155);
+  const rawDescription = product.seo?.description || stripHtml(product.hero.description || product.sections.conceptDescription);
+  const description = `${product.name} — ${rawDescription}`.replace(/\s+/g, ' ').trim().slice(0, 155);
+  const alternateProduct = alternateProducts.find((candidate) => candidate.id === product.id);
+  const selfPath = localeHref(locale, `/urunler/${product.slug}`);
+  const alternatePath = alternateProduct
+    ? localeHref(alternateLocale, `/urunler/${alternateProduct.slug}`)
+    : '';
+  const languages: Record<string, string> = { [locale]: selfPath };
+  if (alternatePath) languages[alternateLocale] = alternatePath;
+  languages['x-default'] = locale === 'tr' ? selfPath : alternatePath || selfPath;
   return {
     title: product.seo?.title || product.name,
     description,
     alternates: {
-      canonical: localeHref(locale, `/urunler/${product.slug}`),
+      canonical: selfPath,
+      languages,
     },
     openGraph: {
       title: product.seo?.title || product.name,
       description,
       type: 'website',
+      images: [assetPath(product.hero.image || product.sections.detailImage)],
+    },
+    twitter: {
+      card: 'summary_large_image',
       images: [assetPath(product.hero.image || product.sections.detailImage)],
     },
   };

@@ -48,8 +48,9 @@ export default function PromatsHeroContents({ headings, subHtml }: HeroParsed) {
 
   return (
     <div className="site-hero-contents promats-hero-contents">
+      <h1 className="hero-heading">
       {headings.map((line, lineIdx) => (
-        <h1 className="hero-heading" key={`${line}-${lineIdx}`}>
+        <span className="promats-hero-heading-line" key={`${line}-${lineIdx}`}>
           {line.split(/(\s+)/).map((token, tokenIdx) => {
             if (/^\s+$/.test(token)) {
               letterIndex += 1;
@@ -73,8 +74,9 @@ export default function PromatsHeroContents({ headings, subHtml }: HeroParsed) {
               </span>
             );
           })}
-        </h1>
+        </span>
       ))}
+      </h1>
       {subHtml ? (
         <div className="sub-text" dangerouslySetInnerHTML={{ __html: subHtml }} />
       ) : null}
