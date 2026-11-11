@@ -34,7 +34,11 @@ export async function generateMetadata({
   if (!product) return {};
   const rawDescription = product.seo?.description || stripHtml(product.hero.description || product.sections.conceptDescription);
   const description = `${product.name} — ${rawDescription}`.replace(/\s+/g, ' ').trim().slice(0, 155);
-  const alternateProduct = alternateProducts.find((candidate) => candidate.id === product.id);
+  // TR ve EN urun kayitlari ayri satirlarda tutuldugu icin ID'leri farklidir.
+  // Katalogdaki ortak sira numarasi iki dilde ayni seriyi temsil eder.
+  const alternateProduct = alternateProducts.find(
+    (candidate) => candidate.id === product.id || candidate.sortOrder === product.sortOrder,
+  );
   const selfPath = localeHref(locale, `/urunler/${product.slug}`);
   const alternatePath = alternateProduct
     ? localeHref(alternateLocale, `/urunler/${alternateProduct.slug}`)
@@ -43,7 +47,7 @@ export async function generateMetadata({
   if (alternatePath) languages[alternateLocale] = alternatePath;
   languages['x-default'] = locale === 'tr' ? selfPath : alternatePath || selfPath;
   return {
-    title: product.seo?.title || product.name,
+    title: { absolute: product.seo?.title || product.name },
     description,
     alternates: {
       canonical: selfPath,
