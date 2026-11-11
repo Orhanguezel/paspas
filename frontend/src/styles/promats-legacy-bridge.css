@@ -4,15 +4,15 @@
  */
 
 .promats-public {
-  --font-display: var(--font-pj), 'Plus Jakarta Sans', Arial, sans-serif;
-  --font-serif: var(--font-pj), 'Plus Jakarta Sans', Arial, sans-serif;
-  --font-sans: var(--font-pj), 'Plus Jakarta Sans', Arial, sans-serif;
+  --font-display: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --font-serif: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
   font-family: var(--font-sans);
   font-synthesis: none;
 }
 
 body:has(.promats-public) {
-  font-family: var(--font-sans);
+  font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
   color: var(--pm-text-body, #707070);
   line-height: 1.7;
 }

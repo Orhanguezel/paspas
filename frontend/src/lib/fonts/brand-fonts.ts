@@ -4,6 +4,7 @@ export const fontSans = Plus_Jakarta_Sans({
   subsets: ['latin', 'latin-ext'],
   variable: '--font-pj',
   display: 'swap',
+  preload: false,
   weight: ['400', '500', '600', '700'],
   fallback: ['system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
 });
