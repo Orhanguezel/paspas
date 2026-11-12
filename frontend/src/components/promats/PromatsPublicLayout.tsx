@@ -17,6 +17,11 @@ type Props = {
 
 // Menü position: 1 = header, 2 = footer. sortOrder'a göre sıralı.
 const MENU_POSITION = { header: 1, footer: 2 } as const;
+const SHELL_SETTING_KEYS = [
+  'Yükleniyor', 'Bizi Takip Edin', 'E-Katalog', 'Görüntüle', 'Online incele',
+  'PDF İndir', 'Kataloğu indir', 'Aranacak kelimeyi yazınız', 'Katalog Görüntüle',
+  'Promats A.Ş Tüm Hakları Saklıdır.',
+] as const;
 
 export default async function PromatsPublicLayout({ children, locale, title }: Props) {
   const [products, settings, siteConfig, menu] = await Promise.all([
@@ -34,6 +39,12 @@ export default async function PromatsPublicLayout({ children, locale, title }: P
 
   const headerMenu = byPosition(MENU_POSITION.header);
   const footerMenu = byPosition(MENU_POSITION.footer);
+  // Client header only needs navigation identity. Serializing all product detail,
+  // feature and editorial fields into every page's RSC payload added ~93 KB.
+  const navigationProducts = products.map(({ id, name, slug }) => ({ id, name, slug }));
+  const shellSettings = Object.fromEntries(
+    SHELL_SETTING_KEYS.flatMap((key) => settings[key] == null ? [] : [[key, settings[key]]]),
+  );
   const structuredData = {
     '@context': 'https://schema.org',
     '@graph': [organizationReference(siteConfig), websiteReference()],
@@ -48,8 +59,8 @@ export default async function PromatsPublicLayout({ children, locale, title }: P
       <AOSInit />
       <PromatsHeader
         locale={locale}
-        products={products}
-        settings={settings}
+        products={navigationProducts}
+        settings={shellSettings}
         siteConfig={siteConfig}
         menu={headerMenu}
         title={title}
@@ -58,7 +69,7 @@ export default async function PromatsPublicLayout({ children, locale, title }: P
         {children}
         <PromatsDiscoveryLinks locale={locale} productCount={products.length} />
       </main>
-      <PromatsFooter locale={locale} settings={settings} siteConfig={siteConfig} menu={footerMenu} />
+      <PromatsFooter locale={locale} settings={shellSettings} siteConfig={siteConfig} menu={footerMenu} />
     </div>
   );
 }

@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   if (locale !== 'en') return {};
   const content = await getPageContent<PartnerPageContent>(locale, 'partner');
-  return buildPageMetadata({
+  const metadata = await buildPageMetadata({
     locale, pageKey: 'partner', pathname: '/become-a-partner',
     activeLocales: ['en'],
     xDefaultLocale: 'en',
@@ -24,6 +24,13 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
       description: content.meta?.description ?? '',
     },
   });
+  const title = 'Promats Distributor Partnership | Promats';
+  return {
+    ...metadata,
+    title: { absolute: title },
+    openGraph: metadata.openGraph ? { ...metadata.openGraph, title } : undefined,
+    twitter: metadata.twitter ? { ...metadata.twitter, title } : undefined,
+  };
 }
 
 export default async function Page({ params }: { params: Promise<{ locale: string }> }) {

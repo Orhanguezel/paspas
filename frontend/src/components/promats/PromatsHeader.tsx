@@ -14,7 +14,7 @@ import PromatsSocialLinks from './PromatsSocialLinks';
 
 type Props = {
   locale: string;
-  products: Product[];
+  products: Array<Pick<Product, 'id' | 'name' | 'slug'>>;
   settings: Record<string, string>;
   siteConfig: SiteConfig;
   menu: MenuLink[];
