@@ -64,7 +64,7 @@ export default function PromatsDiscoveryLinks({ locale, productCount }: { locale
             ))}
           </ul>
         </nav>
-        <aside className="pm-discovery__evidence" aria-labelledby="promats-evidence-title">
+        <div className="pm-discovery__evidence" role="note" aria-labelledby="promats-evidence-title">
           <h3 id="promats-evidence-title">{copy.evidenceTitle}</h3>
           <div>
             <p>{copy.evidenceText(productCount)}</p>
@@ -76,7 +76,7 @@ export default function PromatsDiscoveryLinks({ locale, productCount }: { locale
               </span>
             </p>
           </div>
-        </aside>
+        </div>
       </div>
     </section>
   );
