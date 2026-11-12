@@ -58,7 +58,7 @@ function copy(locale: string, products: Product[]) {
           href: fiveDimensional,
         },
         {
-          title: 'Car mat manufacturer and exporter for wholesale car mats',
+          title: 'Wholesale car mats: manufacturer and car mat exporter',
           body: 'Importers, distributors and private-label buyers can submit the target market, relevant series and approximate quantity for evaluation. Promats confirms current wholesale and export terms separately.',
           cta: 'Explore OEM and wholesale supply',
           href: href(locale, '/oem-manufacturing'),
