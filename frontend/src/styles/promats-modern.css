@@ -2263,6 +2263,23 @@
   line-height: 1.65;
 }
 
+.pm-discovery__evidence .pm-discovery__source {
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.82rem;
+}
+
+.pm-discovery__source a {
+  color: #fff;
+  text-decoration: underline;
+  text-decoration-color: var(--pm-brand, #ffa001);
+  text-underline-offset: 3px;
+}
+
+.pm-discovery__source span {
+  white-space: nowrap;
+}
+
 .pm-article-byline {
   display: flex;
   flex-wrap: wrap;
