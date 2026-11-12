@@ -4,6 +4,7 @@ import { localeHref as href } from '@/lib/promats/links';
 
 import PromatsImage from './PromatsImage';
 import PromatsFaqSection from './PromatsFaqSection';
+import PromatsProductIntentGuide from './PromatsProductIntentGuide';
 import { productsFaq } from './promatsFaqContent';
 import {
   PmContactBlock,
@@ -151,6 +152,8 @@ export function PromatsProductsPage({ locale, products, content: c }: { locale: 
           </ul>
         </div>
       </section>
+
+      <PromatsProductIntentGuide locale={locale} products={products} />
 
       {/* ORTAK ÖZELLİKLER — anasayfa slider "Ürün Özellikleri" butonu buraya baglanir (#ozellikler) */}
       {featureCards.length ? (
